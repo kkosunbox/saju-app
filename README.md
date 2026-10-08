@@ -1,56 +1,47 @@
-# Welcome to your Expo app 👋
+# saju-app (오늘나)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+사주 · 태국 점성술 · MBTI · 혈액형을 종합한 개인 맞춤 운세 앱.
+Expo(SDK 57) + Expo Router로 **iOS · Android · Web을 하나의 코드베이스**로 운영한다.
+서버는 [`saju-be-monorepo`](../saju-be-monorepo)(NestJS).
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## 실행
 
 ```bash
-npm run reset-project
+npm install
+npm start            # Expo Go / 시뮬레이터
+npm run web          # 웹 개발 서버
+npm run build:web    # 웹 정적 빌드 → dist/ (라우트별 HTML 생성, SEO)
+npm run typecheck
+npm run lint
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 구조
 
-### Other setup steps
+```
+src/
+  app/           Expo Router 라우트 (파일 = 화면 = URL). 화면 구현은 screens/를 re-export
+    (tabs)/      홈 · 운세 · 궁합 · 마이
+    category/[category], analysis/[source], combined, share, onboarding, profile-setup
+    +html.tsx    웹 HTML 셸 (lang, 기본 메타)
+  screens/       화면 컴포넌트
+  components/    공용 UI
+  context/       AppContext (사용자, 오늘의 운세)
+  api/
+    fortune.ts   운세 API 창구 — 화면은 이것만 의존
+    local-engine/ 프로토타입 계산 로직 (임시, BE 이전 대상)
+  services/      storage(AsyncStorage), share, notification
+  theme/ types/ data/ utils/
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 웹 / 플랫폼 분기 원칙
 
-## Learn more
+- 웹은 `web.output: "static"`으로 라우트별 HTML을 생성한다. 화면별 메타는 `expo-router/head`의 `<Head>`로 추가.
+  동적 라우트는 `generateStaticParams`로 페이지를 미리 생성한다.
+- 결제처럼 앱/웹 동작이 다른 기능은 플랫폼 확장자로 분리한다: `payment.native.ts`(인앱결제) / `payment.web.ts`(PG).
 
-To learn more about developing your project with Expo, look at the following resources:
+## 남은 작업
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [ ] BE 운세 API 구현 후 `src/api/fortune.ts`를 HTTP 호출로 교체, `local-engine/` 삭제
+- [ ] BE Swagger(OpenAPI)에서 API 타입 생성
+- [ ] `useRef(new Animated.Value())` 패턴 정리 (React Compiler lint `react-hooks/refs` 오류 53건)
+- [ ] 앱 아이콘 / 스플래시 이미지 교체 (현재 Expo 기본 이미지)
