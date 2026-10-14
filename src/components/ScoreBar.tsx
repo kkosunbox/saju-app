@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
 import { useReducedMotion, motion } from '../utils/motion';
+import { colors } from '../theme/colors';
 
 /** 왼쪽에서 차오르는 점수 막대 */
-export default function ScoreBar({ value, color, track = '#EEEAF5', height = 6, delay = 200 }: { value: number; color: string; track?: string; height?: number; delay?: number }) {
+export default function ScoreBar({ value, color, track = colors.line, height = 6, delay = 200 }: { value: number; color: string; track?: string; height?: number; delay?: number }) {
   const reduced = useReducedMotion();
   const w = useRef(new Animated.Value(0)).current;
   useEffect(() => {

@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { RouteProp, useRoute } from '@/navigation/compat';
+import { TabParamList } from '../navigation/types';
+import CrushView from '../components/premium/Crush';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
@@ -11,21 +14,31 @@ import ScoreRing from '../components/ScoreRing';
 import ScoreBar from '../components/ScoreBar';
 import SectionHeader from '../components/SectionHeader';
 import Icon from '../components/Icon';
+import Seal from '../components/Seal';
 import Disclaimer from '../components/Disclaimer';
 import { useApp } from '../context/AppContext';
-import { fortuneApi } from '../api/fortune';
+import { usePremium } from '../context/PremiumContext';
+import { PriceCard } from '../components/premium/Kit';
+import ReportArea from '../components/premium/Report';
+import CompatDeep from '../components/premium/CompatDeep';
+import { ITEMS } from '../services/premium/catalog';
+import { generateReport, reportAvailable } from '../services/report/reportService';
+import { getCompatibilityEngine } from '../services/fortune/compatibilityService';
 import { storage } from '../services/storage/storageService';
-import { BloodType, CompatibilityResult, Gender, MBTI } from '../types';
+import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput } from '../types';
 import { MBTI_LIST } from '../data/mbtiData';
 import { isValidDate } from '../utils/date';
 import { analysisTheme, colors, gradients } from '../theme/colors';
-import { radius, shadow, txt } from '../theme/typography';
+import { fonts, radius, shadow, txt } from '../theme/typography';
+import ShareCta from '../components/ShareCta';
+import { compatSpec, crushSpec } from '../services/share/shareSpecs';
+import { inviteUrl, shareLink } from '../services/share/linkShare';
 
 const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; l: string; c: string; e: string }[] = [
-  { k: 'love', l: '연애 궁합', c: colors.love, e: '❤️' },
-  { k: 'personality', l: '성격 궁합', c: colors.purpleSoft, e: '🫶' },
-  { k: 'conversation', l: '대화 궁합', c: colors.work, e: '💬' },
-  { k: 'money', l: '금전 궁합', c: colors.money, e: '💰' },
+  { k: 'love', l: '연애 궁합', c: colors.love, e: '緣' },
+  { k: 'personality', l: '성격 궁합', c: colors.purpleSoft, e: '和' },
+  { k: 'conversation', l: '대화 궁합', c: colors.work, e: '言' },
+  { k: 'money', l: '금전 궁합', c: colors.money, e: '財' },
 ];
 const POINT_SOURCE = ['saju', 'mbti', 'blood'] as const;
 
@@ -42,7 +55,8 @@ function Avatar({ name, light }: { name: string; light?: boolean }) {
 }
 
 export default function CompatibilityScreen() {
-  const { user } = useApp();
+  const { user, today } = useApp();
+  const { owned, toast } = usePremium();
   const [name, setName] = useState('');
   const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
   const [hh, setHh] = useState('');
@@ -52,28 +66,41 @@ export default function CompatibilityScreen() {
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [showMbti, setShowMbti] = useState(false);
 
+  const sendInvite = async () => {
+    if (!user) return;
+    const r = await shareLink(`${user.nickname}님이 궁합 보자고 보냈어요. 생일만 넣으면 둘의 궁합이 바로 나와요.`, inviteUrl(user));
+    if (r === 'copied') toast('초대 링크를 복사했어요. 상대에게 보내 보세요');
+  };
   const dateFilled = y.length === 4 && !!m && !!d;
   const dateOk = isValidDate(+y, +m, +d);
   const hourOk = hh === '' || (+hh >= 0 && +hh <= 23);
   const ok = !!name.trim() && dateOk && !!gender && !!mbti && !!blood && hourOk;
 
-  const analyze = async () => {
-    if (!user || !ok) return;
-    const r = await fortuneApi.analyzeCompatibility(user, {
+  const run = async (partner: PartnerInput) => {
+    if (!user) return;
+    const r = await getCompatibilityEngine().analyze(user, partner);
+    await storage.saveCompatibility(r);
+    setResult(r);
+  };
+  const analyze = () => {
+    if (!ok) return;
+    run({
       nickname: name.trim(),
       birthDate: `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`,
       birthTime: hh ? `${hh.padStart(2, '0')}:00` : null,
       gender: gender!, mbti: mbti!, bloodType: blood!,
     });
-    await storage.saveCompatibility(r);
-    setResult(r);
   };
+
+  // 친구 초대 링크로 들어오면 상대 정보로 바로 궁합을 계산한다
+  const { params } = useRoute<RouteProp<TabParamList, 'Compatibility'>>();
+  useEffect(() => { if (params?.partner) run(params.partner); }, [params?.partner]);
 
   if (!user) return null;
 
   if (result) {
     return (
-      <Screen largeTitle="우리 둘의 궁합">
+      <Screen largeTitle="우리 둘의 궁합" onBack={() => setResult(null)}>
         <View style={[s.heroWrap, shadow.hero]}>
           <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={s.hero}>
             <View style={s.pair}>
@@ -92,13 +119,15 @@ export default function CompatibilityScreen() {
           {BARS.map((b, i) => (
             <View key={b.k} style={{ gap: 8 }}>
               <View style={s.barHead}>
-                <Text style={s.barLabel}>{b.e}  {b.l}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Seal ch={b.e} /><Text style={s.barLabel}>{b.l}</Text></View>
                 <Text style={[s.barScore, { color: b.c }]}>{result[b.k]}</Text>
               </View>
               <ScoreBar value={result[b.k]} color={b.c} height={8} delay={300 + i * 90} />
             </View>
           ))}
         </Card>
+
+        <ShareCta spec={compatSpec(user, result)} />
 
         <SectionHeader title="관점별 풀이" />
         <View style={{ gap: 10 }}>
@@ -107,12 +136,35 @@ export default function CompatibilityScreen() {
             return (
               <Card key={p.title} style={s.point}>
                 <View style={[s.pointBand, { backgroundColor: t.color }]} />
-                <Text style={[s.pointTitle, { color: t.color }]}>{p.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Seal ch={p.title.slice(0, 1)} color={t.color} /><Text style={[s.pointTitle, { color: t.color }]}>{p.title.slice(2)}</Text></View>
                 <Text style={[txt.body, { marginTop: 6 }]}>{p.text}</Text>
               </Card>
             );
           })}
         </View>
+
+        {(() => {
+          const item = ITEMS.compat(result.target.nickname, result.target.birthDate);
+          const rk = { key: item.key, kind: 'compat' as const, user, today, compat: result };
+          if (!owned(item.key)) return <PriceCard item={item} onUnlocked={() => { if (reportAvailable()) generateReport(rk); }} />;
+          return (
+            <>
+              <SectionHeader title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
+              <ReportArea rk={rk} item={item} basis={<CompatDeep u={user} r={result} today={today} />} />
+            </>
+          );
+        })()}
+
+        {(() => {
+          const item = ITEMS.crush(result.target.nickname, result.target.birthDate);
+          if (!owned(item.key)) return <PriceCard item={item} />;
+          return (
+            <>
+              <CrushView u={user} r={result} today={today} />
+              <ShareCta spec={crushSpec(user, result, today)} />
+            </>
+          );
+        })()}
 
         <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" onPress={() => setResult(null)} style={{ marginTop: 24 }} />
         <Disclaimer compact />
@@ -126,12 +178,34 @@ export default function CompatibilityScreen() {
       subtitle="상대의 정보로 네 가지 관점의 궁합을 봐요"
       footer={<PrimaryButton label="궁합 보기" onPress={analyze} disabled={!ok} />}
     >
-      <Card style={s.form}>
-        <View style={s.me}>
-          <Avatar name={user.nickname} light />
-          <Text style={txt.bodyStrong}>{user.nickname}님과</Text>
-          <Text style={txt.small}>{user.mbti} · {user.bloodType}형</Text>
+      {/* 두 사람의 책력 — 내 낙관 · 和 · 아직 비어 있는 상대 낙관 */}
+      <View style={s.pairSheet}>
+        <View style={s.pairCol}>
+          <View style={[s.pairSeal, { backgroundColor: colors.seal }]}><Text style={s.pairSealText}>{user.nickname.slice(0, 1)}</Text></View>
+          <Text style={s.pairName}>{user.nickname}</Text>
+          <Text style={txt.caption}>{user.mbti} · {user.bloodType}형</Text>
         </View>
+        <View style={s.pairMid}>
+          <View style={s.pairLine} />
+          <Text style={s.pairHan}>和</Text>
+          <View style={s.pairLine} />
+        </View>
+        <View style={s.pairCol}>
+          <View style={[s.pairSeal, s.pairEmpty]}><Text style={[s.pairSealText, { color: colors.inkMute }]}>{name.trim() ? name.trim().slice(0, 1) : '?'}</Text></View>
+          <Text style={s.pairName}>{name.trim() || '그 사람'}</Text>
+          <Text style={txt.caption}>{mbti && blood ? `${mbti} · ${blood}형` : '정보를 채워 주세요'}</Text>
+        </View>
+      </View>
+      <PressableScale onPress={sendInvite} style={s.inviteRow} scaleTo={0.98} accessibilityLabel="상대에게 링크로 궁합 신청 받기">
+        <Text style={s.inviteHan}>信</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>생일을 모른다면, 링크로 신청받기</Text>
+          <Text style={txt.caption}>상대가 링크를 열면 둘의 궁합이 바로 나와요</Text>
+        </View>
+        <Icon name="share" size={18} color={colors.purple} />
+      </PressableScale>
+
+      <Card style={s.form}>
 
         <View>
           <Label>상대 이름</Label>
@@ -163,7 +237,7 @@ export default function CompatibilityScreen() {
 
         <View>
           <Label>MBTI</Label>
-          <PressableScale onPress={() => setShowMbti(v => !v)} style={[s.select, showMbti && { borderColor: colors.purpleSoft }]} scaleTo={0.98}>
+          <PressableScale onPress={() => setShowMbti(v => !v)} style={[s.select, showMbti && { borderColor: colors.purple }]} scaleTo={0.98}>
             <Text style={[s.selectText, !mbti && { color: colors.inkMute }]}>{mbti ?? '선택하기'}</Text>
             <View style={{ transform: [{ rotate: showMbti ? '-90deg' : '90deg' }] }}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
           </PressableScale>
@@ -189,25 +263,36 @@ export default function CompatibilityScreen() {
 }
 
 const s = StyleSheet.create({
+  pairSheet: { flexDirection: 'row', alignItems: 'center', marginTop: 4, padding: 18, borderRadius: radius.xl, backgroundColor: colors.loveBg, borderWidth: 1, borderColor: colors.love + '40' },
+  pairCol: { flex: 1, alignItems: 'center', gap: 4 },
+  pairSeal: { width: 54, height: 54, borderRadius: 6, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-5deg' }] },
+  pairEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.inkMute, transform: [{ rotate: '5deg' }] },
+  pairSealText: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: '#FBF4E8' },
+  pairName: { fontFamily: fonts.display, fontSize: 15, fontWeight: '700', color: colors.ink, marginTop: 6 },
+  pairMid: { width: 64, flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 34 },
+  pairLine: { flex: 1, height: 1, backgroundColor: colors.love, opacity: 0.5 },
+  pairHan: { fontFamily: fonts.serif, fontSize: 20, fontWeight: '700', color: colors.love },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10, marginBottom: 12, padding: 14, borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong },
+  inviteHan: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.purpleSoft, width: 28, textAlign: 'center' },
   form: { gap: 20, padding: 20 },
   me: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.lineStrong },
   fieldLabel: { fontSize: 13, fontWeight: '700', color: colors.inkSub, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   mbtiCell: { width: '23.8%' },
-  select: { height: 54, borderRadius: radius.md, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.line, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  selectText: { fontSize: 17, fontWeight: '600', color: colors.ink },
+  select: { height: 52, borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selectText: { fontSize: 17, fontWeight: '500', color: colors.ink },
   error: { color: colors.danger, fontSize: 12, marginTop: 6 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.purpleSoft, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' },
-  avatarText: { color: colors.white, fontWeight: '800', fontSize: 16 },
-  heroWrap: { borderRadius: radius.xl, backgroundColor: colors.purple },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F5F8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' },
+  avatarText: { fontFamily: fonts.serif, color: colors.white, fontWeight: '600', fontSize: 16 },
+  heroWrap: { borderRadius: radius.xl, backgroundColor: colors.heroBg },
   hero: { borderRadius: radius.xl, padding: 24, alignItems: 'center' },
   pair: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   pairNames: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600', marginTop: 8 },
-  heroSummary: { color: colors.white, fontSize: 18, fontWeight: '700', letterSpacing: -0.4, textAlign: 'center' },
+  heroSummary: { fontFamily: fonts.serif, color: colors.white, fontSize: 18, fontWeight: '600', letterSpacing: -0.4, textAlign: 'center' },
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   barLabel: { fontSize: 15, fontWeight: '700', color: colors.ink },
-  barScore: { fontSize: 17, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  barScore: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
   point: { paddingLeft: 24 },
   pointBand: { position: 'absolute', left: 10, top: 18, bottom: 18, width: 3, borderRadius: 2 },
   pointTitle: { fontSize: 13, fontWeight: '800' },

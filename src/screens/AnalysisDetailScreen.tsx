@@ -1,16 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
-import Card from '../components/Card';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
+import { AlmanacHero, Figure, Ledger, Quote } from '../components/Almanac';
 import { useApp } from '../context/AppContext';
+import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, colors } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
+import { fonts, radius } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
-import { AnalysisResult } from '../types';
+import { LockCard } from '../components/premium/Kit';
+import { ITEMS } from '../services/premium/catalog';
+import { BRANCHES, ELEMENT_INFO, Element, STEMS } from '../data/sajuData';
+import { THAI_DAYS, ThaiDay, WEEKDAY_TO_THAI } from '../data/thaiData';
+import { buildChart, dayPillar, elementCounts } from '../services/fortune/sajuService';
+import { birthThaiDay } from '../services/fortune/thaiAstrologyService';
+import { AXES } from '../services/fortune/mbtiService';
+import { MBTI_INFO } from '../data/mbtiData';
+import { BloodType, User } from '../types';
+import { weekdayOf } from '../utils/date';
 
+const KICKER = { saju: '四柱 · 사주', thai: '七曜 · 태국 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
 const NOTE: Record<string, string> = {
   saju: '양력 기준 근사 만세력으로 계산해요. 정밀 계산은 업데이트 예정이에요.',
   thai: '태어난 요일의 수호 행성과 오늘 행성의 관계로 풀어요.',
@@ -18,57 +29,174 @@ const NOTE: Record<string, string> = {
   blood: '혈액형 성격론은 재미를 위한 콘텐츠예요.',
 };
 
+/** 4가지 관점 상세 — 책력 한 장 + 관점별 도해 + 풀이 + 장부형 분석 */
 export default function AnalysisDetailScreen() {
-  const params = useLocalSearchParams<{ source: AnalysisResult['source'] }>();
-  const { fortune } = useApp();
-  if (!fortune) return null;
+  const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
+  const { fortune, user, today } = useApp();
+  const nav = useNavigation();
+  if (!fortune || !user) return null;
   const a = fortune.analyses[params.source];
   const t = analysisTheme[params.source];
 
   return (
     <Screen title={t.label} back>
-      <View style={[s.hero, { backgroundColor: t.bg }]}>
-        <View style={s.emoji}><Text style={{ fontSize: 30 }}>{t.emoji}</Text></View>
-        <Text style={[s.sub, { color: t.color }]}>{t.sub}</Text>
-        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{a.headline}</Text>
-        <View style={s.tags}>
-          {a.tags.map(tag => (
-            <View key={tag} style={[s.tag, { backgroundColor: colors.white }]}>
-              <Text style={[s.tagText, { color: t.color }]}>{KEYWORDS[tag].emoji} {KEYWORDS[tag].label}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      <AlmanacHero tone={t} kicker={KICKER[a.source]} seal={t.emoji} eyebrow={t.sub} title={a.headline} today={today} tags={a.tags.map(tag => KEYWORDS[tag].label)}>
+        <Quote label="오늘의 풀이" text={a.description} tone={t.color} />
+      </AlmanacHero>
 
-      <Card style={{ marginTop: 12 }}>
-        <Text style={txt.body}>{a.description}</Text>
-      </Card>
+      {a.source === 'saju' ? <SajuFigure u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'thai' ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'mbti' ? <MbtiFigure u={user} focus={a.details[2]?.value ?? ''} tone={t.color} /> : null}
+      {a.source === 'blood' ? <BloodFigure b={user.bloodType} tone={t.color} /> : null}
 
       <SectionHeader title="분석 내용" />
-      <Card style={{ paddingVertical: 4 }}>
-        {a.details.map((d, i) => (
-          <View key={d.label} style={[s.row, i > 0 && s.border]}>
-            <Text style={s.label}>{d.label}</Text>
-            <Text style={s.value}>{d.value}</Text>
-          </View>
-        ))}
-      </Card>
+      <Ledger rows={a.details.map(d => [d.label, d.value] as [string, string])} tone={t.color} />
 
-      <Text style={[txt.caption, { marginTop: 16, textAlign: 'center' }]}>{NOTE[a.source]}</Text>
+      {a.source === 'saju' ? (
+        <LockCard mt={12} title="상세 사주 해석 보기" desc="원국표 · 오행 분포 · 나의 본성 · 올해와 이달의 흐름" item={ITEMS.sajuDeep()} onPress={() => nav.navigate('SajuDeep')} />
+      ) : null}
+      <Text style={s.note}>{NOTE[a.source]}</Text>
       <Disclaimer compact />
     </Screen>
   );
 }
 
+/* ---------- 사주: 원국표 + 오행 분포 ---------- */
+const EL_ORDER: Element[] = ['wood', 'fire', 'earth', 'metal', 'water'];
+function SajuFigure({ u, today, tone }: { u: User; today: string; tone: string }) {
+  const ch = buildChart(u.birthDate, u.birthTime);
+  const cols: [string, typeof ch.day | null][] = [['시', ch.hour], ['일', ch.day], ['월', ch.month], ['년', ch.year]];
+  const cnt = elementCounts(ch); const total = EL_ORDER.reduce((n, e) => n + cnt[e], 0) || 1;
+  const td = dayPillar(today);
+  return (
+    <Figure title="나의 사주 원국" caption={`오늘의 일진 ${STEMS[td.stem].hanja}${BRANCHES[td.branch].hanja}`}>
+      <View style={s.pillars}>
+        {cols.map(([l, p]) => (
+          <View key={l} style={[s.pillar, l === '일' && { borderColor: tone, backgroundColor: tone + '12' }]}>
+            <Text style={[s.pLabel, l === '일' && { color: tone }]}>{l}주{l === '일' ? ' · 나' : ''}</Text>
+            {p ? (
+              <>
+                <Text style={[s.pHan, { color: ELEMENT_INFO[STEMS[p.stem].element].hex }]}>{STEMS[p.stem].hanja}</Text>
+                <Text style={[s.pHan, { color: ELEMENT_INFO[BRANCHES[p.branch].element].hex }]}>{BRANCHES[p.branch].hanja}</Text>
+              </>
+            ) : <Text style={s.pUnknown}>미상</Text>}
+          </View>
+        ))}
+      </View>
+      <Text style={s.subTitle}>오행 분포</Text>
+      <View style={s.elBar}>
+        {EL_ORDER.filter(e => cnt[e] > 0).map(e => <View key={e} style={{ flex: cnt[e] / total, backgroundColor: ELEMENT_INFO[e].hex }} />)}
+      </View>
+      <View style={s.elLegend}>
+        {EL_ORDER.map(e => (
+          <View key={e} style={s.elItem}>
+            <Text style={[s.elHan, { color: ELEMENT_INFO[e].hex }]}>{ELEMENT_INFO[e].hanja}</Text>
+            <Text style={[s.elCnt, cnt[e] === 0 && { color: colors.danger }]}>{cnt[e]}</Text>
+          </View>
+        ))}
+      </View>
+    </Figure>
+  );
+}
+
+/* ---------- 태국 점성술: 일주일 띠 ---------- */
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+function ThaiFigure({ u, today, tone }: { u: User; today: string; tone: string }) {
+  const mine = birthThaiDay(u.birthDate, u.birthTime);
+  const mineIdx = WEEKDAY_TO_THAI.indexOf(mine === 'wedNight' ? 'wedDay' : mine);
+  const todayIdx = weekdayOf(today);
+  return (
+    <Figure title="일곱 요일의 행성" caption="● 태어난 요일 · ▬ 오늘">
+      <View style={s.week}>
+        {WEEKDAY_TO_THAI.map((k: ThaiDay, i) => {
+          const d = THAI_DAYS[k]; const isMine = i === mineIdx; const isToday = i === todayIdx;
+          return (
+            <View key={k} style={s.day}>
+              <View style={[s.dot, { backgroundColor: isMine ? d.hex : 'transparent', borderColor: d.hex }, isToday && s.todayRing]} />
+              <Text style={[s.dayL, (isMine || isToday) && { color: colors.ink, fontWeight: '800' }]}>{WEEK[i]}</Text>
+              <Text style={s.planet}>{d.planetKo}</Text>
+              {isToday ? <View style={[s.todayMark, { backgroundColor: tone }]} /> : <View style={s.todayMark} />}
+            </View>
+          );
+        })}
+      </View>
+      <Text style={[s.figNote, { borderLeftColor: tone }]}>{THAI_DAYS[mine].label}생 · 수호 행성 {THAI_DAYS[mine].planetKo} · 행운색 {THAI_DAYS[mine].color}</Text>
+    </Figure>
+  );
+}
+
+/* ---------- MBTI: 4개 축 ---------- */
+function MbtiFigure({ u, focus, tone }: { u: User; focus: string; tone: string }) {
+  return (
+    <Figure title={`${u.mbti} · ${MBTI_INFO[u.mbti].nickname}${u.mbtiUnknown ? ' (추정)' : ''}`} caption="오늘 강조되는 축 ●">
+      <View style={{ gap: 14 }}>
+        {AXES.map(([l, r, name], i) => {
+          const left = u.mbti[i] === l; const hot = focus.startsWith(name);
+          return (
+            <View key={name}>
+              <View style={s.axisHead}>
+                <Text style={[s.axisName, hot && { color: tone }]}>{hot ? '● ' : ''}{name}</Text>
+              </View>
+              <View style={s.axis}>
+                <Text style={[s.axisL, left && { color: tone }]}>{l}</Text>
+                <View style={s.axisTrack}>
+                  <View style={[s.axisFill, { backgroundColor: tone, [left ? 'left' : 'right']: 0 } as object]} />
+                </View>
+                <Text style={[s.axisL, !left && { color: tone }]}>{r}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </Figure>
+  );
+}
+
+/* ---------- 혈액형 ---------- */
+function BloodFigure({ b, tone }: { b: BloodType; tone: string }) {
+  return (
+    <Figure title="나의 혈액형">
+      <View style={s.bloodRow}>
+        {(['A', 'B', 'O', 'AB'] as BloodType[]).map(x => (
+          <View key={x} style={[s.blood, x === b ? { backgroundColor: tone, borderColor: tone } : null]}>
+            <Text style={[s.bloodT, x === b && { color: '#FBF4E8' }]}>{x}</Text>
+            <Text style={[s.bloodS, x === b && { color: 'rgba(251,244,232,0.8)' }]}>형</Text>
+          </View>
+        ))}
+      </View>
+    </Figure>
+  );
+}
+
 const s = StyleSheet.create({
-  hero: { borderRadius: radius.xl, padding: 24, alignItems: 'center', marginTop: 4 },
-  emoji: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  sub: { fontSize: 12, fontWeight: '700', marginTop: 12 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 14 },
-  tag: { borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 6 },
-  tagText: { fontSize: 12, fontWeight: '700' },
-  row: { paddingVertical: 14, gap: 4 },
-  border: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  label: { fontSize: 12, color: colors.inkMute, fontWeight: '600' },
-  value: { fontSize: 15, color: colors.ink, fontWeight: '600', lineHeight: 22 },
+  note: { fontSize: 12, color: colors.inkMute, textAlign: 'center', marginTop: 16 },
+  pillars: { flexDirection: 'row', gap: 8 },
+  pillar: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },
+  pLabel: { fontSize: 12, fontWeight: '700', color: colors.inkMute },
+  pHan: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 34, fontWeight: '700', marginTop: 2 },
+  pUnknown: { fontSize: 12, color: colors.inkMute, marginTop: 24, marginBottom: 20 },
+  subTitle: { fontSize: 12, fontWeight: '700', color: colors.inkSub, marginTop: 18, marginBottom: 8 },
+  elBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
+  elLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  elItem: { alignItems: 'center', flex: 1 },
+  elHan: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '700' },
+  elCnt: { fontSize: 12, fontWeight: '700', color: colors.inkSub, marginTop: 1 },
+  week: { flexDirection: 'row', justifyContent: 'space-between' },
+  day: { alignItems: 'center', flex: 1, gap: 5 },
+  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2 },
+  todayRing: { shadowColor: '#000', shadowOpacity: 0, borderWidth: 3, transform: [{ scale: 1.12 }] },
+  dayL: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
+  planet: { fontSize: 12, color: colors.inkMute },
+  todayMark: { width: 14, height: 3, borderRadius: 2 },
+  figNote: { marginTop: 16, paddingLeft: 10, borderLeftWidth: 2, fontSize: 13, lineHeight: 19, color: colors.inkSub },
+  axisHead: { flexDirection: 'row', justifyContent: 'space-between' },
+  axisName: { fontSize: 12, fontWeight: '700', color: colors.inkMute },
+  axis: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  axisL: { width: 16, textAlign: 'center', fontFamily: fonts.serif, fontSize: 17, fontWeight: '700', color: colors.inkMute },
+  axisTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
+  axisFill: { position: 'absolute', top: 0, bottom: 0, width: '58%', borderRadius: 4 },
+  bloodRow: { flexDirection: 'row', gap: 8 },
+  blood: { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', paddingVertical: 16, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },
+  bloodT: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: colors.inkMute },
+  bloodS: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginLeft: 2 },
 });

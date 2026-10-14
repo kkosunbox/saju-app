@@ -1,7 +1,14 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
-// 웹 정적 렌더링(SEO)용 HTML 셸. 화면별 메타는 expo-router/head의 <Head>로 추가한다.
+const SANS = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+// react-native-web 기본 글꼴보다 우선하되, 글꼴을 지정한 요소와 중첩 텍스트는 건드리지 않는다.
+// 한국어는 낱말 단위로 줄바꿈하고, 너무 긴 영문·숫자만 예외로 끊는다.
+const GLOBAL_CSS =
+  `[class*="css-text-"]:not([class*="r-fontFamily"]):not([class*="textHasAncestor"]),[class*="css-textinput-"]:not([class*="r-fontFamily"]){font-family:${SANS};letter-spacing:-.2px}` +
+  '[class*="css-text-"]{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}';
+
+/** 웹 정적 렌더링(SEO)용 HTML 셸. 화면별 메타는 expo-router/head 의 <Head>로 추가한다. */
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="ko">
@@ -9,8 +16,14 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <title>오늘나 — 4가지 관점으로 보는 나의 오늘</title>
-        <meta name="description" content="사주 · 태국 점성술 · MBTI · 혈액형을 종합한 개인 맞춤 운세" />
+        <title>운Pick · 오늘의 운, 하나만 Pick!</title>
+        <meta name="description" content="사주 · 태국 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세. 오늘의 운, 하나만 Pick!" />
+        <meta name="theme-color" content="#22293F" />
+        <meta property="og:title" content="운Pick · 오늘의 운, 하나만 Pick!" />
+        <meta property="og:description" content="사주부터 MBTI까지, 오늘의 나를 PICK하다." />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700;900&display=swap" />
+        <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

@@ -4,21 +4,25 @@ import PressableScale from './PressableScale';
 import ScoreBar from './ScoreBar';
 import Icon from './Icon';
 import { CategoryKey, categoryTheme, colors } from '../theme/colors';
-import { radius } from '../theme/typography';
+import Ico from './Ico';
+import { fonts } from '../theme/typography';
 
 /** 분야별 운세 한 줄: 아이콘 · 이름 · 점수 · 막대 · 한 문장 */
-export default function CategoryRow({ category, score, text, onPress, delay }: { category: CategoryKey; score: number; text?: string; onPress(): void; delay?: number }) {
+export default function CategoryRow({ category, score, text, onPress, delay, badge, lines = 1 }: { category: CategoryKey; score: number; text?: string; onPress(): void; delay?: number; badge?: string; lines?: number }) {
   const t = categoryTheme[category];
   return (
     <PressableScale onPress={onPress} style={s.row} accessibilityLabel={`${t.label} ${score}점`}>
-      <View style={[s.icon, { backgroundColor: t.bg }]}><Text style={{ fontSize: 18 }}>{t.emoji}</Text></View>
+      <Ico ch={t.emoji} size={42} />
       <View style={{ flex: 1, gap: 6 }}>
         <View style={s.head}>
-          <Text style={s.label}>{t.label}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={s.label}>{t.label}</Text>
+            {badge ? <View style={[s.badge, { backgroundColor: t.bg }]}><Text style={[s.badgeText, { color: t.color }]}>{badge}</Text></View> : null}
+          </View>
           <Text style={[s.score, { color: t.color }]}>{score}</Text>
         </View>
         <ScoreBar value={score} color={t.color} delay={delay} />
-        {text ? <Text style={s.text} numberOfLines={1}>{text}</Text> : null}
+        {text ? <Text style={[s.text, lines > 1 && { lineHeight: 19 }]} numberOfLines={lines}>{text}</Text> : null}
       </View>
       <Icon name="chevronRight" size={18} color={colors.inkMute} />
     </PressableScale>
@@ -27,9 +31,10 @@ export default function CategoryRow({ category, score, text, onPress, delay }: {
 
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
-  icon: { width: 42, height: 42, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   label: { fontSize: 15, fontWeight: '700', color: colors.ink, letterSpacing: -0.3 },
-  score: { fontSize: 17, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  text: { fontSize: 13, color: colors.inkSub },
+  score: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  text: { fontSize: 13.5, lineHeight: 20, color: colors.inkSub },
+  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeText: { fontSize: 11, fontWeight: '700' },
 });

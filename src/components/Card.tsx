@@ -14,8 +14,8 @@ interface Props {
 }
 
 /**
- * 기본 카드. 반경 20 / 흰 바탕 / 보라 톤 그림자 + 얇은 테두리.
- * 히어로(28)·카드(20)·내부 요소(12) 반경 위계를 지킨다.
+ * 기본 카드. 반경 14 / 한지색 카드 / 1px 선 + 거의 평평한 그림자.
+ * 히어로(18)·카드(14)·내부 요소(10~12) 반경 위계를 지킨다.
  */
 export default function Card({ children, style, variant = 'elevated', tint, onPress, accessibilityLabel }: Props) {
   const base = [
@@ -32,7 +32,7 @@ export default function Card({ children, style, variant = 'elevated', tint, onPr
 }
 
 const s = StyleSheet.create({
-  base: { borderRadius: radius.lg, padding: 18, backgroundColor: colors.white },
-  elevated: { ...shadow.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong },
+  base: { borderRadius: radius.lg, padding: 18, backgroundColor: colors.card },
+  elevated: { ...shadow.card, borderWidth: 1, borderColor: colors.line },
   flat: { borderWidth: 1, borderColor: colors.line },
 });
