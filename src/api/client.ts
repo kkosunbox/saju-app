@@ -1,0 +1,69 @@
+/**
+ * Typed API client (types generated from the server Swagger: `npm run api:fetch && npm run api:types`).
+ * Every response is `{ result, data }` or `{ result: false, code, message }`; `call` unwraps it.
+ * A 401 refreshes the tokens once (shared by concurrent requests) and retries.
+ */
+import createClient from 'openapi-fetch';
+import { API_URL } from './config';
+import { getTokens, setTokens } from './tokens';
+import type { paths } from './schema';
+
+/** Server error with its code (INSUFFICIENT_POINTS, CONTENT_LOCKED …). */
+export class ApiError extends Error {
+  constructor(readonly status: number, readonly code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+let refreshing: Promise<boolean> | null = null;
+/** Called when the session cannot be refreshed (tokens cleared). */
+let onSessionLost: () => void = () => {};
+export const setOnSessionLost = (fn: () => void) => { onSessionLost = fn; };
+
+async function refresh(): Promise<boolean> {
+  const tokens = await getTokens();
+  if (!tokens) return false;
+  const response = await fetch(`${API_URL}/v1/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+  }).catch(() => null);
+  if (!response?.ok) {
+    if (response && response.status < 500) {
+      await setTokens(null);
+      onSessionLost();
+    }
+    return false;
+  }
+  const body = await response.json();
+  await setTokens({ ...tokens, accessToken: body.data.accessToken, refreshToken: body.data.refreshToken ?? tokens.refreshToken });
+  return true;
+}
+
+async function authFetch(request: Request): Promise<Response> {
+  const retry = request.clone();
+  const withToken = async (req: Request) => {
+    const tokens = await getTokens();
+    if (tokens && !req.headers.has('Authorization')) req.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+    return fetch(req);
+  };
+  const response = await withToken(request);
+  if (response.status !== 401 || request.url.includes('/auth/refresh')) return response;
+  refreshing ??= refresh().finally(() => { refreshing = null; });
+  return (await refreshing) ? withToken(retry) : response;
+}
+
+export const api = createClient<paths>({ baseUrl: API_URL, fetch: authFetch });
+
+/** Unwraps `{ data }` or throws ApiError. */
+export async function call<T>(promise: Promise<{ data?: unknown; error?: unknown; response: Response }>): Promise<T> {
+  const { data, error, response } = await promise.catch((err: Error) => {
+    throw new ApiError(0, 'NETWORK', err.message);
+  });
+  if (error || !response.ok) {
+    const body = (error ?? {}) as { code?: string; message?: string };
+    throw new ApiError(response.status, body.code ?? 'UNKNOWN', body.message ?? response.statusText);
+  }
+  return (data as { data: T }).data;
+}

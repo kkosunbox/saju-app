@@ -6,33 +6,23 @@ import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
 import { LogoMark } from '../../components/BrandMark';
 import { CheckRow, DemoNote, Mark, SocialButton } from '../../components/auth/AuthKit';
-import { useApp } from '../../context/AppContext';
-import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
-import { SOCIAL_LABEL } from '../../services/auth/authService';
+import { SOCIAL_LABEL } from '../../components/auth/socialLabels';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
 /**
- * 카카오·네이버·Apple·Google 로그인 (데모)
- * 실제 연동 시 이 화면 대신 각 사의 OAuth 동의 화면이 열리고, 돌아온 인가 코드를 서버에서 토큰으로 바꾼다.
+ * 카카오·네이버·Apple·Google 로그인 — 준비 중.
+ * 각 사 앱 키가 생기면 이 화면 대신 OAuth 동의 화면을 열고, 인가 코드를 서버(/auth/{provider})로 보낸다.
+ * 서버는 게스트 토큰과 함께 오면 게스트를 회원으로 잇는다.
  */
 export default function SocialLoginScreen() {
   const nav = useNavigation();
   const { params } = useRoute<RouteProp<RootStackParamList, 'SocialLogin'>>();
-  const { signInWithProvider } = useApp();
-  const { toast } = usePremium();
   const p = params.provider;
   const brand = SOCIAL_LABEL[p];
   const LOGO_BG = { kakao: '#FEE500', naver: '#03C75A', apple: '#000000', google: '#FFFFFF' }[p];
   const [emailOk, setEmailOk] = useState(true);
-  const [busy, setBusy] = useState(false);
-
-  const agree = async () => {
-    setBusy(true);
-    await signInWithProvider(p, { name: `${brand} 사용자`, email: emailOk ? `demo@${p === 'apple' ? 'icloud' : p === 'google' ? 'gmail' : p}.com` : null });
-    toast(`${brand} 계정으로 로그인했어요`);
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
@@ -57,10 +47,10 @@ export default function SocialLoginScreen() {
           <CheckRow checked label={`[필수] 프로필 정보 (닉네임)`} onPress={() => {}} />
           <CheckRow checked={emailOk} label="[선택] 이메일 주소" onPress={() => setEmailOk(v => !v)} />
         </View>
-        <DemoNote>기획 공유용 데모예요. 실제 {brand} 계정에 접속하지 않고, 이 기기에 데모 계정을 만들어 로그인해요.</DemoNote>
+        <DemoNote>{brand} 로그인은 준비 중이에요. 지금은 이메일로 시작해 주세요. 지금까지 본 운세는 그대로 이어져요.</DemoNote>
       </View>
       <View style={s.footer}>
-        <SocialButton provider={params.provider} onPress={agree} label={busy ? '로그인 중…' : `동의하고 ${brand}로 계속하기`} />
+        <SocialButton provider={params.provider} onPress={() => nav.navigate('SignUp')} label="이메일로 시작하기" />
         <PressableScale onPress={() => nav.goBack()} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ fontSize: 14, color: colors.inkMute }}>취소</Text></PressableScale>
       </View>
     </SafeAreaView>

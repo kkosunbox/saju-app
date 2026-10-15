@@ -21,6 +21,13 @@ export interface User {
   interests?: Interest[];
   concern?: string;
   createdAt: string;
+  /** Server profile fields (the calendar the user entered the birthday in, …). */
+  birthDateInput?: string;
+  calendarType?: 'solar' | 'lunar';
+  isLeapMonth?: boolean;
+  useYajasi?: boolean;
+  version?: number;
+  remainingSajuEditsToday?: number;
 }
 
 export type Interest = 'love' | 'money' | 'work' | 'relationship' | 'health' | 'study';

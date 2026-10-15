@@ -8,7 +8,7 @@ import BottomSheet from '../../components/BottomSheet';
 import Icon from '../../components/Icon';
 import { SocialCircle } from '../../components/auth/AuthKit';
 import { usePremium } from '../../context/PremiumContext';
-import { SocialProvider } from '../../services/auth/authService';
+import { SocialProvider } from '../../components/auth/socialLabels';
 import { getFriendResult, getPendingInvite } from '../../services/share/linkShare';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';

@@ -6,7 +6,7 @@ import PressableScale from '../PressableScale';
 import Icon from '../Icon';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
-import { SOCIAL_LABEL, SocialProvider } from '../../services/auth/authService';
+import { SOCIAL_LABEL, SocialProvider } from './socialLabels';
 
 /** 브랜드 심볼 */
 export function Mark({ provider, size = 22 }: { provider: SocialProvider; size?: number }) {

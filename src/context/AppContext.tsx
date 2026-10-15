@@ -1,28 +1,45 @@
+/**
+ * Session, profile and today's fortune — all from the server.
+ * No account yet: the first profile submit creates a guest. Login / signup while a guest
+ * keeps the guest's data on the server (upgrade or merge).
+ */
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { DailyFortune, User } from '../types';
-import { setStorageScope, storage } from '../services/storage/storageService';
-import { getDailyFortune } from '../services/fortune/fortuneService';
-import { Account, SignUpInput, SocialProvider, authService } from '../services/auth/authService';
+import { storage } from '../services/storage/storageService';
+import { Account, authApi } from '../services/server/authApi';
+import { fortuneApi } from '../services/server/fortuneApi';
+import { ProfileInput, profileApi } from '../services/server/profileApi';
+import { getTokens } from '../api/tokens';
+import { setOnSessionLost } from '../api/client';
+import { queryClient } from '../api/query';
 import { todayISO } from '../utils/date';
 import { captureInvite } from '../services/share/linkShare';
 
 interface AppState {
   booting: boolean;
   onboarded: boolean;
+  /** Logged-in member, null for guests and before any profile. */
   account: Account | null;
   user: User | null;
+  /** True while "다시 입력" shows the profile form for an existing profile. */
+  editingProfile: boolean;
   today: string;
   fortune: DailyFortune | null;
   fortuneLoading: boolean;
+  fortuneError: Error | null;
   completeOnboarding(): Promise<void>;
-  saveUser(u: User): Promise<void>;
-  refreshFortune(force?: boolean): Promise<void>;
-  resetProfile(): Promise<void>;
+  /** Creates (as a guest if needed) or updates the profile. */
+  saveUser(input: ProfileInput): Promise<void>;
+  refreshFortune(): Promise<void>;
+  /** "다시 입력": opens the profile form prefilled (records are kept). */
+  resetProfile(): void;
+  cancelProfileEdit(): void;
   signIn(email: string, password: string): Promise<void>;
-  signUp(input: SignUpInput): Promise<void>;
-  signInWithProvider(provider: SocialProvider, profile: { name: string; email: string | null }): Promise<void>;
+  sendSignupCode(email: string): Promise<void>;
+  verifySignupCode(email: string, otp: string): Promise<string>;
+  completeSignup(params: { emailVerifiedToken: string; password: string; marketing: boolean }): Promise<void>;
   signOut(): Promise<void>;
-  deleteAccount(): Promise<void>;
+  deleteAccount(reason?: string): Promise<void>;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -32,46 +49,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [onboarded, setOnboarded] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [fortune, setFortune] = useState<DailyFortune | null>(null);
   const [fortuneLoading, setFortuneLoading] = useState(false);
+  const [fortuneError, setFortuneError] = useState<Error | null>(null);
   const [today, setToday] = useState(todayISO());
 
-  /**
-   * 계정이 바뀌면 저장 범위를 바꾸고 그 계정의 프로필을 불러온다.
-   * 로그인 전에는 게스트 범위를 쓴다. 게스트로 쓰던 프로필은 로그인한 계정에 프로필이 없을 때만 옮긴다
-   * (서버의 게스트 병합과 같은 규칙).
-   */
-  const enter = useCallback(async (acc: Account | null) => {
-    setStorageScope(null);
-    const guestUser = acc ? await storage.getUser() : null;
-    setStorageScope(acc?.id ?? null);
+  const clearSession = useCallback(() => {
+    queryClient.clear();
+    setAccount(null);
+    setUser(null);
     setFortune(null);
-    let u = await storage.getUser();
-    if (acc && !u && guestUser) {
-      await storage.saveUser(guestUser);
-      u = guestUser;
-    }
-    setUser(u);
-    setAccount(acc);
+    setEditingProfile(false);
   }, []);
 
+  /** Reads who we are and our profile from the server. */
+  const loadSession = useCallback(async () => {
+    if (!(await getTokens())) {
+      clearSession();
+      return;
+    }
+    const me = await authApi.me();
+    setAccount(me.status === 'guest' ? null : me);
+    setFortune(null);
+    setUser(await profileApi.get(me.id));
+  }, [clearSession]);
+
   useEffect(() => {
+    setOnSessionLost(clearSession);
     (async () => {
       await captureInvite();
-      const [ob, acc] = await Promise.all([storage.getOnboarded(), authService.currentAccount()]);
-      setOnboarded(ob);
-      await enter(acc);
+      setOnboarded(await storage.getOnboarded());
+      try {
+        await loadSession();
+      } catch {
+        // offline or server down: start without a session, the screens retry
+      }
       setBooting(false);
     })();
   }, []);
 
-  const refreshFortune = useCallback(async (force = false) => {
+  const refreshFortune = useCallback(async () => {
     if (!user) return;
-    const date = todayISO();
-    setToday(date);
+    setToday(todayISO());
     setFortuneLoading(true);
+    setFortuneError(null);
     try {
-      setFortune(await getDailyFortune(user, date, { force }));
+      setFortune(await fortuneApi.daily(user.id));
+    } catch (err) {
+      setFortuneError(err as Error);
     } finally {
       setFortuneLoading(false);
     }
@@ -80,15 +106,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
 
   const value: AppState = {
-    booting, onboarded, account, user, today, fortune, fortuneLoading, refreshFortune,
+    booting, onboarded, account, user, editingProfile, today, fortune, fortuneLoading, fortuneError, refreshFortune,
     completeOnboarding: async () => { await storage.setOnboarded(true); setOnboarded(true); },
-    saveUser: async u => { await storage.saveUser(u); setFortune(null); setUser(u); },
-    resetProfile: async () => { await storage.clearAll(); setFortune(null); setUser(null); },
-    signIn: async (email, password) => enter(await authService.signIn(email, password)),
-    signUp: async input => enter(await authService.signUp(input)),
-    signInWithProvider: async (provider, profile) => enter(await authService.signInWithProvider(provider, profile)),
-    signOut: async () => { await authService.signOut(); await enter(null); },
-    deleteAccount: async () => { if (account) await authService.deleteAccount(account.id); await enter(null); },
+    saveUser: async input => {
+      if (!(await getTokens())) await authApi.startGuest();
+      const me = await authApi.me();
+      const saved = await profileApi.save(me.id, input);
+      queryClient.invalidateQueries();
+      setFortune(null);
+      setUser(saved);
+      setEditingProfile(false);
+    },
+    resetProfile: () => setEditingProfile(true),
+    cancelProfileEdit: () => setEditingProfile(false),
+    signIn: async (email, password) => { await authApi.login(email, password); queryClient.clear(); await loadSession(); },
+    sendSignupCode: email => authApi.sendSignupCode(email),
+    verifySignupCode: (email, otp) => authApi.verifySignupCode(email, otp),
+    completeSignup: async params => { await authApi.signup(params); queryClient.clear(); await loadSession(); },
+    signOut: async () => { await authApi.signOut(); clearSession(); },
+    deleteAccount: async reason => { await authApi.withdraw(reason); clearSession(); },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

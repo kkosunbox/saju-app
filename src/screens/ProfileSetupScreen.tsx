@@ -12,16 +12,17 @@ import Icon from '../components/Icon';
 import { CheckRow } from '../components/auth/AuthKit';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
-import { BloodType, Gender, MBTI, User } from '../types';
+import { BloodType, Gender, MBTI } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { isValidDate } from '../utils/date';
 import { motion, useReducedMotion } from '../utils/motion';
-import { guessMbti } from '../utils/mbtiGuess';
+import { ApiError } from '../api/client';
+import { ProfileInput } from '../services/server/profileApi';
 
 /** 4단계: 이름 → 생일·시간 → 성별·혈액형 → MBTI (직업·관심사는 마이에서 나중에) */
 const STEPS = [
   { key: 'name', q: '어떻게 불러드릴까요?', hint: '운세에서 불러드릴 이름이에요.' },
-  { key: 'birth', q: '언제 태어났나요?', hint: '양력 기준이에요. 시간은 몰라도 괜찮아요.' },
+  { key: 'birth', q: '언제 태어났나요?', hint: '양력·음력 모두 돼요. 시간은 몰라도 괜찮아요.' },
   { key: 'basic', q: '성별과 혈액형을 알려주세요', hint: '' },
   { key: 'mbti', q: 'MBTI를 골라주세요', hint: '몰라도 괜찮아요. 4문항으로 찾거나, 건너뛰어도 돼요.' },
 ] as const;
@@ -37,18 +38,25 @@ const QUIZ: { q: string; a: [string, string]; axis: [string, string] }[] = [
 const LOADING_MSGS = ['오늘의 운을 고르는 중', '사주 원국을 세우는 중', '태어난 요일의 행성을 찾는 중', 'MBTI 성향을 읽는 중', '네 가지 결과를 엮는 중'];
 
 export default function ProfileSetupScreen() {
-  const { saveUser, signOut, account } = useApp();
+  const { saveUser, signOut, account, user, editingProfile, cancelProfileEdit } = useApp();
+  // "다시 입력"으로 들어오면 지금 프로필을 채워 둔다 (생일은 입력했던 달력 기준)
+  const editing = editingProfile && !!user;
+  const [birthY, birthM, birthD] = (editing ? user!.birthDateInput ?? user!.birthDate : '').split('-');
+  const [birthH, birthMin] = (editing && user!.birthTime ? user!.birthTime : '').split(':');
   const reduced = useReducedMotion();
   const [step, setStep] = useState(0);
   const [generating, setGenerating] = useState(false);
 
-  const [nickname, setNickname] = useState('');
-  const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
-  const [hh, setHh] = useState(''); const [mm, setMm] = useState(''); const [unknownTime, setUnknownTime] = useState(false);
-  const [gender, setGender] = useState<Gender | null>(null);
-  const [blood, setBlood] = useState<BloodType | null>(null);
-  const [mbti, setMbti] = useState<MBTI | null>(null);
-  const [skipMbti, setSkipMbti] = useState(false);
+  const [nickname, setNickname] = useState(editing ? user!.nickname : '');
+  const [calendar, setCalendar] = useState<'solar' | 'lunar'>(editing ? user!.calendarType ?? 'solar' : 'solar');
+  const [leap, setLeap] = useState(editing ? !!user!.isLeapMonth : false);
+  const [y, setY] = useState(birthY ?? ''); const [m, setM] = useState(birthM ? String(Number(birthM)) : ''); const [d, setD] = useState(birthD ? String(Number(birthD)) : '');
+  const [hh, setHh] = useState(birthH ?? ''); const [mm, setMm] = useState(birthMin ?? ''); const [unknownTime, setUnknownTime] = useState(editing && !user!.birthTime);
+  const [gender, setGender] = useState<Gender | null>(editing ? user!.gender : null);
+  const [blood, setBlood] = useState<BloodType | null>(editing ? user!.bloodType : null);
+  const [mbti, setMbti] = useState<MBTI | null>(editing && !user!.mbtiUnknown ? user!.mbti : null);
+  const [skipMbti, setSkipMbti] = useState(editing && !!user!.mbtiUnknown);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<(0 | 1 | null)[] | null>(null);
 
   // 단계 전환 애니메이션 + 진행 막대
@@ -63,7 +71,10 @@ export default function ProfileSetupScreen() {
   }, [step]);
 
   const dateFilled = y.length === 4 && !!m && !!d;
-  const dateOk = isValidDate(Number(y), Number(m), Number(d));
+  // 음력은 날짜 범위만 보고, 실제로 있는 날인지는 서버가 확인한다 (INVALID_BIRTH_DATE)
+  const dateOk = calendar === 'lunar'
+    ? Number(y) >= 1900 && Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= 30
+    : isValidDate(Number(y), Number(m), Number(d));
   const hourOk = hh !== '' && Number(hh) >= 0 && Number(hh) <= 23;
   const minOk = mm === '' || (Number(mm) >= 0 && Number(mm) <= 59);
   const timeOk = unknownTime || (hourOk && minOk);
@@ -76,27 +87,40 @@ export default function ProfileSetupScreen() {
     if (next.every(x => x !== null)) setMbti(next.map((x, k) => QUIZ[k].axis[x!]).join('') as MBTI);
   };
 
-  const finish = () => {
+  const finish = async () => {
     setGenerating(true);
-    const birth = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    const time = `${hh.padStart(2, '0')}:${(mm || '0').padStart(2, '0')}`;
-    const user: User = {
-      id: `local-${Date.now().toString(36)}`,
+    setSaveError(null);
+    const input: ProfileInput = {
       nickname: nickname.trim(),
-      birthDate: birth,
-      birthTime: unknownTime ? null : time,
-      gender: gender!, bloodType: blood!,
-      ...(mbti && !skipMbti ? { mbti } : { mbti: guessMbti(birth, unknownTime ? null : time), mbtiUnknown: true }),
-      interests: [],
-      createdAt: new Date().toISOString(),
+      calendarType: calendar,
+      birthDate: `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`,
+      isLeapMonth: calendar === 'lunar' && leap,
+      birthTime: unknownTime ? null : `${hh.padStart(2, '0')}:${(mm || '0').padStart(2, '0')}`,
+      gender: gender!,
+      bloodType: blood!,
+      // 모르면 서버가 사주로 추정하고 "(추정)"으로 표시한다
+      mbti: mbti && !skipMbti ? mbti : null,
+      ...(editing ? { interests: user!.interests, concern: user!.concern ?? null, occupation: user!.occupation ?? null } : {}),
     };
-    setTimeout(() => saveUser(user), 3200);
+    const minimumShow = new Promise(resolve => setTimeout(resolve, editing ? 600 : 1800));
+    try {
+      await Promise.all([saveUser(input), minimumShow]);
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : '';
+      setSaveError(
+        code === 'INVALID_BIRTH_DATE' ? '없는 날짜예요. 음력이면 윤달 여부도 확인해 주세요.'
+          : code === 'PROFILE_EDIT_LIMIT_EXCEEDED' ? '생년월일·시간 같은 정보는 하루 2번까지 바꿀 수 있어요. 내일 다시 시도해 주세요.'
+            : '저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
+      );
+      setGenerating(false);
+      if (code === 'INVALID_BIRTH_DATE') go(1);
+    }
   };
 
   const go = (to: number) => { dir.current = to > step ? 1 : -1; setStep(to); };
   const next = () => (step === STEPS.length - 1 ? finish() : go(step + 1));
 
-  if (generating) return <MoonLoader title={`${nickname.trim()}님만의\n운세 프로필을 만들고 있어요`} messages={LOADING_MSGS} />;
+  if (generating) return <MoonLoader title={editing ? '프로필을 저장하고 있어요' : `${nickname.trim()}님만의\n운세 프로필을 만들고 있어요`} messages={LOADING_MSGS} />;
 
   const cur = STEPS[step];
   const translateX = enter.interpolate({ inputRange: [0, 1], outputRange: [18 * dir.current, 0] });
@@ -110,7 +134,9 @@ export default function ProfileSetupScreen() {
             <Icon name="chevronLeft" size={24} />
           </PressableScale>
           <Text style={s.count}>{step + 1} / {STEPS.length}</Text>
-          {step === 0 ? (
+          {step === 0 && editing ? (
+            <PressableScale onPress={cancelProfileEdit} hitSlop={10} scaleTo={0.94} accessibilityLabel="수정 그만두기"><Text style={s.skip}>닫기</Text></PressableScale>
+          ) : step === 0 ? (
             // 이미 계정이 있으면(앱을 다시 설치한 경우 등) 로그인해서 프로필·포인트를 되찾는다.
             // 로그인한 상태라면 다른 계정으로 바꿀 수 있게 로그아웃
             account ? (
@@ -134,13 +160,22 @@ export default function ProfileSetupScreen() {
 
               {cur.key === 'birth' && (
                 <>
-                  <Text style={s.label}>생년월일</Text>
+                  <View style={[s.row, { marginBottom: 16 }]}>
+                    <OptionChip style={{ flex: 1 }} label="양력" selected={calendar === 'solar'} onPress={() => { setCalendar('solar'); setLeap(false); }} />
+                    <OptionChip style={{ flex: 1 }} label="음력" selected={calendar === 'lunar'} onPress={() => setCalendar('lunar')} />
+                  </View>
+                  <Text style={s.label}>생년월일{calendar === 'lunar' ? ' (음력)' : ''}</Text>
                   <View style={s.row}>
                     <TextField containerStyle={{ flex: 1.5 }} value={y} onChangeText={t => setY(t.replace(/\D/g, ''))} placeholder="1995" keyboardType="number-pad" maxLength={4} autoFocus suffix="년" invalid={dateFilled && !dateOk} />
                     <TextField containerStyle={{ flex: 1 }} value={m} onChangeText={t => setM(t.replace(/\D/g, ''))} placeholder="3" keyboardType="number-pad" maxLength={2} suffix="월" invalid={dateFilled && !dateOk} />
                     <TextField containerStyle={{ flex: 1 }} value={d} onChangeText={t => setD(t.replace(/\D/g, ''))} placeholder="15" keyboardType="number-pad" maxLength={2} suffix="일" invalid={dateFilled && !dateOk} />
                   </View>
                   {dateFilled && !dateOk ? <Text style={s.error}>1900년 이후의 실제 날짜를 입력해 주세요.</Text> : null}
+                  {calendar === 'lunar' ? (
+                    <View style={{ marginTop: 8 }}>
+                      <CheckRow checked={leap} label="윤달이에요" onPress={() => setLeap(!leap)} />
+                    </View>
+                  ) : null}
 
                   <Text style={[s.label, { marginTop: 24 }]}>태어난 시간</Text>
                   <View style={[s.row, unknownTime && { opacity: 0.35 }]} pointerEvents={unknownTime ? 'none' : 'auto'}>
@@ -211,7 +246,8 @@ export default function ProfileSetupScreen() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
-          <PrimaryButton label={step === STEPS.length - 1 ? '내 운세 보러 가기' : '다음'} onPress={next} disabled={!canNext} />
+          {saveError ? <Text style={[s.error, { marginBottom: 10, textAlign: 'center' }]}>{saveError}</Text> : null}
+          <PrimaryButton label={step === STEPS.length - 1 ? (editing ? '저장하기' : '내 운세 보러 가기') : '다음'} onPress={next} disabled={!canNext} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

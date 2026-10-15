@@ -7,7 +7,8 @@ import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import { FieldError } from '../../components/auth/AuthKit';
 import { useApp } from '../../context/AppContext';
-import { AuthError, isEmail } from '../../services/auth/authService';
+import { ApiError } from '../../api/client';
+import { isEmail } from '../../utils/validate';
 import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
 
@@ -27,7 +28,12 @@ export default function EmailLoginScreen() {
     if (!can) return;
     setBusy(true); setErr(null);
     try { await signIn(email, pw); }
-    catch (e) { setErr(e instanceof AuthError ? e.message : '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.'); setBusy(false); }
+    catch (e) {
+      const wrong = e instanceof ApiError && ['UNAUTHORIZED', 'CONTENT_NOT_FOUND'].includes(e.code);
+      const social = e instanceof ApiError && e.code === 'SOCIAL_USER_CANNOT_USE_PASSWORD';
+      setErr(wrong ? '이메일 또는 비밀번호가 맞지 않아요.' : social ? '소셜 로그인으로 가입한 계정이에요.' : '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      setBusy(false);
+    }
   };
 
   return (

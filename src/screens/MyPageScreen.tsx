@@ -15,10 +15,10 @@ import Segmented from '../components/Segmented';
 import { Appearance } from 'react-native';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
+import { inputOf } from '../services/server/profileApi';
 import { usePremium } from '../context/PremiumContext';
 import { Coin } from '../components/premium/Kit';
 import { fmtP } from '../services/premium/catalog';
-import { providerLabel } from '../services/auth/authService';
 import { storage, NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
@@ -60,7 +60,7 @@ export default function MyPageScreen() {
   // 웹에서는 Alert 버튼이 동작하지 않아 두 번 눌러 확인한다
   const confirmReset = () => {
     if (Platform.OS !== 'web') {
-      Alert.alert('프로필을 다시 입력할까요?', '저장된 운세 기록도 함께 초기화돼요.', [
+      Alert.alert('프로필을 다시 입력할까요?', '운세·궁합 기록은 그대로 남아요. 생년월일·시간 같은 정보는 하루 2번까지 바꿀 수 있어요.', [
         { text: '취소', style: 'cancel' },
         { text: '다시 입력하기', style: 'destructive', onPress: resetProfile },
       ]);
@@ -98,7 +98,7 @@ export default function MyPageScreen() {
         </LinearGradient>
       </View>
 
-      <SectionHeader title="내 프로필" caption={resetArm ? '저장된 정보가 모두 지워져요' : undefined} action={resetArm ? '한 번 더 누르면 초기화' : '다시 입력'} onAction={confirmReset} />
+      <SectionHeader title="내 프로필" caption={resetArm ? '기록은 그대로 남아요' : undefined} action={resetArm ? '한 번 더 누르면 수정' : '다시 입력'} onAction={confirmReset} />
       <Card style={s.group}>
         <PressableScale onPress={() => setMbtiSheet(true)} scaleTo={0.99} accessibilityLabel="MBTI 바꾸기">
           <Row icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''} ›`} />
@@ -172,7 +172,7 @@ export default function MyPageScreen() {
       <SectionHeader title="계정" />
       {account ? (
         <Card style={s.group}>
-          <Row icon="user" label="로그인 방법" value={providerLabel(account.provider)} />
+          <Row icon="user" label="로그인 방법" value={account.email && !account.email.endsWith('.invalid') ? '이메일' : '소셜 계정'} />
           <Row icon="mail" label="이메일" value={account.email ?? '제공 안 함'} last />
         </Card>
       ) : (
@@ -224,7 +224,7 @@ export default function MyPageScreen() {
         <View style={s.mbtiGrid}>
           {MBTI_LIST.map(t => (
             <OptionChip key={t} style={{ width: '23%' }} label={t} sub={MBTI_INFO[t].nickname} selected={!user.mbtiUnknown && user.mbti === t}
-              onPress={async () => { setMbtiSheet(false); await saveUser({ ...user, mbti: t, mbtiUnknown: false }); toast(`MBTI를 ${t}로 바꿨어요`); }} />
+              onPress={async () => { setMbtiSheet(false); await saveUser({ ...inputOf(user), mbti: t }); toast(`MBTI를 ${t}로 바꿨어요`); }} />
           ))}
         </View>
       </BottomSheet>

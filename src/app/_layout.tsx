@@ -5,7 +5,9 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { NotoSerifKR_700Bold } from '@expo-google-fonts/noto-serif-kr';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from '@/context/AppContext';
+import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { LogoMark } from '@/components/BrandMark';
 import { colors, isDark } from '@/theme/colors';
@@ -30,7 +32,8 @@ function useCloseAuthFlowOnSignIn() {
 }
 
 function RootStack() {
-  const { booting, onboarded, user } = useApp();
+  const { booting, onboarded, user, editingProfile } = useApp();
+  const hasProfile = !!user && !editingProfile;
   const { setGoWallet } = usePremium();
   useEffect(() => setGoWallet(() => router.push('/wallet')), [setGoWallet]);
   useCloseAuthFlowOnSignIn();
@@ -46,12 +49,12 @@ function RootStack() {
       <Stack.Protected guard={!onboarded}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      {/* 첫 화면 결정 순서: 프로필이 없으면 프로필 입력이 로그인보다 먼저 */}
-      <Stack.Protected guard={onboarded && !user}>
+      {/* 첫 화면 결정 순서: 프로필이 없으면(또는 "다시 입력" 중이면) 프로필 입력이 로그인보다 먼저 */}
+      <Stack.Protected guard={onboarded && !hasProfile}>
         <Stack.Screen name="profile-setup" />
       </Stack.Protected>
       {/* 프로필이 있어야 쓰는 화면 */}
-      <Stack.Protected guard={onboarded && !!user}>
+      <Stack.Protected guard={onboarded && hasProfile}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="category/[category]" />
         <Stack.Screen name="analysis/[source]" />
@@ -95,12 +98,14 @@ export default function RootLayout() {
   });
   const app = (
     <SafeAreaProvider>
-      <AppProvider>
-        <PremiumProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          <RootStack />
-        </PremiumProvider>
-      </AppProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppProvider>
+          <PremiumProvider>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <RootStack />
+          </PremiumProvider>
+        </AppProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
   if (Platform.OS !== 'web') return app;

@@ -5,9 +5,11 @@ import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import { DemoNote, FieldError, FieldLabel } from '../../components/auth/AuthKit';
+import { FieldError, FieldLabel } from '../../components/auth/AuthKit';
 import { usePremium } from '../../context/PremiumContext';
-import { AuthError, authService, isEmail, isStrongPassword } from '../../services/auth/authService';
+import { ApiError } from '../../api/client';
+import { authApi } from '../../services/server/authApi';
+import { isEmail, isStrongPassword, PASSWORD_HINT } from '../../utils/validate';
 import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
 
@@ -18,7 +20,6 @@ export default function FindPasswordScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [demoCode, setDemoCode] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -36,9 +37,9 @@ export default function FindPasswordScreen() {
     if (!isEmail(email) || busy) return;
     setBusy(true); setErr(null);
     try {
-      const r = await authService.requestPasswordReset(email);
-      setDemoCode(r.demoCode); setStep(2); setLeft(60); setCode('');
-    } catch (e) { setErr(e instanceof AuthError ? e.message : '인증번호를 보내지 못했어요.'); }
+      await authApi.sendResetCode(email);
+      setStep(2); setLeft(60); setCode('');
+    } catch (e) { setErr(e instanceof ApiError && e.code === 'CONTENT_NOT_FOUND' ? '가입하지 않은 이메일이에요.' : '인증번호를 보내지 못했어요.'); }
     finally { setBusy(false); }
   };
 
@@ -49,10 +50,10 @@ export default function FindPasswordScreen() {
     if (!can2) return;
     setBusy(true); setErr(null);
     try {
-      await authService.resetPassword(email, code, pw);
+      await authApi.resetPassword(email, code, pw);
       toast('비밀번호를 바꿨어요. 새 비밀번호로 로그인해 주세요');
       nav.goBack();
-    } catch (e) { setErr(e instanceof AuthError ? e.message : '비밀번호를 바꾸지 못했어요.'); setBusy(false); }
+    } catch (e) { setErr(e instanceof ApiError && e.status === 400 ? '인증번호가 맞지 않거나 시간이 지났어요.' : '비밀번호를 바꾸지 못했어요.'); setBusy(false); }
   };
 
   return (
@@ -74,7 +75,6 @@ export default function FindPasswordScreen() {
         </View>
       ) : (
         <View style={{ marginTop: 28, gap: 20 }}>
-          <DemoNote>데모 환경이라 메일 대신 여기에 인증번호를 보여드려요: <Text style={{ fontWeight: '700', color: colors.ink, letterSpacing: 2 }}>{demoCode}</Text></DemoNote>
           <View>
             <FieldLabel>인증번호</FieldLabel>
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -87,8 +87,8 @@ export default function FindPasswordScreen() {
           </View>
           <View>
             <FieldLabel>새 비밀번호</FieldLabel>
-            <TextField value={pw} onChangeText={setPw} placeholder="영문·숫자 포함 8자 이상" secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pwBad} />
-            <FieldError>{pwBad ? '영문과 숫자를 섞어 8자 이상으로 만들어 주세요.' : null}</FieldError>
+            <TextField value={pw} onChangeText={setPw} placeholder={PASSWORD_HINT} secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pwBad} />
+            <FieldError>{pwBad ? `${PASSWORD_HINT}으로 만들어 주세요.` : null}</FieldError>
           </View>
           <View>
             <FieldLabel>새 비밀번호 확인</FieldLabel>
