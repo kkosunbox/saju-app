@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
 import Screen from '../../components/Screen';
@@ -10,14 +12,18 @@ import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
 import FriendCompare from '../../components/FriendCompare';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
-import { ActRow, Coin, DarkChip, Hero, Para, SubHead, heroTxt } from '../../components/premium/Kit';
+import { ActRow, BodyState, Coin, DarkChip, Hero, Para, SubHead, heroTxt } from '../../components/premium/Kit';
+import BottomSheet from '../../components/BottomSheet';
+import LoadingScreen from '../../components/LoadingScreen';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
-import { ITEMS, fmtP } from '../../services/premium/catalog';
-import {
-  CONSULT_CATS, CONSULT_CONFIG, CRISIS_LINES, ConsultCat, ConsultEntry, MODE_LABEL, catOf, consultAnswer, guessCat, isCrisis, loadConsults, saveConsult,
-} from '../../services/content/consult';
+import { fmtP } from '../../services/premium/catalog';
+import { CONSULT_CATS, CONSULT_CONFIG, ConsultCat, catOf, guessCat } from '../../services/content/consult';
+import { HelpLine, consultApi, consultKeys } from '../../services/server/consultApi';
+import { refreshPoints } from '../../context/PremiumContext';
+import { queryClient } from '../../api/query';
+import { ApiError } from '../../api/client';
 import { consultSpec } from '../../services/share/shareSpecs';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt, sansW } from '../../theme/typography';
@@ -35,41 +41,87 @@ export default function ConsultScreen() {
   return params?.id ? <Answer id={params.id} /> : <Compose />;
 }
 
+/** 위기 · 마음 건강 신호일 때: 운세보다 사람의 도움을 먼저 (탭하면 바로 전화) */
+function HelpLines({ lines, crisis }: { lines: HelpLine[]; crisis?: boolean }) {
+  return (
+    <Card style={s.crisis}>
+      <Text style={[txt.h3, { color: colors.love }]}>{crisis ? '지금 많이 힘드시죠' : '마음이 많이 지칠 땐'}</Text>
+      <Para>{crisis
+        ? '이런 마음은 운세보다 사람의 도움이 먼저 필요해요. 혼자 견디지 말고 지금 바로 이야기해 주세요. 24시간 언제든 연결돼요.'
+        : '혼자 견디기 어려울 땐 전문가와 이야기해 보세요. 24시간 언제든 연결돼요.'}</Para>
+      <View style={{ gap: 8, marginTop: 12 }}>
+        {lines.map(l => (
+          <PressableScale key={l.phone} onPress={() => Linking.openURL(`tel:${l.phone.replace(/-/g, '')}`)} style={s.line} scaleTo={0.98} accessibilityLabel={`${l.name} ${l.phone}에 전화하기`}>
+            <Text style={{ fontSize: 14, color: colors.ink }}>{l.name}</Text><Text style={{ fontSize: 17, fontWeight: '800', color: colors.love }}>{l.phone}</Text>
+          </PressableScale>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+const ASK_ERROR: Record<string, string> = {
+  CONSULT_UNAVAILABLE: '상담을 잠시 쉬고 있어요. 조금 뒤에 다시 시도해 주세요',
+  DUPLICATE_REQUEST: '이미 답변을 쓰고 있어요. 잠시만 기다려 주세요',
+};
+
 function Compose() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user: u, today } = useApp();
-  const { owned, openUnlock, points } = usePremium();
+  const { user: u, account, today } = useApp();
+  const { points, toast, goWallet } = usePremium();
   const [cat, setCat] = useState<ConsultCat | null>(null);
   const [picked, setPicked] = useState(false);
   const [text, setText] = useState('');
-  const [list, setList] = useState<ConsultEntry[]>([]);
-  useEffect(() => { loadConsults().then(setList); }, []);
+  const [confirm, setConfirm] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
+  const history = useQuery({ queryKey: consultKeys.list, queryFn: consultApi.list, enabled: !!account });
   if (!u) return null;
+  if (asking) return <LoadingScreen />;
 
   // 직접 고르지 않았으면 글에서 주제를 추측해 미리 골라 둔다
-  const onText = (t: string) => { setText(t); if (!picked) setCat(guessCat(t)); };
-  const crisis = isCrisis(text);
+  const onText = (t: string) => { setText(t); setCrisis(null); if (!picked) setCat(guessCat(t)); };
   const len = text.trim().length;
-  const ok = !!cat && len >= CONSULT_CONFIG.minLen && !crisis;
+  // 주제는 고르지 않아도 된다 (서버가 글에서 판단)
+  const ok = len >= CONSULT_CONFIG.minLen;
 
-  const submit = () => {
-    if (!ok || !cat) return;
-    const id = Date.now().toString(36);
-    const entry: ConsultEntry = { id, cat, text: text.trim(), at: today };
-    const item = ITEMS.consult(id);
-    const done = async () => { await saveConsult(entry); nav.replace('Consult', { id }); };
-    if (owned(item.key)) done(); else openUnlock(item, done);
+  const start = () => {
+    if (!ok) return;
+    if (!account) { toast('로그인하면 상담받을 수 있어요'); router.push('/login'); return; }
+    setConfirm(true);
+  };
+  // 포인트가 모자라도 서버에 보낸다: 위기 신호가 있으면 포인트와 상관없이 상담 전화를 안내받아야 한다
+  const ask = async () => {
+    setConfirm(false); setAsking(true);
+    try {
+      const v = await consultApi.ask(text.trim(), cat ?? undefined);
+      if (v.status === 'crisis' || v.id == null) { setCrisis(v.helpLines ?? []); return; }
+      queryClient.setQueryData(consultKeys.one(v.id), v);
+      queryClient.invalidateQueries({ queryKey: consultKeys.list });
+      refreshPoints();
+      setText('');
+      nav.push('Consult', { id: String(v.id) });
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'INSUFFICIENT_POINTS') {
+        toast(`상담에는 ${CONSULT_CONFIG.cost}P가 필요해요. 충전 후 다시 시도해 주세요`);
+        goWallet?.();
+      } else {
+        toast((e instanceof ApiError && ASK_ERROR[e.code]) || '답변을 만들지 못했어요. 포인트는 쓰이지 않았어요');
+      }
+    } finally {
+      setAsking(false);
+    }
   };
 
   return (
     <Screen title="말 못 할 고민 상담" back>
       <Hero>
-        <Text style={heroTxt.eyebrow}>익명 · 이 기기에만 저장돼요</Text>
+        <Text style={heroTxt.eyebrow}>나만 볼 수 있어요 · 1년 뒤 자동 삭제</Text>
         <Text style={[heroTxt.summ, { fontSize: 21, lineHeight: 30 }]}>누구에게도 못 한 고민,{'\n'}사주에게 털어놓으세요</Text>
         <Text style={{ fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.72)', marginTop: 8 }}>내 사주 · 이번 달 기운 · 앞으로 3개월 흐름 · MBTI로 지금 나에게 맞는 답을 드려요.</Text>
       </Hero>
 
-      <SubHead title="어떤 고민인가요?" />
+      <SubHead title="어떤 고민인가요?" caption="고르지 않으면 글을 보고 알아서 정해요" />
       <View style={s.chips}>
         {CONSULT_CATS.map(c => {
           const on = cat === c.key;
@@ -94,36 +146,21 @@ function Compose() {
         <Text style={[txt.caption, len >= CONSULT_CONFIG.maxLen && { color: colors.danger }]}>{len}/{CONSULT_CONFIG.maxLen}</Text>
       </View>
 
-      {crisis ? (
-        <Card style={s.crisis}>
-          <Text style={[txt.h3, { color: colors.love }]}>지금 많이 힘드시죠</Text>
-          <Para>이런 마음은 운세보다 사람의 도움이 먼저 필요해요. 혼자 견디지 말고 지금 바로 이야기해 주세요. 24시간 언제든 연결돼요.</Para>
-          <View style={{ gap: 8, marginTop: 12 }}>
-            {CRISIS_LINES.map(([k, v]) => (
-              <PressableScale key={k} onPress={() => Linking.openURL(`tel:${v.replace(/-/g, '')}`)} style={s.line} scaleTo={0.98} accessibilityLabel={`${k} ${v}에 전화하기`}>
-                <Text style={{ fontSize: 14, color: colors.ink }}>{k}</Text><Text style={{ fontSize: 17, fontWeight: '800', color: colors.love }}>{v}</Text>
-              </PressableScale>
-            ))}
-          </View>
-        </Card>
-      ) : null}
+      {crisis ? <HelpLines lines={crisis} crisis /> : null}
 
-      <PrimaryButton
-        label={owned(ITEMS.consult('x').key) ? '상담 결과 보기' : `${CONSULT_CONFIG.cost}P로 상담받기`}
-        icon={<Coin size={18} />} onPress={submit} disabled={!ok} style={{ marginTop: 16 }}
-      />
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 8 }]}>보유 {fmtP(points)} · 공유 카드에는 고민 내용이 절대 들어가지 않아요</Text>
+      <PrimaryButton label={`${CONSULT_CONFIG.cost}P로 상담받기`} icon={<Coin size={18} />} onPress={start} disabled={!ok} style={{ marginTop: 16 }} />
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 8 }]}>{account ? `보유 ${fmtP(points)} · ` : ''}공유 카드에는 고민 내용이 절대 들어가지 않아요</Text>
 
-      {list.length ? (
+      {history.data?.length ? (
         <>
           <SubHead title="지난 상담" />
           <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
-            {list.map((e, i) => (
-              <PressableScale key={e.id} onPress={() => nav.push('Consult', { id: e.id })} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98}>
-                <Text style={s.histH}>{catOf(e.cat).hanja}</Text>
+            {history.data.map((e, i) => (
+              <PressableScale key={e.id} onPress={() => nav.push('Consult', { id: String(e.id) })} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98}>
+                <Text style={s.histH}>{catOf(e.topic).hanja}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>{e.text}</Text>
-                  <Text style={txt.caption}>{catOf(e.cat).label} · {e.at.replace(/-/g, '.')}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>{e.answer?.headline ?? catOf(e.topic).label}</Text>
+                  <Text style={txt.caption}>{catOf(e.topic).label} · {kstDate(e.createdAt)}</Text>
                 </View>
               </PressableScale>
             ))}
@@ -131,36 +168,65 @@ function Compose() {
         </>
       ) : null}
       <Disclaimer compact />
+
+      <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
+        <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
+        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{CONSULT_CONFIG.cost}P로 상담받을까요?</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>답변을 만드는 데 10~20초 걸려요.{'\n'}답변이 만들어진 뒤에만 포인트가 쓰여요.</Text>
+        <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
+        <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
+      </BottomSheet>
     </Screen>
   );
 }
 
+const kstDate = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10).replace(/-/g, '.') : '');
+
 function Answer({ id }: { id: string }) {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u } = useApp();
-  const [e, setE] = useState<ConsultEntry | null | undefined>(undefined);
+  const { toast } = usePremium();
   const [showQ, setShowQ] = useState(false);
-  useEffect(() => { loadConsults().then(l => setE(l.find(x => x.id === id) ?? null)); }, [id]);
-  if (!u || e === undefined) return <Screen title="고민 상담" back>{null}</Screen>;
-  if (!e) return <Screen title="고민 상담" back><Text style={txt.body}>상담 기록을 찾을 수 없어요.</Text></Screen>;
-  const A = consultAnswer(u, e.text, e.cat, e.at); const C = catOf(e.cat);
-  const spec = consultSpec(u, e);
-  const mx = Math.max(...A.flow.map(f => f.v));
+  const [del, setDel] = useState(false);
+  const q = useQuery({ queryKey: consultKeys.one(Number(id)), queryFn: () => consultApi.get(Number(id)) });
+  if (!u) return null;
+  if (q.isPending) return <LoadingScreen />;
+  const e = q.data;
+  if (!e?.answer || !e.facts) {
+    return <Screen title="고민 상담" back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
+  }
+  const A = e.answer, F = e.facts; const C = catOf(e.topic);
+  const spec = consultSpec(u, { ...e, answer: A, facts: F });
+  const mx = Math.max(...F.flow.map(f => f.score));
+  const remove = async () => {
+    setDel(false);
+    try {
+      await consultApi.remove(e.id!);
+      queryClient.removeQueries({ queryKey: consultKeys.one(e.id!) });
+      queryClient.invalidateQueries({ queryKey: consultKeys.list });
+      toast('상담 기록을 지웠어요');
+      nav.goBack();
+    } catch {
+      toast('지우지 못했어요. 잠시 후 다시 시도해 주세요');
+    }
+  };
 
   return (
     <Screen title="고민 상담" back right={<ShareIconButton spec={spec} />}>
       <FriendCompare route="Consult" spec={spec} />
-      <PressableScale onPress={() => setShowQ(!showQ)} style={s.q} scaleTo={0.99}>
-        <Text style={txt.caption}>나의 고민 · {C.label} · 나만 볼 수 있어요</Text>
-        <Text style={[txt.body, { fontSize: 14, marginTop: 4 }]} numberOfLines={showQ ? undefined : 2}>{e.text}</Text>
-      </PressableScale>
+      {e.question ? (
+        <PressableScale onPress={() => setShowQ(!showQ)} style={s.q} scaleTo={0.99}>
+          <Text style={txt.caption}>나의 고민 · {C.label} · 나만 볼 수 있어요</Text>
+          <Text style={[txt.body, { fontSize: 14, marginTop: 4 }]} numberOfLines={showQ ? undefined : 2}>{e.question}</Text>
+        </PressableScale>
+      ) : null}
 
       <Hero>
         <Text style={heroTxt.eyebrow}>{C.hanja} {C.label} 고민에 대한 답</Text>
         <Text style={[heroTxt.summ, { fontSize: 20, lineHeight: 29 }]}>{A.headline}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 14 }}>
-          <DarkChip gold>{MODE_LABEL[A.mode]}</DarkChip>
-          <DarkChip>풀리는 달 {A.bestMonth}</DarkChip>
+          <DarkChip gold>{F.modeLabel}</DarkChip>
+          <DarkChip>풀리는 달 {F.bestMonth}</DarkChip>
         </View>
       </Hero>
 
@@ -182,10 +248,10 @@ function Answer({ id }: { id: string }) {
       <Card>
         <Para mt={0}>{A.now}</Para>
         <View style={s.bars}>
-          {A.flow.map(f => (
+          {F.flow.map(f => (
             <View key={f.label} style={s.barCol}>
-              <Text style={[s.barV, f.v === mx && { color: colors.love }]}>{f.v}</Text>
-              <View style={[s.bar, { height: Math.max(10, (f.v - 50) * 1.8), backgroundColor: f.v === mx ? colors.love : colors.loveBg }]} />
+              <Text style={[s.barV, f.score === mx && { color: colors.love }]}>{f.score}</Text>
+              <View style={[s.bar, { height: Math.max(10, (f.score - 50) * 1.8), backgroundColor: f.score === mx ? colors.love : colors.loveBg }]} />
               <Text style={txt.caption}>{f.label}</Text>
             </View>
           ))}
@@ -200,18 +266,30 @@ function Answer({ id }: { id: string }) {
 
       <SubHead title="06 · 행동하기 좋은 날" caption="앞으로 30일 중 이 고민에 힘이 실리는 날" />
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        {A.days.map(d => <View key={d.iso} style={s.day}><Text style={{ fontSize: 14, fontWeight: '700', color: colors.love }}>{d.label}</Text></View>)}
+        {F.goodDays.map(d => <View key={d.iso} style={s.day}><Text style={{ fontSize: 14, fontWeight: '700', color: colors.love }}>{d.label}</Text></View>)}
       </View>
 
       <Card style={s.closing}>
-        <Text style={s.idiom}>{A.idiom[1]}</Text>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>{A.idiom[0]} · {A.idiom[2]}</Text>
+        <Text style={s.idiom}>{F.idiom[1]}</Text>
+        <Text style={[txt.caption, { textAlign: 'center' }]}>{F.idiom[0]} · {F.idiom[2]}</Text>
         <Text style={s.closeText}>{A.closing}</Text>
       </Card>
 
+      {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
+
       <ShareCta spec={spec} />
       <PrimaryButton label="다른 고민 상담하기" variant="soft" onPress={() => nav.navigate('Consult')} style={{ marginTop: 12 }} />
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. 마음이 많이 힘들 땐 전문가와 이야기해 주세요 (109 · 1577-0199).</Text>
+      <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 16 }}>
+        <Text style={s.delete}>이 상담 기록 지우기</Text>
+      </PressableScale>
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
+
+      <BottomSheet visible={del} onClose={() => setDel(false)}>
+        <Text style={[txt.h2, { textAlign: 'center' }]}>상담 기록을 지울까요?</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>고민 글과 답변이 바로 지워지고 되돌릴 수 없어요.</Text>
+        <PrimaryButton label="지우기" onPress={remove} style={{ marginTop: 20 }} />
+        <PrimaryButton label="취소" variant="soft" onPress={() => setDel(false)} style={{ marginTop: 8 }} />
+      </BottomSheet>
     </Screen>
   );
 }
@@ -239,5 +317,6 @@ const s = StyleSheet.create({
   day: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: colors.loveBg },
   closing: { marginTop: 24, alignItems: 'center', paddingVertical: 24 },
   idiom: { fontFamily: fonts.serif, fontSize: 28, fontWeight: '700', color: colors.seal, letterSpacing: 4 },
+  delete: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
   closeText: { ...sansW('600'), fontSize: 16, lineHeight: 25, color: colors.ink, textAlign: 'center', marginTop: 14 },
 });

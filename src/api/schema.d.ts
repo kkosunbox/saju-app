@@ -2226,8 +2226,6 @@ export interface components {
              * @enum {string}
              */
             topic?: "love" | "reunion" | "work" | "money" | "people" | "family" | "study" | "self";
-            /** @description 동의: 고민 글을 상담 답변 작성에 쓰고(외부 AI 회사 Anthropic에 전달) 1년 보관. true여야 함 */
-            consent: boolean;
         };
     };
     responses: never;

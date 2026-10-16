@@ -6,7 +6,8 @@
 import { CombinedFortune, CompatibilityResult, User } from '../../types';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
-import { ConsultEntry, MODE_LABEL, catOf, consultAnswer } from '../content/consult';
+import { catOf } from '../content/consult';
+import { ConsultView } from '../server/consultApi';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { TenGodGroup } from '../../data/sajuData';
@@ -236,12 +237,12 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
 
 
 /** 고민 상담 — 고민 원문은 절대 싣지 않는다. 주제와 답의 한 줄만 */
-export function consultSpec(u: User, e: ConsultEntry): ShareSpec {
-  const A = consultAnswer(u, e.text, e.cat, e.at); const C = catOf(e.cat);
+export function consultSpec(u: User, e: ConsultView & { answer: NonNullable<ConsultView['answer']>; facts: NonNullable<ConsultView['facts']> }): ShareSpec {
+  const A = e.answer, F = e.facts; const C = catOf(e.topic);
   return {
     kind: '말 못 할 고민 상담', seal: C.hanja, eyebrow: `${C.label} 고민에 사주가 답했어요`,
     headline: A.headline,
-    stats: [['지금은', MODE_LABEL[A.mode]], ['풀리는 달', A.bestMonth], ['행동하기 좋은 날', A.days[0]?.label.split(' ')[0] ?? '—']],
+    stats: [['지금은', F.modeLabel], ['풀리는 달', F.bestMonth], ['행동하기 좋은 날', F.goodDays[0]?.label.split(' ')[0] ?? '—']],
     teaser: '사주가 알려준 구체적인 해결법 3가지',
     hook: '너의 말 못 할 고민, 사주는 뭐라고 할까?',
     text: `말 못 할 ${C.label} 고민을 물어봤더니 "${A.headline}"래. 너도 털어놔 봐.`, file: `woonpick-consult-${e.id}`, route: 'Consult', short: `${C.label} 고민 → ${A.headline.split('.')[0]}`,
