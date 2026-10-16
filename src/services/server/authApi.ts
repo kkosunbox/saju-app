@@ -4,7 +4,7 @@
  * on signup and merges its data on login (POST /auth/signup · /auth/login).
  */
 import { api, call } from '../../api/client';
-import { setTokens } from '../../api/tokens';
+import { IS_WEB, setTokens } from '../../api/tokens';
 
 export interface Account {
   id: number;
@@ -12,10 +12,11 @@ export interface Account {
   status: string;
 }
 
-interface LoginPayload { accessToken: string; refreshToken: string }
+/** refreshToken is absent on the web (the server puts it in an httpOnly cookie). */
+export interface LoginPayload { accessToken: string; refreshToken?: string }
 
-async function keep(payload: LoginPayload, isGuest: boolean) {
-  await setTokens({ accessToken: payload.accessToken, refreshToken: payload.refreshToken, isGuest });
+export async function keep(payload: LoginPayload, isGuest: boolean) {
+  await setTokens({ accessToken: payload.accessToken, refreshToken: payload.refreshToken ?? '', isGuest });
 }
 
 export const authApi = {
@@ -85,6 +86,8 @@ export const authApi = {
   },
 
   async signOut(): Promise<void> {
+    // web: clears the login cookie (apps only forget the stored tokens)
+    if (IS_WEB) await call(api.POST('/v1/auth/logout', {})).catch(() => {});
     await setTokens(null);
   },
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { isWebSocial, startWebSocialLogin } from '../../services/server/socialAuth';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressableScale from '../../components/PressableScale';
@@ -12,9 +13,10 @@ import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
 /**
- * 카카오·네이버·Apple·Google 로그인 — 준비 중.
- * 각 사 앱 키가 생기면 이 화면 대신 OAuth 동의 화면을 열고, 인가 코드를 서버(/auth/{provider})로 보낸다.
- * 서버는 게스트 토큰과 함께 오면 게스트를 회원으로 잇는다.
+ * 카카오·네이버·Apple·Google 로그인.
+ * 웹 카카오·네이버·구글: 버튼을 누르면 그 회사 로그인 페이지로 갔다가 /oauth/{provider}/callback 으로 돌아온다
+ * (services/server/socialAuth.ts). 게스트로 쓰던 데이터는 그 계정으로 이어진다.
+ * 앱(네이티브)과 Apple 은 각 콘솔에 앱 정보를 등록한 키가 생기면 붙인다 — 지금은 이메일로 안내.
  */
 export default function SocialLoginScreen() {
   const nav = useNavigation();
@@ -23,6 +25,14 @@ export default function SocialLoginScreen() {
   const brand = SOCIAL_LABEL[p];
   const LOGO_BG = { kakao: '#FEE500', naver: '#03C75A', apple: '#000000', google: '#FFFFFF' }[p];
   const [emailOk, setEmailOk] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const live = Platform.OS === 'web' && isWebSocial(p);
+  const go = async () => {
+    if (!isWebSocial(p) || busy) return;
+    setBusy(true); setFailed(false);
+    try { await startWebSocialLogin(p); } catch { setFailed(true); setBusy(false); }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
@@ -47,10 +57,16 @@ export default function SocialLoginScreen() {
           <CheckRow checked label={`[필수] 프로필 정보 (닉네임)`} onPress={() => {}} />
           <CheckRow checked={emailOk} label="[선택] 이메일 주소" onPress={() => setEmailOk(v => !v)} />
         </View>
-        <DemoNote>{brand} 로그인은 준비 중이에요. 지금은 이메일로 시작해 주세요. 지금까지 본 운세는 그대로 이어져요.</DemoNote>
+        {live ? (
+          <Text style={[txt.small, { textAlign: 'center' }]}>{failed ? `${brand} 로그인 페이지를 열지 못했어요. 잠시 후 다시 시도해 주세요.` : `${brand} 로그인 페이지로 이동해요. 지금까지 본 운세는 그대로 이어져요.`}</Text>
+        ) : (
+          <DemoNote>{Platform.OS === 'web' ? `${brand} 로그인은 준비 중이에요.` : `앱에서 ${brand} 로그인은 준비 중이에요.`} 지금은 이메일로 시작해 주세요. 지금까지 본 운세는 그대로 이어져요.</DemoNote>
+        )}
       </View>
       <View style={s.footer}>
-        <SocialButton provider={params.provider} onPress={() => nav.navigate('SignUp')} label="이메일로 시작하기" />
+        {live
+          ? <SocialButton provider={params.provider} onPress={go} label={busy ? '이동하는 중…' : `${brand}로 계속하기`} />
+          : <SocialButton provider={params.provider} onPress={() => nav.navigate('SignUp')} label="이메일로 시작하기" />}
         <PressableScale onPress={() => nav.goBack()} style={{ alignSelf: 'center', padding: 12 }}><Text style={{ fontSize: 14, color: colors.inkMute }}>취소</Text></PressableScale>
       </View>
     </SafeAreaView>

@@ -2,11 +2,18 @@
  * Typed API client (types generated from the server Swagger: `npm run api:fetch && npm run api:types`).
  * Every response is `{ result, data }` or `{ result: false, code, message }`; `call` unwraps it.
  * A 401 refreshes the tokens once (shared by concurrent requests) and retries.
+ * Web requests say `X-Woonpick-Client: web` and carry cookies: the server keeps the refresh token
+ * in an httpOnly cookie instead of the response (src/api/tokens.ts).
  */
 import createClient from 'openapi-fetch';
 import { API_URL } from './config';
-import { getTokens, setTokens } from './tokens';
+import { IS_WEB, getTokens, setTokens } from './tokens';
+
 import type { paths } from './schema';
+
+/** Headers and cookie mode for every request from this platform. */
+const WEB_HEADERS: Record<string, string> = IS_WEB ? { 'X-Woonpick-Client': 'web' } : {};
+const CREDENTIALS: RequestCredentials | undefined = IS_WEB ? 'include' : undefined;
 
 /** Server error with its code (INSUFFICIENT_POINTS, CONTENT_LOCKED …). */
 export class ApiError extends Error {
@@ -26,8 +33,10 @@ async function refresh(): Promise<boolean> {
   if (!tokens) return false;
   const response = await fetch(`${API_URL}/v1/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+    headers: { 'Content-Type': 'application/json', ...WEB_HEADERS },
+    credentials: CREDENTIALS,
+    // web: the cookie (a refresh token is sent only once, to move an old localStorage session into the cookie)
+    body: JSON.stringify(tokens.refreshToken ? { refreshToken: tokens.refreshToken } : {}),
   }).catch(() => null);
   if (!response?.ok) {
     if (response && response.status < 500) {
@@ -37,21 +46,27 @@ async function refresh(): Promise<boolean> {
     return false;
   }
   const body = await response.json();
-  await setTokens({ ...tokens, accessToken: body.data.accessToken, refreshToken: body.data.refreshToken ?? tokens.refreshToken });
+  await setTokens({ ...tokens, accessToken: body.data.accessToken, refreshToken: IS_WEB ? '' : body.data.refreshToken ?? tokens.refreshToken });
   return true;
 }
+
+/** Shared refresh (concurrent 401s wait for one). */
+const refreshOnce = () => (refreshing ??= refresh().finally(() => { refreshing = null; }));
 
 async function authFetch(request: Request): Promise<Response> {
   const retry = request.clone();
   const withToken = async (req: Request) => {
     const tokens = await getTokens();
-    if (tokens && !req.headers.has('Authorization')) req.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
-    return fetch(req);
+    if (tokens?.accessToken && !req.headers.has('Authorization')) req.headers.set('Authorization', `Bearer ${tokens.accessToken}`);
+    Object.entries(WEB_HEADERS).forEach(([k, v]) => req.headers.set(k, v));
+    return fetch(CREDENTIALS ? new Request(req, { credentials: CREDENTIALS }) : req);
   };
+  // web after a reload: the access token is only in memory, so renew it from the cookie first
+  const tokens = await getTokens();
+  if (tokens && !tokens.accessToken && !/\/auth\/(refresh|logout)/.test(request.url)) await refreshOnce();
   const response = await withToken(request);
   if (response.status !== 401 || request.url.includes('/auth/refresh')) return response;
-  refreshing ??= refresh().finally(() => { refreshing = null; });
-  return (await refreshing) ? withToken(retry) : response;
+  return (await refreshOnce()) ? withToken(retry) : response;
 }
 
 export const api = createClient<paths>({ baseUrl: API_URL, fetch: authFetch });

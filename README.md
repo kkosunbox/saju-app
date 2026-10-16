@@ -57,13 +57,14 @@ src/
   만세력·운세·무료/유료 콘텐츠·궁합(저장된 상대)·포인트·결제·고민 상담(AI).
 - 유료 화면은 열기 전에는 `/premium/previews/*`(무료 상단 요약)만 받고, 본문은 열람권이 있을 때 `/premium/contents/*`에서 받는다.
   앱은 서버 결과를 받아 문장표(`services/premium/data.ts`)로 화면을 그린다.
-- **기기에는** 로그인 토큰(네이티브 SecureStore · 웹 localStorage), 온보딩 완료, 알림 시간, 새 콘텐츠 알림 신청, 이달의 미션 체크만 둔다.
+- **기기에는** 로그인 토큰(네이티브 SecureStore · 웹은 httpOnly 쿠키 + 메모리, localStorage에는 로그인 표시만), 온보딩 완료, 알림 시간, 새 콘텐츠 알림 신청, 이달의 미션 체크만 둔다.
 - 결제: 웹은 토스페이먼츠 결제위젯(`/charge`), 앱 인앱결제는 준비 중.
 - 웹 배포(Vercel): 환경 변수 `EXPO_PUBLIC_API_URL`에 운영 API 주소. 빌드할 때 들어가므로 바꾸면 다시 배포한다.
 
 ## 남은 작업
 
 - [ ] 네이티브(iOS·Android) 시뮬레이터/실기기 확인 — 지금까지 웹으로만 확인함
-- [ ] 소셜 로그인(카카오·네이버·Apple·Google), 앱 인앱결제 — 키·스토어 계정 발급 후
+- [x] 웹 소셜 로그인(카카오·네이버·구글) — 지금은 다른 프로젝트 테스트 키, 개발 서버는 `npx expo start --web --port 3000`(콘솔에 등록된 콜백)
+- [ ] 앱(네이티브) 소셜 로그인 · Apple 로그인 · 앱 인앱결제 — 운Pick 키·스토어 계정 발급 후
 - [ ] lint 정리: `react-hooks/refs` 54건(프로토타입의 `useRef(new Animated.Value())` 패턴 — React Compiler가 해당 컴포넌트 최적화를 건너뜀), `react/no-unescaped-entities` 22건 등
 - [ ] 아이콘·스플래시 재생성 스크립트(`npm run icons`)는 프로토타입에만 있음

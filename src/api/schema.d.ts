@@ -290,8 +290,51 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Refresh Token으로 Access Token 갱신 */
+        /**
+         * Refresh Token으로 Access Token 갱신
+         * @description 앱: body의 refreshToken. 웹(X-Woonpick-Client: web): body 없이 httpOnly 쿠키로 갱신하고, 새 refresh token도 쿠키로 받습니다.
+         */
         post: operations["AuthController_refreshToken_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 로그아웃 (웹)
+         * @description 웹 로그인 쿠키를 지웁니다. 앱은 기기에 저장한 토큰만 지우면 됩니다.
+         */
+        post: operations["AuthController_logout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/social/{provider}/authorize-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 소셜 로그인 주소 (웹)
+         * @description 카카오 · 네이버 · 구글 로그인 페이지 주소와 콜백 주소(redirectUri). client id와 콜백 경로는 서버 설정에서 넣으므로 키를 바꿔도 앱은 그대로입니다. origin: 웹 앱 주소 (운영은 CORS_ALLOWED_ORIGINS 중 하나). 돌아온 code는 같은 redirectUri를 POST /auth/{provider}의 callbackUrl로 보냅니다.
+         */
+        get: operations["AuthController_authorizeUrl_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -612,12 +655,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 궁합 기록 (최신 50건) */
+        /** 궁합 기록 = 저장된 상대 (최근에 본 순 50건) */
         get: operations["CompatibilityController_list_v1"];
         put?: never;
         /**
          * 궁합 보기 (상대 정보 직접 입력)
-         * @description 내 운세 프로필과 상대 정보로 궁합을 계산해 기록에 저장합니다. 상대 생일은 음력도 됩니다. 상대 MBTI를 모르면 null → 사주로 추정합니다. 게스트도 쓸 수 있습니다.
+         * @description 내 운세 프로필과 상대 정보로 궁합을 계산해 기록에 저장합니다. 상대 생일은 음력도 됩니다. 상대 MBTI를 모르면 null → 사주로 추정합니다. 게스트도 쓸 수 있습니다. 같은 상대(생일·시간·성별·MBTI·혈액형이 모두 같음)를 다시 넣으면 기존 기록을 새 결과로 갱신해 돌려줍니다 (열어 둔 심층 궁합·속마음 유지).
          */
         post: operations["CompatibilityController_create_v1"];
         delete?: never;
@@ -1505,8 +1548,8 @@ export interface components {
             refreshToken: string;
         };
         RefreshTokenRequest: {
-            /** @description Refresh Token */
-            refreshToken: string;
+            /** @description Refresh Token (앱). 웹은 비우고 쿠키로 갱신 */
+            refreshToken?: string;
         };
         WithdrawUserRequest: {
             /** @description 탈퇴 사유 (선택) */
@@ -2903,6 +2946,57 @@ export interface operations {
                         /** @example UNAUTHORIZED */
                         code?: string;
                         /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    AuthController_logout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_authorizeUrl_v1: {
+        parameters: {
+            query: {
+                origin: string;
+                state: string;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

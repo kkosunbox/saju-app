@@ -88,6 +88,9 @@ function RootStack() {
       <Stack.Screen name="invite/[token]" />
       {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
       <Stack.Screen name="legal/[doc]" />
+      {/* 웹 소셜 로그인 콜백: 온보딩·프로필 여부와 상관없이 받는다 */}
+      <Stack.Screen name="oauth/[provider]/callback" />
+      <Stack.Screen name="auth/callback/[provider]" />
     </Stack>
   );
 }
