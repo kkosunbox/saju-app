@@ -18,7 +18,7 @@ const PAGES = [
 type Art = (typeof PAGES)[number]['art'];
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
 
-function Illustration({ kind }: { kind: Art }) {
+export function Illustration({ kind }: { kind: Art }) {
   if (kind === 'sheet') {
     return (
       <View style={[a.stage, { backgroundColor: colors.lavenderSoft }]}>

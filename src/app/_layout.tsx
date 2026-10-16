@@ -4,13 +4,13 @@ import { Stack, router, usePathname, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
-import { NotoSerifKR_700Bold } from '@expo-google-fonts/noto-serif-kr';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { LogoMark } from '@/components/BrandMark';
 import { colors, isDark } from '@/theme/colors';
+import { FONT_FILES } from '@/theme/fontFiles';
 
 const AUTH_PATHS = ['/login', '/signup', '/find-password'];
 const isAuthPath = (path: string) => AUTH_PATHS.some(p => path === p || path.startsWith(`${p}/`));
@@ -81,25 +81,20 @@ function RootStack() {
         <Stack.Screen name="login/email" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="find-password" />
-        <Stack.Screen name="legal/[doc]" />
         <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>
       {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
           보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
       <Stack.Screen name="invite/[token]" />
+      {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
+      <Stack.Screen name="legal/[doc]" />
     </Stack>
   );
 }
 
 export default function RootLayout() {
-  // 네이티브: 굵기별 글꼴 파일. 로드 전에는 시스템 글꼴로 먼저 보여준다. 웹은 +html.tsx 의 웹폰트.
-  useFonts(Platform.OS === 'web' ? {} : {
-    'Pretendard-Regular': require('../../assets/fonts/Pretendard-Regular.otf'),
-    'Pretendard-Medium': require('../../assets/fonts/Pretendard-Medium.otf'),
-    'Pretendard-SemiBold': require('../../assets/fonts/Pretendard-SemiBold.otf'),
-    'Pretendard-Bold': require('../../assets/fonts/Pretendard-Bold.otf'),
-    'NotoSerifKR-Bold': NotoSerifKR_700Bold,
-  });
+  // 네이티브: 굵기별 글꼴 파일 (src/theme/fontFiles.native.ts). 로드 전에는 시스템 글꼴로 먼저 보여준다. 웹은 +html.tsx 의 웹폰트.
+  useFonts(FONT_FILES);
   const app = (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
