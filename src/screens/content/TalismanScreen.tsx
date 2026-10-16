@@ -4,7 +4,8 @@ import Screen from '../../components/Screen';
 import ShareActions from '../../components/ShareActions';
 import { InfoRows, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
-import { todayTalisman } from '../../services/content/freeContent';
+import { useFreeContent } from '../../services/server/contentApi';
+import LoadingScreen from '../../components/LoadingScreen';
 import { formatKoreanDate } from '../../utils/date';
 import { fonts, txt } from '../../theme/typography';
 import { talismanSpec } from '../../services/share/shareSpecs';
@@ -17,12 +18,14 @@ const INK = '#A5321F';
 export default function TalismanScreen() {
   const { user: u, today } = useApp();
   const card = useRef<View>(null);
+  const q = useFreeContent('talisman');
   if (!u) return null;
-  const t = todayTalisman(u, today);
+  if (!q.data) return <LoadingScreen title="오늘의 부적" error={q.error} onRetry={q.refetch} />;
+  const t = q.data;
 
   return (
     <Screen title="오늘의 부적" back>
-      <FriendCompare route="Talisman" spec={talismanSpec(u, today)} />
+      <FriendCompare route="Talisman" spec={talismanSpec(u, t)} />
       <View style={{ alignItems: 'center' }}>
         <View ref={card} collapsable={false} style={s.paper}>
           <View style={s.frame}>
@@ -35,7 +38,7 @@ export default function TalismanScreen() {
           </View>
         </View>
       </View>
-      <ShareActions spec={talismanSpec(u, today)} />
+      <ShareActions spec={talismanSpec(u, t)} />
 
       <SubHead title="부적과 함께하는 행운" caption="매일 자정에 새 부적으로 바뀌어요" />
       <InfoRows labelWidth={100} rows={[['色', '행운의 색', t.color], ['數', '행운의 숫자', String(t.number)], ['時', '행운의 시간', t.time.replace('~', ' – ')]]} />

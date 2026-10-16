@@ -46,6 +46,8 @@ function RootStack() {
   }
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.cream } }}>
+      {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다 */}
+      <Stack.Screen name="invite/[token]" />
       <Stack.Protected guard={!onboarded}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>

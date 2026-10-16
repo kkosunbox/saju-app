@@ -8,7 +8,8 @@ import ShareActions from '../../components/ShareActions';
 import BrandMark from '../../components/BrandMark';
 import { Bullet, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
-import { sajuCharacter } from '../../services/content/freeContent';
+import { useFreeContent } from '../../services/server/contentApi';
+import LoadingScreen from '../../components/LoadingScreen';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
@@ -20,12 +21,14 @@ export default function CharacterScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
   const card = useRef<View>(null);
+  const q = useFreeContent('character');
   if (!u) return null;
-  const c = sajuCharacter(u);
+  if (!q.data) return <LoadingScreen title="나의 사주 캐릭터" error={q.error} onRetry={q.refetch} />;
+  const c = q.data;
 
   return (
     <Screen title="나의 사주 캐릭터" back>
-      <FriendCompare route="Character" spec={characterSpec(u)} />
+      <FriendCompare route="Character" spec={characterSpec(u, c)} />
       <View ref={card} collapsable={false} style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
         <View style={[s.seal, { borderColor: colors.moon }]}><Text style={s.sealText}>{c.hanja}</Text></View>
@@ -37,7 +40,7 @@ export default function CharacterScreen() {
         </View>
         <Text style={s.foot}>60가지 사주 캐릭터 중 하나 · {ELEMENT_INFO[c.element].ko}({ELEMENT_INFO[c.element].hanja})의 기운</Text>
       </View>
-      <ShareActions spec={characterSpec(u)} />
+      <ShareActions spec={characterSpec(u, c)} />
 
       <SubHead title="이런 사람이에요" caption={c.core} />
       <Card>

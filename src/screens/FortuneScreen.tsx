@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../components/Screen';
@@ -12,7 +12,8 @@ import { LockCard } from '../components/premium/Kit';
 import { ITEMS } from '../services/premium/catalog';
 import { parseISO } from '../utils/date';
 import { useApp } from '../context/AppContext';
-import { getPeriodFortune } from '../services/fortune/periodFortuneService';
+import { useQuery } from '@tanstack/react-query';
+import { fortuneApi } from '../services/server/fortuneApi';
 import { Period } from '../types';
 import { CategoryKey, colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
@@ -51,13 +52,18 @@ export default function FortuneScreen() {
   const nav = useNavigation();
   const [tab, setTab] = useState<Period>('daily');
   const [open, setOpen] = useState<CategoryKey | null>(null);
-  const period = useMemo(() => (user && tab !== 'daily' ? getPeriodFortune(user, today, tab) : null), [user, today, tab]);
+  const periodQuery = useQuery({
+    queryKey: ['period', tab, user?.id, user?.version, today],
+    enabled: !!user && tab !== 'daily',
+    queryFn: () => fortuneApi.period(tab as 'weekly' | 'monthly' | 'yearly'),
+  });
+  const period = tab === 'daily' ? null : periodQuery.data ?? null;
   if (!user || !fortune) return null;
   const f = fortune.combined;
 
   const score = tab === 'daily' ? f.totalScore : period?.score ?? 0;
   const label = tab === 'daily' ? '오늘' : period?.label ?? '';
-  const summary = tab === 'daily' ? f.summary : period?.summary ?? '';
+  const summary = tab === 'daily' ? f.summary : period?.summary ?? (periodQuery.error ? '불러오지 못했어요. 잠시 후 다시 시도해 주세요.' : '불러오는 중…');
   const bestScore = period ? Math.max(...period.flow.map(x => x.score)) : 0;
 
   // 이 기간에 가장 약한 분야를 먼저 추천하고, 기간에 맞는 유료 콘텐츠를 덧붙인다
@@ -104,7 +110,7 @@ export default function FortuneScreen() {
             <View key={`${tab}-${k}`} style={i > 0 ? s.border : null}>
               <CategoryRow
                 category={k} score={c.score} text={c.text} delay={i * 80}
-                badge={c.best ? `${c.best}${tab === 'weekly' ? '요일' : ''} 최고` : undefined}
+                badge={c.best ? `${c.best} 최고` : undefined}
                 lines={tab !== 'daily' && open === k ? 4 : 1}
                 onPress={() => (tab === 'daily' ? nav.navigate('CategoryDetail', { category: k }) : setOpen(open === k ? null : k))}
               />

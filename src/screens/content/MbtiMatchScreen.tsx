@@ -9,7 +9,8 @@ import ShareActions from '../../components/ShareActions';
 import BrandMark from '../../components/BrandMark';
 import { SubHead, scoreColor } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
-import { mbtiMatches } from '../../services/content/freeContent';
+import { useFreeContent } from '../../services/server/contentApi';
+import LoadingScreen from '../../components/LoadingScreen';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
@@ -22,13 +23,15 @@ export default function MbtiMatchScreen() {
   const { user: u } = useApp();
   const card = useRef<View>(null);
   const [showAll, setShowAll] = useState(false);
+  const q = useFreeContent('mbti-match');
   if (!u) return null;
-  const { best, worst, all } = mbtiMatches(u.mbti);
+  if (!q.data) return <LoadingScreen title="찰떡 MBTI" error={q.error} onRetry={q.refetch} />;
+  const { best, worst, all } = q.data;
   const top = best[0];
 
   return (
     <Screen title="찰떡 MBTI" back>
-      <FriendCompare route="MbtiMatch" spec={mbtiSpec(u)} />
+      <FriendCompare route="MbtiMatch" spec={mbtiSpec(u, q.data)} />
       {/* 공유 카드 */}
       <View ref={card} collapsable={false} style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
@@ -49,7 +52,7 @@ export default function MbtiMatchScreen() {
           </View>
         </View>
       </View>
-      <ShareActions spec={mbtiSpec(u)} />
+      <ShareActions spec={mbtiSpec(u, q.data)} />
 
       <SubHead title="TOP 3 찰떡 궁합" caption="함께하면 서로를 빛내주는 성향" />
       <View style={{ gap: 10 }}>

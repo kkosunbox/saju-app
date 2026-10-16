@@ -28,6 +28,8 @@ export interface User {
   useYajasi?: boolean;
   version?: number;
   remainingSajuEditsToday?: number;
+  /** 원국 · 오행 · 태어난 요일 (서버 계산). */
+  natal?: import('./content').Natal;
 }
 
 export type Interest = 'love' | 'money' | 'work' | 'relationship' | 'health' | 'study';
@@ -85,6 +87,8 @@ export interface DailyFortune {
   analyses: { saju: AnalysisResult; thai: AnalysisResult; mbti: AnalysisResult; blood: AnalysisResult };
   combined: CombinedFortune;
   engine: 'rule' | 'ai';
+  /** 그날의 일진 (서버 만세력). */
+  dayPillar?: { stem: number; branch: number };
 }
 
 export interface PartnerInput {
@@ -97,6 +101,10 @@ export interface PartnerInput {
 }
 
 export interface CompatibilityResult {
+  /** Server record id (궁합 기록). */
+  id?: number;
+  /** invite: made from a friend's link — no partner details. */
+  source?: 'manual' | 'invite';
   userId: string;
   target: PartnerInput;
   total: number;

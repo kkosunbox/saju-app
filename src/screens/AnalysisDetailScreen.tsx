@@ -14,16 +14,14 @@ import { LockCard } from '../components/premium/Kit';
 import { ITEMS } from '../services/premium/catalog';
 import { BRANCHES, ELEMENT_INFO, Element, STEMS } from '../data/sajuData';
 import { THAI_DAYS, ThaiDay, WEEKDAY_TO_THAI } from '../data/thaiData';
-import { buildChart, dayPillar, elementCounts } from '../services/fortune/sajuService';
-import { birthThaiDay } from '../services/fortune/thaiAstrologyService';
-import { AXES } from '../services/fortune/mbtiService';
-import { MBTI_INFO } from '../data/mbtiData';
+import { Pillar } from '../types/content';
+import { AXES, MBTI_INFO } from '../data/mbtiData';
 import { BloodType, User } from '../types';
 import { weekdayOf } from '../utils/date';
 
 const KICKER = { saju: '四柱 · 사주', thai: '七曜 · 태국 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
 const NOTE: Record<string, string> = {
-  saju: '양력 기준 근사 만세력으로 계산해요. 정밀 계산은 업데이트 예정이에요.',
+  saju: '한국천문연구원 음양력 자료와 절기 시각으로 세운 만세력이에요. 태어난 시각은 서울 기준으로 보정해요.',
   thai: '태어난 요일의 수호 행성과 오늘 행성의 관계로 풀어요.',
   mbti: 'MBTI는 예측이 아닌 성향 분석이에요.',
   blood: '혈액형 성격론은 재미를 위한 콘텐츠예요.',
@@ -44,8 +42,8 @@ export default function AnalysisDetailScreen() {
         <Quote label="오늘의 풀이" text={a.description} tone={t.color} />
       </AlmanacHero>
 
-      {a.source === 'saju' ? <SajuFigure u={user} today={today} tone={t.color} /> : null}
-      {a.source === 'thai' ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'saju' && user.natal ? <SajuFigure u={user} day={fortune.dayPillar ?? null} tone={t.color} /> : null}
+      {a.source === 'thai' && user.natal ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
       {a.source === 'mbti' ? <MbtiFigure u={user} focus={a.details[2]?.value ?? ''} tone={t.color} /> : null}
       {a.source === 'blood' ? <BloodFigure b={user.bloodType} tone={t.color} /> : null}
 
@@ -63,13 +61,12 @@ export default function AnalysisDetailScreen() {
 
 /* ---------- 사주: 원국표 + 오행 분포 ---------- */
 const EL_ORDER: Element[] = ['wood', 'fire', 'earth', 'metal', 'water'];
-function SajuFigure({ u, today, tone }: { u: User; today: string; tone: string }) {
-  const ch = buildChart(u.birthDate, u.birthTime);
+function SajuFigure({ u, day, tone }: { u: User; day: Pillar | null; tone: string }) {
+  const ch = u.natal!.chart;
   const cols: [string, typeof ch.day | null][] = [['시', ch.hour], ['일', ch.day], ['월', ch.month], ['년', ch.year]];
-  const cnt = elementCounts(ch); const total = EL_ORDER.reduce((n, e) => n + cnt[e], 0) || 1;
-  const td = dayPillar(today);
+  const cnt = u.natal!.elementCounts; const total = EL_ORDER.reduce((n, e) => n + cnt[e], 0) || 1;
   return (
-    <Figure title="나의 사주 원국" caption={`오늘의 일진 ${STEMS[td.stem].hanja}${BRANCHES[td.branch].hanja}`}>
+    <Figure title="나의 사주 원국" caption={day ? `오늘의 일진 ${STEMS[day.stem].hanja}${BRANCHES[day.branch].hanja}` : ''}>
       <View style={s.pillars}>
         {cols.map(([l, p]) => (
           <View key={l} style={[s.pillar, l === '일' && { borderColor: tone, backgroundColor: tone + '12' }]}>
@@ -102,7 +99,7 @@ function SajuFigure({ u, today, tone }: { u: User; today: string; tone: string }
 /* ---------- 태국 점성술: 일주일 띠 ---------- */
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 function ThaiFigure({ u, today, tone }: { u: User; today: string; tone: string }) {
-  const mine = birthThaiDay(u.birthDate, u.birthTime);
+  const mine = u.natal!.thaiBirthDay;
   const mineIdx = WEEKDAY_TO_THAI.indexOf(mine === 'wedNight' ? 'wedDay' : mine);
   const todayIdx = weekdayOf(today);
   return (

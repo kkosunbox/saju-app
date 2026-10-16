@@ -1,6 +1,7 @@
 /** My fortune profile on the server (GET/PUT /fortune-profile). */
 import { api, ApiError, call } from '../../api/client';
 import { Interest, MBTI, User } from '../../types';
+import { Natal } from '../../types/content';
 
 interface ProfileDto {
   nickname: string;
@@ -20,6 +21,7 @@ interface ProfileDto {
   version: number;
   remainingSajuEditsToday: number;
   updatedAt: string;
+  natal: Natal;
 }
 
 const toUser = (accountId: number, p: ProfileDto): User => ({
@@ -41,6 +43,7 @@ const toUser = (accountId: number, p: ProfileDto): User => ({
   version: p.version,
   remainingSajuEditsToday: p.remainingSajuEditsToday,
   createdAt: p.updatedAt,
+  natal: p.natal,
 });
 
 /** What the profile form submits. */

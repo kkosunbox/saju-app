@@ -9,7 +9,8 @@ import FriendCompare from '../../components/FriendCompare';
 import BrandMark from '../../components/BrandMark';
 import { SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
-import { pastLife } from '../../services/content/freeContent';
+import { useFreeContent } from '../../services/server/contentApi';
+import LoadingScreen from '../../components/LoadingScreen';
 import { pastLifeSpec } from '../../services/share/shareSpecs';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
@@ -18,9 +19,11 @@ import { fonts, radius, txt } from '../../theme/typography';
 export default function PastLifeScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
+  const q = useFreeContent('past-life');
   if (!u) return null;
-  const P = pastLife(u);
-  const spec = pastLifeSpec(u);
+  if (!q.data) return <LoadingScreen title="전생 테스트" error={q.error} onRetry={q.refetch} />;
+  const P = q.data;
+  const spec = pastLifeSpec(u, P);
 
   return (
     <Screen title="전생 테스트" back>

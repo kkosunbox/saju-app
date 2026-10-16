@@ -28,7 +28,7 @@ export default function LoginScreen() {
       const f = await getFriendResult();
       if (f) return setGift({ who: f.n, what: `'${f.k}' 결과를 보냈어요`, line: f.h });
       const inv = await getPendingInvite();
-      if (inv) setGift({ who: inv.nickname, what: '궁합을 신청했어요', line: '가입하면 둘의 궁합이 바로 나와요' });
+      if (inv) setGift({ who: inv.inviterNickname, what: '궁합을 신청했어요', line: '가입하면 둘의 궁합이 바로 나와요' });
     })();
   }, []);
 

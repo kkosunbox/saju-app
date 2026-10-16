@@ -1665,6 +1665,8 @@ export interface components {
             engine: "rule" | "ai";
             analyses: components["schemas"]["DailyAnalysesDto"];
             combined: components["schemas"]["CombinedFortuneDto"];
+            /** @description 그날의 일진 { stem 0~9, branch 0~11 } */
+            dayPillar: Record<string, never>;
         };
         PeriodFlowDto: {
             /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
@@ -1702,6 +1704,35 @@ export interface components {
         FreeContentDto: {
             data: Record<string, never>;
         };
+        PillarDto: {
+            /** @description 천간 0~9 (0=甲) */
+            stem: number;
+            /** @description 지지 0~11 (0=子) */
+            branch: number;
+        };
+        NatalChartDto: {
+            year: components["schemas"]["PillarDto"];
+            month: components["schemas"]["PillarDto"];
+            day: components["schemas"]["PillarDto"];
+            /** @description 시간 모르면 null */
+            hour: components["schemas"]["PillarDto"] | null;
+        };
+        ElementCountsDto: {
+            wood: number;
+            fire: number;
+            earth: number;
+            metal: number;
+            water: number;
+        };
+        NatalDto: {
+            chart: components["schemas"]["NatalChartDto"];
+            elementCounts: components["schemas"]["ElementCountsDto"];
+            /**
+             * @description 태국 점성술의 태어난 요일 (수요일 밤은 wedNight)
+             * @enum {string}
+             */
+            thaiBirthDay: "sun" | "mon" | "tue" | "wedDay" | "wedNight" | "thu" | "fri" | "sat";
+        };
         FortuneProfileDto: {
             nickname: string;
             /** @enum {string} */
@@ -1729,6 +1760,7 @@ export interface components {
             remainingSajuEditsToday: number;
             /** Format: date-time */
             updatedAt: string;
+            natal: components["schemas"]["NatalDto"];
         };
         UpsertFortuneProfileRequest: {
             /** @description 운세에서 부를 이름 */

@@ -8,7 +8,6 @@ import { CombinedFortune } from '../types';
 import { CategoryKey, categoryTheme, colors, isDark } from '../theme/colors';
 import { fonts, radius, sansW } from '../theme/typography';
 import { BRANCHES, STEMS } from '../data/sajuData';
-import { dayPillar } from '../services/fortune/sajuService';
 import { parseISO, weekdayOf } from '../utils/date';
 import { useReducedMotion } from '../utils/motion';
 
@@ -37,18 +36,17 @@ function fibers(seed: number) {
   return Array.from({ length: 14 }, () => ({ left: `${r() * 92}%` as const, top: `${r() * 94}%` as const, width: 14 + r() * 26, rot: -30 + r() * 60 }));
 }
 
-interface Props { fortune: CombinedFortune; today: string; onOpenStory(): void; onOpenCategory(c: CategoryKey): void }
+interface Props { fortune: CombinedFortune; today: string; dayPillar: { stem: number; branch: number }; onOpenStory(): void; onOpenCategory(c: CategoryKey): void }
 
 /**
  * 홈의 얼굴 — 오늘의 책력 한 장.
  * 제호(今日運勢 · 호수 · 날짜) → 큰 명조 점수와 길흉 · 한 줄 요약 · 일진 낙관 → 점수 눈금 →
  * 분야별 장부 칸 → 행운(色·數·時) → 일진과 '종합 풀이' 한 줄. 공유 카드와 같은 디자인 언어.
  */
-export default function TodayHero({ fortune: f, today, onOpenStory, onOpenCategory }: Props) {
+export default function TodayHero({ fortune: f, today, dayPillar: dp, onOpenStory, onOpenCategory }: Props) {
   const reduced = useReducedMotion();
   const { y, m, d } = parseISO(today);
   const doy = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / 86400000);
-  const dp = dayPillar(today);
   const stem = STEMS[dp.stem], branch = BRANCHES[dp.branch];
   const g = grade(f.totalScore);
 

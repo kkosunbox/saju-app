@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
@@ -23,8 +23,8 @@ import ReportArea from '../components/premium/Report';
 import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
 import { generateReport, reportAvailable } from '../services/report/reportService';
-import { getCompatibilityEngine } from '../services/fortune/compatibilityService';
-import { storage } from '../services/storage/storageService';
+import { compatApi } from '../services/server/compatApi';
+import { ApiError } from '../api/client';
 import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput } from '../types';
 import { MBTI_LIST } from '../data/mbtiData';
 import { isValidDate } from '../utils/date';
@@ -32,7 +32,7 @@ import { analysisTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
 import ShareCta from '../components/ShareCta';
 import { compatSpec, crushSpec } from '../services/share/shareSpecs';
-import { inviteUrl, shareLink } from '../services/share/linkShare';
+import { shareInvite } from '../services/share/linkShare';
 
 const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; l: string; c: string; e: string }[] = [
   { k: 'love', l: '연애 궁합', c: colors.love, e: '緣' },
@@ -68,19 +68,27 @@ export default function CompatibilityScreen() {
 
   const sendInvite = async () => {
     if (!user) return;
-    const r = await shareLink(`${user.nickname}님이 궁합 보자고 보냈어요. 생일만 넣으면 둘의 궁합이 바로 나와요.`, inviteUrl(user));
+    const r = await shareInvite(user.nickname);
     if (r === 'copied') toast('초대 링크를 복사했어요. 상대에게 보내 보세요');
+    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
   const dateFilled = y.length === 4 && !!m && !!d;
   const dateOk = isValidDate(+y, +m, +d);
   const hourOk = hh === '' || (+hh >= 0 && +hh <= 23);
   const ok = !!name.trim() && dateOk && !!gender && !!mbti && !!blood && hourOk;
 
+  const [busy, setBusy] = useState(false);
+  /** 서버가 계산하고 내 궁합 기록에 저장한다 (상대 정보는 기록을 지우면 함께 삭제). */
   const run = async (partner: PartnerInput) => {
-    if (!user) return;
-    const r = await getCompatibilityEngine().analyze(user, partner);
-    await storage.saveCompatibility(r);
-    setResult(r);
+    if (!user || busy) return;
+    setBusy(true);
+    try {
+      setResult(await compatApi.create(user.id, partner));
+    } catch (e) {
+      toast(e instanceof ApiError && e.code === 'INVALID_BIRTH_DATE' ? '상대의 생년월일을 확인해 주세요' : '궁합을 보지 못했어요. 잠시 후 다시 시도해 주세요');
+    } finally {
+      setBusy(false);
+    }
   };
   const analyze = () => {
     if (!ok) return;
@@ -92,9 +100,13 @@ export default function CompatibilityScreen() {
     });
   };
 
-  // 친구 초대 링크로 들어오면 상대 정보로 바로 궁합을 계산한다
   const { params } = useRoute<RouteProp<TabParamList, 'Compatibility'>>();
-  useEffect(() => { if (params?.partner) run(params.partner); }, [params?.partner]);
+  // 친구 초대를 수락하면 서버가 계산한 결과가 바로 넘어온다 (파라미터가 바뀐 렌더에서 바로 반영)
+  const [seenResult, setSeenResult] = useState<CompatibilityResult | undefined>();
+  if (params?.result !== seenResult) {
+    setSeenResult(params?.result);
+    if (params?.result) setResult(params.result);
+  }
 
   if (!user) return null;
 
@@ -143,7 +155,11 @@ export default function CompatibilityScreen() {
           })}
         </View>
 
-        {(() => {
+        {result.source === 'invite' ? (
+          <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. 심층 궁합·속마음은 상대 정보를 직접 넣어 볼 수 있어요.</Text>
+        ) : null}
+
+        {result.source !== 'invite' && (() => {
           const item = ITEMS.compat(result.target.nickname, result.target.birthDate);
           const rk = { key: item.key, kind: 'compat' as const, user, today, compat: result };
           if (!owned(item.key)) return <PriceCard item={item} onUnlocked={() => { if (reportAvailable()) generateReport(rk); }} />;
@@ -155,7 +171,7 @@ export default function CompatibilityScreen() {
           );
         })()}
 
-        {(() => {
+        {result.source !== 'invite' && (() => {
           const item = ITEMS.crush(result.target.nickname, result.target.birthDate);
           if (!owned(item.key)) return <PriceCard item={item} />;
           return (
@@ -176,7 +192,7 @@ export default function CompatibilityScreen() {
     <Screen
       largeTitle="궁합"
       subtitle="상대의 정보로 네 가지 관점의 궁합을 봐요"
-      footer={<PrimaryButton label="궁합 보기" onPress={analyze} disabled={!ok} />}
+      footer={<PrimaryButton label={busy ? '궁합 보는 중…' : '궁합 보기'} onPress={analyze} disabled={!ok || busy} />}
     >
       {/* 두 사람의 책력 — 내 낙관 · 和 · 아직 비어 있는 상대 낙관 */}
       <View style={s.pairSheet}>

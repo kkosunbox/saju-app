@@ -14,7 +14,7 @@ import { Coin, Pill, PriceTag, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { BUNDLE, ITEMS, fmtP } from '../../services/premium/catalog';
-import { inviteUrl, shareLink } from '../../services/share/linkShare';
+import { shareInvite } from '../../services/share/linkShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
@@ -40,8 +40,9 @@ export default function ContentScreen() {
   const bOwned = owned(BUNDLE.key);
 
   const invite = async () => {
-    const r = await shareLink(`${user.nickname}님이 궁합 보자고 보냈어요. 생일만 넣으면 둘의 궁합이 바로 나와요.`, inviteUrl(user));
+    const r = await shareInvite(user.nickname);
     if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
+    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
 
   const FREE: [string, string, string, () => void][] = [

@@ -2,11 +2,11 @@
  * 링크 공유 · 친구 궁합 초대
  * - 웹: Web Share API(모바일 브라우저) → 없으면 클립보드 복사
  * - 네이티브: 시스템 공유 시트
- * 초대 링크에는 궁합 계산에 필요한 최소 정보만 담는다(이름·생년월일·성별·MBTI·혈액형).
+ * 궁합 초대 링크에는 서버가 발급한 무작위 토큰만 담는다(/invite/{token}). 생년월일은 링크에 넣지 않는다.
  */
 import { Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PartnerInput, User } from '../../types';
+import { api, call } from '../../api/client';
 
 const APP_URL = 'https://onulna-prototype.vercel.app';
 export const appUrl = () => (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : APP_URL);
@@ -29,25 +29,32 @@ const PENDING = 'onulna:invite';
 const enc = (o: object) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 const dec = (s: string) => JSON.parse(decodeURIComponent(escape(atob(s))));
 
-export function inviteUrl(u: User) {
-  const code = enc({ n: u.nickname, b: u.birthDate, t: u.birthTime, g: u.gender, m: u.mbti, bl: u.bloodType });
-  return `${appUrl()}/?invite=${encodeURIComponent(code)}`;
+/** 내 초대 링크 (서버 토큰, 30일 유효). 살아 있는 링크가 있으면 그것을 쓴다. */
+export async function createInviteUrl(): Promise<string> {
+  const invite = await call<{ token: string }>(api.POST('/v1/compatibility-invites'));
+  return `${appUrl()}/invite/${invite.token}`;
 }
 
-/** 앱을 연 링크에 초대(?invite) · 친구 결과(?r)가 있으면 저장해 두고 주소창에서는 지운다 (웹) */
+/** 친구 궁합 초대를 공유한다. 링크를 못 만들면 'failed'. */
+export async function shareInvite(nickname: string): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
+  const url = await createInviteUrl().catch(() => null);
+  if (!url) return 'failed';
+  return shareLink(`${nickname}님이 궁합 보자고 보냈어요. 내 생일만 넣으면 둘의 궁합이 바로 나와요.`, url);
+}
+
+/** 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름만). */
+export interface PendingInvite { token: string; inviterNickname: string }
+
+export async function savePendingInvite(invite: PendingInvite) {
+  await AsyncStorage.setItem(PENDING, JSON.stringify(invite));
+}
+
+/** 앱을 연 링크에 친구 결과(?r)가 있으면 저장해 두고 주소창에서는 지운다 (웹). 초대는 /invite/{token} 화면이 처리한다. */
 export async function captureInvite() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-  const q = new URLSearchParams(window.location.search);
-  const code = q.get('invite'), rc = q.get('r');
-  if (!code && !rc) return;
-  if (code) {
-    try {
-      const o = dec(code);
-      const partner: PartnerInput = { nickname: String(o.n).slice(0, 12), birthDate: o.b, birthTime: o.t ?? null, gender: o.g, mbti: o.m, bloodType: o.bl };
-      await AsyncStorage.setItem(PENDING, JSON.stringify(partner));
-    } catch { /* 잘못된 링크는 무시 */ }
-  }
-  if (rc) {
+  const rc = new URLSearchParams(window.location.search).get('r');
+  if (!rc) return;
+  {
     try {
       const o = dec(rc);
       if (RESULT_ROUTES.includes(o.c)) {
@@ -79,7 +86,7 @@ export async function markFriendSeen() {
   if (f) await AsyncStorage.setItem(FRIEND, JSON.stringify({ ...f, seen: true }));
 }
 
-export async function getPendingInvite(): Promise<PartnerInput | null> {
+export async function getPendingInvite(): Promise<PendingInvite | null> {
   try { return JSON.parse((await AsyncStorage.getItem(PENDING)) ?? 'null'); } catch { return null; }
 }
 export const clearPendingInvite = () => AsyncStorage.removeItem(PENDING);

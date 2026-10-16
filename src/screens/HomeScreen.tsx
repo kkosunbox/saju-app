@@ -19,10 +19,11 @@ import Disclaimer from '../components/Disclaimer';
 import { Coin, PriceTag } from '../components/premium/Kit';
 import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
-import { mbtiMatches, pastLife, sajuCharacter, todayTalisman } from '../services/content/freeContent';
-import { FriendResult, clearPendingInvite, getFriendResult, markFriendSeen, getPendingInvite, inviteUrl, shareLink } from '../services/share/linkShare';
+import { useFreeContent } from '../services/server/contentApi';
+import { compatApi } from '../services/server/compatApi';
+import { ApiError } from '../api/client';
+import { FriendResult, PendingInvite, clearPendingInvite, getFriendResult, markFriendSeen, getPendingInvite, shareInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
-import { PartnerInput } from '../types';
 import { colors } from '../theme/colors';
 import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
@@ -34,7 +35,11 @@ export default function HomeScreen() {
   const nav = useNavigation<Nav>();
   const { user, fortune, today, fortuneLoading, refreshFortune } = useApp();
   const { points, toast } = usePremium();
-  const [invite, setInvite] = useState<PartnerInput | null>(null);
+  const [invite, setInvite] = useState<PendingInvite | null>(null);
+  const tal = useFreeContent('talisman').data;
+  const match = useFreeContent('mbti-match').data?.best[0];
+  const ch = useFreeContent('character').data;
+  const pl = useFreeContent('past-life').data;
   const [friend, setFriend] = useState<FriendResult | null>(null);
   useEffect(() => { getPendingInvite().then(setInvite); getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
 
@@ -72,28 +77,32 @@ export default function HomeScreen() {
   }
   const f = fortune.combined;
   const a = fortune.analyses;
-  const tal = todayTalisman(user, today);
-  const match = mbtiMatches(user.mbti).best[0];
-  const ch = sajuCharacter(user);
-  const pl = pastLife(user);
 
   const sendInvite = async () => {
-    const r = await shareLink(`${user.nickname}님이 궁합 보자고 보냈어요. 생일만 넣으면 둘의 궁합이 바로 나와요.`, inviteUrl(user));
+    const r = await shareInvite(user.nickname);
     if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
+    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
   const openInvite = async () => {
     if (!invite) return;
-    await clearPendingInvite();
-    setInvite(null);
-    nav.navigate('Tabs', { screen: 'Compatibility', params: { partner: invite } });
+    try {
+      const result = await compatApi.acceptInvite(user.id, invite.token);
+      await clearPendingInvite();
+      setInvite(null);
+      nav.navigate('Tabs', { screen: 'Compatibility', params: { result } });
+    } catch (e) {
+      const gone = e instanceof ApiError && ['INVITATION_NOT_FOUND', 'INVITATION_TOKEN_EXPIRED', 'BAD_REQUEST'].includes(e.code);
+      if (gone) { await clearPendingInvite(); setInvite(null); }
+      toast(gone ? '초대 링크가 만료됐거나 꺼졌어요' : '궁합을 불러오지 못했어요. 잠시 후 다시 시도해 주세요');
+    }
   };
 
   // 오늘의 무료 콘텐츠 — 결과의 일부를 미리 보여줘 누르고 싶게
   const FREE: { k: string; big: string; title: string; sub: string; go(): void; tone?: 'paper' }[] = [
-    { k: 'tal', big: tal.hanja, title: '오늘의 부적', sub: tal.keyword, go: () => nav.navigate('Talisman'), tone: 'paper' },
-    { k: 'mbti', big: match.type, title: '찰떡 MBTI', sub: `${match.nickname} · ${match.score}점`, go: () => nav.navigate('MbtiMatch') },
-    { k: 'char', big: ch.hanja, title: '사주 캐릭터', sub: ch.name, go: () => nav.navigate('Character') },
-    { k: 'past', big: '前', title: '전생 테스트', sub: pl.title, go: () => nav.navigate('PastLife') },
+    { k: 'tal', big: tal?.hanja ?? '符', title: '오늘의 부적', sub: tal?.keyword ?? '…', go: () => nav.navigate('Talisman'), tone: 'paper' },
+    { k: 'mbti', big: match?.type ?? '性', title: '찰떡 MBTI', sub: match ? `${match.nickname} · ${match.score}점` : '…', go: () => nav.navigate('MbtiMatch') },
+    { k: 'char', big: ch?.hanja ?? '命', title: '사주 캐릭터', sub: ch?.name ?? '…', go: () => nav.navigate('Character') },
+    { k: 'past', big: '前', title: '전생 테스트', sub: pl?.title ?? '…', go: () => nav.navigate('PastLife') },
     { k: 'inv', big: '和', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
   ];
 
@@ -111,10 +120,10 @@ export default function HomeScreen() {
         </Reveal>
 
         {invite ? (
-          <PressableScale onPress={openInvite} style={s.invite} scaleTo={0.98} accessibilityLabel={`${invite.nickname}님과 궁합 보기`}>
+          <PressableScale onPress={openInvite} style={s.invite} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
             <Text style={{ fontFamily: fonts.serif, fontSize: 26, color: colors.seal }}>和</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{invite.nickname}님이 궁합을 신청했어요</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{invite.inviterNickname}님이 궁합을 신청했어요</Text>
               <Text style={txt.small}>눌러서 둘의 궁합 결과 바로 보기</Text>
             </View>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />
@@ -133,7 +142,7 @@ export default function HomeScreen() {
         ) : null}
 
         <Reveal delay={90}>
-          <TodayHero fortune={f} today={today} onOpenStory={() => nav.navigate('CombinedAnalysis')} onOpenCategory={c => nav.navigate('CategoryDetail', { category: c })} />
+          <TodayHero fortune={f} today={today} dayPillar={fortune.dayPillar ?? { stem: 0, branch: 0 }} onOpenStory={() => nav.navigate('CombinedAnalysis')} onOpenCategory={c => nav.navigate('CategoryDetail', { category: c })} />
         </Reveal>
 
         <SectionHeader title="오늘의 행동" />

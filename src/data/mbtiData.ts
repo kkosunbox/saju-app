@@ -35,3 +35,11 @@ export const AXIS_TAGS: Record<string, KeywordTag[]> = {
   J: ['focus', 'caution'],
   P: ['change', 'opportunity'],
 };
+
+/** MBTI 네 축 [왼쪽, 오른쪽, 이름] */
+export const AXES: [string, string, string][] = [
+  ['E', 'I', '에너지 방향'],
+  ['N', 'S', '정보 인식'],
+  ['T', 'F', '판단 기준'],
+  ['J', 'P', '생활 방식'],
+];

@@ -5,7 +5,7 @@
  */
 import { CombinedFortune, CompatibilityResult, User } from '../../types';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
-import { mbtiMatches, pastLife, sajuCharacter, todayTalisman } from '../content/freeContent';
+import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
 import { crushReport, spouseReport } from '../content/premiumContent';
 import { ConsultEntry, MODE_LABEL, catOf, consultAnswer } from '../content/consult';
 import {
@@ -56,8 +56,8 @@ export function todaySpec(u: User, f: CombinedFortune): ShareSpec {
   };
 }
 
-export function mbtiSpec(u: User): ShareSpec {
-  const { best, worst } = mbtiMatches(u.mbti); const top = best[0];
+export function mbtiSpec(u: User, m: MbtiMatches): ShareSpec {
+  const { best, worst } = m; const top = best[0];
   return {
     kind: '찰떡 MBTI', seal: '性', eyebrow: `${u.mbti} ${u.nickname}님의 찰떡 MBTI는`,
     headline: top.type, sub: top.together,
@@ -69,8 +69,7 @@ export function mbtiSpec(u: User): ShareSpec {
   };
 }
 
-export function characterSpec(u: User): ShareSpec {
-  const c = sajuCharacter(u);
+export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
   return {
     kind: '사주 캐릭터', seal: c.hanja.slice(0, 1), eyebrow: `60가지 캐릭터 중 ${u.nickname}님은`,
     headline: c.name, sub: `${c.title} · ${c.core}`,
@@ -81,8 +80,7 @@ export function characterSpec(u: User): ShareSpec {
   };
 }
 
-export function talismanSpec(u: User, today: string): ShareSpec {
-  const t = todayTalisman(u, today);
+export function talismanSpec(u: User, t: Talisman): ShareSpec {
   return {
     kind: '오늘의 부적', seal: t.hanja, eyebrow: `${u.nickname}님에게 온 오늘의 부적`,
     headline: t.mantra, sub: `${t.hanja} · ${t.keyword}`,
@@ -103,8 +101,7 @@ export function compatSpec(u: User, r: CompatibilityResult): ShareSpec {
   };
 }
 
-export function pastLifeSpec(u: User): ShareSpec {
-  const P = pastLife(u);
+export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
   return {
     kind: '전생 테스트', seal: '前', eyebrow: `${u.nickname}님의 전생은`,
     headline: P.title, sub: P.scene,
