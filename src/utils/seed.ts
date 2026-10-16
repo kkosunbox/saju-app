@@ -22,11 +22,4 @@ export function pick<T>(rand: () => number, arr: T[]): T {
   return arr[Math.floor(rand() * arr.length)];
 }
 
-export function pickMany<T>(rand: () => number, arr: T[], n: number): T[] {
-  const copy = [...arr];
-  const out: T[] = [];
-  while (copy.length && out.length < n) out.push(copy.splice(Math.floor(rand() * copy.length), 1)[0]);
-  return out;
-}
-
 export const clamp = (v: number, min = 40, max = 99) => Math.max(min, Math.min(max, Math.round(v)));

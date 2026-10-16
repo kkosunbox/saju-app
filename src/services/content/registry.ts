@@ -5,7 +5,7 @@
  * viral: 왜 공유가 잘 되는지(기획 메모) — 무료는 "결과 비교"가 되는 주제를 우선한다.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { scopedKey } from '../storage/storageService';
+import { deviceKey } from '../storage/storageService';
 
 export type ContentStatus = 'live' | 'soon';
 export interface ContentEntry {
@@ -53,7 +53,7 @@ export const UPCOMING: ContentEntry[] = [
 ];
 
 /* ---------- 오픈 알림 신청 (계정별) ---------- */
-const NK = () => scopedKey('notify');
+const NK = () => deviceKey('notify');
 export async function loadNotify(): Promise<string[]> {
   try { return JSON.parse((await AsyncStorage.getItem(NK())) ?? '[]'); } catch { return []; }
 }

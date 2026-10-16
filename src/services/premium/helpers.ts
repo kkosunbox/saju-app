@@ -9,7 +9,7 @@ import { BRANCHES, CONTROLS, ELEMENT_INFO, Element, GENERATES, STEMS, TEN_GOD_TE
 import { ThaiDay, WEEKDAY_TO_THAI } from '../../data/thaiData';
 import { KEYWORDS } from '../../data/keywords';
 import { dayNumber, parseISO, toISODate, weekdayOf } from '../../utils/date';
-import { HIDDEN, JS_START, LIUHE, SAMJAE_YEARS, STEM_HAP, WONJIN } from './data';
+import { HIDDEN, JS_START, LIUHE, SAMJAE_YEARS } from './data';
 
 export const CATS: Cat[] = ['love', 'money', 'work', 'relationship'];
 export const ELS: Element[] = ['wood', 'fire', 'earth', 'metal', 'water'];
@@ -18,7 +18,6 @@ export const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 export const pText = (p: Pillar) => `${STEMS[p.stem].ko}${BRANCHES[p.branch].ko}(${STEMS[p.stem].hanja}${BRANCHES[p.branch].hanja})`;
 export const pad2 = (n: number) => String(n).padStart(2, '0');
-export const isoOf = (y: number, m: number, d: number) => `${y}-${pad2(m)}-${pad2(d)}`;
 export function addDays(iso: string, n: number) { const { y, m, d } = parseISO(iso); return toISODate(new Date(y, m - 1, d + n)); }
 export const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 export const kwTag = (label: string) => (Object.keys(KEYWORDS) as KeywordTag[]).find(k => KEYWORDS[k].label === label) ?? 'change';
@@ -26,7 +25,6 @@ export const elName = (e: Element) => `${ELEMENT_INFO[e].ko}(${ELEMENT_INFO[e].h
 export const tenName = (r: TenGodGroup) => TEN_GOD_TEXT[r].name;
 
 /* ---------- 60갑자 · 날짜 ---------- */
-export const idx60 = (st: number, br: number) => { for (let i = 0; i < 60; i++) if (i % 10 === st && i % 12 === br) return i; return 0; };
 export const pFrom = (i: number): Pillar => ({ stem: mod(i, 60) % 10, branch: mod(i, 60) % 12 });
 /** 그해의 년주 (입춘 이후 기준) */
 export const yearPillarOf = (y: number) => pFrom(y - 4);
@@ -79,22 +77,14 @@ export const tgGroup = (i: number): TenGodGroup => (['peer', 'peer', 'output', '
 export const stage12 = (ds: number, b: number) => { const st = JS_START[ds]; return ds % 2 === 0 ? mod(b - st, 12) : mod(st - b, 12); };
 
 /* ---------- 띠 · 지지 관계 ---------- */
-export function zodiacRel(a: number, b: number): 'same' | 'clash' | 'harmony' | 'normal' {
-  if (a === b) return 'same';
-  if (mod(a - b, 12) === 6) return 'clash';
-  if (LIUHE.some(([x, z]) => (x === a && z === b) || (x === b && z === a))) return 'harmony';
-  return 'normal';
-}
 export const SAMHAP = (b: number) => [[2, 6, 10], [8, 0, 4], [5, 9, 1], [11, 3, 7]].findIndex(g => g.includes(b));
 export function samjae(birthYearBranch: number, yb: number) {
   const ys = SAMJAE_YEARS[SAMHAP(birthYearBranch)];
   const i = ys.indexOf(yb);
   return i < 0 ? null : ['들삼재', '눌삼재', '날삼재'][i];
 }
-export const isWonjin = (a: number, b: number) => WONJIN.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 export const isLiuhe = (a: number, b: number) => LIUHE.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 export const isClash = (a: number, b: number) => mod(a - b, 12) === 6;
-export const isStemHap = (a: number, b: number) => STEM_HAP.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 export function BRANCH_GOOD(b: number) {
   const g = SAMHAP(b);
   const tri = [[2, 6, 10], [8, 0, 4], [5, 9, 1], [11, 3, 7]][g].filter(x => x !== b);

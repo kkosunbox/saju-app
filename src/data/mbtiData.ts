@@ -1,4 +1,4 @@
-import { KeywordTag, MBTI } from '../types';
+import { MBTI } from '../types';
 
 export const MBTI_LIST: MBTI[] = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP',
@@ -22,18 +22,6 @@ export const MBTI_INFO: Record<MBTI, { nickname: string; strength: string; watch
   ISFP: { nickname: '예술가', strength: '지금을 즐기는 감수성', watch: '결정을 끝까지 미루기' },
   ESTP: { nickname: '모험가', strength: '현장에서 빛나는 순발력', watch: '충동적으로 뛰어들기' },
   ESFP: { nickname: '연예인', strength: '주변을 밝히는 에너지', watch: '즉흥 소비' },
-};
-
-/** 성향 축별 키워드. 오늘의 흐름과 맞물리는 축이 강조된다 */
-export const AXIS_TAGS: Record<string, KeywordTag[]> = {
-  E: ['newMeeting', 'expression'],
-  I: ['rest', 'focus'],
-  N: ['intuition', 'change'],
-  S: ['focus', 'money'],
-  T: ['challenge', 'focus'],
-  F: ['harmony', 'expression'],
-  J: ['focus', 'caution'],
-  P: ['change', 'opportunity'],
 };
 
 /** MBTI 네 축 [왼쪽, 오른쪽, 이름] */

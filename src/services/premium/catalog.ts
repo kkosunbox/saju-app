@@ -3,7 +3,8 @@
  * 키는 서버 열람권 키(docs/payment-design.md 3.2)와 같다. 가격의 기준은 서버이고 여기는 화면 표시용.
  */
 import { PURPOSE } from './data';
-import { PurposeKey, addDays } from './engine';
+import { addDays } from './helpers';
+import { PurposeKey } from '../../types/premium';
 
 export interface Item {
   key: string; title: string; cost: number; scope: string; desc: string;

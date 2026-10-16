@@ -51,16 +51,6 @@ export interface AnalysisResult {
   scoreBias: { love: number; money: number; work: number; relationship: number }; // -10 ~ +10
 }
 
-export interface CombinedFortuneInput {
-  user: User;
-  date: string; // YYYY-MM-DD
-  saju: AnalysisResult;
-  thai: AnalysisResult;
-  mbti: AnalysisResult;
-  blood: AnalysisResult;
-  interests: Interest[];
-}
-
 /** AI(또는 규칙 엔진)가 반드시 반환해야 하는 JSON 구조 */
 export interface CombinedFortune {
   totalScore: number;

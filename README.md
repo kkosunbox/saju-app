@@ -19,11 +19,11 @@ npm run lint
 
 ## 흐름 (프로토타입과 다른 점)
 
-- **게스트로 시작**: 온보딩 → 프로필 입력 → 홈. 로그인 없이 무료 기능을 모두 쓴다.
-- **로그인은 필요할 때**: 유료 콘텐츠 열람 · 포인트 충전 · 출석 체크 · 마이 탭 · 프로필 입력 첫 단계("로그인").
+- **게스트로 시작**: 온보딩 → 프로필 입력(게스트 계정 생성) → 홈. 로그인 없이 무료 기능을 모두 쓴다.
+- **로그인은 필요할 때**: 유료 콘텐츠 열람 · 포인트 충전 · 출석 체크 · 고민 상담 · 마이 탭.
   로그인 화면은 위로 띄우고, 성공하면 들어오기 전 화면으로 돌아간다 (`src/app/_layout.tsx`).
-- **포인트·열람권은 회원만**: 게스트는 0P, 가입 축하 100P도 로그인 후 (`src/context/PremiumContext.tsx`).
-- 게스트로 입력한 프로필은 로그인한 계정에 프로필이 없을 때만 그 계정으로 옮긴다 (서버의 게스트 병합과 같은 규칙).
+- **게스트 → 회원**: 게스트로 쓰던 프로필·궁합 기록은 가입하면 그 계정으로 이어진다 (서버의 게스트 승격·병합).
+- **포인트·열람권은 회원만**: 가입 축하 100P, 출석·공유 보상, 충전, 열람 모두 서버 원장 (`src/context/PremiumContext.tsx`).
 - 프로토타입의 마스터 계정(앱 내장 관리자 로그인)은 넣지 않았다.
 
 ## 구조
@@ -39,26 +39,28 @@ src/
     +html.tsx     웹 HTML 셸 (lang, 메타, 웹폰트, 한국어 줄바꿈)
   navigation/
     compat.ts     React Navigation 호환 계층 (useNavigation().navigate('화면이름') → Expo Router 경로)
-  screens/ components/ context/ services/ theme/ data/ content/ types/ utils/   프로토타입 그대로
+  api/            openapi-fetch 클라이언트(토큰 갱신) · react-query · 서버 OpenAPI 스키마 타입 (npm run api:fetch / api:types)
+  services/server/  서버 API 모듈 (auth · profile · fortune · contents · premium · points · compat · consult)
+  services/premium/ catalog(가격표 표시) · helpers(표시용 계산: 십성 이름, 충·합, 일진·월주) · data(문장표)
+  screens/ components/ context/ theme/ data/ content/ types/ utils/
 ```
 
 - 화면 이름 → 경로 표는 `src/navigation/compat.ts`의 `ROUTES`. 새 화면을 만들면 라우트 파일과 `ROUTES`에 함께 추가한다.
 - 객체 params(공유 카드, 궁합 상대)는 개인정보가 URL에 남지 않도록 메모리로 넘긴다. 웹에서 새로고침하면 사라진다.
 - 화면 모드(시스템·라이트·다크)는 앱 시작 때 한 번 정해진다. 저장은 웹 localStorage, 네이티브 SecureStore(동기 읽기).
 
-## 지금은 로컬로 동작하는 것 (BE 연동 단계에서 교체)
+## 서버와 기기의 역할
 
-| 기능 | 현재 | 교체 대상 |
-|---|---|---|
-| 로그인 | `services/auth/authService.ts` 기기 저장 데모 | `/auth/guest`, `/auth/{kakao,naver,google,apple}` |
-| 운세 계산 | `services/fortune`, `services/premium/engine.ts` (근사 만세력) | `/fortunes/*` (정확한 만세력) |
-| 프로필 | AsyncStorage | `/fortune-profile` (음력 입력 지원) |
-| 포인트·열람권 | `PremiumContext` 기기 저장 데모 | 서버 원장 + 인앱결제/PG |
-| AI 리포트·고민 상담 | 꺼짐 | 서버 API |
+- **모든 계산과 기록은 서버**(`saju-be-monorepo`, 기본 `http://localhost:8077`, `EXPO_PUBLIC_API_URL`로 변경):
+  만세력·운세·무료/유료 콘텐츠·궁합(저장된 상대)·포인트·결제·고민 상담(AI).
+- 유료 화면은 열기 전에는 `/premium/previews/*`(무료 상단 요약)만 받고, 본문은 열람권이 있을 때 `/premium/contents/*`에서 받는다.
+  앱은 서버 결과를 받아 문장표(`services/premium/data.ts`)로 화면을 그린다.
+- **기기에는** 로그인 토큰(네이티브 SecureStore · 웹 localStorage), 온보딩 완료, 알림 시간, 새 콘텐츠 알림 신청, 이달의 미션 체크만 둔다.
+- 결제: 웹은 토스페이먼츠 결제위젯(`/charge`), 앱 인앱결제는 준비 중.
 
 ## 남은 작업
 
-- [ ] 네이티브(iOS·Android) 시뮬레이터/실기기 확인 — 이번 이전은 웹으로만 확인함
-- [ ] 프로필 입력에 음력·윤달 선택 추가 (서버는 지원, 화면은 양력만)
+- [ ] 네이티브(iOS·Android) 시뮬레이터/실기기 확인 — 지금까지 웹으로만 확인함
+- [ ] 소셜 로그인(카카오·네이버·Apple·Google), 앱 인앱결제 — 키·스토어 계정 발급 후
 - [ ] lint 정리: `react-hooks/refs` 54건(프로토타입의 `useRef(new Animated.Value())` 패턴 — React Compiler가 해당 컴포넌트 최적화를 건너뜀), `react/no-unescaped-entities` 22건 등
 - [ ] 아이콘·스플래시 재생성 스크립트(`npm run icons`)는 프로토타입에만 있음
