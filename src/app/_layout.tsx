@@ -46,8 +46,6 @@ function RootStack() {
   }
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.cream } }}>
-      {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다 */}
-      <Stack.Screen name="invite/[token]" />
       <Stack.Protected guard={!onboarded}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
@@ -86,6 +84,9 @@ function RootStack() {
         <Stack.Screen name="legal/[doc]" />
         <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>
+      {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
+          보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
+      <Stack.Screen name="invite/[token]" />
     </Stack>
   );
 }
