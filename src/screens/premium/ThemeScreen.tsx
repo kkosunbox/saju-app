@@ -5,20 +5,19 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Segmented from '../../components/Segmented';
 import Disclaimer from '../../components/Disclaimer';
-import ReportArea from '../../components/premium/Report';
-import { ActRow, Bullet, DarkChip, HeadRow, Hero, InfoRows, Para, Pill, Seal, SubHead, Tip, ViewsCard, heroTxt } from '../../components/premium/Kit';
+import { ActRow, BodyState, Bullet, DarkChip, HeadRow, LockGate, Hero, InfoRows, Para, Pill, Seal, SubHead, Tip, ViewsCard, heroTxt } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS, ThemeKind } from '../../services/premium/catalog';
-import {
-  BRANCH_GOOD, ageNow, daeun, elName, mainStem, pFrom, pText, sajuFull, tenGod, tenName, tgGroup, thaiDay, themeCareer, themeLove, themeMoney,
-} from '../../services/premium/engine';
+import { BRANCH_GOOD, ageNow, elName, mainStem, pFrom, pText, tenGod, tenName, tgGroup, thaiDay } from '../../services/premium/helpers';
+import { SajuFull, ThemeCareer, ThemeContent, ThemeLove, ThemeMoney, ThemePreview } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
 import { BRANCH_SEAT, EL_JOB, EL_LUCK, FIELD, GROUP_KO, STAGE12, STAGE_FIELD, STEM_HAP, STEM_PERSONA, TG, TG_INFO } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
 import { THAI_DAYS } from '../../data/thaiData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { BLOOD_INFO } from '../../data/bloodData';
-import { BloodType } from '../../types';
+import { BloodType, User } from '../../types';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
@@ -60,15 +59,68 @@ const Empty = ({ children }: { children: string }) => <Text style={[txt.body, { 
 
 export default function ThemeScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Theme'>>();
-  const { user: u, today } = useApp();
+  const { user: u } = useApp();
   const [kind, setKind] = useState<ThemeKind>(params.kind);
-  if (!u) return null;
+  const ref = { kind: 'theme', theme: kind } as const;
+  const content = usePremiumContent<ThemeContent<ThemeKind>>(ref);
+  const preview = usePremiumPreview<ThemePreview>(ref, !content.open);
+  if (!u?.natal) return null;
   const item = ITEMS.theme(kind);
-  const F = sajuFull(u); const g = F.grp; const ch = F.ch; const cy = Number(today.slice(0, 4)); const dae = daeun(u); const now = ageNow(u, today);
-  let hero: React.ReactNode = null, basis: React.ReactNode = null;
+  const data = content.data?.data; const F = content.data?.F;
+  // 상단 요약(무료): 열람했으면 본문에서, 아니면 미리보기에서
+  const top = (data ? { kind, ...data } : preview.data?.kind === kind ? preview.data : undefined) as (ThemePreview & Partial<ThemeLove & ThemeMoney & ThemeCareer>) | undefined;
+  const spec = data ? themeSpec(u, kind, data) : null;
+  let hero: React.ReactNode = <BodyState error={preview.isError} />;
+  if (top?.kind === 'love') {
+    hero = (
+      <Hero>
+        <Text style={heroTxt.eyebrow}>나의 연애 스타일</Text>
+        <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.st}</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>{u.bloodType}형답게 {top.blood}.</Text>
+      </Hero>
+    );
+  } else if (top?.kind === 'money') {
+    hero = (
+      <Hero style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+        <Text style={{ fontSize: 40, color: colors.moon, fontWeight: '700' }}>{top.t.emoji}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={heroTxt.eyebrow}>나의 돈 성향</Text>
+          <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.t.name}</Text>
+          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>{top.t.desc}</Text>
+        </View>
+      </Hero>
+    );
+  } else if (top?.kind === 'career') {
+    hero = (
+      <Hero>
+        <Text style={heroTxt.eyebrow}>나에게 맞는 일</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{top.jobs.map((j, i) => <DarkChip key={j} gold={i < 2}>{j}</DarkChip>)}</View>
+      </Hero>
+    );
+  }
+
+  return (
+    <Screen title="테마 운세" back right={<ShareIconButton item={item} spec={spec} />}>
+      <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti} · ${u.bloodType}형`} />
+      <View style={{ marginTop: 12 }}><Segmented<ThemeKind> options={TABS} value={kind} onChange={setKind} /></View>
+      {hero}
+      {!content.open ? <LockGate key={item.key} item={item} />
+        : data && F ? <ThemeBody key={item.key} u={u} kind={kind} data={data} F={F} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~09) */
+function ThemeBody({ u, kind, data, F }: { u: User; kind: ThemeKind; data: ThemeContent<ThemeKind>; F: SajuFull }) {
+  const { today } = useApp();
+  const g = F.grp; const ch = F.ch; const cy = Number(today.slice(0, 4)); const dae = data.daeun; const now = ageNow(u, today);
+  let basis: React.ReactNode = null;
 
   if (kind === 'love') {
-    const L = themeLove(u, today); const seat = BRANCH_SEAT[ch.day.branch]; const spouseN = g[F.spouseGrp];
+    const L = data as ThemeLove; const seat = BRANCH_SEAT[ch.day.branch]; const spouseN = g[F.spouseGrp];
     const hap = STEM_HAP.find(p => p.includes(F.ds))!; const partnerStem = hap[0] === F.ds ? hap[1] : hap[0];
     const goodAnimals = BRANCH_GOOD(ch.year.branch).map(b => BRANCHES[b].animal);
     const daeLove = dae.list.filter(d => d.age + 9 >= now && (tgGroup(tenGod(F.ds, d.p.stem)) === F.spouseGrp || tgGroup(tenGod(F.ds, mainStem(d.p.branch))) === F.spouseGrp)).slice(0, 2);
@@ -76,13 +128,6 @@ export default function ThemeScreen() {
     const pattern = [mb[0] === 'E' ? '마음에 들면 먼저 다가가 분위기를 이끄는 편이에요.' : '호감이 생겨도 상대를 충분히 지켜본 뒤 천천히 다가가요.', mb[2] === 'F' ? '말과 표현으로 사랑을 확인받고 싶어 해요. 작은 기념일과 다정한 말이 중요해요.' : '말보다 행동으로 마음을 보여줘요. 문제를 해결해 주는 것이 나만의 애정 표현이에요.', mb[3] === 'J' ? '관계의 방향이 분명할 때 안정감을 느껴요.' : '정해진 틀보다 자연스럽게 흘러가는 관계를 좋아해요.'];
     const bloodLove: Record<BloodType, string> = { A: '상대를 세심하게 챙기며 신뢰를 쌓아요. 서운함을 혼자 삼키지 않는 연습이 필요해요', B: '좋으면 솔직하게 직진해요. 상대의 속도도 한 번 확인해 주세요', O: '든든하게 이끌어 주는 편이에요. 가끔은 상대에게 결정을 맡겨 보세요', AB: '적당한 거리를 지킬 줄 알아요. 마음을 말로 표현해 주면 상대가 안심해요' };
     const spTG = tenGod(F.ds, mainStem(ch.day.branch));
-    hero = (
-      <Hero>
-        <Text style={heroTxt.eyebrow}>나의 연애 스타일</Text>
-        <Text style={[heroTxt.summ, { fontSize: 20 }]}>{L.st}</Text>
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>{u.bloodType}형답게 {L.blood}.</Text>
-      </Hero>
-    );
     basis = (
       <>
         <SubHead title="01 · 배우자 자리 (일지)" caption={`${BRANCHES[ch.day.branch].ko}(${BRANCHES[ch.day.branch].hanja}) · ${STAGE12[F.dayStage]}`} />
@@ -128,19 +173,9 @@ export default function ThemeScreen() {
   }
 
   if (kind === 'money') {
-    const M = themeMoney(u, today);
+    const M = data as ThemeMoney;
     const daeMoney = dae.list.filter(d => d.age + 9 >= now && ['wealth', 'output'].includes(d.rel)).slice(0, 3);
     const seun = Array.from({ length: 5 }, (_, i) => { const y = cy + i; const yp = pFrom(y - 4); return { y, yp, gG: tgGroup(tenGod(F.ds, yp.stem)) }; });
-    hero = (
-      <Hero style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-        <Text style={{ fontSize: 40, color: colors.moon, fontWeight: '700' }}>{M.t.emoji}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={heroTxt.eyebrow}>나의 돈 성향</Text>
-          <Text style={[heroTxt.summ, { fontSize: 20 }]}>{M.t.name}</Text>
-          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>{M.t.desc}</Text>
-        </View>
-      </Hero>
-    );
     basis = (
       <>
         <SubHead title="01 · 재물 그릇" caption={`재성 ${g.wealth}개 · 정재 ${F.tgc[5]} · 편재 ${F.tgc[4]}`} />
@@ -184,18 +219,12 @@ export default function ThemeScreen() {
   }
 
   if (kind === 'career') {
-    const C = themeCareer(u, today);
+    const C = data as ThemeCareer;
     const type = g.officer >= 2 && g.resource >= 1 ? ['組', '조직형 리더', '체계 안에서 인정받으며 올라가는 타입'] : g.output >= 2 && g.wealth >= 1 ? ['創', '사업·프리랜서형', '내 아이디어로 판을 벌일 때 빛나는 타입'] : g.resource >= 2 || F.tgc[2] >= 2 ? ['專', '전문가형', '한 분야를 깊게 파서 대체 불가능해지는 타입'] : F.tgc[3] >= 2 ? ['色', '창작·기획형', '틀을 깨는 창의력이 무기인 타입'] : ['均', '균형형', '어느 환경에서도 적응하는 타입'];
     const lead = F.tgc[6] >= 1 ? '위기에 앞장서는 돌파형 리더' : F.tgc[7] >= 1 ? '원칙과 신뢰로 이끄는 관리형 리더' : g.output >= 2 ? '아이디어로 사람을 모으는 비전형 리더' : g.resource >= 2 ? '가르치고 키워주는 멘토형 리더' : '함께 뛰는 동료형 리더';
     const seun = Array.from({ length: 5 }, (_, i) => { const y = cy + i; const yp = pFrom(y - 4); return { y, yp, gG: tgGroup(tenGod(F.ds, yp.stem)) }; });
     const yearsOf = (k: string) => seun.filter(x => x.gG === k).map(x => x.y).join(', ') || '—';
     const goodY = seun.filter(x => ['output', 'officer', 'wealth'].includes(x.gG));
-    hero = (
-      <Hero>
-        <Text style={heroTxt.eyebrow}>나에게 맞는 일</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{C.jobs.map((j, i) => <DarkChip key={j} gold={i < 2}>{j}</DarkChip>)}</View>
-      </Hero>
-    );
     basis = (
       <>
         <SubHead title="01 · 직업 유형" />
@@ -248,16 +277,7 @@ export default function ThemeScreen() {
     );
   }
 
-  return (
-    <Screen title="테마 운세" back right={<ShareIconButton item={item} spec={themeSpec(u, today, kind)} />}>
-      <HeadRow item={item} caption={`${pText(F.ch.day)}일주 · ${u.mbti} · ${u.bloodType}형`} />
-      <View style={{ marginTop: 12 }}><Segmented<ThemeKind> options={TABS} value={kind} onChange={setKind} /></View>
-      {hero}
-      <ReportArea key={item.key} rk={{ key: item.key, kind: `theme-${kind}`, user: u, today }} item={item} basis={basis} />
-      <ShareCta item={item} spec={themeSpec(u, today, kind)} />
-      <Disclaimer compact />
-    </Screen>
-  );
+  return <>{basis}</>;
 }
 
 const s = StyleSheet.create({

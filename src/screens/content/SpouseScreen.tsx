@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { ActRow, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, Pill, Seal, SubHead, Tip, ViewsCard, heroTxt } from '../../components/premium/Kit';
+import { ActRow, BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, Pill, Seal, SubHead, Tip, ViewsCard, heroTxt } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
-import { spouseReport } from '../../services/content/premiumContent';
-import { pText } from '../../services/premium/engine';
+import { pText } from '../../services/premium/helpers';
+import { SpousePreview, SpouseReport } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors } from '../../theme/colors';
@@ -15,42 +16,63 @@ import { fonts, radius, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
+import LoadingScreen from '../../components/LoadingScreen';
 
 /** 프리미엄: 미래 배우자 리포트 — 첫 화면은 무료로 보여주고 나머지는 잠금 */
 export default function SpouseScreen() {
-  const { user: u, today } = useApp();
+  const { user: u } = useApp();
+  const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
+  const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
   if (!u) return null;
   const item = ITEMS.spouse();
-  const R = spouseReport(u, today);
-  const el = ELEMENT_INFO[R.spouseEl];
-  const thisYear = R.yearIdx[0];
+  const R = content.data?.data;
+  // 첫 화면(무료): 열람했으면 본문에서, 아니면 미리보기에서
+  const sum: SpousePreview | undefined = R
+    ? { spouseEl: R.spouseEl, headline: R.headline, mbti: R.mbti[0], animal: R.animals[0], ageGap: R.ageGap, thisYear: R.yearIdx[0].v, bestYear: R.bestYear.yy }
+    : preview.data;
+  if (!sum) return <LoadingScreen />;
+  const el = ELEMENT_INFO[sum.spouseEl];
+  const spec = spouseSpec(u, sum);
 
   return (
-    <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spouseSpec(u, today)} />}>
-      <FriendCompare route="Spouse" spec={spouseSpec(u, today)} />
+    <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} />}>
+      <FriendCompare route="Spouse" spec={spec} />
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
       <Hero style={{ alignItems: 'center', paddingVertical: 26 }}>
         <Text style={heroTxt.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{R.headline}</Text>
+        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{sum.headline}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 16 }}>
-          <DarkChip gold>{R.mbti[0]}</DarkChip>
-          <DarkChip>{R.animals[0]}띠</DarkChip>
-          <DarkChip>{R.ageGap}</DarkChip>
+          <DarkChip gold>{sum.mbti}</DarkChip>
+          <DarkChip>{sum.animal}띠</DarkChip>
+          <DarkChip>{sum.ageGap}</DarkChip>
         </View>
         <View style={s.heroLine} />
         <View style={{ flexDirection: 'row', gap: 28 }}>
           <View style={{ alignItems: 'center' }}>
-            <Text style={s.heroNum}>{thisYear.v}</Text>
+            <Text style={s.heroNum}>{sum.thisYear}</Text>
             <Text style={heroTxt.eyebrow}>올해 인연 지수</Text>
           </View>
           <View style={{ alignItems: 'center' }}>
-            <Text style={s.heroNum}>{R.bestYear.yy}</Text>
+            <Text style={s.heroNum}>{sum.bestYear}</Text>
             <Text style={heroTxt.eyebrow}>인연이 가장 강한 해</Text>
           </View>
         </View>
       </Hero>
 
-      <LockGate item={item}>
+      {!content.open ? <LockGate item={item} />
+        : R ? <SpouseBody R={R} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~11) */
+function SpouseBody({ R }: { R: SpouseReport }) {
+  const el = ELEMENT_INFO[R.spouseEl];
+  return (
+    <>
         <SubHead title="01 · 그 사람은 이런 사람" caption={`${el.ko}(${el.hanja})의 기운 · ${R.persona.img}`} />
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -168,10 +190,7 @@ export default function SpouseScreen() {
         <SubHead title="11 · 인연을 끌어오는 법" />
         <Card>{R.advice.map(a => <Bullet key={a}>{a}</Bullet>)}</Card>
         <Tip title="기억해 두세요">운세는 흐름을 참고하는 콘텐츠예요. 좋은 인연은 결국 내가 알아보는 눈에서 시작돼요.</Tip>
-      </LockGate>
-      <ShareCta item={item} spec={spouseSpec(u, today)} />
-      <Disclaimer compact />
-    </Screen>
+    </>
   );
 }
 

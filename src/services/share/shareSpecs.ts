@@ -6,13 +6,10 @@
 import { CombinedFortune, CompatibilityResult, User } from '../../types';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
-import { crushReport, spouseReport } from '../content/premiumContent';
 import { ConsultEntry, MODE_LABEL, catOf, consultAnswer } from '../content/consult';
-import {
-  PurposeKey, ageNow, daeun, lifeStages, luckyDays, monthPillarOf, monthReport, isoOf, sajuFull, stageKeyOfAge,
-  themeCareer, themeLove, themeMoney, yearData, WEEK,
-} from '../premium/engine';
-import { relation } from '../fortune/sajuService';
+import { WEEK, stageKeyOfAge } from '../premium/helpers';
+import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
+import { TenGodGroup } from '../../data/sajuData';
 import { MONTH_LINE, STEM_PERSONA, YEAR_IDIOM } from '../premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
 
@@ -113,21 +110,20 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
 }
 
 /* ---------- 프리미엄 ---------- */
-export function spouseSpec(u: User, today: string): ShareSpec {
-  const R = spouseReport(u, today);
+/** 배우자 리포트는 첫 화면(미리보기) 내용만 싣는다 */
+export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
   return {
     kind: '미래 배우자 리포트', seal: '緣', eyebrow: `${u.nickname}님의 미래 배우자는`,
-    headline: R.headline, sub: R.look.split(',')[0],
-    big: { value: String(R.bestYear.yy), unit: '년', label: '인연이 가장 강한 해' },
-    stats: [['MBTI', R.mbti[0]], ['띠', `${R.animals[0]}띠`], ['나이', R.ageGap.startsWith('동갑') ? '동갑·연하' : R.ageGap.includes('연상') ? '연상' : '상관없음']],
+    headline: R.headline, sub: `${R.mbti} · ${R.animal}띠 · ${R.ageGap}`,
+    big: { value: String(R.bestYear), unit: '년', label: '인연이 가장 강한 해' },
+    stats: [['MBTI', R.mbti], ['띠', `${R.animal}띠`], ['나이', R.ageGap.startsWith('동갑') ? '동갑·연하' : R.ageGap.includes('연상') ? '연상' : '상관없음']],
     teaser: '그 사람을 처음 만나는 곳',
     hook: '내 미래 배우자는 어떤 사람일까?',
-    text: `내 미래 배우자는 '${R.headline}'래. ${R.bestYear.yy}년에 인연이 제일 강하다는데, 너는?`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
+    text: `내 미래 배우자는 '${R.headline}'래. ${R.bestYear}년에 인연이 제일 강하다는데, 너는?`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
   };
 }
 
-export function crushSpec(u: User, r: CompatibilityResult, today: string): ShareSpec {
-  const R = crushReport(u, r, today);
+export function crushSpec(u: User, r: CompatibilityResult, R: CrushReport): ShareSpec {
   return {
     kind: '그 사람의 속마음', seal: '心', eyebrow: `${r.target.nickname}님이 나를 생각하는 마음`,
     headline: R.oneLine, big: { value: String(R.temp), unit: '℃', label: '마음 온도' },
@@ -138,8 +134,7 @@ export function crushSpec(u: User, r: CompatibilityResult, today: string): Share
   };
 }
 
-export function lifeSpec(u: User, today: string): ShareSpec {
-  const st = lifeStages(u); const dae = daeun(u); const now = ageNow(u, today);
+export function lifeSpec(u: User, st: LifeStage[], dae: DaeunTable, now: number): ShareSpec {
   const cur = st.find(x => x.key === stageKeyOfAge(now)) ?? st[0];
   const gold = [...dae.list].sort((a, b) => b.score - a.score)[0];
   return {
@@ -153,8 +148,8 @@ export function lifeSpec(u: User, today: string): ShareSpec {
   };
 }
 
-export function newYearSpec(u: User, y: number): ShareSpec {
-  const D = yearData(u, y); const idiom = YEAR_IDIOM[D.rel];
+export function newYearSpec(u: User, D: YearData): ShareSpec {
+  const y = D.y; const idiom = YEAR_IDIOM[D.rel];
   return {
     kind: `${y} 신년운세`, seal: '年', eyebrow: `${u.nickname}님의 ${y}년은`,
     headline: `${idiom[0]}의 해`, sub: `${idiom[1]} · ${idiom[2]}`.length > 18 ? idiom[2] : `${idiom[1]} · ${idiom[2]}`,
@@ -166,9 +161,9 @@ export function newYearSpec(u: User, y: number): ShareSpec {
   };
 }
 
-export function monthlySpec(u: User, y: number, m: number): ShareSpec {
-  const R = monthReport(u, isoOf(y, m, 1)); const F = sajuFull(u);
-  const rel = relation(F.meE, STEMS[monthPillarOf(y, m).stem].element); const line = MONTH_LINE[rel];
+/** rel: 그달 월운과 나(일간)의 관계 */
+export function monthlySpec(u: User, R: MonthReport, rel: TenGodGroup): ShareSpec {
+  const { y, m } = R; const line = MONTH_LINE[rel];
   return {
     kind: `${m}월 운세`, seal: '月', eyebrow: `${u.nickname}님의 ${y}년 ${m}월`,
     headline: line[0], sub: line[1].split('.')[0],
@@ -180,8 +175,8 @@ export function monthlySpec(u: User, y: number, m: number): ShareSpec {
   };
 }
 
-export function sajuDeepSpec(u: User): ShareSpec {
-  const F = sajuFull(u); const per = STEM_PERSONA[F.ds];
+export function sajuDeepSpec(u: User, F: SajuFull): ShareSpec {
+  const per = STEM_PERSONA[F.ds];
   const name = `${STEMS[F.ds].ko}${BRANCHES[F.ch.day.branch].ko}일주`;
   return {
     kind: '상세 사주 해석', seal: STEMS[F.ds].hanja, eyebrow: `${u.nickname}님은 ${per.img}을 닮은`,
@@ -193,10 +188,9 @@ export function sajuDeepSpec(u: User): ShareSpec {
   };
 }
 
-export function themeSpec(u: User, today: string, kind: 'love' | 'money' | 'career'): ShareSpec {
-  const F = sajuFull(u); const now = ageNow(u, today);
+export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: ThemeLove | ThemeMoney | ThemeCareer): ShareSpec {
   if (kind === 'love') {
-    const L = themeLove(u, today);
+    const L = data as ThemeLove;
     return {
       kind: '연애·결혼운', seal: '緣', eyebrow: `${u.nickname}님의 연애 스타일`,
       headline: L.st, sub: `${u.bloodType}형답게 ${L.blood}`,
@@ -207,7 +201,7 @@ export function themeSpec(u: User, today: string, kind: 'love' | 'money' | 'care
     };
   }
   if (kind === 'money') {
-    const M = themeMoney(u, today);
+    const M = data as ThemeMoney;
     return {
       kind: '재물운', seal: '財', eyebrow: `${u.nickname}님의 돈 성향은`,
       headline: M.t.name, sub: M.t.desc,
@@ -217,7 +211,7 @@ export function themeSpec(u: User, today: string, kind: 'love' | 'money' | 'care
       text: `내 돈 성향은 '${M.t.name}'래. 너는 어떤 타입이야?`, file: 'woonpick-money', route: 'Theme', short: M.t.name,
     };
   }
-  const C = themeCareer(u, today); const up = C.ups[0];
+  const C = data as ThemeCareer; const up = C.ups[0];
   return {
     kind: '직업·적성', seal: '業', eyebrow: `${u.nickname}님에게 맞는 일은`,
     headline: `${C.jobs[0]} · ${C.jobs[1]}`, sub: C.style[0],
@@ -228,8 +222,8 @@ export function themeSpec(u: User, today: string, kind: 'love' | 'money' | 'care
   };
 }
 
-export function luckySpec(u: User, today: string, pk: PurposeKey): ShareSpec {
-  const { P, list } = luckyDays(u, today, pk);
+export function luckySpec(u: User, L: LuckyDays): ShareSpec {
+  const { P, list } = L; const pk = P[0];
   return {
     kind: '길일 찾기', seal: P[1], eyebrow: `${u.nickname}님의 ${P[2]} 길일`,
     headline: mdw(list[0].iso), sub: `앞으로 45일 중 ${P[2]}하기 가장 좋은 날`,

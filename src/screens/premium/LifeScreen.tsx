@@ -7,25 +7,22 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
-import ReportArea from '../../components/premium/Report';
-import { Bullet, HeadRow, Hero, Para, SubHead, Tip, ViewRow, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, HeadRow, Hero, LockGate, Para, SubHead, Tip, ViewRow, scoreColor } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
-import {
-  Daeun, LifeStage, SrcKey, ageNow, currentDaeun, daeun, elName, lifeChartPoints, lifeStages, mainStem, pFrom, pText, sajuFull, stage12,
-  stageKeyOfAge, tenGod, tenName,
-} from '../../services/premium/engine';
+import { ageNow, currentDaeun, elName, mainStem, pFrom, pText, relation, stage12, stageKeyOfAge, strength3, tenGod, tenName } from '../../services/premium/helpers';
+import { DaeunTable, LifePreview, LifeStage, SajuFull, SrcKey } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { User } from '../../types';
 import { DAEUN_TEXT, EL_LUCK, PERIOD_TEXT, REL_SCORE, STAGE12, STAGE_FIELD, STEM_PERSONA, TG } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
-import { relation } from '../../services/fortune/sajuService';
 import { seededRandom } from '../../utils/seed';
 import { colors, gradients } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { lifeSpec } from '../../services/share/shareSpecs';
 
-function LifeChart({ stages, dae, now }: { stages: LifeStage[]; dae: { list: Daeun[] }; now: number }) {
-  const pts = lifeChartPoints(stages, dae);
+function LifeChart({ pts, now }: { pts: { a: number; v: number }[]; now: number }) {
   const W = 320, H = 150;
   const X = (a: number) => 14 + ((a - 5) / 80) * (W - 28), Y = (v: number) => 12 + (1 - (v - 60) / 40) * (H - 40);
   let path = '';
@@ -67,11 +64,38 @@ function LifeChart({ stages, dae, now }: { stages: LifeStage[]; dae: { list: Dae
 }
 
 export default function LifeScreen() {
-  const nav = useNavigation();
   const { user: u, today } = useApp();
-  if (!u) return null;
+  const content = usePremiumContent<{ stages: LifeStage[]; daeun: DaeunTable; chart: { a: number; v: number }[] }>({ kind: 'life' });
+  const preview = usePremiumPreview<LifePreview>({ kind: 'life' }, !content.open);
+  if (!u?.natal) return null;
   const item = ITEMS.life();
-  const st = lifeStages(u); const dae = daeun(u); const now = ageNow(u, today); const F = sajuFull(u);
+  const L = content.data?.data; const F = content.data?.F;
+  const now = ageNow(u, today);
+  const chart = L?.chart ?? preview.data?.chart;
+  const strength = F ? F.strength : preview.data ? strength3(preview.data.strength) : null;
+  const spec = L ? lifeSpec(u, L.stages, L.daeun, now) : null;
+
+  return (
+    <Screen title="평생운" back right={<ShareIconButton item={item} spec={spec} />}>
+      <HeadRow item={item} caption={`만 ${now}세 · ${pText(u.natal.chart.day)}일주${strength ? ' · ' + strength : ''}`} />
+      <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님의{'\n'}인생 지도</Text>
+      <Card style={{ marginTop: 20, paddingVertical: 16, paddingHorizontal: 14 }}>
+        {chart ? <LifeChart pts={chart} now={now} /> : <BodyState error={preview.isError} />}
+      </Card>
+      {!content.open ? <LockGate item={item} />
+        : L && F ? <LifeBody u={u} st={L.stages} dae={L.daeun} F={F} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~06) */
+function LifeBody({ u, st, dae, F }: { u: User; st: LifeStage[]; dae: DaeunTable; F: SajuFull }) {
+  const nav = useNavigation();
+  const { today } = useApp();
+  const now = ageNow(u, today);
   const curD = currentDaeun(dae.list, now); const cy = Number(today.slice(0, 4));
   const sorted = [...dae.list].sort((a, b) => b.score - a.score);
   const gold = sorted.slice(0, 2).sort((a, b) => a.age - b.age), care = sorted.slice(-1);
@@ -83,7 +107,7 @@ export default function LifeScreen() {
   const curKey = stageKeyOfAge(now);
   const nextD = curD ? dae.list[dae.list.indexOf(curD) + 1] : undefined;
 
-  const basis = (
+  return (
     <>
       <SubHead title="01 · 초년 · 중년 · 말년" caption="시기마다 4가지 관점이 말하는 이야기" />
       <View style={{ gap: 14 }}>
@@ -202,19 +226,6 @@ export default function LifeScreen() {
       </Card>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>대운 시작 나이는 절입일 근사값으로 계산했어요. 인생의 흐름을 참고하는 콘텐츠이며 미래를 단정하지 않아요.</Text>
     </>
-  );
-
-  return (
-    <Screen title="평생운" back right={<ShareIconButton item={item} spec={lifeSpec(u, today)} />}>
-      <HeadRow item={item} caption={`만 ${now}세 · ${pText(F.ch.day)}일주 · ${F.strength}`} />
-      <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님의{'\n'}인생 지도</Text>
-      <Card style={{ marginTop: 20, paddingVertical: 16, paddingHorizontal: 14 }}>
-        <LifeChart stages={st} dae={dae} now={now} />
-      </Card>
-      <ReportArea rk={{ key: item.key, kind: 'life', user: u, today }} item={item} basis={basis} />
-      <ShareCta item={item} spec={lifeSpec(u, today)} />
-      <Disclaimer compact />
-    </Screen>
   );
 }
 

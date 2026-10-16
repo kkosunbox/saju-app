@@ -4,13 +4,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import ScoreRing from '../ScoreRing';
 import { ActRow, Bullet, Hero, Para, SoftCard, SubHead, heroTxt } from './Kit';
-import { CompatibilityResult, User } from '../../types';
-import { crushReport } from '../../services/content/premiumContent';
+import { CompatibilityResult } from '../../types';
+import { CrushReport } from '../../types/premium';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 
-export default function CrushView({ u, r, today }: { u: User; r: CompatibilityResult; today: string }) {
-  const R = crushReport(u, r, today);
+/** R: 서버가 계산한 속마음 리포트 */
+export default function CrushView({ r, R }: { r: CompatibilityResult; R: CrushReport }) {
   const mx = Math.max(...R.flow.map(f => f.v));
   return (
     <>

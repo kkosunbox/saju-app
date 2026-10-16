@@ -4,11 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import ReportArea from '../../components/premium/Report';
-import { Bullet, Divider, HeadRow, Hero, InfoRows, Para, Pill, SubHead, Tip, ViewRow, heroTxt } from '../../components/premium/Kit';
+import { BodyState, Bullet, Divider, HeadRow, LockGate, Hero, InfoRows, Para, Pill, SubHead, Tip, ViewRow, heroTxt } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
-import { ELS, axisVerdict, crossAxes, elName, mainStem, sajuFull, stage12, tenGod, thaiDay, SrcKey } from '../../services/premium/engine';
+import { ELS, axisVerdict, elName, mainStem, stage12, strength3, tenGod, thaiDay } from '../../services/premium/helpers';
+import { CrossAxis, SajuFull, SajuPreview, SrcKey } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { User } from '../../types';
 import {
   BRANCH_SEAT, EL_BODY, EL_HEX, EL_JOB, EL_LUCK, GROUP_DESC, GROUP_KO, HIDDEN, SINSAL, STAGE12, STAGE12_INFO, STEM_PERSONA, TG, TG_H, TG_INFO,
 } from '../../services/premium/data';
@@ -18,7 +20,7 @@ import { MBTI_INFO } from '../../data/mbtiData';
 import { BLOOD_INFO } from '../../data/bloodData';
 import { analysisTheme, colors } from '../../theme/colors';
 import { fonts, txt } from '../../theme/typography';
-import { Pillar } from '../../services/fortune/sajuService';
+import { Pillar } from '../../types/content';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { sajuDeepSpec } from '../../services/share/shareSpecs';
 
@@ -49,17 +51,63 @@ function Meter({ label, color, value, max, labelW = 46, h = 10 }: { label: strin
 }
 
 export default function SajuDeepScreen() {
-  const { user: u, today } = useApp();
-  if (!u) return null;
+  const { user: u } = useApp();
+  const content = usePremiumContent<{ profile: unknown; axes: CrossAxis[] }>({ kind: 'saju' });
+  const preview = usePremiumPreview<SajuPreview>({ kind: 'saju' }, !content.open);
+  if (!u?.natal) return null;
   const item = ITEMS.sajuDeep();
-  const F = sajuFull(u); const ch = F.ch; const me = STEMS[F.ds]; const per = STEM_PERSONA[F.ds]; const g = F.grp;
+  const F = content.data?.F ?? null;
+  // 원국표·일주는 프로필의 원국으로(무료), 신강약·용신은 본문 또는 미리보기에서
+  const ch = u.natal.chart; const ds = ch.day.stem; const me = STEMS[ds]; const per = STEM_PERSONA[ds];
+  const pillars: [string, Pillar | null][] = [['시주', ch.hour], ['일주', ch.day], ['월주', ch.month], ['년주', ch.year]];
+  const dayName = `${me.ko}${BRANCHES[ch.day.branch].ko}일주`;
+  const strength = F ? F.strength : preview.data ? strength3(preview.data.strength) : null;
+  const yong = F?.yong ?? preview.data?.yongsin;
+  const spec = F ? sajuDeepSpec(u, F) : null;
+
+  return (
+    <Screen title="상세 사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
+      <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
+      <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
+      <Text style={[txt.body, { marginTop: 6 }]}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
+      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 10 }}>
+        <View style={s.pgrid}>
+          {pillars.map(([l, p]) => {
+            const isMe = l === '일주';
+            return (
+              <View key={l} style={[s.pcol, isMe && s.pcolMe]}>
+                <Text style={[s.pl, isMe && { color: colors.purple }]}>{l}{isMe ? ' · 나' : ''}</Text>
+                <Text style={s.tgl}>{p ? (isMe ? '일간' : TG[tenGod(ds, p.stem)]) : '-'}</Text>
+                <Cell p={p} stem />
+                <Cell p={p} stem={false} />
+                <Text style={s.tgl}>{p ? TG[tenGod(ds, mainStem(p.branch))] : '-'}</Text>
+                <Text style={s.hid}>{p ? HIDDEN[p.branch].map(x => STEMS[x].hanja).join(' ') : ''}</Text>
+                <Text style={s.st12}>{p ? STAGE12[stage12(ds, p.branch)] : ''}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <View style={s.legend}><Text style={s.legendT}>위·아래 작은 글씨: 십성</Text><Text style={s.legendT}>회색: 지장간</Text><Text style={s.legendT}>보라: 12운성</Text></View>
+      </Card>
+      {!content.open ? <LockGate item={item} />
+        : F && content.data ? <SajuBody u={u} F={F} ax={content.data.data.axes} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~13) */
+function SajuBody({ u, F, ax }: { u: User; F: SajuFull; ax: CrossAxis[] }) {
+  const ch = F.ch; const me = STEMS[F.ds]; const per = STEM_PERSONA[F.ds]; const g = F.grp;
   const mx = Math.max(...ELS.map(e => F.elc[e]), 1); const gmx = Math.max(...Object.values(g), 1);
   const dayName = `${me.ko}${BRANCHES[ch.day.branch].ko}일주`; const seat = BRANCH_SEAT[ch.day.branch];
   const gk = Object.keys(g) as TenGodGroup[];
   const strongG = gk.reduce((a, b) => (g[b] > g[a] ? b : a)); const zeroG = gk.filter(k => g[k] === 0);
   const L = EL_LUCK[F.yong];
   const weakEl = ELS.reduce((a, b) => (F.elc[b] < F.elc[a] ? b : a)), strongEl = ELS.reduce((a, b) => (F.elc[b] > F.elc[a] ? b : a));
-  const ax = crossAxes(u, F); const spouseN = g[F.spouseGrp];
+  const spouseN = g[F.spouseGrp];
   const dayTG = tenGod(F.ds, mainStem(ch.day.branch));
 
   const money = [
@@ -91,7 +139,7 @@ export default function SajuDeepScreen() {
   ].filter(Boolean);
   const strongText: Record<TenGodGroup, string> = { peer: '자기 주관과 독립심이 삶의 중심이 돼요.', output: '표현하고 만들어내는 재능이 삶을 이끌어요.', wealth: '현실 감각과 결과를 만드는 힘이 강해요.', officer: '책임감과 명예를 중요하게 여기는 삶이에요.', resource: '배우고 생각하는 힘이 삶의 바탕이 돼요.' };
 
-  const basis = (
+  return (
     <>
       <SubHead title="01 · 오행과 십성 분포" caption="타고난 다섯 기운과 열 가지 관계" />
       <Card>
@@ -255,36 +303,6 @@ export default function SajuDeepScreen() {
       <Tip title="평생 기억할 한 문장">{per.core}을 믿되, {elName(F.yong)}의 기운으로 균형을 채울 때 가장 멀리 갑니다.</Tip>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>양력 기준 근사 만세력으로 계산했어요. 절입 시각·음력 보정은 업데이트 예정이에요.</Text>
     </>
-  );
-
-  return (
-    <Screen title="상세 사주 해석" back right={<ShareIconButton item={item} spec={sajuDeepSpec(u)} />}>
-      <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
-      <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
-      <Text style={[txt.body, { marginTop: 6 }]}>{dayName} · {F.strength} · 용신 {elName(F.yong)}</Text>
-      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 10 }}>
-        <View style={s.pgrid}>
-          {F.pillars.map(([l, p]) => {
-            const isMe = l === '일주';
-            return (
-              <View key={l} style={[s.pcol, isMe && s.pcolMe]}>
-                <Text style={[s.pl, isMe && { color: colors.purple }]}>{l}{isMe ? ' · 나' : ''}</Text>
-                <Text style={s.tgl}>{p ? (isMe ? '일간' : TG[tenGod(F.ds, p.stem)]) : '-'}</Text>
-                <Cell p={p} stem />
-                <Cell p={p} stem={false} />
-                <Text style={s.tgl}>{p ? TG[tenGod(F.ds, mainStem(p.branch))] : '-'}</Text>
-                <Text style={s.hid}>{p ? HIDDEN[p.branch].map(x => STEMS[x].hanja).join(' ') : ''}</Text>
-                <Text style={s.st12}>{p ? STAGE12[stage12(F.ds, p.branch)] : ''}</Text>
-              </View>
-            );
-          })}
-        </View>
-        <View style={s.legend}><Text style={s.legendT}>위·아래 작은 글씨: 십성</Text><Text style={s.legendT}>회색: 지장간</Text><Text style={s.legendT}>보라: 12운성</Text></View>
-      </Card>
-      <ReportArea rk={{ key: item.key, kind: 'sajuDeep', user: u, today }} item={item} basis={basis} />
-      <ShareCta item={item} spec={sajuDeepSpec(u)} />
-      <Disclaimer compact />
-    </Screen>
   );
 }
 

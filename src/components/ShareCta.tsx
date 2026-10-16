@@ -9,11 +9,11 @@ import { ShareSpec } from '../services/share/shareSpecs';
 import { colors } from '../theme/colors';
 import { fonts, radius, txt } from '../theme/typography';
 
-/** 유료 결과 끝의 공유 배너 — 열람한 사람에게만 보인다 */
-export default function ShareCta({ item, spec }: { item?: Item; spec: ShareSpec }) {
+/** 유료 결과 끝의 공유 배너 — 열람한 사람에게만 (결과를 받기 전에는 숨김) */
+export default function ShareCta({ item, spec }: { item?: Item; spec?: ShareSpec | null }) {
   const nav = useNavigation();
   const { owned } = usePremium();
-  if (item && !owned(item.key)) return null;
+  if (!spec || (item && !owned(item.key))) return null;
   return (
     <PressableScale onPress={() => nav.navigate('Share', { spec })} style={s.box} scaleTo={0.98} accessibilityLabel="결과를 카드로 공유하기">
       <View style={s.seal}><Text style={s.sealText}>{spec.seal}</Text></View>
@@ -33,10 +33,10 @@ const s = StyleSheet.create({
 });
 
 /** 유료 화면 상단 오른쪽 공유 아이콘 — 열람한 사람에게만 보인다 */
-export function ShareIconButton({ item, spec }: { item?: Item; spec: ShareSpec }) {
+export function ShareIconButton({ item, spec }: { item?: Item; spec?: ShareSpec | null }) {
   const nav = useNavigation();
   const { owned } = usePremium();
-  if (item && !owned(item.key)) return null;
+  if (!spec || (item && !owned(item.key))) return null;
   return (
     <PressableScale onPress={() => nav.navigate('Share', { spec })} scaleTo={0.9} accessibilityLabel="결과를 카드로 공유하기" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
       <Icon name="share" size={20} color={colors.purple} />

@@ -5,13 +5,12 @@ import Card from '../Card';
 import ScoreBar from '../ScoreBar';
 import { Para, Pill, SoftCard, SubHead, scoreColor } from './Kit';
 import { CompatibilityResult, User, BloodType } from '../../types';
-import {
-  ELS, SAMHAP, WEEK, isClash, isLiuhe, isStemHap, isWonjin, isoOf, partnerUser, pText, quickTotal, sajuFull, tenGod, thaiDay, zodiacRel, SajuFull, daysInMonth,
-} from '../../services/premium/engine';
+import { WEEK, pText, thaiDay, thaiDayOf, toSajuFull } from '../../services/premium/helpers';
+import { DeepCompatibility, SajuFull } from '../../types/premium';
 import { EL_LUCK, TG, TG_REL } from '../../services/premium/data';
 import { BRANCHES, ELEMENT_INFO, GENERATES, STEMS } from '../../data/sajuData';
 import { THAI_DAYS, THAI_FRIENDS } from '../../data/thaiData';
-import { parseISO, weekdayOf } from '../../utils/date';
+import { weekdayOf } from '../../utils/date';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
@@ -28,15 +27,15 @@ function Sec({ title, children }: { title: string; children: React.ReactNode }) 
   return <Card style={{ marginTop: 10 }}><Text style={txt.h3}>{title}</Text>{children}</Card>;
 }
 
-export default function CompatDeep({ u, r, today }: { u: User; r: CompatibilityResult; today: string }) {
-  const p = partnerUser(r); const A = sajuFull(u), B = sajuFull(p); const a = u.mbti, b = p.mbti;
+/** D: 서버가 계산한 두 사람의 사주 비교 (합·충 · 십성 · 오행 보완 · 용신 · 좋은 날) */
+export default function CompatDeep({ u, r, D }: { u: User; r: CompatibilityResult; D: DeepCompatibility }) {
+  const p = r.target; const A = toSajuFull(D.me), B = toSajuFull(D.partner); const a = u.mbti, b = p.mbti;
   const nmA = u.nickname, nmB = p.nickname;
-  const stemHap = isStemHap(A.ds, B.ds), dayHap = isLiuhe(A.ch.day.branch, B.ch.day.branch), dayClash = isClash(A.ch.day.branch, B.ch.day.branch);
-  const daySam = SAMHAP(A.ch.day.branch) === SAMHAP(B.ch.day.branch) && A.ch.day.branch !== B.ch.day.branch;
-  const zr = zodiacRel(A.ch.year.branch, B.ch.year.branch), won = isWonjin(A.ch.year.branch, B.ch.year.branch);
-  const tgAB = tenGod(A.ds, B.ds), tgBA = tenGod(B.ds, A.ds);
-  const fillAB = ELS.filter(e => A.elc[e] === 0 && B.elc[e] >= 2), fillBA = ELS.filter(e => B.elc[e] === 0 && A.elc[e] >= 2);
-  const yongMatch = B.elc[A.yong] >= 2, yongMatchB = A.elc[B.yong] >= 2;
+  const stemHap = D.stemHap, dayHap = D.dayHap, dayClash = D.dayClash, daySam = D.daySamhap;
+  const zr = D.zodiac, won = D.zodiacWonjin;
+  const tgAB = D.tenGodMeToPartner, tgBA = D.tenGodPartnerToMe;
+  const fillAB = D.partnerFillsMe, fillBA = D.meFillsPartner;
+  const yongMatch = D.partnerHasMyYongsin, yongMatchB = D.meHasPartnerYongsin;
   const same = AX.filter(x => a[x[1]] === b[x[1]]), diff = AX.filter(x => a[x[1]] !== b[x[1]]);
 
   const sajuRows: [string, string, string][] = [
@@ -50,11 +49,8 @@ export default function CompatDeep({ u, r, today }: { u: User; r: CompatibilityR
   const lifeTxt = [dayHap || daySam ? '함께 사는 생활의 궁합이 좋아요.' : dayClash ? '생활 습관이 달라 초기 조율이 필요해요. 집안일·돈 관리 규칙을 미리 정해두면 좋아요.' : '생활 리듬을 맞추는 데 큰 어려움이 없어요.', a[3] === b[3] ? '계획을 세우는 방식이 같아 여행·이사 같은 큰일도 순조로워요.' : '계획형과 즉흥형의 조합이라, 큰일은 계획형이 맡고 작은 즐거움은 즉흥형이 맡으면 좋아요.'].join(' ');
   const moneyTxt = [(A.grp.wealth >= 2) !== (B.grp.wealth >= 2) ? '한 사람은 돈 감각이, 한 사람은 다른 강점이 있어 역할을 나누기 좋아요. 재정 관리는 재성이 강한 쪽이 맡는 걸 추천해요.' : A.grp.wealth >= 2 ? '둘 다 돈 감각이 있어 함께 재테크 목표를 세우면 시너지가 커요.' : '둘 다 돈보다 다른 가치를 중시해요. 고정 지출과 저축 규칙을 정해두면 안정돼요.', r.money >= 80 ? '금전 궁합 점수가 높아 경제적인 목표를 함께 이루기 좋아요.' : ''].filter(Boolean).join(' ');
   const fightTxt = [diff.length ? `부딪히기 쉬운 지점은 ${diff.map(x => x[0]).join('·')}이에요.` : '성향이 닮아 큰 충돌은 적지만, 같은 약점을 공유할 수 있어요.', dayClash || won ? '감정이 쌓이기 전에 그날 바로 대화하는 규칙을 만들어 보세요.' : '싸우더라도 하루를 넘기지 않으면 금세 회복되는 관계예요.', `${u.bloodType}형은 ${BLOOD_FIGHT[u.bloodType]} 편이고, ${p.bloodType}형은 ${BLOOD_FIGHT[p.bloodType]} 편이에요.`].join(' ');
-  const { y, m, d: d0 } = parseISO(today); const n = daysInMonth(y, m);
-  const ds: { iso: string; d: number; s: number }[] = [];
-  for (let d = d0; d <= n; d++) { const iso = isoOf(y, m, d); ds.push({ iso, d, s: quickTotal(u, iso) + quickTotal(p, iso) }); }
-  const good = ds.sort((x, z) => z.s - x.s).slice(0, 3).sort((x, z) => x.d - z.d);
-  const mt = thaiDay(u), yt = thaiDay(p);
+  const good = D.goodDays;
+  const mt = thaiDay(u), yt = thaiDayOf(p.birthDate, p.birthTime);
   const rows: [string, (x: SajuFull) => string][] = [['일주', x => pText(x.ch.day)], ['일간', x => STEMS[x.ds].ko + EK(x.meE)], ['신강약', x => x.strength], ['용신', x => `${EK(x.yong)}(${ELEMENT_INFO[x.yong].hanja})`], ['띠', x => BRANCHES[x.ch.year.branch].animal + '띠']];
 
   return (

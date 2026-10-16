@@ -4,10 +4,12 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
-import { Bullet, HeadRow, LockGate, Pill, Rank, SubHead } from '../../components/premium/Kit';
+import { BodyState, Bullet, HeadRow, LockGate, Pill, Rank, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
-import { LuckyDay, PurposeKey, WEEK, luckyDays, pText, sajuFull } from '../../services/premium/engine';
+import { WEEK, pText } from '../../services/premium/helpers';
+import { LuckyDay, LuckyDays, LuckyPreview, PurposeKey, SajuFull } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
 import { EL_LUCK, PURPOSE, PURPOSE_TIPS, STAGE12, TG, TG_INFO } from '../../services/premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { colors } from '../../theme/colors';
@@ -20,19 +22,16 @@ const dateLabel = (iso: string) => { const { m, d } = parseISO(iso); return `${m
 export default function LuckyScreen() {
   const { user: u, today } = useApp();
   const [pk, setPk] = useState<PurposeKey>('move');
+  const ref = { kind: 'lucky', purpose: pk } as const;
+  const content = usePremiumContent<LuckyDays>(ref);
+  const preview = usePremiumPreview<LuckyPreview>(ref, !content.open);
   if (!u) return null;
   const item = ITEMS.lucky(pk, today);
-  const F = sajuFull(u);
-  const { P, list, bad } = luckyDays(u, today, pk);
-  const why = (x: LuckyDay) => [
-    x.gw ? '천을귀인이 드는 날이라 도움을 받기 쉬워요' : '',
-    x.hit.length ? `${x.hit.join('·')} 키워드가 함께해요` : '',
-    `일진 ${pText(x.dp)}이 나에게 ${TG[x.tg]}(${TG_INFO[x.tg].key})이에요`,
-    `에너지 단계 ${STAGE12[x.st]}`,
-  ].filter(Boolean);
+  const L = content.data?.data;
+  const top = L ? L.list[0] : preview.data?.top;
 
   return (
-    <Screen title="길일 찾기" back right={<ShareIconButton item={item} spec={luckySpec(u, today, pk)} />}>
+    <Screen title="길일 찾기" back right={<ShareIconButton item={item} spec={L ? luckySpec(u, L) : null} />}>
       <HeadRow item={item} caption="앞으로 45일 중에서 골라요" />
       <Text style={[txt.title, { marginTop: 10 }]}>어떤 날을{'\n'}찾고 있나요?</Text>
       <View style={s.grid}>
@@ -48,12 +47,32 @@ export default function LuckyScreen() {
         <Rank n={1} first />
         <View style={{ flex: 1 }}>
           <Text style={txt.caption}>무료로 공개하는 1위</Text>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{dateLabel(list[0].iso)}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{top ? dateLabel(top.iso) : '…'}</Text>
         </View>
-        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.purple }}>{list[0].s}</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: colors.purple }}>{top?.s ?? ''}</Text>
       </Card>
 
-      <LockGate key={item.key} item={item}>
+      {!content.open ? <LockGate key={item.key} item={item} />
+        : L && content.data?.F ? <LuckyBody L={L} F={content.data.F} pk={pk} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={L ? luckySpec(u, L) : null} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문: TOP 5 · 피할 날 · 당일 팁 */
+function LuckyBody({ L, F, pk }: { L: LuckyDays; F: SajuFull; pk: PurposeKey }) {
+  const { P, list, bad } = L;
+  const why = (x: LuckyDay) => [
+    x.gw ? '천을귀인이 드는 날이라 도움을 받기 쉬워요' : '',
+    x.hit.length ? `${x.hit.join('·')} 키워드가 함께해요` : '',
+    `일진 ${pText(x.dp)}이 나에게 ${TG[x.tg]}(${TG_INFO[x.tg].key})이에요`,
+    `에너지 단계 ${STAGE12[x.st]}`,
+  ].filter(Boolean);
+
+  return (
+    <>
         <SubHead title={P[2] + '하기 좋은 날 TOP 5'} caption="사주 일진 · 귀인 · 4가지 관점 키워드를 함께 봤어요" />
         <View style={{ gap: 10 }}>
           {list.map((x, i) => (
@@ -89,10 +108,7 @@ export default function LuckyScreen() {
           <Bullet>용신 색({EL_LUCK[F.yong].color})을 소품으로 활용해 보세요</Bullet>
         </Card>
         <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>재미와 참고를 위한 추천이에요. 실제 일정은 상황에 맞게 정해 주세요.</Text>
-      </LockGate>
-      <ShareCta item={item} spec={luckySpec(u, today, pk)} />
-      <Disclaimer compact />
-    </Screen>
+    </>
   );
 }
 

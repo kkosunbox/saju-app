@@ -2,7 +2,7 @@
  * 프리미엄 콘텐츠 공용 UI 조각 — HTML 미리보기의 card/hero/tip/toc/lock 등과 1:1 대응.
  */
 import React, { useEffect, useRef } from 'react';
-import { Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../PressableScale';
 import Card from '../Card';
@@ -11,7 +11,7 @@ import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
 import { usePremium } from '../../context/PremiumContext';
 import { Item, fmtP } from '../../services/premium/catalog';
-import { SrcKey } from '../../services/premium/engine';
+import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
 import { fonts, radius, shadow, txt } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
@@ -217,15 +217,30 @@ export function Rank({ n, first }: { n: number; first?: boolean }) {
 }
 
 /* ---------- 잠금 ---------- */
-/** 무료 미리보기 밖의 영역: 흐리게 깔고 그 위에 열람 패널 */
-export function LockGate({ item, children, onUnlocked }: { item: Item; children: React.ReactNode; onUnlocked?(): void }) {
+/** 잠긴 본문 자리에 까는 가짜 줄 — 유료 내용은 열기 전에는 서버에서 받지 않는다 */
+function GhostBody() {
+  const line = (w: `${number}%`, i: number) => <View key={i} style={[s.ghostLine, { width: w }]} />;
+  return (
+    <View style={{ gap: 14 }}>
+      {[0, 1, 2].map(k => (
+        <View key={k}>
+          <View style={s.ghostHead} />
+          <View style={s.ghostCard}>{(['92%', '100%', '84%', '96%', '60%'] as const).map(line)}</View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** 잠긴 본문: 가짜 줄을 흐리게 깔고 그 위에 열람 패널. 열려 있으면 children(본문) */
+export function LockGate({ item, children, onUnlocked }: { item: Item; children?: React.ReactNode; onUnlocked?(): void }) {
   const { owned, points, openUnlock } = usePremium();
   if (owned(item.key)) return <>{children}</>;
-  const blur = Platform.OS === 'web' ? ({ filter: 'blur(7px)' } as object) : null;
+  const blur = Platform.OS === 'web' ? ({ filter: 'blur(3px)' } as object) : null;
   return (
     <View style={s.lockWrap}>
       <View style={[s.lockBlur, blur]} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        {children}
+        <GhostBody />
         <LinearGradient colors={[colors.cream + '00', colors.cream]} locations={[0.25, 0.95]} style={StyleSheet.absoluteFill} />
       </View>
       <View style={s.lockPanel}>
@@ -235,6 +250,25 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children:
         <PrimaryButton label={`${item.cost}P로 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>보유 {fmtP(points)} · {item.scope}</Text>
       </View>
+    </View>
+  );
+}
+
+/** 열람한 본문을 서버에서 받는 중이거나 받지 못했을 때 */
+export function BodyState({ error, onRetry }: { error?: boolean; onRetry?(): void }) {
+  return (
+    <View style={s.bodyState}>
+      {error ? (
+        <>
+          <Text style={[txt.body, { textAlign: 'center' }]}>내용을 불러오지 못했어요.</Text>
+          {onRetry ? <PrimaryButton label="다시 불러오기" variant="soft" onPress={onRetry} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
+        </>
+      ) : (
+        <>
+          <ActivityIndicator color={colors.purple} />
+          <Text style={[txt.small, { marginTop: 10 }]}>풀이를 불러오고 있어요</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -353,6 +387,10 @@ const s = StyleSheet.create({
   rank: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
   rankText: { fontSize: 14, fontWeight: '800', color: colors.purpleSoft },
   lockWrap: { marginTop: 12, minHeight: 420 },
+  bodyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 16 },
+  ghostHead: { width: '40%', height: 16, borderRadius: 8, backgroundColor: colors.lineStrong, marginTop: 20, marginBottom: 12 },
+  ghostCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 18, gap: 10 },
+  ghostLine: { height: 11, borderRadius: 6, backgroundColor: colors.line },
   lockBlur: { maxHeight: 440, overflow: 'hidden', opacity: 0.5 },
   lockPanel: { position: 'absolute', left: 4, right: 4, top: 40, backgroundColor: colors.card, borderRadius: 16, paddingVertical: 24, paddingHorizontal: 20, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, shadowColor: '#28200A', shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
   priceCard: { marginTop: 24, backgroundColor: colors.card, borderRadius: radius.lg, padding: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong },

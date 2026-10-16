@@ -7,14 +7,16 @@ import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import KeywordChip from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import ReportArea from '../../components/premium/Report';
-import { Bullet, ChipSelect, HeadRow, Hero, InfoRows, MonthBars, Para, SubHead, ViewsCard, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, Hero, InfoRows, MonthBars, Para, SubHead, ViewsCard, heroTxt, scoreColor } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
 import {
-  CATS, Q_TEXT, SAMHAP, elName, isClash, isLiuhe, mainStem, monthPillarOf, pText, sajuFull, samjae, stage12, tenGod, tgGroup, yearData,
-} from '../../services/premium/engine';
+  CATS, Q_TEXT, SAMHAP, elName, isClash, isLiuhe, mainStem, monthPillarOf, pText, samjae, stage12, tenGod, tgGroup,
+} from '../../services/premium/helpers';
+import { SajuFull, YearData, YearPreview } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { User } from '../../types';
 import { DOHWA, EL_LUCK, FIELD, FIELD_META, GROUP_KO, GWIIN, MONTH_LINE, PERIOD_TEXT, REL_SCORE, STAGE12, STAGE12_INFO, TG, TG_INFO, YEAR_IDIOM, YEOKMA } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
 import { clamp } from '../../utils/seed';
@@ -26,14 +28,46 @@ import { newYearSpec } from '../../services/share/shareSpecs';
 type FieldKey = 'money' | 'work' | 'love' | 'health' | 'people' | 'study';
 
 export default function NewYearScreen() {
-  const nav = useNavigation();
   const { params } = useRoute<RouteProp<RootStackParamList, 'NewYear'>>();
   const { user: u, today } = useApp();
   const cy = Number(today.slice(0, 4));
-  const [y, setY] = useState(params?.year ?? cy);
+  const [y, setY] = useState(Number(params?.year) || cy);
+  const ref = { kind: 'newyear', year: y } as const;
+  const content = usePremiumContent<YearData>(ref);
+  const preview = usePremiumPreview<YearPreview>(ref, !content.open);
   if (!u) return null;
   const item = ITEMS.newyear(y);
-  const D = yearData(u, y); const F = sajuFull(u); const idiom = YEAR_IDIOM[D.rel];
+  const D = content.data?.data; const F = content.data?.F;
+  const top: YearPreview | undefined = D ?? preview.data;
+  const idiom = top ? YEAR_IDIOM[top.rel] : null;
+  const spec = D ? newYearSpec(u, D) : null;
+
+  return (
+    <Screen title="신년운세" back right={<ShareIconButton item={item} spec={spec} />}>
+      <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti} · ${u.bloodType}형`} />
+      <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} />
+      {top && idiom ? (
+        <Hero style={{ alignItems: 'center', paddingVertical: 24 }}>
+          <Text style={heroTxt.eyebrow}>{y}년 {STEMS[top.yp.stem].ko}{BRANCHES[top.yp.branch].ko}년 · {top.animal}의 해</Text>
+          <Text style={{ fontSize: 30, fontWeight: '800', letterSpacing: 2, marginTop: 10, color: colors.white }}>{idiom[0]}</Text>
+          <Text style={{ fontSize: 13, color: colors.moon, marginTop: 2 }}>{idiom[1]} · {idiom[2]}</Text>
+          <View style={{ marginTop: 16 }}><ScoreRing key={y} score={top.total} size={108} stroke={8} label="올해 종합" /></View>
+          <View style={s.chips}>{top.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
+        </Hero>
+      ) : <BodyState error={preview.isError} />}
+      {!content.open ? <LockGate key={item.key} item={item} />
+        : D && F ? <NewYearBody u={u} D={D} F={F} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~09) */
+function NewYearBody({ u, D, F }: { u: User; D: YearData; F: SajuFull }) {
+  const nav = useNavigation();
+  const y = D.y;
   const sTG = tenGod(F.ds, D.yp.stem), bTG = tenGod(F.ds, mainStem(D.yp.branch)); const sG = tgGroup(sTG), bG = tgGroup(bTG); const st = stage12(F.ds, D.yp.branch);
   const sj = samjae(F.ch.year.branch, D.yp.branch); const g0 = SAMHAP(F.ch.year.branch), g1 = SAMHAP(F.ch.day.branch);
   const flags: [string, string, string, FieldKey][] = [];
@@ -60,7 +94,7 @@ export default function NewYearScreen() {
   const bestMs = D.best.map(b => b.m).sort((a, b) => a - b).join('·'), lowMs = D.low.map(b => b.m).sort((a, b) => a - b).join('·');
   const goMonth = (m: number) => nav.navigate('Monthly', { y, m });
 
-  const basis = (
+  return (
     <>
       <SubHead title={`01 · ${y}년 총운`} />
       <Card>
@@ -171,23 +205,6 @@ export default function NewYearScreen() {
         ].filter(Boolean).map((t, i) => <Bullet key={i} color="#C27A2C">{t}</Bullet>)}
       </Card>
     </>
-  );
-
-  return (
-    <Screen title="신년운세" back right={<ShareIconButton item={item} spec={newYearSpec(u, y)} />}>
-      <HeadRow item={item} caption={`${D.myAnimal}띠 · ${u.mbti} · ${u.bloodType}형`} />
-      <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} />
-      <Hero style={{ alignItems: 'center', paddingVertical: 24 }}>
-        <Text style={heroTxt.eyebrow}>{y}년 {STEMS[D.yp.stem].ko}{BRANCHES[D.yp.branch].ko}년 · {D.animal}의 해</Text>
-        <Text style={{ fontSize: 30, fontWeight: '800', letterSpacing: 2, marginTop: 10, color: colors.white }}>{idiom[0]}</Text>
-        <Text style={{ fontSize: 13, color: colors.moon, marginTop: 2 }}>{idiom[1]} · {idiom[2]}</Text>
-        <View style={{ marginTop: 16 }}><ScoreRing key={y} score={D.total} size={108} stroke={8} label="올해 종합" /></View>
-        <View style={s.chips}>{D.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
-      </Hero>
-      <ReportArea key={item.key} rk={{ key: item.key, kind: 'newyear', user: u, today, year: y }} item={item} basis={basis} />
-      <ShareCta item={item} spec={newYearSpec(u, y)} />
-      <Disclaimer compact />
-    </Screen>
   );
 }
 

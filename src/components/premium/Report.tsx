@@ -219,11 +219,9 @@ export function Basis({ children, initiallyOpen }: { children: React.ReactNode; 
 export default function ReportArea({ rk, item, basis }: { rk: ReportCtx; item: Item; basis: React.ReactNode }) {
   const { owned } = usePremium();
   const own = owned(item.key);
+  // AI 종합 풀이가 꺼져 있으면: 열람 후에는 본문(basis), 열기 전에는 잠금 패널만
+  if (!reportAvailable()) return <LockGate item={item}>{basis}</LockGate>;
   const O = outline(rk);
-  // 종합 풀이 서버가 없으면: 목차·안내 없이 실제 풀이(basis)를 그대로 — 열람 전에는 흐리게 미리보기
-  if (!reportAvailable()) {
-    return own ? <>{basis}</> : <LockGate item={item}>{basis}</LockGate>;
-  }
   return (
     <>
       <RepTOC O={O} owned={own} />

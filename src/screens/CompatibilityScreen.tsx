@@ -18,14 +18,14 @@ import Seal from '../components/Seal';
 import Disclaimer from '../components/Disclaimer';
 import { useApp } from '../context/AppContext';
 import { usePremium } from '../context/PremiumContext';
-import { PriceCard } from '../components/premium/Kit';
-import ReportArea from '../components/premium/Report';
+import { BodyState, PriceCard } from '../components/premium/Kit';
 import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
-import { generateReport, reportAvailable } from '../services/report/reportService';
+import { usePremiumContent } from '../services/server/premiumApi';
+import { CrushReport, DeepCompatibility } from '../types/premium';
 import { compatApi } from '../services/server/compatApi';
 import { ApiError } from '../api/client';
-import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput } from '../types';
+import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, User } from '../types';
 import { MBTI_LIST } from '../data/mbtiData';
 import { isValidDate } from '../utils/date';
 import { analysisTheme, colors, gradients } from '../theme/colors';
@@ -55,8 +55,8 @@ function Avatar({ name, light }: { name: string; light?: boolean }) {
 }
 
 export default function CompatibilityScreen() {
-  const { user, today } = useApp();
-  const { owned, toast } = usePremium();
+  const { user } = useApp();
+  const { toast } = usePremium();
   const [name, setName] = useState('');
   const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
   const [hh, setHh] = useState('');
@@ -159,28 +159,12 @@ export default function CompatibilityScreen() {
           <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. 심층 궁합·속마음은 상대 정보를 직접 넣어 볼 수 있어요.</Text>
         ) : null}
 
-        {result.source !== 'invite' && result.id != null && (() => {
-          const item = ITEMS.compat(result.id, result.target.nickname);
-          const rk = { key: item.key, kind: 'compat' as const, user, today, compat: result };
-          if (!owned(item.key)) return <PriceCard item={item} onUnlocked={() => { if (reportAvailable()) generateReport(rk); }} />;
-          return (
-            <>
-              <SectionHeader title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
-              <ReportArea rk={rk} item={item} basis={<CompatDeep u={user} r={result} today={today} />} />
-            </>
-          );
-        })()}
-
-        {result.source !== 'invite' && result.id != null && (() => {
-          const item = ITEMS.crush(result.id, result.target.nickname);
-          if (!owned(item.key)) return <PriceCard item={item} />;
-          return (
-            <>
-              <CrushView u={user} r={result} today={today} />
-              <ShareCta spec={crushSpec(user, result, today)} />
-            </>
-          );
-        })()}
+        {result.source !== 'invite' && result.id != null ? (
+          <>
+            <DeepSection u={user} r={result} id={result.id} />
+            <CrushSection u={user} r={result} id={result.id} />
+          </>
+        ) : null}
 
         <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" onPress={() => setResult(null)} style={{ marginTop: 24 }} />
         <Disclaimer compact />
@@ -275,6 +259,33 @@ export default function CompatibilityScreen() {
       </Card>
       <Disclaimer compact />
     </Screen>
+  );
+}
+
+/** 심층 궁합: 열기 전엔 가격 카드, 열면 서버가 계산한 두 사람 비교 */
+function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number }) {
+  const item = ITEMS.compat(id, r.target.nickname);
+  const content = usePremiumContent<DeepCompatibility>({ kind: 'compat', id });
+  if (!content.open) return <PriceCard item={item} />;
+  return (
+    <>
+      <SectionHeader title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
+      {content.data ? <CompatDeep u={u} r={r} D={content.data.data} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+    </>
+  );
+}
+
+/** 그 사람의 속마음 */
+function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number }) {
+  const item = ITEMS.crush(id, r.target.nickname);
+  const content = usePremiumContent<CrushReport>({ kind: 'crush', id });
+  if (!content.open) return <PriceCard item={item} />;
+  if (!content.data) return <BodyState error={content.isError} onRetry={() => content.refetch()} />;
+  return (
+    <>
+      <CrushView r={r} R={content.data.data} />
+      <ShareCta spec={crushSpec(u, r, content.data.data)} />
+    </>
   );
 }
 

@@ -9,23 +9,22 @@ import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import KeywordChip, { emojiFor } from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import ReportArea from '../../components/premium/Report';
-import { Bullet, ChipSelect, FortuneCalendar, HeadRow, Hero, InfoRows, Para, Seal, SubHead, ViewsCard, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Hero, InfoRows, Para, Seal, SubHead, ViewsCard, heroTxt, scoreColor } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
-import {
-  SAMHAP, WEEK, isClash, isoOf, kwTag, mainStem, monthPillarOf, monthReport, pText, sajuFull, stage12, tenGod, tenName, tgGroup, thaiDay,
-} from '../../services/premium/engine';
+import { SAMHAP, WEEK, dayPillar, daysInMonth, isClash, kwTag, mainStem, monthPillarOf, pText, pad2, relation, stage12, tenGod, tenName, tgGroup, thaiDay } from '../../services/premium/helpers';
+import { MonthPreview, MonthReport, SajuFull } from '../../types/premium';
+import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { User } from '../../types';
 import { DOHWA, EL_LUCK, FIELD, FIELD_META, GWIIN, MONTH_LINE, PERIOD_TEXT, STAGE12, STAGE12_INFO, TG, TG_INFO, YEOKMA } from '../../services/premium/data';
 import { ACTIONS } from '../../data/keywords';
 import { STEMS } from '../../data/sajuData';
 import { THAI_DAYS, THAI_FRIENDS, WEEKDAY_TO_THAI } from '../../data/thaiData';
 import { BLOOD_INFO } from '../../data/bloodData';
-import { AXES } from '../../services/fortune/mbtiService';
-import { CAT_TEXT } from '../../services/fortune/combinedService';
-import { dayPillar, relation } from '../../services/fortune/sajuService';
+import { AXES } from '../../data/mbtiData';
+import { CAT_TEXT } from '../../data/categoryText';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { clamp, pick, seededRandom } from '../../utils/seed';
 import { colors } from '../../theme/colors';
@@ -38,13 +37,54 @@ type FieldKey = 'money' | 'work' | 'love' | 'health' | 'people' | 'study';
 export default function MonthlyScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Monthly'>>();
   const { user: u, today } = useApp();
-  const { missions, toggleMission } = usePremium();
   const t = parseISO(today);
-  const [sel, setSel] = useState(params ?? { y: t.y, m: t.m });
-  const [calSel, setCalSel] = useState<string | null>(null);
-  if (!u) return null;
+  const [sel, setSel] = useState(params?.y && params?.m ? { y: Number(params.y), m: Number(params.m) } : { y: t.y, m: t.m });
+  const ref = { kind: 'monthly', month: `${sel.y}-${pad2(sel.m)}` } as const;
+  const content = usePremiumContent<MonthReport>(ref);
+  const preview = usePremiumPreview<MonthPreview>(ref, !content.open);
+  if (!u?.natal) return null;
   const item = ITEMS.monthly(sel.y, sel.m);
-  const R = monthReport(u, isoOf(sel.y, sel.m, 1)); const F = sajuFull(u);
+  const R = content.data?.data; const F = content.data?.F;
+  const top: MonthPreview | undefined = R ?? preview.data;
+  const mp = monthPillarOf(sel.y, sel.m);
+  const rel = relation(STEMS[u.natal.chart.day.stem].element, STEMS[mp.stem].element);
+  // 살 수 있는 달: 지난달부터 12개월 뒤까지 (서버 카탈로그와 같은 범위)
+  const months: [string, string, string][] = [];
+  for (let i = -1; i <= 12; i++) {
+    const d = new Date(t.y, t.m - 1 + i, 1);
+    months.push([`${d.getFullYear()}-${d.getMonth() + 1}`, `${d.getMonth() + 1}월`, d.getFullYear() !== t.y ? String(d.getFullYear()) : i === 0 ? '이번 달' : '']);
+  }
+  const spec = R ? monthlySpec(u, R, rel) : null;
+
+  return (
+    <Screen title="월별 상세운세" back right={<ShareIconButton item={item} spec={spec} />}>
+      <HeadRow item={item} caption={`${sel.y}년 ${sel.m}월 1일 ~ ${daysInMonth(sel.y, sel.m)}일`} />
+      <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); }} />
+      {top ? (
+        <Hero style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <ScoreRing key={item.key} score={top.avg} size={104} stroke={8} label="이달 평균" />
+          <View style={{ flex: 1 }}>
+            <Text style={heroTxt.eyebrow}>{u.nickname}님의 {sel.m}월 · {pText(mp)}월</Text>
+            <Text style={heroTxt.summ}>{PERIOD_TEXT.month[rel][0]}</Text>
+            <View style={s.chips}>{top.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
+          </View>
+        </Hero>
+      ) : <BodyState error={preview.isError} />}
+      {!content.open ? <LockGate key={item.key} item={item} />
+        : R && F ? <MonthlyBody key={item.key} u={u} R={R} F={F} />
+        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      <ShareCta item={item} spec={spec} />
+      <Disclaimer compact />
+    </Screen>
+  );
+}
+
+/** 열람한 본문 (01~09) */
+function MonthlyBody({ u, R, F }: { u: User; R: MonthReport; F: SajuFull }) {
+  const { today } = useApp();
+  const { missions, toggleMission } = usePremium();
+  const [calSel, setCalSel] = useState<string | null>(null);
+  const sel = { y: R.y, m: R.m };
   const bestSet = new Set(R.best.map(b => b.d));
   const mp = monthPillarOf(sel.y, sel.m);
   const sTG = tenGod(F.ds, mp.stem), bTG = tenGod(F.ds, mainStem(mp.branch)); const sG = tgGroup(sTG); const st = stage12(F.ds, mp.branch);
@@ -71,17 +111,11 @@ export default function MonthlyScreen() {
   }
   const band = (v: number) => (v >= 82 ? 'high' : v >= 74 ? 'mid' : 'low') as 'high' | 'mid' | 'low';
   const L = EL_LUCK[F.yong];
-  const months: [string, string, string][] = [];
-  const span = 12 - (t.m - 1) + 12 + 1;
-  for (let i = 0; i < span; i++) {
-    const d = new Date(t.y, t.m - 2 + i, 1);
-    months.push([`${d.getFullYear()}-${d.getMonth() + 1}`, `${d.getMonth() + 1}월`, d.getFullYear() !== t.y ? String(d.getFullYear()) : d.getMonth() + 1 === t.m ? '이번 달' : '']);
-  }
   const fieldScore = (k: FieldKey) => k === 'money' ? R.cat.money : k === 'work' ? R.cat.work : k === 'love' ? R.cat.love : k === 'people' ? R.cat.relationship
     : k === 'health' ? clamp((R.cat.work + R.cat.relationship) / 2 - (sG === 'officer' ? 4 : 0), 55, 95) : clamp(R.avg + (sG === 'resource' ? 6 : -2), 55, 95);
   const picked = calSel ? R.days.find(d => d.iso === calSel) : undefined;
 
-  const basis = (
+  return (
     <>
       <SubHead title="01 · 이달의 사주 기운" caption={'월운(月運) · ' + pText(mp)} />
       <View style={s.grid3}>
@@ -203,24 +237,6 @@ export default function MonthlyScreen() {
         })}
       </Card>
     </>
-  );
-
-  return (
-    <Screen title="월별 상세운세" back right={<ShareIconButton item={item} spec={monthlySpec(u, sel.y, sel.m)} />}>
-      <HeadRow item={item} caption={`${R.y}년 ${R.m}월 1일 ~ ${R.n}일`} />
-      <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); setCalSel(null); }} />
-      <Hero style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-        <ScoreRing key={item.key} score={R.avg} size={104} stroke={8} label="이달 평균" />
-        <View style={{ flex: 1 }}>
-          <Text style={heroTxt.eyebrow}>{u.nickname}님의 {R.m}월 · {pText(mp)}월</Text>
-          <Text style={heroTxt.summ}>{PERIOD_TEXT.month[rel][0]}</Text>
-          <View style={s.chips}>{R.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
-        </View>
-      </Hero>
-      <ReportArea key={item.key} rk={{ key: item.key, kind: 'monthly', user: u, today, month: sel }} item={item} basis={basis} />
-      <ShareCta item={item} spec={monthlySpec(u, sel.y, sel.m)} />
-      <Disclaimer compact />
-    </Screen>
   );
 }
 
