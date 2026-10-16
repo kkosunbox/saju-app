@@ -27,6 +27,9 @@ const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult =>
   createdAt: dto.createdAt,
 });
 
+/** 저장된 상대(궁합 기록) 목록 캐시 */
+export const compatKeys = { list: ['compat-list'] as const };
+
 export const compatApi = {
   async create(userId: string, partner: PartnerInput & { calendarType?: 'solar' | 'lunar'; isLeapMonth?: boolean; mbtiUnknown?: boolean }) {
     const dto = await call<CompatibilityDto>(api.POST('/v1/compatibilities', {

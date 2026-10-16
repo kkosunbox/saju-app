@@ -20,7 +20,8 @@ import { Coin, PriceTag } from '../components/premium/Kit';
 import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
-import { compatApi } from '../services/server/compatApi';
+import { compatApi, compatKeys } from '../services/server/compatApi';
+import { queryClient } from '../api/query';
 import { ApiError } from '../api/client';
 import { FriendResult, PendingInvite, clearPendingInvite, getFriendResult, markFriendSeen, getPendingInvite, shareInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
@@ -89,6 +90,7 @@ export default function HomeScreen() {
       const result = await compatApi.acceptInvite(user.id, invite.token);
       await clearPendingInvite();
       setInvite(null);
+      queryClient.invalidateQueries({ queryKey: compatKeys.list });
       nav.navigate('Tabs', { screen: 'Compatibility', params: { result } });
     } catch (e) {
       const gone = e instanceof ApiError && ['INVITATION_NOT_FOUND', 'INVITATION_TOKEN_EXPIRED', 'BAD_REQUEST'].includes(e.code);

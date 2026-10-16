@@ -23,7 +23,10 @@ import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
 import { usePremiumContent } from '../services/server/premiumApi';
 import { CrushReport, DeepCompatibility } from '../types/premium';
-import { compatApi } from '../services/server/compatApi';
+import { compatApi, compatKeys } from '../services/server/compatApi';
+import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '../api/query';
+import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
 import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, User } from '../types';
 import { MBTI_LIST } from '../data/mbtiData';
@@ -56,7 +59,7 @@ function Avatar({ name, light }: { name: string; light?: boolean }) {
 
 export default function CompatibilityScreen() {
   const { user } = useApp();
-  const { toast } = usePremium();
+  const { toast, owned } = usePremium();
   const [name, setName] = useState('');
   const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
   const [hh, setHh] = useState('');
@@ -65,6 +68,9 @@ export default function CompatibilityScreen() {
   const [blood, setBlood] = useState<BloodType | null>(null);
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [showMbti, setShowMbti] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // 저장된 상대 = 궁합 기록 (상대마다 하나, 최근에 본 순)
+  const saved = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user });
 
   const sendInvite = async () => {
     if (!user) return;
@@ -84,6 +90,7 @@ export default function CompatibilityScreen() {
     setBusy(true);
     try {
       setResult(await compatApi.create(user.id, partner));
+      queryClient.invalidateQueries({ queryKey: compatKeys.list });
     } catch (e) {
       toast(e instanceof ApiError && e.code === 'INVALID_BIRTH_DATE' ? '상대의 생년월일을 확인해 주세요' : '궁합을 보지 못했어요. 잠시 후 다시 시도해 주세요');
     } finally {
@@ -98,6 +105,19 @@ export default function CompatibilityScreen() {
       birthTime: hh ? `${hh.padStart(2, '0')}:00` : null,
       gender: gender!, mbti: mbti!, bloodType: blood!,
     });
+  };
+
+  const removeResult = async () => {
+    setConfirmDelete(false);
+    if (result?.id == null) return;
+    try {
+      await compatApi.remove(result.id);
+      queryClient.invalidateQueries({ queryKey: compatKeys.list });
+      setResult(null);
+      toast('상대 정보를 지웠어요');
+    } catch {
+      toast('지우지 못했어요. 잠시 후 다시 시도해 주세요');
+    }
   };
 
   const { params } = useRoute<RouteProp<TabParamList, 'Compatibility'>>();
@@ -167,7 +187,18 @@ export default function CompatibilityScreen() {
         ) : null}
 
         <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" onPress={() => setResult(null)} style={{ marginTop: 24 }} />
+        {result.id != null ? (
+          <PressableScale onPress={() => setConfirmDelete(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 16 }}>
+            <Text style={s.deleteLink}>{result.target.nickname}님 정보 지우기</Text>
+          </PressableScale>
+        ) : null}
         <Disclaimer compact />
+        <BottomSheet visible={confirmDelete} onClose={() => setConfirmDelete(false)}>
+          <Text style={[txt.h2, { textAlign: 'center' }]}>{result.target.nickname}님 정보를 지울까요?</Text>
+          <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>상대 정보와 궁합 결과가 바로 지워져요.{'\n'}열어 둔 심층 궁합·속마음도 다시 볼 수 없어요.</Text>
+          <PrimaryButton label="지우기" onPress={removeResult} style={{ marginTop: 20 }} />
+          <PrimaryButton label="취소" variant="soft" onPress={() => setConfirmDelete(false)} style={{ marginTop: 8 }} />
+        </BottomSheet>
       </Screen>
     );
   }
@@ -205,6 +236,29 @@ export default function CompatibilityScreen() {
         <Icon name="share" size={18} color={colors.purple} />
       </PressableScale>
 
+      {saved.data?.length ? (
+        <>
+          <Text style={s.savedHead}>저장된 상대</Text>
+          <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
+            {saved.data.map((r, i) => (
+              <PressableScale key={r.id} onPress={() => setResult(r)} style={[s.savedRow, i > 0 && s.savedLine]} scaleTo={0.98} accessibilityLabel={`${r.target.nickname}님과 궁합 다시 보기`}>
+                <View style={s.savedSeal}><Text style={s.savedSealText}>{r.target.nickname.slice(0, 1)}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{r.target.nickname}</Text>
+                  <Text style={txt.caption}>
+                    {r.source === 'invite' ? '초대 링크로 본 궁합' : `${r.target.mbti} · ${r.target.bloodType}형`}
+                    {r.id != null && owned(`compat:${r.id}`) ? ' · 심층 궁합' : ''}
+                    {r.id != null && owned(`crush:${r.id}`) ? ' · 속마음' : ''}
+                  </Text>
+                </View>
+                <Text style={s.savedScore}>{r.total}</Text>
+                <Icon name="chevronRight" size={16} color={colors.inkMute} />
+              </PressableScale>
+            ))}
+          </Card>
+          <Text style={s.savedHead}>새 상대와 궁합 보기</Text>
+        </>
+      ) : null}
       <Card style={s.form}>
 
         <View>
@@ -290,6 +344,13 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
 }
 
 const s = StyleSheet.create({
+  savedHead: { fontSize: 13, fontWeight: '700', color: colors.inkSub, marginTop: 20, marginBottom: 8 },
+  savedRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  savedLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
+  savedSeal: { width: 34, height: 34, borderRadius: 6, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
+  savedSealText: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purple },
+  savedScore: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.love },
+  deleteLink: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
   pairSheet: { flexDirection: 'row', alignItems: 'center', marginTop: 4, padding: 18, borderRadius: radius.xl, backgroundColor: colors.loveBg, borderWidth: 1, borderColor: colors.love + '40' },
   pairCol: { flex: 1, alignItems: 'center', gap: 4 },
   pairSeal: { width: 54, height: 54, borderRadius: 6, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-5deg' }] },
