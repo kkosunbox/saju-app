@@ -27,7 +27,7 @@ const CHART_H = 120;
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 /** 목록에 가격만 보여주기 위한 대표 상품 */
 const CONSULT_ITEM = { ...ITEMS.consult('preview'), title: '고민 상담 1회' };
-const CRUSH_ITEM = { ...ITEMS.crush('', ''), key: 'crush-preview', title: '그 사람의 속마음' };
+const CRUSH_ITEM = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
 
 function FlowBar({ label, score, best, index }: { label: string; score: number; best: boolean; index: number }) {
   const reduced = useReducedMotion();

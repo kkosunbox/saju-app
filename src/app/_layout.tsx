@@ -62,6 +62,7 @@ function RootStack() {
         <Stack.Screen name="analysis/[source]" />
         <Stack.Screen name="combined" />
         <Stack.Screen name="wallet" />
+        <Stack.Screen name="charge" />
         <Stack.Screen name="premium/saju" />
         <Stack.Screen name="premium/life" />
         <Stack.Screen name="premium/new-year" />

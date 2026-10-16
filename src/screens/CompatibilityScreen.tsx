@@ -159,8 +159,8 @@ export default function CompatibilityScreen() {
           <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. 심층 궁합·속마음은 상대 정보를 직접 넣어 볼 수 있어요.</Text>
         ) : null}
 
-        {result.source !== 'invite' && (() => {
-          const item = ITEMS.compat(result.target.nickname, result.target.birthDate);
+        {result.source !== 'invite' && result.id != null && (() => {
+          const item = ITEMS.compat(result.id, result.target.nickname);
           const rk = { key: item.key, kind: 'compat' as const, user, today, compat: result };
           if (!owned(item.key)) return <PriceCard item={item} onUnlocked={() => { if (reportAvailable()) generateReport(rk); }} />;
           return (
@@ -171,8 +171,8 @@ export default function CompatibilityScreen() {
           );
         })()}
 
-        {result.source !== 'invite' && (() => {
-          const item = ITEMS.crush(result.target.nickname, result.target.birthDate);
+        {result.source !== 'invite' && result.id != null && (() => {
+          const item = ITEMS.crush(result.id, result.target.nickname);
           if (!owned(item.key)) return <PriceCard item={item} />;
           return (
             <>
