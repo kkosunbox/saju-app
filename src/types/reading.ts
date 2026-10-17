@@ -36,3 +36,14 @@ export interface SajuReading {
     luck: { text: string; habits: string[]; people: string };
   };
 }
+
+/** 평생운 · 10년 대운 (server: life.reading.ts). */
+export interface LifeReading {
+  overview: {
+    headline: string; summary: string;
+    stages: { title: string; text: string; advice: string }[];
+    golden: Titled; rest: Titled; lifeAdvice: string[]; closing: string;
+  };
+  daeun: { periods: Titled[]; now: { text: string; focus: string[] } | null };
+  years: { years: Titled[] };
+}

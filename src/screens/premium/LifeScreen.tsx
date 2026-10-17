@@ -2,22 +2,23 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGrad, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, HeadRow, Hero, LockGate, Para, SubHead, Tip, ViewRow, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, HeadRow, Hero, LockGate, Para, SubHead, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
-import { ageNow, currentDaeun, elName, mainStem, pFrom, pText, relation, stage12, stageKeyOfAge, strength3, tenGod, tenName } from '../../services/premium/helpers';
-import { DaeunTable, LifePreview, LifeStage, SajuFull, SrcKey } from '../../types/premium';
-import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { ageNow, currentDaeun, mainStem, pText, stage12, stageKeyOfAge, strength3, tenGod, tenName } from '../../services/premium/helpers';
+import { DaeunTable, LifePreview, LifeStage } from '../../types/premium';
+import { Pillar } from '../../types/content';
+import { LifeReading, ReadingView } from '../../types/reading';
+import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { User } from '../../types';
-import { DAEUN_TEXT, EL_LUCK, PERIOD_TEXT, REL_SCORE, STAGE12, STAGE_FIELD, STEM_PERSONA, TG } from '../../services/premium/data';
+import { STAGE12, TG } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
-import { seededRandom } from '../../utils/seed';
-import { colors, gradients } from '../../theme/colors';
+import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { lifeSpec } from '../../services/share/shareSpecs';
@@ -63,9 +64,12 @@ function LifeChart({ pts, now }: { pts: { a: number; v: number }[]; now: number 
   );
 }
 
+interface LifeData { stages: LifeStage[]; daeun: DaeunTable; chart: { a: number; v: number }[]; seun: SeunYear[] }
+
 export default function LifeScreen() {
   const { user: u, today } = useApp();
-  const content = usePremiumContent<{ stages: LifeStage[]; daeun: DaeunTable; chart: { a: number; v: number }[] }>({ kind: 'life' });
+  const content = usePremiumContent<LifeData>({ kind: 'life' });
+  const { reading, retry } = useReading<LifeReading>(content);
   const preview = usePremiumPreview<LifePreview>({ kind: 'life' }, !content.open);
   if (!u?.natal) return null;
   const item = ITEMS.life();
@@ -83,7 +87,7 @@ export default function LifeScreen() {
         {chart ? <LifeChart pts={chart} now={now} /> : <BodyState error={preview.isError} />}
       </Card>
       {!content.open ? <LockGate item={item} />
-        : L && F ? <LifeBody u={u} st={L.stages} dae={L.daeun} F={F} />
+        : L && F ? <LifeBody u={u} L={L} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact />
@@ -91,85 +95,94 @@ export default function LifeScreen() {
   );
 }
 
-/** 열람한 본문 (01~06) */
-function LifeBody({ u, st, dae, F }: { u: User; st: LifeStage[]; dae: DaeunTable; F: SajuFull }) {
+/** 점수·나이·간지는 서버 계산값, 글은 AI 풀이 */
+function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: ReadingView<LifeReading> | null; onRetry(): void }) {
   const nav = useNavigation();
   const { today } = useApp();
   const now = ageNow(u, today);
+  const dae = L.daeun;
   const curD = currentDaeun(dae.list, now); const cy = Number(today.slice(0, 4));
-  const sorted = [...dae.list].sort((a, b) => b.score - a.score);
-  const gold = sorted.slice(0, 2).sort((a, b) => a.age - b.age), care = sorted.slice(-1);
-  const seun = Array.from({ length: 10 }, (_, i) => {
-    const y = cy + i; const yp = pFrom(y - 4); const tg = tenGod(F.ds, yp.stem); const rel = relation(F.meE, STEMS[yp.stem].element);
-    const r = seededRandom(u.id + '-seun-' + y);
-    return { y, yp, tg, rel, sc: Math.round(REL_SCORE[rel] * 0.7 + (curD ? curD.score : 78) * 0.3 + (r() * 6 - 3)), age: now + i };
-  });
+  // 황금기·숨 고르기는 지금부터 남은 대운에서 (서버 풀이와 같은 기준)
+  const ahead = dae.list.filter(d => d.age + 9 >= now);
+  const sorted = [...(ahead.length >= 2 ? ahead : dae.list)].sort((a, b) => b.score - a.score);
+  const gold = sorted.slice(0, 2).sort((a, b) => a.age - b.age), rest = sorted[sorted.length - 1];
   const curKey = stageKeyOfAge(now);
   const nextD = curD ? dae.list[dae.list.indexOf(curD) + 1] : undefined;
+  const writing = reading?.status === 'writing';
+  const { overview, daeun, years } = reading?.parts ?? {};
 
   return (
     <>
-      <SubHead title="01 · 초년 · 중년 · 말년" caption="시기마다 4가지 관점이 말하는 이야기" />
+      <ReadingBanner reading={reading} onRetry={onRetry} />
+      <Hero>
+        <Text style={heroTxt.eyebrow}>인생의 곡선</Text>
+        {overview ? (
+          <>
+            <Text style={[heroTxt.summ, { fontSize: 20 }]}>{overview.headline}</Text>
+            <Text style={[heroTxt.body, s.heroBody]}>{overview.summary}</Text>
+          </>
+        ) : <View style={{ marginTop: 6, opacity: 0.6 }}><PartPending writing={writing} lines={4} /></View>}
+      </Hero>
+
+      <SubHead title="01 · 초년 · 중년 · 말년" caption="시기마다 맡는 기둥과 그 흐름" />
       <View style={{ gap: 14 }}>
-        {st.map(x => {
+        {L.stages.map((x, i) => {
           const cur = x.key === curKey;
-          const head = (
-            <>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', opacity: 0.8, color: cur ? colors.white : colors.purple }}>{x.label} · {x.range}</Text>
-                <Text style={{ fontSize: 18, fontWeight: '800', marginTop: 2, color: cur ? colors.white : colors.purple }}>{x.headline}</Text>
-              </View>
-              <Text style={{ fontSize: 26, fontWeight: '800', color: cur ? colors.white : colors.purple }}>{x.score}</Text>
-            </>
-          );
+          const t = overview?.stages[i];
+          const color = cur ? colors.white : colors.purple;
           return (
             <Card key={x.key} style={{ padding: 0, overflow: 'hidden' }}>
-              {cur
-                ? <View style={[s.stageHead, { backgroundColor: colors.heroBg }]}>{head}</View>
-                : <View style={[s.stageHead, { backgroundColor: colors.lavenderSoft }]}>{head}</View>}
+              <View style={[s.stageHead, { backgroundColor: cur ? colors.heroBg : colors.lavenderSoft }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', opacity: 0.8, color }}>{x.label} · {x.range}{cur ? ' · 지금' : ''}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', marginTop: 2, color }}>{t?.title ?? x.headline}</Text>
+                </View>
+                <Text style={{ fontSize: 26, fontWeight: '800', color }}>{x.score}</Text>
+              </View>
               <View style={{ paddingVertical: 16, paddingHorizontal: 18 }}>
-                <Para mt={0}>{x.desc}</Para>
-                <View style={s.fgrid}>
-                  {([['財', '재물', STAGE_FIELD[x.rel].money], ['業', '일', STAGE_FIELD[x.rel].work], ['緣', '연애·가정', STAGE_FIELD[x.rel].love], ['康', '건강', STAGE_FIELD[x.rel].health]] as const).map(([e, l, t]) => (
-                    <View key={l} style={s.fcell}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.ink }}>{e} {l}</Text>
-                      <Text style={{ fontSize: 13, lineHeight: 18, color: colors.inkSub }}>{t}</Text>
-                    </View>
-                  ))}
-                </View>
-                <View style={{ marginTop: 8 }}>
-                  {(['saju', 'thai', 'mbti', 'blood'] as SrcKey[]).map((k, i) => <View key={k} style={i ? s.topLine : null}><ViewRow k={k}>{x.views[k]}</ViewRow></View>)}
-                </View>
-                <Tip title="이 시기를 잘 보내는 법" style={{ marginTop: 8 }}>{x.advice}</Tip>
+                {t ? (
+                  <>
+                    <Para mt={0}>{t.text}</Para>
+                    <Tip title="이 시기를 잘 보내는 법" style={{ marginTop: 12 }}>{t.advice}</Tip>
+                  </>
+                ) : writing ? <PartPending writing lines={3} /> : <Para mt={0}>{x.desc}</Para>}
               </View>
             </Card>
           );
         })}
       </View>
 
-      <SubHead title="02 · 인생의 황금기" caption="10년 대운 중 흐름이 가장 높은 구간" />
+      <SubHead title="02 · 앞으로의 황금기" caption="남은 대운 중 흐름이 가장 높은 구간" />
       <View style={s.grid2}>
-        {gold.map((d, gi) => (
-          <View key={d.age} style={[s.goldCard]}>
+        {gold.map(d => (
+          <View key={d.age} style={s.goldCard}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.money }}>吉 황금기</Text>
             <Text style={{ fontSize: 20, fontWeight: '800', marginTop: 4, color: colors.ink }}>{d.age}~{d.age + 9}세</Text>
-            <Text style={[txt.small, { marginTop: 2 }]}>{pText(d.p)} · {tenName(d.rel)}</Text>
-            <Text style={{ fontSize: 13, marginTop: 6, lineHeight: 19, color: colors.ink }}>{[STAGE_FIELD[d.rel].work, STAGE_FIELD[d.rel].money][gi]}</Text>
+            <Text style={[txt.small, { marginTop: 2 }]}>{pText(d.p)} · {tenName(d.rel)} · {d.score}점</Text>
           </View>
         ))}
       </View>
-      {care.map(d => (
-        <Card key={d.age} style={{ marginTop: 10 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.thai }}>愼 숨 고르기 구간 · {d.age}~{d.age + 9}세</Text>
-          <Para>{pText(d.p)} 대운은 상대적으로 흐름이 잔잔해요. {STAGE_FIELD[d.rel].health} 큰 확장보다 내실을 다지면 다음 대운에서 크게 도약해요.</Para>
+      {overview ? (
+        <Card style={{ marginTop: 10 }}>
+          <Text style={txt.h3}>{overview.golden.title}</Text>
+          <Para>{overview.golden.text}</Para>
         </Card>
-      ))}
+      ) : writing ? <Card style={{ marginTop: 10 }}><PartPending writing lines={3} /></Card> : null}
+      <Card style={{ marginTop: 10 }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.thai }}>愼 숨 고르기 구간 · {rest.age}~{rest.age + 9}세 · {pText(rest.p)}</Text>
+        {overview ? (
+          <>
+            <Text style={[txt.h3, { marginTop: 6 }]}>{overview.rest.title}</Text>
+            <Para>{overview.rest.text}</Para>
+          </>
+        ) : <PartPending writing={writing} lines={2} />}
+      </Card>
 
-      <SubHead title="03 · 10년 대운 전체" caption={`${dae.fwd ? '순행' : '역행'} · ${dae.start}세 시작 · 8개 대운`} />
+      <SubHead title="03 · 10년 대운 전체" caption={`${dae.fwd ? '순행' : '역행'} · ${dae.start}세 시작 · ${dae.list.length}개 대운`} />
       <View style={{ gap: 10 }}>
-        {dae.list.map(d => {
+        {dae.list.map((d, i) => {
           const cur = !!curD && d.age === curD.age;
-          const stg = tenGod(F.ds, d.p.stem), btg = tenGod(F.ds, mainStem(d.p.branch)), s12 = stage12(F.ds, d.p.branch);
+          const t = daeun?.periods[i];
           return (
             <Card key={d.age} style={cur ? { borderWidth: 1.5, borderColor: colors.purpleSoft } : null}>
               <View style={s.between}>
@@ -180,13 +193,17 @@ function LifeBody({ u, st, dae, F }: { u: User; st: LifeStage[]; dae: DaeunTable
                       <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{d.age}~{d.age + 9}세</Text>
                       {cur ? <View style={s.nowTag}><Text style={s.nowText}>지금</Text></View> : null}
                     </View>
-                    <Text style={txt.caption}>{cy - now + d.age}~{cy - now + d.age + 9}년 · {TG[stg]} / {TG[btg]} · {STAGE12[s12]}</Text>
+                    <Text style={txt.caption}>{cy - now + d.age}~{cy - now + d.age + 9}년 · {TG[tenGod(u.natal!.chart.day.stem, d.p.stem)]} / {TG[tenGod(u.natal!.chart.day.stem, mainStem(d.p.branch))]} · {STAGE12[stage12(u.natal!.chart.day.stem, d.p.branch)]}</Text>
                   </View>
                 </View>
                 <Text style={{ fontSize: 18, fontWeight: '800', color: scoreColor(d.score) }}>{d.score}</Text>
               </View>
-              <Para mt={10}>{DAEUN_TEXT[d.rel]}</Para>
-              <Text style={[txt.small, { marginTop: 6 }]}>財 {STAGE_FIELD[d.rel].money}</Text>
+              {t ? (
+                <>
+                  <Text style={[txt.h3, { marginTop: 10 }]}>{t.title}</Text>
+                  <Para>{t.text}</Para>
+                </>
+              ) : <PartPending writing={writing} lines={2} />}
             </Card>
           );
         })}
@@ -194,40 +211,53 @@ function LifeBody({ u, st, dae, F }: { u: User; st: LifeStage[]; dae: DaeunTable
 
       {curD ? (
         <>
-          <SubHead title="04 · 지금의 대운" caption={`${curD.age}~${curD.age + 9}세 · ${pText(curD.p)}`} />
+          <SubHead title="04 · 지금의 대운" caption={`${curD.age}~${curD.age + 9}세 · ${pText(curD.p)} · ${now - curD.age + 1}년째 / 10년`} />
           <Hero style={{ marginTop: 0 }}>
-            <Text style={{ fontSize: 14.5, lineHeight: 23, color: 'rgba(255,255,255,0.9)' }}>지금은 {tenName(curD.rel)} 대운이에요. {DAEUN_TEXT[curD.rel]} 이 10년 동안 {STAGE_FIELD[curD.rel].work} {STAGE_FIELD[curD.rel].love}</Text>
-            <Text style={{ fontSize: 13, color: colors.moon, marginTop: 12 }}>남은 기간 약 {Math.max(0, curD.age + 10 - now)}년 · 다음 대운 {pText(nextD?.p ?? curD.p)}</Text>
+            {daeun?.now ? (
+              <>
+                <Text style={[heroTxt.body, { fontSize: 14.5, lineHeight: 23 }]}>{daeun.now.text}</Text>
+                <View style={{ marginTop: 12, gap: 6 }}>
+                  {daeun.now.focus.map((t, i) => <Text key={i} style={s.focus}>{i + 1}. {t}</Text>)}
+                </View>
+              </>
+            ) : <View style={{ opacity: 0.6 }}><PartPending writing={writing} lines={4} /></View>}
+            {nextD ? <Text style={{ fontSize: 13, color: colors.moon, marginTop: 12 }}>다음 대운 {nextD.age}세부터 · {pText(nextD.p)} · {nextD.score}점</Text> : null}
           </Hero>
         </>
       ) : null}
 
-      <SubHead title="05 · 앞으로 10년 세운" caption="해마다 들어오는 기운" />
+      <SubHead title="05 · 앞으로 10년" caption="해마다 들어오는 기운 (세운)" />
       <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
-        {seun.map((x, i) => (
-          <PressableScale key={x.y} disabled={i >= 2} onPress={() => nav.navigate('NewYear', { year: x.y })} style={[s.drow, i ? s.topLine : null]} scaleTo={0.98}>
-            <View style={s.dd}><Text style={{ fontFamily: fonts.serif, fontSize: 14, fontWeight: '600', color: colors.ink }}>{x.y}</Text><Text style={{ fontSize: 11, color: colors.inkMute }}>{x.age}세</Text></View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{PERIOD_TEXT.year[x.rel][0]}</Text>
-              <Text style={txt.caption}>{pText(x.yp)} · {TG[x.tg]} · {BRANCHES[x.yp.branch].animal}의 해</Text>
-            </View>
-            <Text style={{ fontWeight: '700', color: scoreColor(x.sc) }}>{x.sc}</Text>
-          </PressableScale>
-        ))}
+        {L.seun.map((x, i) => {
+          const t = years?.years[i];
+          return (
+            <PressableScale key={x.year} disabled={i >= 2} onPress={() => nav.navigate('NewYear', { year: x.year })} style={[s.drow, i ? s.topLine : null]} scaleTo={0.98}>
+              <View style={s.dd}><Text style={{ fontFamily: fonts.serif, fontSize: 14, fontWeight: '600', color: colors.ink }}>{x.year}</Text><Text style={{ fontSize: 11, color: colors.inkMute }}>{x.age}세</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{t?.title ?? `${pText(x.pillar)} · ${x.group}`}</Text>
+                <Text style={txt.caption}>{pText(x.pillar)} · {x.group} · {x.animal}의 해</Text>
+                {t ? <Text style={[txt.small, { marginTop: 4 }]}>{t.text}</Text> : null}
+              </View>
+              <Text style={{ fontWeight: '700', color: scoreColor(x.score) }}>{x.score}</Text>
+            </PressableScale>
+          );
+        })}
       </Card>
+      {!years && writing ? <PartPending writing lines={2} /> : null}
 
       <SubHead title="06 · 평생 조언" />
-      <Card>
-        {[
-          `나의 용신은 ${elName(F.yong)}이에요. ${EL_LUCK[F.yong].act} 같은 습관이 평생의 운을 받쳐줘요.`,
-          `${STEM_PERSONA[F.ds].core}이 가장 큰 무기예요. ${STEM_PERSONA[F.ds].watch}.`,
-          `황금기(${gold.map(d => d.age + '~' + (d.age + 9) + '세').join(', ')})를 위해 지금 준비할 것: ${STAGE_FIELD[gold[0].rel].work}`,
-        ].map((t, i) => <Bullet key={i}>{t}</Bullet>)}
-      </Card>
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>대운 시작 나이는 절입일 근사값으로 계산했어요. 인생의 흐름을 참고하는 콘텐츠이며 미래를 단정하지 않아요.</Text>
+      {overview ? (
+        <>
+          <Card>{overview.lifeAdvice.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card>
+          <Tip title="마지막 한마디">{overview.closing}</Tip>
+        </>
+      ) : <Card><PartPending writing={writing} lines={3} /></Card>}
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>인생의 흐름을 참고하는 콘텐츠이며 미래를 단정하지 않아요.</Text>
     </>
   );
 }
+
+interface SeunYear { year: number; age: number; pillar: Pillar; group: string; animal: string; score: number }
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
@@ -242,4 +272,6 @@ const s = StyleSheet.create({
   nowText: { color: colors.white, fontSize: 10.5, fontWeight: '700' },
   drow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   dd: { width: 40, alignItems: 'center' },
+  heroBody: { fontSize: 14.5, lineHeight: 23, marginTop: 10 },
+  focus: { fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.92)' },
 });
