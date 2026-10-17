@@ -30,9 +30,10 @@ export default function OAuthCallbackScreen() {
     (async () => {
       try {
         const returnTo = await finishWebSocialLogin(q.provider, q);
-        await reloadSession();
+        const hasProfile = await reloadSession();
         if (!onboarded) await completeOnboarding();
-        router.replace((returnTo || '/') as Href);
+        // a new account without a fortune profile goes to the profile form first
+        router.replace((hasProfile ? returnTo || '/' : '/profile-setup') as Href);
       } catch (e) {
         setError(MESSAGE[e instanceof SocialLoginError ? e.reason : 'server']);
       }

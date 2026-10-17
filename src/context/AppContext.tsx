@@ -9,7 +9,7 @@ import { storage } from '../services/storage/storageService';
 import { Account, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { ProfileInput, profileApi } from '../services/server/profileApi';
-import { getTokens } from '../api/tokens';
+import { IS_WEB, getTokens } from '../api/tokens';
 import { setOnSessionLost } from '../api/client';
 import { queryClient } from '../api/query';
 import { todayISO } from '../utils/date';
@@ -35,8 +35,8 @@ interface AppState {
   resetProfile(): void;
   cancelProfileEdit(): void;
   signIn(email: string, password: string): Promise<void>;
-  /** After a login finished elsewhere (web social callback): reads the new session. */
-  reloadSession(): Promise<void>;
+  /** After a login finished elsewhere (web social callback): reads the new session. true if it has a profile. */
+  reloadSession(): Promise<boolean>;
   sendSignupCode(email: string): Promise<void>;
   verifySignupCode(email: string, otp: string): Promise<string>;
   completeSignup(params: { emailVerifiedToken: string; password: string; marketing: boolean }): Promise<void>;
@@ -66,15 +66,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /** Reads who we are and our profile from the server. */
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async (): Promise<boolean> => {
     if (!(await getTokens())) {
       clearSession();
-      return;
+      return false;
     }
     const me = await authApi.me();
     setAccount(me.status === 'guest' ? null : me);
     setFortune(null);
-    setUser(await profileApi.get(me.id));
+    const profile = await profileApi.get(me.id);
+    setUser(profile);
+    return !!profile;
+  }, [clearSession]);
+
+  /** Web: after signing out the next visit starts from the landing again (apps go straight to the profile form). */
+  const afterSignOut = useCallback(async () => {
+    clearSession();
+    if (IS_WEB) { await storage.setOnboarded(false); setOnboarded(false); }
   }, [clearSession]);
 
   useEffect(() => {
@@ -122,12 +130,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     resetProfile: () => setEditingProfile(true),
     cancelProfileEdit: () => setEditingProfile(false),
     signIn: async (email, password) => { await authApi.login(email, password); queryClient.clear(); await loadSession(); },
-    reloadSession: async () => { queryClient.clear(); await loadSession(); },
+    reloadSession: async () => { queryClient.clear(); return loadSession(); },
     sendSignupCode: email => authApi.sendSignupCode(email),
     verifySignupCode: (email, otp) => authApi.verifySignupCode(email, otp),
     completeSignup: async params => { await authApi.signup(params); queryClient.clear(); await loadSession(); },
-    signOut: async () => { await authApi.signOut(); clearSession(); },
-    deleteAccount: async reason => { await authApi.withdraw(reason); clearSession(); },
+    signOut: async () => { await authApi.signOut(); await afterSignOut(); },
+    deleteAccount: async reason => { await authApi.withdraw(reason); await afterSignOut(); },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
