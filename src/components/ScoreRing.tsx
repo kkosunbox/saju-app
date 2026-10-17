@@ -1,11 +1,22 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, CircleProps, Defs, LinearGradient, Stop } from 'react-native-svg';
 import AnimatedNumber from './AnimatedNumber';
 import { useReducedMotion, motion } from '../utils/motion';
 import { fonts } from '../theme/typography';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+/**
+ * Animated adds `collapsable={false}` (an Android view prop) to what it wraps; react-native-svg
+ * passes it to the DOM on the web, where React warns. Drop it before the circle.
+ */
+class RingCircle extends React.Component<CircleProps & { collapsable?: boolean }> {
+  render() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { collapsable, ...props } = this.props;
+    return <Circle {...props} />;
+  }
+}
+const AnimatedCircle = Animated.createAnimatedComponent(RingCircle);
 
 interface Props {
   score: number; size?: number; stroke?: number;
@@ -52,8 +63,9 @@ export default function ScoreRing({
           stroke={`url(#ring${gid})`} strokeWidth={stroke} fill="none" strokeLinecap="round"
           strokeDasharray={`${c} ${c}`}
           strokeDashoffset={offset}
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
+          // start at 12 o'clock; an SVG transform string (rotation/origin props leak a
+          // hyphenated `transform-origin` DOM attribute on the web)
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
       <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={{ fontFamily: fonts.serif, fontSize: size * 0.32, fontWeight: '500', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }} />
