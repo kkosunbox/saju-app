@@ -2,10 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "npm run build:web",
+  "buildCommand": "EXPO_PUBLIC_API_URL=/api npm run build:web -- --clear",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://saju-api-dev.ap-northeast-2.elasticbeanstalk.com/:path*" },
     { "source": "/invite/:token", "destination": "/invite/[token]" },
     { "source": "/(.*)", "destination": "/" }
   ]
