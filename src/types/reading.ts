@@ -67,3 +67,27 @@ export interface MonthReading {
   };
   days: { weeks: Titled[]; bestDays: string[]; lowDays: string[] };
 }
+
+/** 테마 운세 공통 시기 파트 (server: theme.reading.ts). */
+export interface ThemeTiming { years: Titled[]; months: string[]; periods: string[]; now: string; luck?: string; move?: string }
+export interface ThemeLoveReading {
+  core: { headline: string; summary: string; pattern: Titled[]; charms: string[]; cautions: string[]; closing: string };
+  match: { match: Titled[]; clash: Titled; signals: string[] };
+  timing: ThemeTiming;
+}
+export interface ThemeMoneyReading {
+  core: {
+    headline: string; summary: string;
+    earn: { text: string; ways: Titled[] }; spend: { text: string; leaks: string[] }; manage: { text: string; habits: string[] };
+    closing: string;
+  };
+  timing: ThemeTiming;
+}
+export interface ThemeCareerReading {
+  core: {
+    headline: string; summary: string; type: string; jobs: Titled[]; style: string; leadership: string; environment: string;
+    strengths: string[]; weaknesses: string[]; closing: string;
+  };
+  timing: ThemeTiming;
+}
+export type ThemeReading = Partial<ThemeLoveReading & ThemeMoneyReading & ThemeCareerReading>;
