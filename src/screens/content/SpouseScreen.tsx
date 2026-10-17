@@ -3,12 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { ActRow, BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, Pill, Seal, SubHead, Tip, ViewsCard, heroTxt } from '../../components/premium/Kit';
+import { ActRow, BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, Pill, Seal, SubHead, Tip, heroTxt } from '../../components/premium/Kit';
+import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { pText } from '../../services/premium/helpers';
 import { SpousePreview, SpouseReport } from '../../types/premium';
-import { usePremiumContent, usePremiumPreview } from '../../services/server/premiumApi';
+import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors } from '../../theme/colors';
@@ -22,6 +24,7 @@ import LoadingScreen from '../../components/LoadingScreen';
 export default function SpouseScreen() {
   const { user: u } = useApp();
   const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
+  const { reading, retry } = useReading<SpouseReading>(content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
   if (!u) return null;
   const item = ITEMS.spouse();
@@ -40,7 +43,7 @@ export default function SpouseScreen() {
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
       <Hero style={{ alignItems: 'center', paddingVertical: 26 }}>
         <Text style={heroTxt.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{sum.headline}</Text>
+        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{reading?.parts.portrait?.headline ?? sum.headline}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 16 }}>
           <DarkChip gold>{sum.mbti}</DarkChip>
           <DarkChip>{sum.animal}띠</DarkChip>
@@ -60,7 +63,7 @@ export default function SpouseScreen() {
       </Hero>
 
       {!content.open ? <LockGate item={item} />
-        : R ? <SpouseBody R={R} />
+        : R ? <SpouseBody R={R} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact />
@@ -68,36 +71,49 @@ export default function SpouseScreen() {
   );
 }
 
-/** 열람한 본문 (01~11) */
-function SpouseBody({ R }: { R: SpouseReport }) {
+/** 지수·조건·시기는 서버 계산값, 글은 AI 풀이 */
+function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: ReadingView<SpouseReading> | null; onRetry(): void }) {
   const el = ELEMENT_INFO[R.spouseEl];
+  const writing = reading?.status === 'writing';
+  const { portrait, mine, timing } = reading?.parts ?? {};
+  const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
   return (
     <>
+        <ReadingBanner reading={reading} onRetry={onRetry} />
         <SubHead title="01 · 그 사람은 이런 사람" caption={`${el.ko}(${el.hanja})의 기운 · ${R.persona.img}`} />
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Seal ch={R.persona.hanja} size={44} />
-            <View style={{ flex: 1 }}>
-              <Text style={txt.h3}>{R.persona.core}</Text>
-              <Text style={txt.small}>{R.look}</Text>
-            </View>
+            <View style={{ flex: 1 }}><Text style={txt.h3}>{R.persona.core}</Text></View>
           </View>
-          <View style={{ marginTop: 12 }}>{R.persona.str.map(p => <Bullet key={p}>{p}</Bullet>)}</View>
-          <Text style={[txt.small, { marginTop: 8 }]}>이런 면은 이해해 주세요 · {R.persona.watch}</Text>
+          {portrait ? (
+            <>
+              <Para mt={12}>{portrait.summary}</Para>
+              <Text style={[s.label, { marginTop: 14 }]}>첫인상</Text>
+              <Para mt={4}>{portrait.look}</Para>
+            </>
+          ) : pending(5)}
         </Card>
+        {portrait ? <View style={{ gap: 10, marginTop: 10 }}>{portrait.traits.map((x, i) => <Card key={i}><Text style={txt.h3}>{x.title}</Text><Para>{x.text}</Para></Card>)}</View> : null}
 
         <SubHead title="02 · 사랑하는 방식과 경제관" />
         <Card>
-          <Text style={txt.h3}>緣 사랑을 표현하는 방식</Text>
-          <Para>{R.loveStyle}</Para>
-          <Text style={[txt.h3, { marginTop: 16 }]}>財 돈을 대하는 방식</Text>
-          <Para>{R.moneyStyle}</Para>
+          {portrait ? (
+            <>
+              <Text style={txt.h3}>緣 사랑을 표현하는 방식</Text>
+              <Para>{portrait.love}</Para>
+              <Text style={[txt.h3, { marginTop: 16 }]}>財 돈을 대하는 방식</Text>
+              <Para>{portrait.money}</Para>
+              <Text style={[txt.h3, { marginTop: 16 }]}>業 일하는 모습</Text>
+              <Para>{portrait.work}</Para>
+            </>
+          ) : pending(6)}
           <Text style={[txt.caption, { marginTop: 16 }]}>이런 일을 하고 있을 가능성이 커요</Text>
           <View style={s.wrap}>{R.jobs.map(j => <Pill key={j}>{j}</Pill>)}</View>
         </Card>
 
         <SubHead title="03 · 이런 신호가 보이면 그 사람이에요" caption="처음 만났을 때 알아보는 법" />
-        <Card style={{ gap: 10 }}>{R.signs.map(t => <ActRow key={t} icon="sparkle">{t}</ActRow>)}</Card>
+        <Card style={{ gap: 10 }}>{portrait ? portrait.signs.map(t => <ActRow key={t} icon="sparkle">{t}</ActRow>) : pending(5)}</Card>
 
         <SubHead title="04 · 찰떡 조건" caption="MBTI · 띠 · 나이" />
         <View style={s.grid}>
@@ -106,11 +122,10 @@ function SpouseBody({ R }: { R: SpouseReport }) {
         </View>
         <Card style={{ marginTop: 10 }}>
           <Text style={txt.h3}>{R.ageGap} 상대</Text>
-          <Para>{R.ageWhy}</Para>
-          <Para mt={8}>{R.mbti[0]}와는 {R.mbtiWhy}.</Para>
+          {portrait ? <Para>{portrait.match}</Para> : pending(3)}
           <View style={s.avoid}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>조금 더 노력이 필요한 상대</Text>
-            <Text style={[txt.small, { marginTop: 4 }]}>{R.avoidMbti} 유형{R.avoidAnimals.length ? ` · ${R.avoidAnimals.join('·')}띠` : ''} — 나쁜 인연은 아니지만, 서로 맞춰 가는 데 시간이 더 걸려요.</Text>
+            <Text style={[txt.small, { marginTop: 4 }]}>{R.avoidMbti} 유형{R.avoidAnimals.length ? ` · ${R.avoidAnimals.join('·')}띠` : ''}</Text>
           </View>
         </Card>
 
@@ -118,15 +133,11 @@ function SpouseBody({ R }: { R: SpouseReport }) {
         <Card style={{ paddingVertical: 4, paddingHorizontal: 18 }}>
           <View style={s.lrow}>
             <Seal ch="星" />
-            <View style={{ flex: 1 }}><Text style={txt.h3}>배우자의 별</Text><Text style={[txt.small, { marginTop: 2 }]}>{R.star.text}{R.star.type ? ` ${R.star.type[1]}` : ''}</Text></View>
+            <View style={{ flex: 1 }}><Text style={txt.h3}>배우자의 별</Text>{mine ? <Text style={[txt.small, { marginTop: 2 }]}>{mine.star}</Text> : pending(2)}</View>
           </View>
           <View style={[s.lrow, s.line]}>
             <Seal ch={R.seatNote[0]} />
-            <View style={{ flex: 1 }}><Text style={txt.h3}>배우자 자리</Text><Text style={[txt.small, { marginTop: 2 }]}>{R.seatNote[1]}</Text></View>
-          </View>
-          <View style={[s.lrow, s.line]}>
-            <Seal ch="家" />
-            <View style={{ flex: 1 }}><Text style={txt.h3}>배우자 자리의 기운 · {R.stage[0]}</Text><Text style={[txt.small, { marginTop: 2 }]}>{R.stage[1]}</Text></View>
+            <View style={{ flex: 1 }}><Text style={txt.h3}>배우자 자리 · {R.stage[0]}</Text>{mine ? <Text style={[txt.small, { marginTop: 2 }]}>{mine.seat}</Text> : pending(2)}</View>
           </View>
         </Card>
 
@@ -144,9 +155,16 @@ function SpouseBody({ R }: { R: SpouseReport }) {
               );
             })}
           </View>
-          <View style={s.bestBox}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: colors.love }}>{R.bestYear.yy}년 · 인연이 가장 강한 해</Text>
-            <Text style={[txt.small, { marginTop: 2 }]}>{R.bestYear.why.join(' · ')}</Text>
+          <View style={{ marginTop: 14 }}>
+            {R.yearIdx.map((x, i) => {
+              const t = timing?.years[i];
+              return (
+                <View key={x.yy} style={[s.yrow, i ? s.line : null]}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: x.yy === R.bestYear.yy ? colors.love : colors.ink }}>{x.yy}년 · {x.v}{t ? ` · ${t.title}` : ''}</Text>
+                  {t ? <Text style={[txt.small, { marginTop: 2 }]}>{t.text}</Text> : <Text style={[txt.small, { marginTop: 2 }]}>{x.why.join(' · ')}</Text>}
+                </View>
+              );
+            })}
           </View>
         </Card>
         {R.daeLove.length ? (
@@ -154,7 +172,10 @@ function SpouseBody({ R }: { R: SpouseReport }) {
             {R.daeLove.map((d, i) => (
               <View key={d.age} style={[s.lrow, i ? s.line : null]}>
                 <Seal ch="緣" />
-                <View style={{ flex: 1 }}><Text style={txt.h3}>{d.age}~{d.age + 9}세</Text><Text style={txt.small}>{pText(d.p)} 대운 · 배우자의 별이 들어오는 10년, {d.age < 42 ? '결혼하기 좋은 시기' : '부부의 정이 깊어지고 가정이 단단해지는 시기'}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={txt.h3}>{d.age}~{d.age + 9}세 · {pText(d.p)} 대운</Text>
+                  {timing?.periods[i] ? <Text style={txt.small}>{timing.periods[i]}</Text> : <Text style={txt.small}>배우자의 별이 들어오는 10년</Text>}
+                </View>
               </View>
             ))}
           </Card>
@@ -165,31 +186,30 @@ function SpouseBody({ R }: { R: SpouseReport }) {
             <View key={`${x.y}-${x.m}`} style={s.month}><Text style={txt.caption}>{x.y}년</Text><Text style={{ fontFamily: fonts.serif, fontSize: 20, fontWeight: '600', color: colors.love }}>{x.m}월</Text></View>
           ))}
         </View>
+        {timing ? <Card style={{ marginTop: 10 }}>{timing.months.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</Card> : null}
 
         <SubHead title="07 · 어디서, 어떻게 만날까요?" />
-        <Card>
-          <Text style={txt.h3}>인연이 들어오는 길</Text>
-          <Para>{R.meetWay}</Para>
-          <View style={[s.wrap, { marginTop: 12 }]}>{R.places.map(p => <Pill key={p}>{p}</Pill>)}</View>
-          <Text style={[txt.h3, { marginTop: 16 }]}>첫 만남</Text>
-          <Para>{R.first}</Para>
-        </Card>
+        <Card>{timing ? <><Text style={txt.h3}>인연이 들어오는 길</Text><Para>{timing.meet.text}</Para></> : pending(3)}</Card>
+        {timing ? <View style={{ gap: 10, marginTop: 10 }}>{timing.meet.places.map((x, i) => <Card key={i}><Text style={txt.h3}>{x.title}</Text><Para>{x.text}</Para></Card>)}</View> : null}
 
         <SubHead title="08 · 결혼 생활 미리보기" />
         <Card>
-          <Text style={txt.h3}>{R.home[0]}</Text>
-          <Para>{R.home[1]}</Para>
+          {mine ? (
+            <>
+              <Text style={txt.h3}>{mine.married.title}</Text>
+              <Para>{mine.married.text}</Para>
+              <Text style={[s.label, { marginTop: 14 }]}>다투기 쉬운 지점과 푸는 법</Text>
+              <Para mt={4}>{mine.conflict}</Para>
+            </>
+          ) : pending(5)}
         </Card>
 
         <SubHead title="09 · 내가 놓치기 쉬운 것" caption="좋은 인연을 붙잡으려면" />
-        <Card style={{ gap: 10 }}>{R.blind.map(t => <ActRow key={t} ok={false}>{t}</ActRow>)}</Card>
+        <Card style={{ gap: 10 }}>{mine ? mine.blind.map(t => <ActRow key={t} ok={false}>{t}</ActRow>) : pending(3)}</Card>
 
-        <SubHead title="10 · 4가지 관점으로 본 인연" />
-        <ViewsCard views={R.views} />
-
-        <SubHead title="11 · 인연을 끌어오는 법" />
-        <Card>{R.advice.map(a => <Bullet key={a}>{a}</Bullet>)}</Card>
-        <Tip title="기억해 두세요">운세는 흐름을 참고하는 콘텐츠예요. 좋은 인연은 결국 내가 알아보는 눈에서 시작돼요.</Tip>
+        <SubHead title="10 · 인연을 끌어오는 법" />
+        <Card>{timing ? timing.advice.map(a => <Bullet key={a}>{a}</Bullet>) : pending(3)}</Card>
+        <Tip title="기억해 두세요">{timing?.closing ?? '운세는 흐름을 참고하는 콘텐츠예요. 좋은 인연은 결국 내가 알아보는 눈에서 시작돼요.'}</Tip>
     </>
   );
 }
@@ -208,6 +228,7 @@ const s = StyleSheet.create({
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   barVal: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
   bar: { width: '60%', borderRadius: 6 },
-  bestBox: { marginTop: 16, padding: 12, borderRadius: radius.md, backgroundColor: colors.loveBg },
   month: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: radius.lg, backgroundColor: colors.loveBg },
+  label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
+  yrow: { paddingVertical: 10 },
 });

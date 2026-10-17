@@ -91,3 +91,13 @@ export interface ThemeCareerReading {
   timing: ThemeTiming;
 }
 export type ThemeReading = Partial<ThemeLoveReading & ThemeMoneyReading & ThemeCareerReading>;
+
+/** 미래 배우자 리포트 (server: spouse.reading.ts). */
+export interface SpouseReading {
+  portrait: {
+    headline: string; summary: string; traits: Titled[]; look: string; love: string; money: string; work: string;
+    signs: string[]; match: string;
+  };
+  mine: { star: string; seat: string; married: Titled; conflict: string; blind: string[] };
+  timing: { years: Titled[]; months: string[]; periods: string[]; meet: { text: string; places: Titled[] }; advice: string[]; closing: string };
+}
