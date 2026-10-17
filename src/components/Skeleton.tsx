@@ -3,7 +3,7 @@ import { Animated, View, StyleProp, ViewStyle } from 'react-native';
 import { colors } from '../theme/colors';
 import { radius, SCREEN_PX } from '../theme/typography';
 
-function Block({ style }: { style: StyleProp<ViewStyle> }) {
+export function SkeletonBlock({ style }: { style: StyleProp<ViewStyle> }) {
   const v = useRef(new Animated.Value(0.5)).current;
   useEffect(() => {
     const a = Animated.loop(Animated.sequence([
@@ -20,13 +20,13 @@ function Block({ style }: { style: StyleProp<ViewStyle> }) {
 export default function HomeSkeleton() {
   return (
     <View style={{ paddingHorizontal: SCREEN_PX, paddingTop: 16, gap: 14 }}>
-      <Block style={{ width: 150, height: 24 }} />
-      <Block style={{ width: 110, height: 14 }} />
-      <Block style={{ height: 300, borderRadius: radius.xl, marginTop: 8 }} />
-      <Block style={{ height: 76, borderRadius: radius.lg }} />
+      <SkeletonBlock style={{ width: 150, height: 24 }} />
+      <SkeletonBlock style={{ width: 110, height: 14 }} />
+      <SkeletonBlock style={{ height: 300, borderRadius: radius.xl, marginTop: 8 }} />
+      <SkeletonBlock style={{ height: 76, borderRadius: radius.lg }} />
       <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Block style={{ flex: 1, height: 160, borderRadius: radius.lg }} />
-        <Block style={{ flex: 1, height: 160, borderRadius: radius.lg }} />
+        <SkeletonBlock style={{ flex: 1, height: 160, borderRadius: radius.lg }} />
+        <SkeletonBlock style={{ flex: 1, height: 160, borderRadius: radius.lg }} />
       </View>
     </View>
   );

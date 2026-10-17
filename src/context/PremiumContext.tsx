@@ -9,8 +9,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, fmtP, packProductId } from '../services/premium/catalog';
+import { Item, PACKS, fmtP, packProductId, titleOfKey } from '../services/premium/catalog';
 import { pointsApi, pointsKeys } from '../services/server/pointsApi';
+import { listReadings, readingsKey } from '../services/server/premiumApi';
 import { ApiError } from '../api/client';
 import { queryClient } from '../api/query';
 import PrimaryButton from '../components/PrimaryButton';
@@ -57,6 +58,14 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const member = !!account;
   const wallet = useQuery({ queryKey: [...pointsKeys.wallet, account?.id], queryFn: pointsApi.wallet, enabled: member });
   const unlocks = useQuery({ queryKey: [...pointsKeys.unlocks, account?.id], queryFn: pointsApi.unlocks, enabled: member });
+  // AI 풀이는 서버가 백그라운드로 쓴다. 쓰는 중인 게 있으면 지켜보다가 다 쓰면 어디에 있든 알려 준다
+  const readings = useQuery({
+    queryKey: [...readingsKey, account?.id],
+    queryFn: listReadings,
+    enabled: member,
+    refetchInterval: q => (q.state.data?.some(r => r.status === 'writing') ? 5000 : false),
+  });
+  const readingStatus = useRef<Map<string, string>>(new Map());
   const [missionState, setMissionState] = useState<{ key: string | null; value: Record<string, boolean> }>({ key: null, value: {} });
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
@@ -114,6 +123,18 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
     return true;
   };
+
+  useEffect(() => {
+    const prev = readingStatus.current;
+    const next = new Map((readings.data ?? []).map(r => [r.contentKey, r.status] as [string, string]));
+    next.forEach((status, key) => {
+      if (prev.get(key) === 'writing' && status === 'done') {
+        toast(`${titleOfKey(key)} 풀이가 완성됐어요`);
+        queryClient.invalidateQueries({ queryKey: ['premium', key] });
+      }
+    });
+    readingStatus.current = next;
+  }, [readings.data, toast]);
 
   const value: PremiumState = {
     ready: !member || (wallet.isFetched && unlocks.isFetched),

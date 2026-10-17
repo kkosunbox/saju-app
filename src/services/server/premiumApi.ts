@@ -2,11 +2,13 @@
  * Paid contents and their free previews from the server.
  * The body comes only with an entitlement (member + unlocked); the preview (guests too) is the free top part.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { PurposeKey, SajuFull, SajuProfile } from '../../types/premium';
+import { ReadingView } from '../../types/reading';
 import { toSajuFull } from '../premium/helpers';
 
 export type ThemeKind = 'love' | 'money' | 'career';
@@ -34,7 +36,7 @@ export function contentKeyOf(ref: PremiumRef): string {
   }
 }
 
-interface Envelope<T> { contentKey: string; data: T; profile?: SajuProfile }
+interface Envelope<T> { contentKey: string; data: T; profile?: SajuProfile; reading?: ReadingView | null }
 
 function getContent<T>(ref: PremiumRef) {
   const r = (() => {
@@ -81,13 +83,54 @@ export function usePremiumContent<T>(ref: PremiumRef) {
   const q = useQuery({
     queryKey: ['premium', key, user?.id, user?.version, today],
     enabled: open && !!user,
-    queryFn: async (): Promise<{ data: T; F: SajuFull | null }> => {
+    queryFn: async (): Promise<{ data: T; F: SajuFull | null; reading: ReadingView | null }> => {
       const r = await getContent<T>(ref);
-      return { data: r.data, F: r.profile ? toSajuFull(r.profile) : null };
+      return { data: r.data, F: r.profile ? toSajuFull(r.profile) : null, reading: r.reading ?? null };
     },
     staleTime: 10 * 60_000,
   });
-  return { open, ...q };
+  return { open, key, ...q };
+}
+
+const READING_POLL_MS = 3000;
+
+export interface ReadingListItem { contentKey: string; status: 'writing' | 'done' | 'failed'; completedAt: string | null; updatedAt: string }
+export const readingsKey = ['readings'] as const;
+export const listReadings = async (): Promise<ReadingListItem[]> =>
+  (await call<{ items: ReadingListItem[] }>(api.GET('/v1/premium/readings'))).items;
+
+/**
+ * The AI reading of an opened content. While the server is writing, polls its status (the server
+ * keeps writing when the user leaves; coming back shows the finished reading).
+ * `retry` asks the server to write again (a failed reading is restarted when the content is fetched).
+ */
+export function useReading<P>(content: { key: string; data?: { reading: ReadingView | null }; refetch(): unknown }) {
+  const qc = useQueryClient();
+  const initial = (content.data?.reading ?? null) as ReadingView<P> | null;
+  const writing = initial?.status === 'writing';
+  const poll = useQuery({
+    queryKey: ['reading-status', content.key],
+    enabled: writing,
+    queryFn: async () =>
+      (await call<{ reading: ReadingView | null }>(
+        api.GET('/v1/premium/readings/status', { params: { query: { contentKey: content.key } } }),
+      )).reading as ReadingView<P> | null,
+    refetchInterval: q => (q.state.data && q.state.data.status !== 'writing' ? false : READING_POLL_MS),
+  });
+  const latest = writing && poll.data ? poll.data : initial;
+  useEffect(() => {
+    // let the app-wide watcher know, so it can tell the user when this finishes elsewhere
+    if (writing) qc.invalidateQueries({ queryKey: readingsKey });
+  }, [writing, qc]);
+  const finished = writing && !!poll.data && poll.data.status !== 'writing';
+  useEffect(() => {
+    // keep the content cache in step so leaving and coming back shows the finished reading
+    if (finished) {
+      qc.invalidateQueries({ queryKey: ['premium', content.key] });
+      qc.invalidateQueries({ queryKey: readingsKey });
+    }
+  }, [finished, qc, content.key]);
+  return { reading: latest, retry: () => content.refetch() };
 }
 
 /** The free top part of a paid screen, shown while it is locked. */

@@ -1361,6 +1361,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/premium/readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 AI 풀이 목록
+         * @description 쓰는 중이거나 다 쓴 풀이 (최근 순). 다 쓴 풀이는 해당 콘텐츠 화면에서 다시 볼 수 있습니다.
+         */
+        get: operations["ReadingController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/premium/readings/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * AI 풀이 상태
+         * @description 풀이를 쓰는 동안 화면이 주기적으로 확인합니다. 새로 쓰기 시작하지는 않습니다 (시작은 콘텐츠 조회 시). 아직 없으면 null.
+         */
+        get: operations["ReadingController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/consults": {
         parameters: {
             query?: never;
@@ -2169,12 +2209,29 @@ export interface components {
             orderId: string;
             amount: number;
         };
+        ReadingViewDto: {
+            /**
+             * @description writing: 쓰는 중(parts에 다 쓴 파트) · done · failed: 화면을 다시 열면 다시 씀 · unavailable: 지금은 AI 풀이를 쓸 수 없음(계산 결과만 표시)
+             * @enum {string}
+             */
+            status: "writing" | "done" | "failed" | "unavailable";
+            /** @description 다 쓴 파트 수 */
+            done: number;
+            /** @description 전체 파트 수 */
+            total: number;
+            /** @description 파트별 풀이 (구조는 콘텐츠마다 다름, 앱 타입 참고) */
+            parts: Record<string, never>;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
         PremiumContentDto: {
             /** @example monthly:2026-10 */
             contentKey: string;
             data: Record<string, never>;
             /** @description 내 사주 원국 분석 (화면 공통 바탕) */
             profile: Record<string, never>;
+            /** @description AI 풀이. 없으면 쓰기 시작합니다 (화면을 나가도 서버에서 계속). writing이면 GET /premium/readings/status로 확인 */
+            reading: components["schemas"]["ReadingViewDto"] | null;
         };
         PremiumPreviewDto: {
             /** @example monthly:2026-10 */
@@ -2225,6 +2282,23 @@ export interface components {
             productId: string;
             /** @description successUrl 쿼리의 authKey */
             authKey: string;
+        };
+        ReadingListItemDto: {
+            /** @example saju */
+            contentKey: string;
+            /** @enum {string} */
+            status: "writing" | "done" | "failed";
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ReadingListDto: {
+            items: components["schemas"]["ReadingListItemDto"][];
+        };
+        ReadingStatusDto: {
+            /** @description 아직 쓰기 시작하지 않았으면 null */
+            reading: components["schemas"]["ReadingViewDto"] | null;
         };
         HelpLineDto: {
             name: string;
@@ -6811,6 +6885,144 @@ export interface operations {
                         /** @example SUBSCRIPTION_NOT_FOUND */
                         code?: string;
                         /** @example SUBSCRIPTION_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ReadingController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ReadingListDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ReadingController_status_v1: {
+        parameters: {
+            query: {
+                contentKey: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ReadingStatusDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_LOCKED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_LOCKED */
+                        code?: string;
+                        /** @example CONTENT_LOCKED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

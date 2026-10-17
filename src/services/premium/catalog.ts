@@ -56,3 +56,20 @@ export const PACKS: [number, number, number][] = [[1000, 100, 0], [3000, 300, 0]
 export const packProductId = (won: number) => `points_${won}`;
 
 export const fmtP = (n: number) => n.toLocaleString('ko-KR') + 'P';
+
+/** 열람권 키 → 사람이 읽는 이름 (알림 문구용). */
+export function titleOfKey(key: string): string {
+  const [kind, arg] = key.split(':');
+  switch (kind) {
+    case 'saju': return '상세 사주 해석';
+    case 'life': return '평생운 · 10년 대운';
+    case 'spouse': return '미래 배우자 리포트';
+    case 'newyear': return `${arg}년 신년운세`;
+    case 'monthly': { const [y, m] = arg.split('-'); return `${y}년 ${Number(m)}월 상세운세`; }
+    case 'theme': return THEME_T[arg as ThemeKind] ?? '테마 운세';
+    case 'lucky': return '길일 찾기';
+    case 'compat': return '심층 궁합';
+    case 'crush': return '그 사람의 속마음';
+    default: return '유료 콘텐츠';
+  }
+}
