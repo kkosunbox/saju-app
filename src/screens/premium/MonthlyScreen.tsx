@@ -109,7 +109,7 @@ function MonthlyBody({ u, R, F }: { u: User; R: MonthReport; F: SajuFull }) {
     const pool = [...ACTIONS[kwTag(kw)].good, ...R.missions, ...ACTIONS[kwTag(R.kws[(w + 1) % R.kws.length])].good];
     weeks.push({ w, from: ds[0].d, to: ds[ds.length - 1].d, av, bd, kw, act: pool[(w * 3 + sel.m) % pool.length] });
   }
-  const band = (v: number) => (v >= 82 ? 'high' : v >= 74 ? 'mid' : 'low') as 'high' | 'mid' | 'low';
+  const band = (v: number) => (v >= 83 ? 'high' : v >= 62 ? 'mid' : 'low') as 'high' | 'mid' | 'low';
   const L = EL_LUCK[F.yong];
   const fieldScore = (k: FieldKey) => k === 'money' ? R.cat.money : k === 'work' ? R.cat.work : k === 'love' ? R.cat.love : k === 'people' ? R.cat.relationship
     : k === 'health' ? clamp((R.cat.work + R.cat.relationship) / 2 - (sG === 'officer' ? 4 : 0), 55, 95) : clamp(R.avg + (sG === 'resource' ? 6 : -2), 55, 95);
