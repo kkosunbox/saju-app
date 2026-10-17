@@ -57,3 +57,13 @@ export interface YearReading {
   fields: Record<'money' | 'work' | 'love' | 'health' | 'people' | 'study', { headline: string; text: string; strategy: string }>;
   months: { months: Titled[]; quarters: Titled[] };
 }
+
+/** 월별 상세운세 (server: month.reading.ts). */
+export interface MonthReading {
+  overview: {
+    headline: string; summary: string; energy: string;
+    fields: Record<'love' | 'money' | 'work' | 'relationship', FieldText>;
+    missions: string[]; closing: string;
+  };
+  days: { weeks: Titled[]; bestDays: string[]; lowDays: string[] };
+}
