@@ -47,3 +47,13 @@ export interface LifeReading {
   daeun: { periods: Titled[]; now: { text: string; focus: string[] } | null };
   years: { years: Titled[] };
 }
+
+/** 신년운세 (server: year.reading.ts). */
+export interface YearReading {
+  overview: {
+    headline: string; summary: string; energy: string; flags: string[]; cautions: string[];
+    luck: { text: string; actions: string[] }; closing: string;
+  };
+  fields: Record<'money' | 'work' | 'love' | 'health' | 'people' | 'study', { headline: string; text: string; strategy: string }>;
+  months: { months: Titled[]; quarters: Titled[] };
+}
