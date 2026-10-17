@@ -108,7 +108,7 @@ export interface CompatReading {
   fields: Record<'love' | 'life' | 'talk' | 'money', FieldText>;
   together: {
     frictions: { title: string; text: string; say: string }[];
-    forMe: string; forPartner: string; lasting: string[]; goodDays: string[]; closing: string;
+    forMe: string; forPartner: string; lasting: string[]; dateIdeas: string[]; closing: string;
   };
 }
 
@@ -119,4 +119,9 @@ export interface CrushReading {
     pace: string; misunderstand: string; flow: string[]; contact: string;
     dos: string[]; donts: string[]; topics: string[]; messages: string[]; closing: string;
   };
+}
+
+/** 길일 찾기 (server: lucky.reading.ts). */
+export interface LuckyReading {
+  days: { intro: string; best: { why: string; tip: string }[]; avoid: string[]; tips: string[] };
 }

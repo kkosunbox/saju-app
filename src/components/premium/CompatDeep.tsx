@@ -118,7 +118,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
             </View>
           ))}
         </View>
-        {together ? <View style={{ marginTop: 10 }}>{together.goodDays.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</View> : null}
+        {together ? <View style={{ marginTop: 10 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</View> : null}
       </Card>
       {together ? <Tip title="두 사람에게">{together.closing}</Tip> : null}
     </>
