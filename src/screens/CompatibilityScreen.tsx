@@ -21,7 +21,8 @@ import { usePremium } from '../context/PremiumContext';
 import { BodyState, PriceCard } from '../components/premium/Kit';
 import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
-import { usePremiumContent } from '../services/server/premiumApi';
+import { usePremiumContent, useReading } from '../services/server/premiumApi';
+import { CompatReading, CrushReading } from '../types/reading';
 import { CrushReport, DeepCompatibility } from '../types/premium';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { useQuery } from '@tanstack/react-query';
@@ -320,11 +321,12 @@ export default function CompatibilityScreen() {
 function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number }) {
   const item = ITEMS.compat(id, r.target.nickname);
   const content = usePremiumContent<DeepCompatibility>({ kind: 'compat', id });
+  const { reading, retry } = useReading<CompatReading>(content);
   if (!content.open) return <PriceCard item={item} />;
   return (
     <>
       <SectionHeader title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
-      {content.data ? <CompatDeep u={u} r={r} D={content.data.data} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {content.data ? <CompatDeep u={u} r={r} D={content.data.data} reading={reading} onRetry={retry} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
     </>
   );
 }
@@ -333,11 +335,12 @@ function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number
 function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number }) {
   const item = ITEMS.crush(id, r.target.nickname);
   const content = usePremiumContent<CrushReport>({ kind: 'crush', id });
+  const { reading, retry } = useReading<CrushReading>(content);
   if (!content.open) return <PriceCard item={item} />;
   if (!content.data) return <BodyState error={content.isError} onRetry={() => content.refetch()} />;
   return (
     <>
-      <CrushView r={r} R={content.data.data} />
+      <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} />
       <ShareCta spec={crushSpec(u, r, content.data.data)} />
     </>
   );

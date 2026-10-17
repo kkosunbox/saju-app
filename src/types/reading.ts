@@ -101,3 +101,22 @@ export interface SpouseReading {
   mine: { star: string; seat: string; married: Titled; conflict: string; blind: string[] };
   timing: { years: Titled[]; months: string[]; periods: string[]; meet: { text: string; places: Titled[] }; advice: string[]; closing: string };
 }
+
+/** 심층 궁합 (server: pair.reading.ts). */
+export interface CompatReading {
+  bond: { headline: string; summary: string; bond: string; partnerToMe: string; meToPartner: string; attraction: string; views: string };
+  fields: Record<'love' | 'life' | 'talk' | 'money', FieldText>;
+  together: {
+    frictions: { title: string; text: string; say: string }[];
+    forMe: string; forPartner: string; lasting: string[]; goodDays: string[]; closing: string;
+  };
+}
+
+/** 그 사람의 속마음 (server: pair.reading.ts). */
+export interface CrushReading {
+  heart: { headline: string; summary: string; feel: string; pull: string; hesitate: string; signals: string[] };
+  approach: {
+    pace: string; misunderstand: string; flow: string[]; contact: string;
+    dos: string[]; donts: string[]; topics: string[]; messages: string[]; closing: string;
+  };
+}
