@@ -45,6 +45,21 @@ export const BUNDLE: Item = {
   desc: '상세 사주 해석 · 평생운 · 테마 운세 3종', includes: ['saju', 'life', 'theme:love', 'theme:money', 'theme:career'],
 };
 
+const LIST_COST: Record<string, number> = { saju: 300, life: 500, 'theme:love': 200, 'theme:money': 200, 'theme:career': 200 };
+
+/**
+ * 내 인생 패키지 — 이미 가진 항목은 빼고 남은 항목 정가에 같은 할인율(1,100/1,400), 10P 단위 내림.
+ * 포함 항목을 반 이상 가졌으면 팔지 않는다(null). 서버(premium-catalog priceFor)와 같은 계산이고, 결제 금액은 서버가 정한다.
+ */
+export function bundleFor(owned: (key: string) => boolean): Item | null {
+  const includes = BUNDLE.includes!;
+  const have = includes.filter(owned);
+  if (have.length * 2 >= includes.length) return null;
+  if (!have.length) return BUNDLE;
+  const missing = includes.filter(k => !owned(k)).reduce((sum, k) => sum + LIST_COST[k], 0);
+  return { ...BUNDLE, cost: Math.floor((missing * BUNDLE.cost) / BUNDLE.orig! / 10) * 10, orig: missing, desc: BUNDLE.desc + ' · 이미 가진 항목은 빼고 계산했어요' };
+}
+
 export const PRICE_TABLE: [string, string][] = [
   ['오늘의 운세 · 4가지 분석 · 종합', '무료'], ['주간 운세 · 기본 궁합', '무료'], ['찰떡 MBTI · 사주 캐릭터 · 오늘의 부적', '무료'], ['월별 상세운세', '100P / 월'], ['신년운세', '300P / 해'],
   ['상세 사주 해석', '300P · 소장'], ['평생운 · 10년 대운', '500P · 소장'], ['테마 운세 (연애 · 재물 · 직업)', '각 200P · 소장'],

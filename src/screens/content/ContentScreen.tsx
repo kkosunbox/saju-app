@@ -13,7 +13,7 @@ import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services
 import { Coin, Pill, PriceTag, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
-import { BUNDLE, ITEMS, fmtP } from '../../services/premium/catalog';
+import { BUNDLE, ITEMS, bundleFor, fmtP } from '../../services/premium/catalog';
 import { shareInvite } from '../../services/share/linkShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors } from '../../theme/colors';
@@ -38,6 +38,7 @@ export default function ContentScreen() {
   useEffect(() => { loadNotify().then(setNotify); }, []);
   if (!user) return null;
   const bOwned = owned(BUNDLE.key);
+  const bundle = bOwned ? BUNDLE : bundleFor(owned);
 
   const invite = async () => {
     const r = await shareInvite(user.nickname);
@@ -104,17 +105,19 @@ export default function ContentScreen() {
         </PressableScale>
       </View>
 
-      <Card style={s.bundle}>
-        <View style={s.bundleTag}><Text style={s.bundleTagText}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
-        <Text style={[txt.h3, { marginTop: 4 }]}>인생 패키지</Text>
-        <Text style={[txt.small, { marginTop: 2 }]}>{BUNDLE.desc}</Text>
-        {bOwned ? null : (
-          <View style={[s.between, { marginTop: 14 }]}>
-            <Text style={{ fontSize: 13, color: colors.inkMute, textDecorationLine: 'line-through' }}>{fmtP(BUNDLE.orig!)}</Text>
-            <PrimaryButton label={`${fmtP(BUNDLE.cost)}로 모두 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(BUNDLE)} style={{ width: 210 }} />
-          </View>
-        )}
-      </Card>
+      {bundle && (
+        <Card style={s.bundle}>
+          <View style={s.bundleTag}><Text style={s.bundleTagText}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
+          <Text style={[txt.h3, { marginTop: 4 }]}>인생 패키지</Text>
+          <Text style={[txt.small, { marginTop: 2 }]}>{bundle.desc}</Text>
+          {bOwned ? null : (
+            <View style={[s.between, { marginTop: 14 }]}>
+              <Text style={{ fontSize: 13, color: colors.inkMute, textDecorationLine: 'line-through' }}>{fmtP(bundle.orig!)}</Text>
+              <PrimaryButton label={`${fmtP(bundle.cost)}로 모두 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={{ width: 210 }} />
+            </View>
+          )}
+        </Card>
+      )}
 
       {LIST.map(([g, items]) => (
         <View key={g}>
