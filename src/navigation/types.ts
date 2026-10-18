@@ -17,6 +17,7 @@ export type RootStackParamList = {
   Login: undefined;
   EmailLogin: undefined;
   SignUp: undefined;
+  SocialTerms: { next?: string } | undefined;
   FindPassword: undefined;
   SocialLogin: { provider: 'kakao' | 'naver' | 'apple' | 'google' };
   ProfileSetup: undefined;

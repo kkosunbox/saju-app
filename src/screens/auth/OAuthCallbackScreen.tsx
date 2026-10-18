@@ -29,11 +29,13 @@ export default function OAuthCallbackScreen() {
     started.current = true;
     (async () => {
       try {
-        const returnTo = await finishWebSocialLogin(q.provider, q);
+        const { returnTo, needsTerms } = await finishWebSocialLogin(q.provider, q);
         const hasProfile = await reloadSession();
         if (!onboarded) await completeOnboarding();
         // a new account without a fortune profile goes to the profile form first
-        router.replace((hasProfile ? returnTo || '/' : '/profile-setup') as Href);
+        const next = hasProfile ? returnTo || '/' : '/profile-setup';
+        // a new social account agrees to our terms before anything else
+        router.replace((needsTerms ? `/signup-terms?next=${encodeURIComponent(next)}` : next) as Href);
       } catch (e) {
         setError(MESSAGE[e instanceof SocialLoginError ? e.reason : 'server']);
       }

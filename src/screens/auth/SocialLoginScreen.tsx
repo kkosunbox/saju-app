@@ -6,11 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
 import { LogoMark } from '../../components/BrandMark';
-import { CheckRow, DemoNote, Mark, SocialButton } from '../../components/auth/AuthKit';
+import { DemoNote, Mark, SocialButton } from '../../components/auth/AuthKit';
 import { RootStackParamList } from '../../navigation/types';
 import { SOCIAL_LABEL } from '../../components/auth/socialLabels';
 import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { txt } from '../../theme/typography';
 
 /**
  * 카카오·네이버·Apple·Google 로그인.
@@ -24,7 +24,6 @@ export default function SocialLoginScreen() {
   const p = params.provider;
   const brand = SOCIAL_LABEL[p];
   const LOGO_BG = { kakao: '#FEE500', naver: '#03C75A', apple: '#000000', google: '#FFFFFF' }[p];
-  const [emailOk, setEmailOk] = useState(true);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const live = Platform.OS === 'web' && isWebSocial(p);
@@ -50,13 +49,8 @@ export default function SocialLoginScreen() {
           <View style={[s.logo, { backgroundColor: colors.heroBg }]}><LogoMark size={38} fg={'#F4EDDF'} /></View>
         </View>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 20 }]}>운Pick에서 {brand} 계정 정보를{'\n'}요청해요</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>동의하면 별도 가입 없이 바로 시작할 수 있어요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>처음이라면 약관에만 동의하면 바로 시작할 수 있어요.</Text>
 
-        <View style={s.card}>
-          <Text style={s.cardHead}>제공 항목</Text>
-          <CheckRow checked label={`[필수] 프로필 정보 (닉네임)`} onPress={() => {}} />
-          <CheckRow checked={emailOk} label="[선택] 이메일 주소" onPress={() => setEmailOk(v => !v)} />
-        </View>
         {live ? (
           <Text style={[txt.small, { textAlign: 'center' }]}>{failed ? `${brand} 로그인 페이지를 열지 못했어요. 잠시 후 다시 시도해 주세요.` : `${brand} 로그인 페이지로 이동해요. 지금까지 본 운세는 그대로 이어져요.`}</Text>
         ) : (
@@ -81,7 +75,5 @@ const s = StyleSheet.create({
   logo: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.lineStrong },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16, paddingVertical: 10, marginTop: 8 },
-  cardHead: { fontSize: 12, fontWeight: '700', color: colors.inkMute, marginBottom: 2, marginTop: 4 },
   footer: { paddingHorizontal: 24, paddingBottom: 8 },
 });

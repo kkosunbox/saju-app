@@ -69,6 +69,13 @@ export const authApi = {
     await keep(data, false);
   },
 
+  /** Finishes a social signup: the terms are agreed after the provider's login (POST /auth/complete-signup). */
+  async agreeTerms(marketing: boolean): Promise<void> {
+    await call(api.POST('/v1/auth/complete-signup', {
+      body: { isAllowTerms: true, isAllowPrivacy: true, isAllowMarketing: marketing },
+    }));
+  },
+
   async sendResetCode(email: string): Promise<void> {
     await call(api.POST('/v1/auth/send-password-reset-code', { body: { email: email.trim().toLowerCase() } }));
   },

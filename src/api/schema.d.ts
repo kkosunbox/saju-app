@@ -1571,10 +1571,10 @@ export interface components {
             /** @description 마케팅 정보 수신 동의 여부 */
             isAllowMarketing: boolean;
             /**
-             * @description 연락처 (숫자만)
+             * @description 연락처 (숫자만). 소셜 가입은 받지 않으므로 선택
              * @example 01012341234
              */
-            phone: string;
+            phone?: string;
         };
         UpdatePhoneRequest: {
             /**

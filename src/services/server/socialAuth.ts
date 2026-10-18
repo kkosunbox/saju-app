@@ -43,9 +43,10 @@ export class SocialLoginError extends Error {
 
 /**
  * Called on the callback page. Checks the state we sent (CSRF), exchanges the code on the server
- * with the same redirect URI, and keeps the session. Returns where to go next.
+ * with the same redirect URI, and keeps the session. Returns where to go next, and whether the
+ * account still has to agree to our terms (a new social signup, or one that left before agreeing).
  */
-export async function finishWebSocialLogin(provider: string, query: { code?: string; state?: string; error?: string }): Promise<string> {
+export async function finishWebSocialLogin(provider: string, query: { code?: string; state?: string; error?: string }): Promise<{ returnTo: string; needsTerms: boolean }> {
   const raw = sessionStorage.getItem(PENDING);
   sessionStorage.removeItem(PENDING);
   const pending = raw ? (JSON.parse(raw) as Pending) : null;
@@ -55,10 +56,10 @@ export async function finishWebSocialLogin(provider: string, query: { code?: str
   }
   const body = { code: query.code, callbackUrl: pending.redirectUri };
   const path = ({ kakao: '/v1/auth/kakao', naver: '/v1/auth/naver', google: '/v1/auth/google' } as const)[pending.provider];
-  const data = await call<LoginPayload & { twoFactorToken?: string }>(api.POST(path, { body } as never)).catch(e => {
+  const data = await call<LoginPayload & { twoFactorToken?: string; user?: { isAllowTerms: boolean } }>(api.POST(path, { body } as never)).catch(e => {
     throw new SocialLoginError('server', (e as Error).message);
   });
   if (data.twoFactorToken) throw new SocialLoginError('two-factor', '2FA is not supported on the web yet');
   await keep(data, false);
-  return pending.returnTo;
+  return { returnTo: pending.returnTo, needsTerms: data.user?.isAllowTerms === false };
 }

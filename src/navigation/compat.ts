@@ -22,6 +22,7 @@ export const ROUTES: Record<string, string> = {
   Login: '/login',
   EmailLogin: '/login/email',
   SignUp: '/signup',
+  SocialTerms: '/signup-terms',
   FindPassword: '/find-password',
   SocialLogin: '/login/social/[provider]',
   ProfileSetup: '/profile-setup',

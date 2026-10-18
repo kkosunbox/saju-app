@@ -80,6 +80,7 @@ function RootStack() {
         <Stack.Screen name="login/index" />
         <Stack.Screen name="login/email" />
         <Stack.Screen name="signup" />
+        <Stack.Screen name="signup-terms" options={{ gestureEnabled: false }} />
         <Stack.Screen name="find-password" />
         <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>
