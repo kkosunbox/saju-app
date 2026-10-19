@@ -72,9 +72,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
     const me = await authApi.me();
+    const profile = await profileApi.get(me.id);
+    // set together: the sign-in redirect (app/_layout.tsx) reads the profile when the account appears
     setAccount(me.status === 'guest' ? null : me);
     setFortune(null);
-    const profile = await profileApi.get(me.id);
     setUser(profile);
     return !!profile;
   }, [clearSession]);

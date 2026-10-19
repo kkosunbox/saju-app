@@ -18,15 +18,17 @@ const isAuthPath = (path: string) => AUTH_PATHS.some(p => path === p || path.sta
 /**
  * 로그인은 필요한 순간(유료 콘텐츠·포인트·마이 탭)에 위로 띄운다.
  * 로그인에 성공하면 로그인 화면들을 닫고 들어오기 전 화면으로 돌아간다.
+ * 프로필이 없는 계정(새로 가입 등)은 프로필 입력으로 — 들어오기 전 화면(웹 랜딩·홈)은 이제 열 수 없다.
  */
 function useCloseAuthFlowOnSignIn() {
-  const { account } = useApp();
+  const { account, user } = useApp();
   const pathname = usePathname();
   const lastPath = useRef('/');
   const hadAccount = useRef(!!account);
-  if (!isAuthPath(pathname)) lastPath.current = pathname;
+  // 웹 랜딩(/onboarding)은 로그인하러 가면서 닫히므로 돌아갈 곳은 홈
+  if (!isAuthPath(pathname)) lastPath.current = pathname === '/onboarding' ? '/' : pathname;
   useEffect(() => {
-    if (!hadAccount.current && account && isAuthPath(pathname)) router.dismissTo(lastPath.current as Href);
+    if (!hadAccount.current && account && isAuthPath(pathname)) router.dismissTo((user ? lastPath.current : '/profile-setup') as Href);
     hadAccount.current = !!account;
   }, [account, pathname]);
 }
