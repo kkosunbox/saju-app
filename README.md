@@ -11,7 +11,7 @@ Expo(SDK 57) + Expo Router로 **iOS · Android · Web을 하나의 코드베이�
 ```bash
 npm install
 npm start            # Expo Go / 시뮬레이터
-npm run web          # 웹 개발 서버
+npm run web          # 웹 개발 서버 (http://localhost:4000)
 npm run build:web    # 웹 정적 빌드 → dist/ (라우트별 HTML)
 npm run typecheck
 npm run lint
@@ -53,7 +53,7 @@ src/
 
 ## 서버와 기기의 역할
 
-- **모든 계산과 기록은 서버**(`saju-be-monorepo`, 기본 `http://localhost:8077`, `EXPO_PUBLIC_API_URL`로 변경):
+- **모든 계산과 기록은 서버**(`saju-be-monorepo`, 기본 `http://localhost:8080`, `EXPO_PUBLIC_API_URL`로 변경):
   만세력·운세·무료/유료 콘텐츠·궁합(저장된 상대)·포인트·결제·고민 상담(AI).
 - 유료 화면은 열기 전에는 `/premium/previews/*`(무료 상단 요약)만 받고, 본문은 열람권이 있을 때 `/premium/contents/*`에서 받는다.
   앱은 서버 결과를 받아 문장표(`services/premium/data.ts`)로 화면을 그린다.
@@ -64,7 +64,7 @@ src/
 ## 남은 작업
 
 - [ ] 네이티브(iOS·Android) 시뮬레이터/실기기 확인 — 지금까지 웹으로만 확인함
-- [x] 웹 소셜 로그인(카카오·네이버·구글) — 지금은 다른 프로젝트 테스트 키, 개발 서버는 `npx expo start --web --port 3000`(콘솔에 등록된 콜백)
+- [x] 웹 소셜 로그인(카카오·네이버·구글) — 지금은 다른 프로젝트 테스트 키, 개발 서버는 `npm run web`(포트 4000) — 콘솔에 `http://localhost:4000/auth/callback/{provider}` 콜백 등록 필요
 - [ ] 앱(네이티브) 소셜 로그인 · Apple 로그인 · 앱 인앱결제 — 운Pick 키·스토어 계정 발급 후
 - [ ] lint 정리: `react-hooks/refs` 54건(프로토타입의 `useRef(new Animated.Value())` 패턴 — React Compiler가 해당 컴포넌트 최적화를 건너뜀), `react/no-unescaped-entities` 22건 등
 - [ ] 아이콘·스플래시 재생성 스크립트(`npm run icons`)는 프로토타입에만 있음
