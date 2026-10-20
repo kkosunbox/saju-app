@@ -10,8 +10,7 @@ import { catOf } from '../content/consult';
 import { ConsultAnswer, ConsultView } from '../server/consultApi';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
-import { TenGodGroup } from '../../data/sajuData';
-import { MONTH_LINE, STEM_PERSONA, YEAR_IDIOM } from '../premium/data';
+import { STEM_PERSONA } from '../premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
 
 export interface ShareSpec {
@@ -150,7 +149,7 @@ export function lifeSpec(u: User, st: LifeStage[], dae: DaeunTable, now: number)
 }
 
 export function newYearSpec(u: User, D: YearData): ShareSpec {
-  const y = D.y; const idiom = YEAR_IDIOM[D.rel];
+  const y = D.y; const idiom = D.idiom;
   return {
     kind: `${y} 신년운세`, seal: '年', eyebrow: `${u.nickname}님의 ${y}년은`,
     headline: `${idiom[0]}의 해`, sub: `${idiom[1]} · ${idiom[2]}`.length > 18 ? idiom[2] : `${idiom[1]} · ${idiom[2]}`,
@@ -162,9 +161,9 @@ export function newYearSpec(u: User, D: YearData): ShareSpec {
   };
 }
 
-/** rel: 그달 월운과 나(일간)의 관계 */
-export function monthlySpec(u: User, R: MonthReport, rel: TenGodGroup): ShareSpec {
-  const { y, m } = R; const line = MONTH_LINE[rel];
+/** 화면 맨 위와 같은 한 줄 (R.line) */
+export function monthlySpec(u: User, R: MonthReport): ShareSpec {
+  const { y, m } = R; const line = [R.line.headline, R.line.sub] as const;
   return {
     kind: `${m}월 운세`, seal: '月', eyebrow: `${u.nickname}님의 ${y}년 ${m}월`,
     headline: line[0], sub: line[1].split('.')[0],

@@ -54,12 +54,18 @@ export interface YearData {
   y: number; yp: Pillar; rel: TenGodGroup; zr: 'same' | 'clash' | 'harmony' | 'normal'; total: number; months: MonthAgg[];
   cat: Record<Cat, number>; best: MonthAgg[]; low: MonthAgg[]; kws: string[]; qs: number[];
   views: Record<SrcKey, string>; zodiac: [string, string]; animal: string; myAnimal: string;
+  /** 올해의 사자성어 [한글, 한자, 뜻] (점수에 따라 서버가 고름) */
+  idiom: [string, string, string];
 }
 
 export interface DayEntry { iso: string; d: number; total: number; c: CombinedFortune }
 export interface MonthReport {
   y: number; m: number; n: number; days: DayEntry[]; cat: Record<Cat, number>; best: DayEntry[]; low: DayEntry[];
   kws: string[]; missions: string[]; avg: number; first: number;
+  /** 월운과 나의 관계 */
+  rel: TenGodGroup;
+  /** 이달 한 줄 (점수·키워드에 따라 서버가 고름) — 결제 전후 같은 문장 */
+  line: { headline: string; sub: string };
 }
 
 export type PurposeKey = 'move' | 'contract' | 'confess' | 'interview' | 'travel' | 'start';
@@ -109,8 +115,8 @@ export interface DeepCompatibility {
 /* ---------- 미리보기 (열기 전 무료 상단) ---------- */
 export interface SajuPreview { strength: StrengthLevel; yongsin: Element }
 export interface LifePreview { strength: StrengthLevel; chart: { a: number; v: number }[] }
-export type YearPreview = Pick<YearData, 'y' | 'yp' | 'rel' | 'total' | 'kws' | 'animal' | 'myAnimal'>;
-export type MonthPreview = Pick<MonthReport, 'y' | 'm' | 'n' | 'avg' | 'kws'>;
+export type YearPreview = Pick<YearData, 'y' | 'yp' | 'rel' | 'total' | 'kws' | 'animal' | 'myAnimal' | 'idiom'>;
+export type MonthPreview = Pick<MonthReport, 'y' | 'm' | 'n' | 'avg' | 'kws' | 'line'>;
 export type ThemePreview =
   | { kind: 'love'; st: string; blood: string }
   | { kind: 'money'; t: MoneyType }

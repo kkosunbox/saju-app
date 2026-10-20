@@ -17,7 +17,7 @@ import { SajuFull, YearData, YearPreview } from '../../types/premium';
 import { Pillar } from '../../types/content';
 import { ReadingView, YearReading } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
-import { EL_LUCK, YEAR_IDIOM } from '../../services/premium/data';
+import { EL_LUCK } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
 import { categoryTheme, colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
@@ -39,7 +39,7 @@ export default function NewYearScreen() {
   const item = ITEMS.newyear(y);
   const D = content.data?.data; const F = content.data?.F;
   const top: YearPreview | undefined = D ?? preview.data;
-  const idiom = top ? YEAR_IDIOM[top.rel] : null;
+  const idiom = top?.idiom ?? null;
   const spec = D ? newYearSpec(u, D) : null;
 
   return (

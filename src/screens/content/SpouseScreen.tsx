@@ -43,7 +43,7 @@ export default function SpouseScreen() {
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
       <Hero style={{ alignItems: 'center', paddingVertical: 26 }}>
         <Text style={heroTxt.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{reading?.parts.portrait?.headline ?? sum.headline}</Text>
+        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{sum.headline}</Text>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 16 }}>
           <DarkChip gold>{sum.mbti}</DarkChip>
           <DarkChip>{sum.animal}띠</DarkChip>
@@ -88,7 +88,8 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
           </View>
           {portrait ? (
             <>
-              <Para mt={12}>{portrait.summary}</Para>
+              <Text style={[txt.bodyStrong, { marginTop: 12 }]}>{portrait.headline}</Text>
+              <Para mt={6}>{portrait.summary}</Para>
               <Text style={[s.label, { marginTop: 14 }]}>첫인상</Text>
               <Para mt={4}>{portrait.look}</Para>
             </>

@@ -15,13 +15,13 @@ import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
-import { WEEK, dayPillar, daysInMonth, monthPillarOf, pText, pad2, relation } from '../../services/premium/helpers';
+import { WEEK, dayPillar, daysInMonth, monthPillarOf, pText, pad2 } from '../../services/premium/helpers';
 import { MonthPreview, MonthReport, SajuFull } from '../../types/premium';
 import { Pillar } from '../../types/content';
 import { MonthReading, ReadingView } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
-import { EL_LUCK, PERIOD_TEXT } from '../../services/premium/data';
-import { ELEMENT_INFO, STEMS } from '../../data/sajuData';
+import { EL_LUCK } from '../../services/premium/data';
+import { ELEMENT_INFO } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
@@ -42,14 +42,13 @@ export default function MonthlyScreen() {
   const R = content.data?.data; const F = content.data?.F;
   const top: MonthPreview | undefined = R ?? preview.data;
   const mp = monthPillarOf(sel.y, sel.m);
-  const rel = relation(STEMS[u.natal.chart.day.stem].element, STEMS[mp.stem].element);
   // 살 수 있는 달: 지난달부터 12개월 뒤까지 (서버 카탈로그와 같은 범위)
   const months: [string, string, string][] = [];
   for (let i = -1; i <= 12; i++) {
     const d = new Date(t.y, t.m - 1 + i, 1);
     months.push([`${d.getFullYear()}-${d.getMonth() + 1}`, `${d.getMonth() + 1}월`, d.getFullYear() !== t.y ? String(d.getFullYear()) : i === 0 ? '이번 달' : '']);
   }
-  const spec = R ? monthlySpec(u, R, rel) : null;
+  const spec = R ? monthlySpec(u, R) : null;
 
   return (
     <Screen title="월별 상세운세" back right={<ShareIconButton item={item} spec={spec} />}>
@@ -60,7 +59,9 @@ export default function MonthlyScreen() {
           <ScoreRing key={item.key} score={top.avg} size={104} stroke={8} label="이달 평균" />
           <View style={{ flex: 1 }}>
             <Text style={heroTxt.eyebrow}>{u.nickname}님의 {sel.m}월 · {pText(mp)}월</Text>
-            <Text style={heroTxt.summ}>{reading?.parts.overview?.headline ?? PERIOD_TEXT.month[rel][0]}</Text>
+            {/* 결제 전에 보여준 문장 그대로 (AI 한 줄은 본문 01에) */}
+            <Text style={heroTxt.summ}>{top.line.headline}</Text>
+            <Text style={s.heroSub}>{top.line.sub}</Text>
             <View style={s.chips}>{top.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
           </View>
         </Hero>
@@ -101,7 +102,7 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
       <ReadingBanner reading={reading} onRetry={onRetry} />
 
       <SubHead title={`01 · ${R.m}월 총운`} />
-      <Card>{overview ? <Para mt={0}>{overview.summary}</Para> : <PartPending writing={writing} lines={4} />}</Card>
+      <Card>{overview ? <><Text style={txt.h3}>{overview.headline}</Text><Para>{overview.summary}</Para></> : <PartPending writing={writing} lines={4} />}</Card>
 
       <SubHead title="02 · 이달의 사주 기운" caption={'월운(月運) · ' + pText(X.pillar)} />
       <View style={s.grid3}>
@@ -219,6 +220,7 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+  heroSub: { fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.82)', marginTop: 6 },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   calInfo: { marginTop: 12, backgroundColor: colors.lavenderSoft, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, gap: 3 },
