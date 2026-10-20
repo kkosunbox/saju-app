@@ -40,7 +40,8 @@ export type RootStackParamList = {
   Fortune: { period?: Period } | undefined;
   Consult: undefined;
   /** 상담 대화 (첫 답변 + 이어 묻기) */
-  ConsultChat: { id: string };
+  /** id 'new': 상담 탭이 시작한 요청(ask 키)의 답을 기다리는 중 */
+  ConsultChat: { id: string; ask?: string };
   PastLife: undefined;
   Legal: { doc: 'terms' | 'privacy' };
 };

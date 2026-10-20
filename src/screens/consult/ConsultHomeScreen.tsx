@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -10,16 +10,14 @@ import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
-import LoadingScreen from '../../components/LoadingScreen';
 import { Coin, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
-import { refreshPoints, usePremium } from '../../context/PremiumContext';
+import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
 import { CONSULT_CATS, CONSULT_CONFIG, ConsultCat, catOf, guessCat } from '../../services/content/consult';
 import { ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
-import { queryClient } from '../../api/query';
-import { ApiError } from '../../api/client';
+import { startAsk } from './pendingAsk';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { HelpLines, kstDate } from './parts';
@@ -33,33 +31,28 @@ const EXAMPLES = [
   '모아 둔 돈으로 이사를 할지 더 모을지 고민이에요',
 ];
 
-const ASK_ERROR: Record<string, string> = {
-  CONSULT_UNAVAILABLE: '상담을 잠시 쉬고 있어요. 조금 뒤에 다시 시도해 주세요',
-  DUPLICATE_REQUEST: '이미 답변을 쓰고 있어요. 잠시만 기다려 주세요',
-};
-
-/** 상담 탭 — 고민을 털어놓고(하루 1번 무료 미리보기), 지난 상담으로 돌아가 이어서 묻는다 */
+/** 상담 탭 — 고민을 털어놓고(하루 5번 무료 미리보기), 지난 상담으로 돌아가 이어서 묻는다 */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account, fortune } = useApp();
-  const { points, toast, goWallet } = usePremium();
+  const { points, toast } = usePremium();
   const [cat, setCat] = useState<ConsultCat | null>(null);
   const [picked, setPicked] = useState(false);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
-  const [asking, setAsking] = useState(false);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const status = useConsultStatus(!!account);
   const history = useQuery({ queryKey: consultKeys.list, queryFn: consultApi.list, enabled: !!account });
   if (!u) return null;
-  if (asking) return <LoadingScreen />;
 
   const cost = status.data?.cost ?? CONSULT_CONFIG.cost;
   const maxLen = status.data?.maxLength ?? CONSULT_CONFIG.maxLen;
   const limit = status.data?.followUpLimit ?? 10;
   const hours = status.data?.followUpHours ?? 24;
   // 로그인 전에도 '무료'로 보여 준다 (가입하면 바로 쓸 수 있다)
-  const free = !account || status.data?.freeToday !== false;
+  const perDay = status.data?.freePerDay ?? 5;
+  const freeLeft = account ? status.data?.freeLeft ?? perDay : perDay;
+  const free = freeLeft > 0;
 
   // 직접 고르지 않았으면 글에서 주제를 추측해 미리 골라 둔다
   const onText = (t: string) => { setText(t); setCrisis(null); if (!picked) setCat(guessCat(t)); };
@@ -72,28 +65,13 @@ export default function ConsultHomeScreen() {
     if (free) ask();
     else setConfirm(true);
   };
-  // 포인트가 모자라도 서버에 보낸다: 위기 신호가 있으면 포인트와 상관없이 상담 전화를 안내받아야 한다
-  const ask = async () => {
-    setConfirm(false); setAsking(true);
-    try {
-      const v = await consultApi.ask(text.trim(), cat ?? undefined);
-      if (v.status === 'crisis' || v.id == null) { setCrisis(v.helpLines ?? []); return; }
-      queryClient.setQueryData(consultKeys.one(v.id), v);
-      queryClient.invalidateQueries({ queryKey: consultKeys.list });
-      queryClient.invalidateQueries({ queryKey: consultKeys.status });
-      if (v.charged) refreshPoints();
-      setText(''); setCat(null); setPicked(false);
-      nav.push('ConsultChat', { id: String(v.id) });
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'INSUFFICIENT_POINTS') {
-        toast(`상담에는 ${cost}P가 필요해요. 충전 후 다시 시도해 주세요`);
-        goWallet?.();
-      } else {
-        toast((e instanceof ApiError && ASK_ERROR[e.code]) || '답변을 만들지 못했어요. 포인트는 쓰이지 않았어요');
-      }
-    } finally {
-      setAsking(false);
-    }
+  // 포인트가 모자라도 서버에 보낸다: 위기 신호가 있으면 포인트와 상관없이 상담 전화를 안내받아야 한다.
+  // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 상담가가 답을 쓰는 중)
+  const ask = () => {
+    setConfirm(false);
+    const key = startAsk(text.trim(), cat ?? undefined);
+    setText(''); setCat(null); setPicked(false); setCrisis(null);
+    nav.push('ConsultChat', { id: 'new', ask: key });
   };
 
   const rows = history.data ?? [];
@@ -121,7 +99,8 @@ export default function ConsultHomeScreen() {
           <Text style={txt.caption}>{cat ? `${catOf(cat).label} 고민${picked ? '' : '으로 골랐어요'}` : '구체적일수록 답이 정확해져요'}</Text>
           <Text style={[txt.caption, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10, marginHorizontal: -16 }} contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}>
+        <Text style={[txt.caption, { marginTop: 14 }]}>어떤 고민인가요? · 고르지 않으면 글을 보고 정해요</Text>
+        <View style={s.chips}>
           {CONSULT_CATS.map(c => {
             const on = cat === c.key;
             return (
@@ -131,7 +110,7 @@ export default function ConsultHomeScreen() {
               </PressableScale>
             );
           })}
-        </ScrollView>
+        </View>
       </Card>
 
       {crisis ? <HelpLines lines={crisis} crisis /> : null}
@@ -143,7 +122,7 @@ export default function ConsultHomeScreen() {
       />
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 8, lineHeight: 18 }]}>
         {free
-          ? `오늘 1번 무료 · 결론을 먼저 보고, ${cost}P로 열면 ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`
+          ? `오늘 무료 ${freeLeft}번 남았어요 · 결론을 먼저 보고, ${cost}P로 열면 ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`
           : `${account ? `보유 ${fmtP(points)} · ` : ''}${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`}
       </Text>
 
@@ -169,7 +148,7 @@ export default function ConsultHomeScreen() {
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}P로 상담받을까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담은 이미 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 포인트가 쓰여요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 포인트가 쓰여요.</Text>
         <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
@@ -204,7 +183,8 @@ const s = StyleSheet.create({
   today: { padding: 14, borderRadius: radius.lg, backgroundColor: colors.lavenderSoft, gap: 4 },
   todayK: { fontSize: 12, fontWeight: '800', color: colors.purple },
   between: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.line },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
   chipH: { fontFamily: fonts.serif, fontSize: 15, fontWeight: '700', color: colors.purple },
   chipT: { fontSize: 13, fontWeight: '600', color: colors.inkSub },

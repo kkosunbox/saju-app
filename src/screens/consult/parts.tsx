@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
@@ -54,15 +54,34 @@ export function CounselorTag() {
   );
 }
 
-/** 상담가의 이어 묻기 답 (왼쪽) · typing이면 쓰는 중 */
-export function ReplyBubble({ children, typing }: { children?: string; typing?: boolean }) {
+/** 답을 쓰는 동안 보여 줄 단계 문구 (몇 초마다 넘어가고 마지막에서 멈춘다) */
+export const STAGES = {
+  first: ['고민을 읽고 있어요…', '사주를 펼쳐 보고 있어요…', '이번 달 기운을 살피는 중이에요…', '답을 정리하고 있어요…'],
+  rest: ['사주로 본 나를 풀어 보고 있어요…', '앞으로 3개월 흐름을 보는 중이에요…', '행동하기 좋은 날을 고르고 있어요…', '거의 다 됐어요…'],
+  reply: ['질문을 읽고 있어요…', '사주를 다시 보며 답을 쓰고 있어요…'],
+};
+const STAGE_MS = 3500;
+
+function Typing({ stages }: { stages: string[] }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI(n => Math.min(n + 1, stages.length - 1)), STAGE_MS);
+    return () => clearInterval(t);
+  }, [stages]);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <ActivityIndicator size="small" color={colors.purple} />
+      <Text style={[txt.small, { color: colors.inkSub }]} accessibilityLiveRegion="polite">{stages[i]}</Text>
+    </View>
+  );
+}
+
+/** 상담가의 답 (왼쪽) · typing이면 단계 문구를 보여 주며 쓰는 중 */
+export function ReplyBubble({ children, typing }: { children?: string; typing?: string[] }) {
   return (
     <View style={s.reply}>
       {typing ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <ActivityIndicator size="small" color={colors.purple} />
-          <Text style={[txt.small, { color: colors.inkSub }]}>사주를 다시 보며 답을 쓰고 있어요…</Text>
-        </View>
+        <Typing stages={typing} />
       ) : (
         <Text style={s.replyText}>{children}</Text>
       )}
@@ -96,6 +115,13 @@ export const TOPIC_REC: Record<ConsultCat, { key: string; title: string; desc: s
   money: { key: 'theme-money', title: '재물 운세로 더 깊이', desc: '돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), to: ['Theme', { kind: 'money' }] },
   people: { key: 'crush', title: '그 사람과의 궁합', desc: '생년월일만 넣으면 둘의 궁합 · 속마음까지', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
   family: { key: 'crush', title: '가족과의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  crush: { key: 'crush', title: '그 사람의 속마음', desc: '궁합을 본 뒤 마음 온도 · 고백하기 좋은 날까지', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  marriage: { key: 'spouse', title: '미래 배우자 리포트', desc: '어떤 사람을, 언제, 어디서 만나게 될까?', item: ITEMS.spouse(), to: ['Spouse'] },
+  job: { key: 'lucky', title: '길일 찾기', desc: '면접 · 계약하기 좋은 날 TOP 5', item: ITEMS.lucky('interview', new Date().toISOString().slice(0, 10)), to: ['Lucky'] },
+  business: { key: 'theme-money', title: '재물 운세로 더 깊이', desc: '돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), to: ['Theme', { kind: 'money' }] },
+  friend: { key: 'crush', title: '친구와의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  children: { key: 'crush', title: '아이와의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 맞는 대화법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  decision: { key: 'lucky', title: '길일 찾기', desc: '이사 · 계약 · 시작하기 좋은 날 TOP 5', item: ITEMS.lucky('move', new Date().toISOString().slice(0, 10)), to: ['Lucky'] },
   self: { key: 'life', title: '평생운 · 10년 대운', desc: '인생 그래프 · 황금기와 위기 · 앞으로 10년', item: ITEMS.life(), to: ['Life'] },
 };
 

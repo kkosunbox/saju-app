@@ -1432,8 +1432,8 @@ export interface paths {
         get: operations["ConsultController_list_v1"];
         put?: never;
         /**
-         * 고민 상담 시작 (하루 1번 무료 미리보기, 그다음은 100P)
-         * @description 그날 첫 상담은 무료 미리보기(status=preview, 결론만)이고 POST /consults/:id/unlock으로 100P에 전부 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 위기 신호가 있으면 status=crisis로 상담 전화만 안내하고 결제·저장하지 않습니다. 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
+         * 고민 상담 시작 (하루 5번 무료 미리보기, 그다음은 100P)
+         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 위기 신호가 있으면 status=crisis로 상담 전화만 안내하고 결제·저장하지 않습니다. 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
          */
         post: operations["ConsultController_ask_v1"];
         delete?: never;
@@ -1449,7 +1449,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 오늘 무료 미리보기 여부 · 가격 · 이어 묻기 한도 */
+        /** 오늘 남은 무료 미리보기 · 가격 · 이어 묻기 한도 */
         get: operations["ConsultController_status_v1"];
         put?: never;
         post?: never;
@@ -2411,7 +2411,7 @@ export interface components {
              */
             status: "preview" | "answered" | "crisis";
             /** @enum {string} */
-            topic: "love" | "reunion" | "work" | "money" | "people" | "family" | "study" | "self";
+            topic: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
             /** @enum {string} */
             risk: "none" | "concern" | "crisis";
             /** @description 위기 · 마음 건강 신호 · 나 자신 주제일 때 함께 보여 줄 상담 전화 */
@@ -2453,11 +2453,15 @@ export interface components {
              * @description 사용자가 고른 주제. 없으면 글에서 판단
              * @enum {string}
              */
-            topic?: "love" | "reunion" | "work" | "money" | "people" | "family" | "study" | "self";
+            topic?: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
         };
         ConsultStatusDto: {
-            /** @description 오늘 무료 미리보기를 쓸 수 있는지 (KST) */
+            /** @description 오늘 무료 미리보기가 남았는지 (KST) */
             freeToday: boolean;
+            /** @description 오늘 남은 무료 미리보기 횟수 */
+            freeLeft: number;
+            /** @description 하루 무료 미리보기 횟수 */
+            freePerDay: number;
             /** @description 상담 1건 (잠금 해제) 가격 */
             cost: number;
             /** @description 결제한 상담 1건에 포함된 이어 묻기 횟수 */

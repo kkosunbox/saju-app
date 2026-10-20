@@ -1,5 +1,5 @@
 /**
- * 고민 상담 (서버 AI). 하루 1번은 무료 미리보기(결론까지만), 100P로 열면 전체 답변과
+ * 고민 상담 (서버 AI). 하루 5번까지 무료 미리보기(결론까지만), 100P로 열면 전체 답변과
  * 24시간 동안 이어 묻기 10번. 포인트는 답변이 만들어진 뒤에만 차감. 회원 전용.
  */
 import { useQuery } from '@tanstack/react-query';
@@ -45,7 +45,10 @@ export interface ConsultView {
   expiresAt: string | null;
 }
 export interface ConsultStatus {
-  freeToday: boolean; cost: number; followUpLimit: number; followUpHours: number; minLength: number; maxLength: number;
+  freeToday: boolean;
+  /** 오늘 남은 무료 미리보기 · 하루 횟수 */
+  freeLeft: number; freePerDay: number;
+  cost: number; followUpLimit: number; followUpHours: number; minLength: number; maxLength: number;
 }
 
 /** 잠금이 풀린 전체 답변인지 */

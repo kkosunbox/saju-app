@@ -24,7 +24,8 @@ import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
 import { fonts, radius, sansW, SCREEN_PX, txt } from '../../theme/typography';
-import { CounselorTag, HelpLines, MyBubble, ReplyBubble, SuggestionChips, TOPIC_REC, kstDate, kstTime } from './parts';
+import { CounselorTag, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, kstDate, kstTime } from './parts';
+import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -34,11 +35,82 @@ const SEND_ERROR: Record<string, string> = {
   CONSULT_CLOSED: '이 상담의 이어 묻기가 끝났어요. 새 상담으로 물어봐 주세요',
 };
 
+const ASK_ERROR: Record<string, string> = {
+  CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 포인트는 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
+  DUPLICATE_REQUEST: '이미 답을 쓰고 있어요. 잠시만 기다려 주세요',
+  INSUFFICIENT_POINTS: '상담에 쓸 포인트가 모자라요. 충전한 뒤 다시 시도해 주세요',
+};
+
 /** 상담 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
 export default function ConsultChatScreen() {
-  const nav = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'ConsultChat'>>();
-  const id = Number(params?.id);
+  return params?.id === 'new' ? <PendingChat askKey={params.ask} /> : <Chat id={Number(params?.id)} />;
+}
+
+/** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 상담가가 답을 쓰는 중 */
+function PendingChat({ askKey }: { askKey?: string }) {
+  const nav = useNavigation<Nav>();
+  const { goWallet } = usePremium();
+  const [key, setKey] = useState(askKey);
+  const [state, setState] = useState<{ kind: 'wait' } | { kind: 'crisis'; lines: HelpLine[] } | { kind: 'error'; message: string }>({ kind: 'wait' });
+  const ask = getAsk(key);
+  useEffect(() => {
+    if (!ask || !key) return;
+    let live = true;
+    ask.result.then(
+      v => {
+        if (!live) return;
+        dropAsk(key);
+        if (v.status === 'crisis' || v.id == null) { setState({ kind: 'crisis', lines: v.helpLines ?? [] }); return; }
+        queryClient.setQueryData(consultKeys.one(v.id), v);
+        queryClient.invalidateQueries({ queryKey: consultKeys.list });
+        queryClient.invalidateQueries({ queryKey: consultKeys.status });
+        if (v.charged) refreshPoints();
+        nav.replace('ConsultChat', { id: String(v.id) });
+      },
+      err => {
+        if (!live) return;
+        const code = err instanceof ApiError ? err.code : '';
+        if (code === 'INSUFFICIENT_POINTS') goWallet?.();
+        setState({ kind: 'error', message: ASK_ERROR[code] ?? ASK_ERROR.CONSULT_UNAVAILABLE });
+      },
+    );
+    return () => { live = false; };
+  }, [key]);
+
+  const toTab = () => nav.navigate('Tabs', { screen: 'Consult' });
+  if (!ask) {
+    return (
+      <Screen title="고민 상담" back>
+        <Text style={[txt.body, { textAlign: 'center', marginTop: 40 }]}>상담 화면을 다시 열어 주세요.</Text>
+        <PrimaryButton label="상담 탭으로" variant="soft" onPress={toTab} style={{ marginTop: 20 }} />
+      </Screen>
+    );
+  }
+  return (
+    <Screen title="고민 상담" back>
+      <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
+      <MyBubble>{ask.worry}</MyBubble>
+      {state.kind === 'crisis' ? (
+        <>
+          <HelpLines lines={state.lines} crisis />
+          <PrimaryButton label="상담 탭으로" variant="soft" onPress={toTab} style={{ marginTop: 16 }} />
+        </>
+      ) : (
+        <>
+          <CounselorTag />
+          {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
+          {state.kind === 'error' ? (
+            <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.topic)); }} style={{ marginTop: 16 }} />
+          ) : null}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function Chat({ id }: { id: number }) {
+  const nav = useNavigation<Nav>();
   const { user: u, account } = useApp();
   const { toast, goWallet } = usePremium();
   const insets = useSafeAreaInsets();
@@ -56,7 +128,7 @@ export default function ConsultChatScreen() {
   useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending, crisis]);
 
   if (!u) return null;
-  if (q.isPending || unlocking) return <LoadingScreen />;
+  if (q.isPending) return <LoadingScreen />;
   const e = q.data;
   if (!e?.answer) {
     return <Screen title="고민 상담" back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
@@ -99,6 +171,7 @@ export default function ConsultChatScreen() {
 
   const unlock = async () => {
     setUnlockOpen(false); setUnlocking(true);
+    setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80);
     try {
       const v = await consultApi.unlock(id);
       put(v);
@@ -131,7 +204,7 @@ export default function ConsultChatScreen() {
 
   const rec = TOPIC_REC[e.topic];
   const footer = e.locked ? (
-    <PrimaryButton label={`${cost}P로 전부 보고 이어서 물어보기`} icon={<Coin size={18} />} onPress={() => setUnlockOpen(true)} />
+    <PrimaryButton label={unlocking ? '나머지 답을 쓰고 있어요' : `${cost}P로 전부 보고 이어서 물어보기`} icon={unlocking ? undefined : <Coin size={18} />} onPress={() => setUnlockOpen(true)} disabled={unlocking} />
   ) : canAsk ? (
     <>
       <View style={s.inputRow}>
@@ -179,7 +252,13 @@ export default function ConsultChatScreen() {
           <SubHead title="마음 읽기" />
           <Card><Para mt={0}>{e.answer.empathy}</Para></Card>
 
-          {full ? <FullAnswer answer={full.answer} facts={full.facts} label={C.label} /> : <LockedRest cost={cost} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />}
+          {full ? (
+            <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
+          ) : unlocking ? (
+            <><CounselorTag /><ReplyBubble typing={STAGES.rest} /></>
+          ) : (
+            <LockedRest cost={cost} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
+          )}
 
           {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
 
@@ -194,12 +273,12 @@ export default function ConsultChatScreen() {
             <>
               <MyBubble>{sending}</MyBubble>
               <CounselorTag />
-              <ReplyBubble typing />
+              <ReplyBubble typing={STAGES.reply} />
             </>
           ) : null}
           {crisis ? <HelpLines lines={crisis} crisis /> : null}
 
-          {!sending && (e.locked || canAsk) ? (
+          {!sending && !unlocking && (e.locked || canAsk) ? (
             <SuggestionChips
               items={suggestions}
               caption={e.locked ? `${cost}P로 열면 이렇게 이어서 물어볼 수 있어요` : '이어서 물어보기'}

@@ -36,7 +36,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
   const { user, account, fortune, today, fortuneLoading, refreshFortune } = useApp();
-  const consultFree = useConsultStatus(!!account).data?.freeToday !== false;
+  const consultStatus = useConsultStatus(!!account).data;
+  const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const { points, toast } = usePremium();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const tal = useFreeContent('talisman').data;
@@ -158,7 +159,7 @@ export default function HomeScreen() {
 
         <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Consult' })} style={[s.premium, { marginTop: 24 }]} scaleTo={0.985} accessibilityLabel="고민 상담하기">
           <View style={{ flex: 1 }}>
-            {consultFree ? <View style={{ flexDirection: 'row' }}><View style={s.newTag}><Text style={s.newText}>오늘 1번 무료</Text></View></View> : null}
+            {consultFreeLeft > 0 ? <View style={{ flexDirection: 'row' }}><View style={s.newTag}><Text style={s.newText}>오늘 무료 {consultFreeLeft}번 남음</Text></View></View> : null}
             <Text style={s.premiumTitle}>오늘 마음에 걸리는 일 있나요?</Text>
             <Text style={s.premiumDesc}>털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요</Text>
           </View>
