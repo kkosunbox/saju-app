@@ -15,6 +15,7 @@ export { useFocusEffect } from 'expo-router';
 export const ROUTES: Record<string, string> = {
   Home: '/',
   Fortune: '/fortune',
+  ConsultChat: '/consult/[id]',
   Content: '/content',
   Compatibility: '/compatibility',
   MyPage: '/my',

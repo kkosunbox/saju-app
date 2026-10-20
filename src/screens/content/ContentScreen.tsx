@@ -19,8 +19,10 @@ import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { COPY } from '../../content/copy';
+import { Period } from '../../types';
 
 type Entry = [PremiumKey, string, string, string];
+const PERIODS: [Period, string, string][] = [['daily', '今', '오늘'], ['weekly', '週', '주간'], ['monthly', '月', '월간'], ['yearly', '年', '연간']];
 const LIST: [string, Entry[]][] = [
   ['나의 인생 지도', [['life', '圖', '평생운', '초년 · 중년 · 말년 · 10년 대운'], ['sajuDeep', '命', '상세 사주 해석', '원국 · 오행 · 나의 본성']]],
   ['올해와 이달', [['newyear', '年', '신년운세', '올해 · 새해 미리보기 · 분기 전략'], ['monthly', '月', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션']]],
@@ -63,6 +65,16 @@ export default function ContentScreen() {
         <Icon name="chevronRight" size={16} color={colors.inkMute} />
       </PressableScale>
 
+      <SubHead title="운세" caption="오늘부터 올해까지, 기간별 흐름" />
+      <View style={s.periods}>
+        {PERIODS.map(([p, ch, t]) => (
+          <PressableScale key={p} onPress={() => nav.navigate('Fortune', { period: p })} style={s.period} scaleTo={0.96} accessibilityLabel={`${t} 운세`}>
+            <Text style={s.periodH}>{ch}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink, marginTop: 4 }}>{t}</Text>
+          </PressableScale>
+        ))}
+      </View>
+
       <SubHead title="무료로 즐기기" caption={COPY.friend} />
       <View style={s.grid}>
         {FREE.map(([ch, t, d, go]) => (
@@ -79,14 +91,6 @@ export default function ContentScreen() {
 
       <SubHead title="지금 가장 많이 보는" caption="새로 나온 프리미엄 콘텐츠" />
       <View style={{ gap: 10 }}>
-        <PressableScale onPress={() => nav.navigate('Consult')} style={s.hot} scaleTo={0.98}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', gap: 6 }}><View style={s.newTag}><Text style={s.newText}>NEW</Text></View><Pill><Text style={{ fontSize: 12, fontWeight: '800', color: colors.purple }}>100P</Text></Pill></View>
-            <Text style={s.hotTitle}>말 못 할 고민 상담</Text>
-            <Text style={s.hotDesc}>누구에게도 못 한 고민, 사주가 익명으로 답해 드려요</Text>
-          </View>
-          <Text style={s.hotHanja}>談</Text>
-        </PressableScale>
         <PressableScale onPress={() => nav.navigate('Spouse')} style={s.hot} scaleTo={0.98}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', gap: 6 }}><View style={s.newTag}><Text style={s.newText}>NEW</Text></View><PriceTag item={ITEMS.spouse()} /></View>
@@ -177,6 +181,9 @@ export default function ContentScreen() {
 }
 
 const s = StyleSheet.create({
+  periods: { flexDirection: 'row', gap: 8 },
+  period: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+  periodH: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.purple },
   points: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   free: { width: '48%', flexGrow: 1, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },

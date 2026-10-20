@@ -33,7 +33,7 @@ export const ITEMS = {
   },
   spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 300, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
-  consult: (id: string): Item => ({ key: 'consult:' + id, title: '고민 상담 1회', cost: 100, scope: '이 상담 답변은 계속 볼 수 있어요', desc: '고민에 대한 한 줄 답 · 마음 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 마지막 한마디' }),
+  consult: (id: string): Item => ({ key: 'consult:' + id, title: '고민 상담 1회', cost: 100, scope: '24시간 동안 10번 이어서 물어볼 수 있어요', desc: '고민에 대한 한 줄 답 · 마음 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 이어 묻기 10번' }),
   compat: (compatibilityId: number, name: string): Item => ({
     key: 'compat:' + compatibilityId, title: name + '님과 심층 궁합', cost: 150, scope: '이 상대와의 궁합은 계속 볼 수 있어요',
     desc: '두 사람 사주 비교 · 사주로 본 인연 · 서로에게 어떤 사람인지 · MBTI 4축 · 연애·결혼·소통·금전 궁합 · 서로를 위한 조언 · 좋은 날',

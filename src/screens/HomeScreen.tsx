@@ -20,6 +20,7 @@ import { Coin, PriceTag } from '../components/premium/Kit';
 import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
+import { useConsultStatus } from '../services/server/consultApi';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { queryClient } from '../api/query';
 import { ApiError } from '../api/client';
@@ -34,7 +35,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
-  const { user, fortune, today, fortuneLoading, refreshFortune } = useApp();
+  const { user, account, fortune, today, fortuneLoading, refreshFortune } = useApp();
+  const consultFree = useConsultStatus(!!account).data?.freeToday !== false;
   const { points, toast } = usePremium();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const tal = useFreeContent('talisman').data;
@@ -149,6 +151,19 @@ export default function HomeScreen() {
 
         <SectionHeader title="오늘의 행동" />
         <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
+        <PressableScale onPress={() => nav.navigate('Fortune')} style={s.allLink} scaleTo={0.98} accessibilityLabel="기간별 운세 보기">
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.purple }}>이번 주 · 이번 달 · 올해 운세 흐름 보기</Text>
+          <Icon name="chevronRight" size={16} color={colors.purple} />
+        </PressableScale>
+
+        <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Consult' })} style={[s.premium, { marginTop: 24 }]} scaleTo={0.985} accessibilityLabel="고민 상담하기">
+          <View style={{ flex: 1 }}>
+            {consultFree ? <View style={{ flexDirection: 'row' }}><View style={s.newTag}><Text style={s.newText}>오늘 1번 무료</Text></View></View> : null}
+            <Text style={s.premiumTitle}>오늘 마음에 걸리는 일 있나요?</Text>
+            <Text style={s.premiumDesc}>털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요</Text>
+          </View>
+          <Text style={{ fontFamily: fonts.serif, fontSize: 44, color: colors.moon }}>談</Text>
+        </PressableScale>
 
         <SectionHeader title="무료로 즐기기" caption={COPY.friend} action="전체 보기" onAction={() => nav.navigate('Tabs', { screen: 'Content' })} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -SCREEN_PX }} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 10 }}>
@@ -184,16 +199,6 @@ export default function HomeScreen() {
             <Text style={s.premiumDesc}>어떤 사람을, 언제, 어디서 만나게 될까?</Text>
           </View>
           <Text style={{ fontFamily: fonts.serif, fontSize: 44, color: colors.moon }}>緣</Text>
-        </PressableScale>
-        <PressableScale onPress={() => nav.navigate('Consult')} style={[s.premium, { marginTop: 10 }]} scaleTo={0.985} accessibilityLabel="말 못 할 고민 상담">
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <View style={s.newTag}><Text style={s.newText}>NEW</Text></View>
-            </View>
-            <Text style={s.premiumTitle}>말 못 할 고민 상담</Text>
-            <Text style={s.premiumDesc}>200자로 털어놓으면 사주가 익명으로 답해요 · 100P</Text>
-          </View>
-          <Text style={{ fontFamily: fonts.serif, fontSize: 44, color: colors.moon }}>談</Text>
         </PressableScale>
         <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} style={s.allLink} scaleTo={0.98}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.purple }}>평생운 · 신년운세 · 월별운세 · 테마 운세 · 길일</Text>

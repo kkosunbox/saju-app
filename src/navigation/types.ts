@@ -1,12 +1,12 @@
 import { NavigatorScreenParams } from '@/navigation/compat';
-import { AnalysisResult, CompatibilityResult } from '../types';
+import { AnalysisResult, CompatibilityResult, Period } from '../types';
 import { CategoryKey } from '../theme/colors';
 import { ThemeKind } from '../services/premium/catalog';
 import type { ShareSpec } from '../services/share/shareSpecs';
 
 export type TabParamList = {
   Home: undefined;
-  Fortune: undefined;
+  Consult: undefined;
   Content: undefined;
   Compatibility: { result?: CompatibilityResult } | undefined;
   MyPage: undefined;
@@ -37,7 +37,10 @@ export type RootStackParamList = {
   Character: undefined;
   Talisman: undefined;
   Spouse: undefined;
-  Consult: { id?: string } | undefined;
+  Fortune: { period?: Period } | undefined;
+  Consult: undefined;
+  /** 상담 대화 (첫 답변 + 이어 묻기) */
+  ConsultChat: { id: string };
   PastLife: undefined;
   Legal: { doc: 'terms' | 'privacy' };
 };

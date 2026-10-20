@@ -868,6 +868,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/premium/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 가격
+         * @description 인생 패키지는 이미 가진 항목을 빼고, 남은 항목 정가에 패키지 할인율을 적용한 가격입니다 (10P 단위 내림). 포함 항목을 반 이상 가지고 있으면 forSale=false이고 열 수 없습니다.
+         */
+        get: operations["PremiumController_quote_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/premium/unlocks": {
         parameters: {
             query?: never;
@@ -880,7 +900,7 @@ export interface paths {
         put?: never;
         /**
          * 포인트로 열기
-         * @description 이미 열려 있으면 포인트를 쓰지 않고 그대로 돌려줍니다. 무료 포인트 → 만료가 가까운 포인트 순으로 차감. 인생 패키지는 포함 항목 열람권을 함께 만듭니다. compat:{id} · crush:{id}는 내 궁합 기록만 가능합니다.
+         * @description 이미 열려 있으면 포인트를 쓰지 않고 그대로 돌려줍니다. 무료 포인트 → 만료가 가까운 포인트 순으로 차감. 인생 패키지는 포함 항목 열람권을 함께 만들고, 이미 가진 항목만큼 싸집니다(GET /premium/quote). 포함 항목을 반 이상 가졌으면 CONTENT_NOT_FOR_SALE. compat:{id} · crush:{id}는 내 궁합 기록만 가능합니다.
          */
         post: operations["PremiumController_unlock_v1"];
         delete?: never;
@@ -1408,14 +1428,71 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 내 상담 기록 (최신 50건, 고민 글 제외) */
+        /** 내 상담 기록 (최신 50건, 고민 글 · 대화 제외) */
         get: operations["ConsultController_list_v1"];
         put?: never;
         /**
-         * 고민 상담 (100P)
-         * @description 위기 신호가 있으면 status=crisis로 상담 전화만 안내하고 결제·저장하지 않습니다. 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
+         * 고민 상담 시작 (하루 1번 무료 미리보기, 그다음은 100P)
+         * @description 그날 첫 상담은 무료 미리보기(status=preview, 결론만)이고 POST /consults/:id/unlock으로 100P에 전부 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 위기 신호가 있으면 status=crisis로 상담 전화만 안내하고 결제·저장하지 않습니다. 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
          */
         post: operations["ConsultController_ask_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consults/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 오늘 무료 미리보기 여부 · 가격 · 이어 묻기 한도 */
+        get: operations["ConsultController_status_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consults/{id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 무료 미리보기 잠금 해제 (100P)
+         * @description 이미 열린 상담이면 결제 없이 그대로 돌려줍니다.
+         */
+        post: operations["ConsultController_unlock_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/consults/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 이어 묻기 (결제한 상담, 추가 결제 없음)
+         * @description 결제 후 24시간 동안 10번까지. 잠긴 미리보기면 403 CONTENT_LOCKED, 기한·횟수가 끝났으면 409 CONSULT_CLOSED. 위기 신호가 있으면 status=crisis(상담 전화 안내)만 돌려주고 대화에 남기지 않습니다. 성공하면 turns가 늘어난 상담 전체를 돌려줍니다.
+         */
+        post: operations["ConsultController_followUp_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1429,7 +1506,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 상담 한 건 (고민 글 포함) */
+        /** 상담 한 건 (고민 글 · 이어 묻기 대화 포함) */
         get: operations["ConsultController_get_v1"];
         put?: never;
         post?: never;
@@ -2142,6 +2219,21 @@ export interface components {
             items: components["schemas"]["CatalogItemDto"][];
             packs: components["schemas"]["PointPackDto"][];
         };
+        QuoteDto: {
+            /** @example bundle:life */
+            contentKey: string;
+            title: string;
+            /** @description 지금 열면 쓰는 포인트 (이미 열려 있으면 0) */
+            cost: number;
+            /** @description 같은 항목을 하나씩 살 때의 가격 */
+            originalCost: number;
+            /** @description 이미 가진 포함 항목 (패키지만) */
+            ownedIncludes: string[];
+            /** @description 패키지 포함 항목을 반 이상 가지고 있으면 false (팔지 않음, 화면에서 숨김) */
+            forSale: boolean;
+            /** @description 이미 열려 있음 */
+            open: boolean;
+        };
         EntitlementDto: {
             /** @example monthly:2026-10 */
             contentKey: string;
@@ -2304,13 +2396,20 @@ export interface components {
             name: string;
             phone: string;
         };
+        ConsultTurnDto: {
+            question: string;
+            reply: string;
+            /** @description 이어서 물어볼 만한 질문 3개 */
+            followUps: string[];
+            createdAt: string;
+        };
         ConsultDto: {
             id: number | null;
             /**
-             * @description answered: 답변 · crisis: 위기 신호 → 상담 전화 안내, 결제·저장 없음
+             * @description preview: 오늘의 무료 미리보기 (결론만, 100P로 잠금 해제) · answered: 전체 답변 · crisis: 위기 신호 → 상담 전화 안내, 결제·저장 없음
              * @enum {string}
              */
-            status: "answered" | "crisis";
+            status: "preview" | "answered" | "crisis";
             /** @enum {string} */
             topic: "love" | "reunion" | "work" | "money" | "people" | "family" | "study" | "self";
             /** @enum {string} */
@@ -2319,9 +2418,21 @@ export interface components {
             helpLines: components["schemas"]["HelpLineDto"][] | null;
             /** @description 고민 글 (상세 조회에서만) */
             question: string | null;
+            /** @description 잠겨 있으면 headline · direct · empathy · followUps만. followUps는 이어 물어볼 질문 3개 (예전 답변엔 없을 수 있음) */
             answer: Record<string, never> | null;
-            /** @description 사주 근거 (흐름 · 좋은 달 · 좋은 날 …) */
+            /** @description 무료 미리보기라 잠겨 있는지 */
+            locked: boolean;
+            /** @description 사주 근거 (흐름 · 좋은 달 · 좋은 날 …). 잠겨 있으면 null */
             facts: Record<string, never> | null;
+            /** @description 이어 묻기 대화 (목록에서는 null) */
+            turns: components["schemas"]["ConsultTurnDto"][] | null;
+            /** @description 남은 이어 묻기 횟수 (잠김 · 기한 지남이면 0) */
+            followUpsLeft: number;
+            /**
+             * Format: date-time
+             * @description 이어 묻기 마감 시각
+             */
+            followUpUntil: string | null;
             /** @description 이번 요청에서 쓴 포인트 */
             charged: number;
             /** Format: date-time */
@@ -2334,7 +2445,7 @@ export interface components {
         };
         AskConsultRequest: {
             /**
-             * @description 고민 글 (10~200자)
+             * @description 고민 글 (10~500자)
              * @example 이직을 해야 할지 6개월째 고민이에요.
              */
             worry: string;
@@ -2343,6 +2454,25 @@ export interface components {
              * @enum {string}
              */
             topic?: "love" | "reunion" | "work" | "money" | "people" | "family" | "study" | "self";
+        };
+        ConsultStatusDto: {
+            /** @description 오늘 무료 미리보기를 쓸 수 있는지 (KST) */
+            freeToday: boolean;
+            /** @description 상담 1건 (잠금 해제) 가격 */
+            cost: number;
+            /** @description 결제한 상담 1건에 포함된 이어 묻기 횟수 */
+            followUpLimit: number;
+            /** @description 결제 후 이어 묻기를 할 수 있는 시간 */
+            followUpHours: number;
+            minLength: number;
+            maxLength: number;
+        };
+        FollowUpConsultRequest: {
+            /**
+             * @description 이어서 묻는 말 (2~300자)
+             * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
+             */
+            question: string;
         };
     };
     responses: never;
@@ -4939,6 +5069,86 @@ export interface operations {
             };
         };
     };
+    PremiumController_quote_v1: {
+        parameters: {
+            query: {
+                /** @description 열람 키 (docs/payment-design.md 3.2). 가격은 서버가 정합니다 */
+                contentKey: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["QuoteDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOR_SALE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOR_SALE */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOR_SALE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     PremiumController_listUnlocks_v1: {
         parameters: {
             query?: never;
@@ -7221,6 +7431,317 @@ export interface operations {
                         /** @example DUPLICATE_REQUEST */
                         code?: string;
                         /** @example DUPLICATE_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONSULT_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONSULT_UNAVAILABLE */
+                        code?: string;
+                        /** @example CONSULT_UNAVAILABLE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ConsultController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ConsultStatusDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ConsultController_unlock_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ConsultDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INSUFFICIENT_POINTS */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INSUFFICIENT_POINTS */
+                        code?: string;
+                        /** @example INSUFFICIENT_POINTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: DUPLICATE_REQUEST */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example DUPLICATE_REQUEST */
+                        code?: string;
+                        /** @example DUPLICATE_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ConsultController_followUp_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowUpConsultRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ConsultDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_LOCKED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_LOCKED */
+                        code?: string;
+                        /** @example CONTENT_LOCKED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONSULT_CLOSED, DUPLICATE_REQUEST */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONSULT_CLOSED */
+                        code?: string;
+                        /** @example CONSULT_CLOSED */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

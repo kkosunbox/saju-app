@@ -73,7 +73,8 @@ function RootStack() {
         <Stack.Screen name="character" />
         <Stack.Screen name="talisman" />
         <Stack.Screen name="spouse" />
-        <Stack.Screen name="consult" />
+        <Stack.Screen name="fortune" />
+        <Stack.Screen name="consult/[id]" />
         <Stack.Screen name="past-life" />
         <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>

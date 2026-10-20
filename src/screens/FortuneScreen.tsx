@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@/navigation/compat';
+import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
+import { RootStackParamList } from '../navigation/types';
 import Screen from '../components/Screen';
 import Segmented from '../components/Segmented';
 import Card from '../components/Card';
@@ -47,10 +48,12 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
   );
 }
 
+/** 오늘 · 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다) */
 export default function FortuneScreen() {
   const { user, fortune, today } = useApp();
   const nav = useNavigation();
-  const [tab, setTab] = useState<Period>('daily');
+  const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
+  const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
   const [open, setOpen] = useState<CategoryKey | null>(null);
   const periodQuery = useQuery({
     queryKey: ['period', tab, user?.id, user?.version, today],
@@ -74,8 +77,8 @@ export default function FortuneScreen() {
     love: { key: 'theme-love', title: `${label} 연애운이 아쉽다면`, desc: '연애·결혼 운세 · 잘 맞는 사람 · 인연이 오는 해', item: ITEMS.theme('love'), go: () => nav.navigate('Theme', { kind: 'love' }) },
     money: { key: 'theme-money', title: `${label} 재물운이 아쉽다면`, desc: '재물 운세 · 돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), go: () => nav.navigate('Theme', { kind: 'money' }) },
     work: { key: 'theme-career', title: `${label} 직장운이 아쉽다면`, desc: '직업·적성 운세 · 커리어 상승기 · 이직 타이밍', item: ITEMS.theme('career'), go: () => nav.navigate('Theme', { kind: 'career' }) },
-    relationship: { key: 'consult', title: '사람 때문에 고민이라면', desc: '말 못 할 고민 상담 · 사주가 익명으로 답해요', item: CONSULT_ITEM, go: () => nav.navigate('Consult') },
-    consult: { key: 'consult', title: '말 못 할 고민 상담', desc: '200자로 털어놓으면 사주가 답해요 · 결론부터 · 행동하기 좋은 날', item: CONSULT_ITEM, go: () => nav.navigate('Consult') },
+    relationship: { key: 'consult', title: '사람 때문에 고민이라면', desc: '고민 상담 · 오늘 1번 무료 · 사주가 익명으로 답해요', item: CONSULT_ITEM, go: () => nav.navigate('Tabs', { screen: 'Consult' }) },
+    consult: { key: 'consult', title: '고민 상담', desc: '오늘 1번 무료 · 결론부터 · 이어서 물어보기', item: CONSULT_ITEM, go: () => nav.navigate('Tabs', { screen: 'Consult' }) },
     lucky: { key: 'lucky', title: '길일 찾기', desc: '이사 · 계약 · 고백 · 면접하기 좋은 날 TOP 5', item: ITEMS.lucky('move', today), go: () => nav.navigate('Lucky') },
     crush: { key: 'crush', title: '그 사람의 속마음', desc: '마음 온도 · 연인 가능성 · 연락하기 좋은 날', item: CRUSH_ITEM, go: () => nav.navigate('Tabs', { screen: 'Compatibility' }) },
     monthly: { key: 'monthly', title: `${tm}월 상세운세`, desc: '운세 달력 · 주차별 흐름 · 좋은 날 활용법 · 이달의 미션', item: ITEMS.monthly(ty, tm), go: () => nav.navigate('Monthly') },
@@ -87,7 +90,7 @@ export default function FortuneScreen() {
   const recs = [R[weak], ...BY_TAB[tab].map(k => R[k])].filter((r, i, a) => a.findIndex(x => x.key === r.key) === i).slice(0, 3);
 
   return (
-    <Screen largeTitle="운세" subtitle={COPY.four}>
+    <Screen largeTitle="운세" subtitle={COPY.four} back>
       <Segmented<Period> options={TABS} value={tab} onChange={t => { setTab(t); setOpen(null); }} />
 
       <Card style={s.summary}>

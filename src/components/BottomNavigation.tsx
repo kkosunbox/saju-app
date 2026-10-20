@@ -12,7 +12,7 @@ type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs
 /** 키는 src/app/(tabs) 의 라우트 이름 */
 const ITEMS: Record<string, { label: string; icon: IconName }> = {
   index: { label: '홈', icon: 'home' },
-  fortune: { label: '운세', icon: 'sheet' },
+  consult: { label: '상담', icon: 'chat' },
   content: { label: '콘텐츠', icon: 'grid' },
   compatibility: { label: '궁합', icon: 'heart' },
   my: { label: '마이', icon: 'user' },
