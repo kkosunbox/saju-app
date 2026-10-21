@@ -2,12 +2,12 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import PressableScale from './PressableScale';
-import Icon from './Icon';
+import GradientBorder from './GradientBorder';
 import { SHARE_P, usePremium } from '../context/PremiumContext';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { useShare } from '../services/share/useShare';
 import { colors } from '../theme/colors';
-import { fonts, radius, txt } from '../theme/typography';
+import { radius, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
 
 /**
@@ -19,35 +19,33 @@ export default function ShareActions({ spec, title = COPY.friend }: { spec: Shar
   const { shareRewardsLeft } = usePremium();
   const { sendLink } = useShare();
   return (
-    <View style={s.box}>
+    <GradientBorder outer={{ marginTop: 20 }} style={s.box}>
       <View style={s.head}>
         <Text style={s.title}>{title}</Text>
-        {shareRewardsLeft > 0 ? <View style={s.badge}><Text style={s.badgeText}>공유 +{SHARE_P}P</Text></View> : null}
+        {shareRewardsLeft > 0 ? <View style={s.badge}><Text style={s.badgeText}>공유 +{SHARE_P}알</Text></View> : null}
       </View>
-      <Text style={[txt.small, { marginTop: 4 }]}>보내면 친구 결과와 내 결과가 나란히 비교돼요</Text>
+      <Text style={[txt.small, { marginTop: 6 }]}>보내면 친구 결과와 내 결과가 나란히 비교돼요.</Text>
       <View style={s.row}>
         <PressableScale onPress={() => sendLink(spec)} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="친구에게 링크 보내기">
-          <Icon name="heart" size={18} color={colors.white} />
           <Text style={[s.text, { color: colors.white }]}>친구에게 보내기</Text>
         </PressableScale>
         <PressableScale onPress={() => nav.navigate('Share', { spec })} style={[s.btn, s.soft]} scaleTo={0.96} accessibilityLabel="스토리용 카드 만들기">
-          <Icon name="share" size={18} color={colors.purple} />
-          <Text style={[s.text, { color: colors.purple }]}>스토리 카드</Text>
+          <Text style={[s.text, { color: colors.ink }]}>스토리 카드</Text>
         </PressableScale>
       </View>
-    </View>
+    </GradientBorder>
   );
 }
 
 const s = StyleSheet.create({
-  box: { marginTop: 16, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong },
+  box: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 16 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontFamily: fonts.display, fontSize: 17, fontWeight: '700', color: colors.ink },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: colors.seal },
-  badgeText: { fontSize: 11, fontWeight: '800', color: colors.white },
-  row: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  btn: { flex: 1, height: 50, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  soft: { backgroundColor: colors.lavenderSoft },
+  title: { fontSize: 16, fontWeight: '700', color: colors.ink, letterSpacing: -0.8 },
+  badge: { height: 24, justifyContent: 'center', paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.accent },
+  badgeText: { fontSize: 12, fontWeight: '700', color: colors.white },
+  row: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  btn: { flex: 1, height: 40, borderRadius: radius.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  soft: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong },
   solid: { backgroundColor: colors.navy },
-  text: { fontSize: 15, fontWeight: '600' },
+  text: { fontSize: 14, fontWeight: '600', letterSpacing: -0.4 },
 });

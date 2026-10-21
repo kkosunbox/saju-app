@@ -22,12 +22,15 @@ interface Props {
   score: number; size?: number; stroke?: number;
   color?: string; track?: string; textColor?: string;
   label?: string; delay?: number; animate?: boolean;
+  /** 링 안쪽을 채우는 원 색 (디자인의 점수 동그라미) */
+  inner?: string;
+  fontSize?: number;
 }
 
-/** 달의 궤도처럼 차오르는 점수 링 + 숫자 카운트업 */
+/** 위에서부터 차오르는 점수 링(진한 색 → 옅은 회색 그라디언트) + 숫자 카운트업 */
 export default function ScoreRing({
   score, size = 132, stroke = 9, color = '#D9B872', track = 'rgba(255,255,255,0.14)',
-  textColor = '#FFFFFF', label, delay = 150, animate = true,
+  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize,
 }: Props) {
   const reduced = useReducedMotion();
   // React 19.1의 useId는 «r0» 형식 → SVG url(#id)에 쓸 수 없는 문자를 모두 제거
@@ -52,11 +55,12 @@ export default function ScoreRing({
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={`${score}점`}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
         <Defs>
-          <LinearGradient id={`ring${gid}`} x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={color} stopOpacity={0.5} />
-            <Stop offset="1" stopColor={color} stopOpacity={1} />
+          <LinearGradient id={`ring${gid}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity={1} />
+            <Stop offset="1" stopColor={color} stopOpacity={0.12} />
           </LinearGradient>
         </Defs>
+        {inner ? <Circle cx={size / 2} cy={size / 2} r={r - stroke / 2 - 2} fill={inner} /> : null}
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
         <AnimatedCircle
           cx={size / 2} cy={size / 2} r={r}
@@ -68,7 +72,7 @@ export default function ScoreRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={{ fontFamily: fonts.serif, fontSize: size * 0.32, fontWeight: '500', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }} />
+      <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={{ fontFamily: fonts.serif, fontSize: fontSize ?? size * 0.32, fontWeight: '700', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }} />
       {label ? <Text style={{ fontSize: 12, fontWeight: '600', color: textColor, opacity: 0.75, marginTop: -2 }}>{label}</Text> : null}
     </View>
   );

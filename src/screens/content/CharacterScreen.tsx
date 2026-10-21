@@ -6,6 +6,7 @@ import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import BrandMark from '../../components/BrandMark';
+import Mascot from '../../components/Mascot';
 import { Bullet, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -31,7 +32,11 @@ export default function CharacterScreen() {
       <FriendCompare route="Character" spec={characterSpec(u, c)} />
       <View ref={card} collapsable={false} style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
-        <View style={[s.seal, { borderColor: colors.moon }]}><Text style={s.sealText}>{c.hanja}</Text></View>
+        {/* 캐릭터 그림은 아직 호랑이 하나뿐 — 60가지 그림이 나오면 c.hanja(일주)로 고른다 */}
+        <View style={s.art}>
+          <Mascot name="tiger" size={104} />
+          <View style={s.hanja}><Text style={s.hanjaText}>{c.hanja}</Text></View>
+        </View>
         <Text style={s.eyebrow}>{u.nickname}님은</Text>
         <Text style={s.name}>{c.name}</Text>
         <Text style={s.title}>{c.title}</Text>
@@ -50,7 +55,7 @@ export default function CharacterScreen() {
 
       <SubHead title="찰떡 캐릭터" caption="함께 있으면 편안한 기운" />
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <Text style={{ fontFamily: fonts.serif, fontSize: 28, color: colors.purpleSoft }}>合</Text>
+        <Mascot name="friends" size={34} />
         <View style={{ flex: 1 }}>
           <Text style={txt.h3}>{c.bestFriend}</Text>
           <Text style={[txt.small, { marginTop: 2 }]}>친구에게 공유해서 찰떡 캐릭터인지 확인해 보세요</Text>
@@ -58,7 +63,7 @@ export default function CharacterScreen() {
       </Card>
 
       <PressableScale onPress={() => nav.navigate('SajuDeep')} style={s.cta} scaleTo={0.98}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.purple }}>내 사주를 더 깊이 알고 싶다면</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>내 사주를 더 깊이 알고 싶다면</Text>
         <Text style={[txt.small, { marginTop: 2 }]}>원국표 · 오행 · 신살 · 재물 · 연애까지, 상세 사주 해석 보러 가기 →</Text>
       </PressableScale>
     </Screen>
@@ -66,17 +71,18 @@ export default function CharacterScreen() {
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.heroBg, borderRadius: radius.xl, padding: 22, alignItems: 'center', marginTop: 4 },
+  card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, padding: 20, alignItems: 'center', marginTop: 4 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   brandText: { fontFamily: fonts.serif, color: colors.white, fontSize: 14, fontWeight: '600' },
-  seal: { marginTop: 20, width: 84, height: 84, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-4deg' }] },
-  sealText: { fontFamily: fonts.serif, fontSize: 30, fontWeight: '600', color: colors.moon, letterSpacing: 2 },
+  art: { marginTop: 12, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  hanja: { position: 'absolute', right: -4, bottom: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.moon },
+  hanjaText: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '700', color: colors.heroBg, letterSpacing: 1 },
   eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 18 },
   name: { fontFamily: fonts.serif, color: colors.white, fontSize: 36, fontWeight: '600', marginTop: 2 },
   title: { color: colors.moon, fontSize: 14, marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 16 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
   chipText: { color: colors.white, fontSize: 12, fontWeight: '600' },
   foot: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 18 },
-  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.lavenderSoft, borderWidth: 1, borderColor: colors.lavender },
+  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.card },
 });

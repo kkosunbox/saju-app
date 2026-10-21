@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#F3EEE4",
+    "backgroundColor": "#FFFFFF",
     "description": "오늘의 운, 하나만 Pick! 사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세.",
     "primaryColor": "#22293F",
     "ios": {
@@ -24,7 +24,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F4EDDF"
+        "backgroundColor": "#7FD0FF"
       },
       "permissions": []
     },
@@ -33,8 +33,8 @@
       "output": "static",
       "name": "운Pick · 오늘의 운, 하나만 Pick!",
       "shortName": "운Pick",
-      "themeColor": "#22293F",
-      "backgroundColor": "#F3EEE4",
+      "themeColor": "#FFFFFF",
+      "backgroundColor": "#FFFFFF",
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
@@ -47,10 +47,10 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#F3EEE4",
+          "backgroundColor": "#FFFFFF",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#F3EEE4"
+            "backgroundColor": "#121418"
           }
         }
       ]

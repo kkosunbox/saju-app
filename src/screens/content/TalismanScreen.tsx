@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
+import Mascot, { Logo } from '../../components/Mascot';
 import ShareActions from '../../components/ShareActions';
 import { InfoRows, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
@@ -11,8 +13,8 @@ import { fonts, txt } from '../../theme/typography';
 import { talismanSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 
-const PAPER = '#EED9A4';
-const INK = '#A5321F';
+/** 부적 카드는 모드와 상관없이 밝은 노란 종이 */
+const INK = '#C4402B';
 
 /** 무료: 매일 바뀌는 오늘의 부적 */
 export default function TalismanScreen() {
@@ -27,15 +29,17 @@ export default function TalismanScreen() {
     <Screen title="오늘의 부적" back>
       <FriendCompare route="Talisman" spec={talismanSpec(u, t)} />
       <View style={{ alignItems: 'center' }}>
-        <View ref={card} collapsable={false} style={s.paper}>
-          <View style={s.frame}>
+        <View ref={card} collapsable={false} style={s.paperWrap}>
+          <LinearGradient colors={['#FFF3B8', '#FFFBE6']} style={s.paper}>
             <Text style={s.top}>{formatKoreanDate(today)}</Text>
-            <Text style={s.hanja}>{t.hanja}</Text>
-            <View style={s.line} />
+            <View style={s.charm}>
+              <Text style={s.hanja}>{t.hanja}</Text>
+            </View>
             <Text style={s.mantra}>{t.mantra}</Text>
-            <Text style={s.meta}>{u.nickname} · 오늘의 {t.keyword}</Text>
-            <View style={s.stamp}><Text style={s.stampText}>운Pick</Text></View>
-          </View>
+            <View style={s.keyword}><Text style={s.keywordText}>{u.nickname} · 오늘의 {t.keyword}</Text></View>
+            <Mascot name="talisman" size={56} style={s.art} />
+            <View style={s.brand}><Logo height={20} color="#3A2C10" /></View>
+          </LinearGradient>
         </View>
       </View>
       <ShareActions spec={talismanSpec(u, t)} />
@@ -48,14 +52,14 @@ export default function TalismanScreen() {
 }
 
 const s = StyleSheet.create({
-  paper: { width: 260, aspectRatio: 0.62, backgroundColor: PAPER, padding: 12, marginTop: 4, borderRadius: 4, shadowColor: '#281E0A', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  frame: { flex: 1, borderWidth: 2, borderColor: INK, alignItems: 'center', justifyContent: 'center', padding: 16 },
-  top: { position: 'absolute', top: 14, fontSize: 11, color: INK, opacity: 0.8 },
-  hanja: { fontFamily: fonts.serif, fontSize: 120, lineHeight: 140, fontWeight: '700', color: INK },
-  line: { width: 40, height: 2, backgroundColor: INK, marginVertical: 14, opacity: 0.7 },
-  mantra: { fontFamily: fonts.serif, fontSize: 15, lineHeight: 24, color: '#3A2410', textAlign: 'center', fontWeight: '600' },
-  meta: { fontSize: 11, color: INK, marginTop: 12, opacity: 0.8 },
-  stamp: { position: 'absolute', bottom: 14, right: 14, borderWidth: 1.5, borderColor: INK, paddingHorizontal: 5, paddingVertical: 3, transform: [{ rotate: '-8deg' }] },
-  stampText: { fontFamily: fonts.serif, fontSize: 11, color: INK, fontWeight: '700' },
+  paperWrap: { width: 260, aspectRatio: 0.62, marginTop: 4, borderRadius: 16, backgroundColor: '#FFF3B8', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  paper: { flex: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' },
+  top: { position: 'absolute', top: 16, fontSize: 11, fontWeight: '600', color: '#8A6A2A' },
+  charm: { width: 150, height: 150, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: INK + '55' },
+  hanja: { fontFamily: fonts.serif, fontSize: 96, lineHeight: 112, fontWeight: '700', color: INK },
+  mantra: { fontSize: 15, lineHeight: 22, color: '#3A2C10', textAlign: 'center', fontWeight: '700', letterSpacing: -0.5, marginTop: 18 },
+  keyword: { marginTop: 10, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 0.5, borderColor: INK },
+  keywordText: { fontSize: 11, fontWeight: '600', color: INK },
+  art: { position: 'absolute', left: 12, bottom: 10 },
+  brand: { position: 'absolute', right: 14, bottom: 14 },
 });
-

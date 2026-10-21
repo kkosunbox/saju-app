@@ -4,8 +4,10 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Icon, { IconName } from './Icon';
-import { colors } from '../theme/colors';
-import { radius, shadow } from '../theme/typography';
+import { colors, isDark } from '../theme/colors';
+import { shadow } from '../theme/typography';
+
+const INACTIVE = isDark ? '#6B707C' : '#B0B0B0';
 
 type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -14,25 +16,24 @@ const ITEMS: Record<string, { label: string; icon: IconName }> = {
   index: { label: '홈', icon: 'home' },
   consult: { label: '상담', icon: 'chat' },
   content: { label: '콘텐츠', icon: 'grid' },
-  compatibility: { label: '궁합', icon: 'heart' },
+  compatibility: { label: '궁합', icon: 'chatHeart' },
   my: { label: '마이', icon: 'user' },
 };
 
 function TabItem({ focused, label, icon, onPress }: { focused: boolean; label: string; icon: IconName; onPress(): void }) {
-  const v = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const v = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    Animated.spring(v, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 18, bounciness: 8 }).start();
+    if (!focused) return;
+    v.setValue(0.85);
+    Animated.spring(v, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 10 }).start();
   }, [focused]);
-  const pillScale = v.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+  const on = focused ? colors.ink : INACTIVE;
   return (
     <Pressable onPress={onPress} style={s.item} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}>
-      <View style={s.iconBox}>
-        <Animated.View style={[s.pill, { opacity: v, transform: [{ scaleX: pillScale }] }]} />
-        <View>
-          <Icon name={icon} size={22} color={focused ? colors.purple : colors.inkMute} filled={focused} strokeWidth={focused ? 2 : 1.7} />
-        </View>
-      </View>
-      <Text style={[s.label, focused && { color: colors.purple, fontWeight: '700' }]}>{label}</Text>
+      <Animated.View style={{ transform: [{ scale: v }] }}>
+        <Icon name={icon} size={24} color={on} strokeWidth={focused ? 2 : 1.7} />
+      </Animated.View>
+      <Text style={[s.label, { color: on }, focused && { fontWeight: '700' }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -40,7 +41,7 @@ function TabItem({ focused, label, icon, onPress }: { focused: boolean; label: s
 export default function BottomNavigation({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[s.bar, shadow.float, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+    <View style={[s.bar, shadow.float, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {state.routes.map((route, i) => {
         const focused = state.index === i;
         const item = ITEMS[route.name];
@@ -65,9 +66,7 @@ export default function BottomNavigation({ state, navigation }: BottomTabBarProp
 }
 
 const s = StyleSheet.create({
-  bar: { flexDirection: 'row', backgroundColor: colors.card, paddingTop: 8, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  item: { flex: 1, alignItems: 'center', gap: 3 },
-  iconBox: { width: 56, height: 30, alignItems: 'center', justifyContent: 'center' },
-  pill: { position: 'absolute', width: 56, height: 30, borderRadius: radius.sm, backgroundColor: colors.lavenderSoft },
-  label: { fontSize: 11, color: colors.inkMute, fontWeight: '500' },
+  bar: { flexDirection: 'row', backgroundColor: colors.cream, paddingTop: 14, paddingHorizontal: 13, borderTopWidth: 1, borderTopColor: isDark ? colors.line : '#EDEDED' },
+  item: { flex: 1, alignItems: 'center', gap: 4 },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: -0.3 },
 });

@@ -13,8 +13,9 @@ import { usePremium } from '../../context/PremiumContext';
 import { Item, fmtP } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
-import { fonts, radius, shadow, txt } from '../../theme/typography';
+import { fonts, radius, SCREEN_PX, shadow, txt } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
+import Mascot from '../Mascot';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
 
@@ -22,7 +23,7 @@ export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? co
 export function Coin({ size = 14 }: { size?: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.moon, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontFamily: fonts.serif, fontSize: size * 0.62, lineHeight: size * 0.8, fontWeight: '700', color: '#3A2C10' }}>P</Text>
+      <Text style={{ fontFamily: fonts.serif, fontSize: size * 0.7, lineHeight: size * 0.86, fontWeight: '700', color: colors.white }}>P</Text>
     </View>
   );
 }
@@ -66,9 +67,8 @@ export function HeadRow({ item, caption }: { item?: Item | null; caption: string
 /* ---------- 글 ---------- */
 export function SubHead({ title, caption, first }: { title: string; caption?: string; first?: boolean }) {
   return (
-    <View style={{ marginTop: first ? 12 : 32, marginBottom: 12 }}>
-      <HeadTitle title={title} />
-      {caption ? <Text style={[txt.small, { marginTop: 3 }]}>{caption}</Text> : null}
+    <View style={{ marginTop: first ? 12 : 32, marginBottom: 16 }}>
+      <HeadTitle title={title} caption={caption} />
     </View>
   );
 }
@@ -157,9 +157,8 @@ export function Hero({ children, style }: { children: React.ReactNode; style?: S
   return (
     <View style={[{ borderRadius: radius.xl, backgroundColor: colors.heroBg, marginTop: 12 }, shadow.hero, { marginTop: flat.marginTop ?? 12 }]}>
       <View style={[{ borderRadius: radius.xl, padding: 20, overflow: 'hidden', backgroundColor: colors.heroBg }, style, { marginTop: 0 }]}>
-        {/* 책력 테두리: 안쪽 가는 선 + 모서리 꺾쇠 (장식, 터치 없음) */}
-        <View pointerEvents="none" style={s.heroFrame} />
-        {(['tl', 'tr', 'bl', 'br'] as const).map(k => <View key={k} pointerEvents="none" style={[s.heroCorner, s[k]]} />)}
+        {/* 오른쪽 아래 마스코트 실루엣 (장식, 터치 없음) */}
+        <Mascot name="shadow" size={120} style={s.heroArt} />
         {children}
       </View>
     </View>
@@ -195,7 +194,7 @@ export function ChipSelect<T extends string | number>({ items, value, onChange }
   };
   useEffect(() => { scrollTo(String(value), true); }, [value]);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginTop: 12 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, paddingVertical: 2 }}>
+    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -SCREEN_PX, marginTop: 12 }} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 8, paddingVertical: 2 }}>
       {items.map(([k, l, sub]) => {
         const on = String(k) === String(value);
         return (
@@ -213,7 +212,7 @@ export function ChipSelect<T extends string | number>({ items, value, onChange }
 }
 
 export function Rank({ n, first }: { n: number; first?: boolean }) {
-  return <View style={[s.rank, first && { backgroundColor: colors.navy }]}><Text style={[s.rankText, first && { color: colors.moon }]}>{n}</Text></View>;
+  return <View style={[s.rank, first && { backgroundColor: colors.navy }]}><Text style={[s.rankText, first && { color: colors.white }]}>{n}</Text></View>;
 }
 
 /* ---------- 잠금 ---------- */
@@ -244,10 +243,10 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         <LinearGradient colors={[colors.cream + '00', colors.cream]} locations={[0.25, 0.95]} style={StyleSheet.absoluteFill} />
       </View>
       <View style={s.lockPanel}>
-        <Seal ch="封" size={52} />
+        <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
         <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{item.desc}</Text>
-        <PrimaryButton label={`${item.cost}P로 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
+        <PrimaryButton label={`${item.cost}알로 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>보유 {fmtP(points)} · {item.scope}</Text>
       </View>
     </View>
@@ -289,7 +288,7 @@ export function PriceCard({ item, onUnlocked }: { item: Item; onUnlocked?(): voi
   const { openUnlock } = usePremium();
   return (
     <PressableScale onPress={() => openUnlock(item, onUnlocked)} style={s.priceCard} accessibilityLabel={`${item.title} 열기`}>
-      <View style={s.between}><PriceTag item={item} /><Text style={txt.caption}>封 잠김</Text></View>
+      <View style={s.between}><PriceTag item={item} /><View style={s.row4}><Icon name="lock" size={13} color={colors.inkMute} /><Text style={txt.caption}>잠김</Text></View></View>
       <Text style={[txt.h3, { marginTop: 10 }]}>{item.title}</Text>
       <Text style={[txt.small, { marginTop: 4 }]}>{item.desc}</Text>
     </PressableScale>
@@ -307,7 +306,7 @@ export function MonthBars({ months, height = 170, onPress, max = 95 }: { months:
         return (
           <PressableScale key={x.m} onPress={onPress ? () => onPress(x.m) : undefined} disabled={!onPress} scaleTo={0.92} style={s.barCol} accessibilityLabel={`${x.m}월 ${x.total}점`}>
             <Text style={[s.barScore, top && { color: colors.purple }]}>{x.total}</Text>
-            <View style={{ width: '70%', height: h, borderRadius: 5, backgroundColor: top ? colors.navy : x.total === mn ? colors.line : colors.lavender }} />
+            <View style={{ width: '70%', height: h, borderRadius: 5, backgroundColor: top ? colors.accent : x.total === mn ? colors.line : colors.lavender }} />
             <Text style={[s.barLabel, top && { color: colors.purple, fontWeight: '700' }]}>{x.m}</Text>
           </PressableScale>
         );
@@ -324,9 +323,9 @@ export function FortuneCalendar({ days, first, today, sel, best, onSelect }: { d
   const rows: typeof cells[] = [];
   for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
   const mix = (t: number) => {
-    // #4F5F8A를 카드색 위에 8~80% 덮은 색 (HTML color-mix와 같음)
+    // 하늘색(#15ABFE)을 카드색 위에 8~80% 덮은 색 (HTML color-mix와 같음)
     const a = 0.08 + t * 0.72; const base = [1, 3, 5].map(i => parseInt(colors.card.slice(i, i + 2), 16));
-    const [r, g, b] = [0x4f, 0x5f, 0x8a].map((v, i) => Math.round(base[i] + (v - base[i]) * a));
+    const [r, g, b] = [0x15, 0xab, 0xfe].map((v, i) => Math.round(base[i] + (v - base[i]) * a));
     return `rgb(${r},${g},${b})`;
   };
   return (
@@ -353,23 +352,18 @@ export function FortuneCalendar({ days, first, today, sel, best, onSelect }: { d
 }
 
 const s = StyleSheet.create({
-  heroFrame: { position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: radius.xl - 6, borderWidth: 0.6, borderColor: 'rgba(217,184,114,0.28)' },
-  heroCorner: { position: 'absolute', width: 9, height: 9, borderColor: 'rgba(217,184,114,0.75)' },
-  tl: { top: 10, left: 10, borderTopWidth: 1, borderLeftWidth: 1 },
-  tr: { top: 10, right: 10, borderTopWidth: 1, borderRightWidth: 1 },
-  bl: { bottom: 10, left: 10, borderBottomWidth: 1, borderLeftWidth: 1 },
-  br: { bottom: 10, right: 10, borderBottomWidth: 1, borderRightWidth: 1 },
+  heroArt: { position: 'absolute', right: -6, bottom: -20, opacity: 0.18 },
   row4: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.xs },
+  pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
   pillText: { fontSize: 12, fontWeight: '800', color: colors.purple },
   para: { fontSize: 14.5, lineHeight: 23, color: colors.inkSub },
   bullet: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 4 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
-  tip: { marginTop: 12, backgroundColor: colors.lavenderSoft, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
+  tip: { marginTop: 12, backgroundColor: colors.accentSoft, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
   tipTitle: { fontSize: 12, fontWeight: '700', color: colors.purpleSoft, marginBottom: 2 },
   tipText: { fontSize: 14, lineHeight: 21, color: colors.ink },
-  soft: { backgroundColor: colors.lavenderSoft, borderWidth: 1, borderColor: colors.lavender, borderRadius: radius.lg, padding: 18 },
+  soft: { backgroundColor: colors.accentSoft, borderRadius: radius.lg, padding: 18 },
   actRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   mark: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   viewRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 9 },
@@ -378,22 +372,23 @@ const s = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   infoIco: { width: 24, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.purpleSoft },
   infoVal: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.ink, textAlign: 'right' },
-  darkChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.xs, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
+  darkChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
   lpill: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill },
-  ychip: { minWidth: 64, height: 52, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
+  ychip: { minWidth: 64, height: 52, paddingHorizontal: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
   ychipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
   ychipText: { fontSize: 15, fontWeight: '700', color: colors.ink },
   ychipSub: { fontSize: 11, fontWeight: '600', color: colors.inkMute, marginTop: 1 },
-  rank: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
+  rank: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   rankText: { fontSize: 14, fontWeight: '800', color: colors.purpleSoft },
   lockWrap: { marginTop: 12, minHeight: 420 },
+  lockIco: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   bodyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 16 },
   ghostHead: { width: '40%', height: 16, borderRadius: 8, backgroundColor: colors.lineStrong, marginTop: 20, marginBottom: 12 },
   ghostCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: 18, gap: 10 },
   ghostLine: { height: 11, borderRadius: 6, backgroundColor: colors.line },
   lockBlur: { maxHeight: 440, overflow: 'hidden', opacity: 0.5 },
-  lockPanel: { position: 'absolute', left: 4, right: 4, top: 40, backgroundColor: colors.card, borderRadius: 16, paddingVertical: 24, paddingHorizontal: 20, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, shadowColor: '#28200A', shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
-  priceCard: { marginTop: 24, backgroundColor: colors.card, borderRadius: radius.lg, padding: 18, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong },
+  lockPanel: { position: 'absolute', left: 4, right: 4, top: 40, backgroundColor: colors.cream, borderRadius: radius.lg, paddingVertical: 24, paddingHorizontal: 20, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, shadowColor: '#28200A', shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
+  priceCard: { marginTop: 24, backgroundColor: colors.cream, borderRadius: radius.lg, padding: 18, borderWidth: 1, borderColor: colors.accent },
   barCol: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
   barScore: { fontSize: 10.5, fontWeight: '700', color: colors.inkMute },
   barLabel: { fontSize: 11, color: colors.inkSub, fontWeight: '500' },
@@ -401,8 +396,8 @@ const s = StyleSheet.create({
   cw: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: colors.inkMute, paddingBottom: 4 },
   cdEmpty: { flex: 1, aspectRatio: 1 },
   cd: { flex: 1, aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  cdToday: { borderWidth: 2, borderColor: colors.seal },
-  cdSel: { borderWidth: 2, borderColor: colors.purple },
+  cdToday: { borderWidth: 2, borderColor: colors.accent },
+  cdSel: { borderWidth: 2, borderColor: colors.ink },
   cdD: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.ink, lineHeight: 15 },
   cdS: { fontSize: 10, fontWeight: '600', color: colors.inkSub, lineHeight: 12 },
   cdDot: { position: 'absolute', top: 4, right: 4, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.moon },

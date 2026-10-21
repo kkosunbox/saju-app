@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import BrandMark, { LogoMark } from '../components/BrandMark';
+import Mascot from '../components/Mascot';
 import { analysisTheme, colors } from '../theme/colors';
 import { fonts, radius, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
@@ -21,14 +22,14 @@ const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
 export function Illustration({ kind }: { kind: Art }) {
   if (kind === 'sheet') {
     return (
-      <View style={[a.stage, { backgroundColor: colors.lavenderSoft }]}>
+      <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
         <LogoMark size={150} />
       </View>
     );
   }
   if (kind === 'story') {
     return (
-      <View style={[a.stage, { backgroundColor: colors.lavenderSoft }]}>
+      <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
         <View style={a.paper}>
           <View style={a.paperIn}>
             <Text style={a.paperKind}>— 전생 테스트</Text>
@@ -44,14 +45,14 @@ export function Illustration({ kind }: { kind: Art }) {
   }
   const r = 78;
   return (
-    <View style={[a.stage, { backgroundColor: colors.lavenderSoft }]}>
-      <View style={a.center}><LogoMark size={28} fg={'#F4EDDF'} /></View>
+    <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
+      <View style={a.center}><LogoMark size={40} /></View>
       {SOURCES.map((k, i) => {
         const ang = (i / 4) * Math.PI * 2 - Math.PI / 4;
         const t = analysisTheme[k];
         return (
           <View key={k} style={[a.orb, { backgroundColor: t.bg, transform: [{ translateX: Math.cos(ang) * r }, { translateY: Math.sin(ang) * r }] }]}>
-            <Text style={{ fontFamily: fonts.serif, fontSize: 22, fontWeight: '600', color: t.color }}>{t.emoji}</Text>
+            <Mascot name={`pose-${k}`} size={34} />
             <Text style={[a.orbLabel, { color: t.color }]}>{t.label}</Text>
           </View>
         );
@@ -145,9 +146,9 @@ const a = StyleSheet.create({
   moonCut: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: '#1A1E2B', left: 38, top: -16 },
   star: { position: 'absolute', borderRadius: 2, backgroundColor: '#fff', opacity: 0.8 },
   ring: { position: 'absolute', borderWidth: 1, borderColor: colors.lavender, borderStyle: 'dashed' },
-  center: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
-  orb: { position: 'absolute', width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.lineStrong },
-  orbLabel: { position: 'absolute', bottom: -20, fontSize: 11, fontWeight: '800', width: 90, textAlign: 'center' },
+  center: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
+  orb: { position: 'absolute', width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
+  orbLabel: { position: 'absolute', bottom: -20, fontSize: 12, fontWeight: '700', width: 90, textAlign: 'center' },
   mini: { width: 200, paddingVertical: 24, borderRadius: radius.xl, alignItems: 'center' },
   miniLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
   miniScore: { fontFamily: fonts.serif, color: '#fff', fontSize: 48, fontWeight: '500', letterSpacing: -1 },

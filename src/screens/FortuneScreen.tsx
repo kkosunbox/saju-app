@@ -4,27 +4,29 @@ import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { RootStackParamList } from '../navigation/types';
 import Screen from '../components/Screen';
 import Segmented from '../components/Segmented';
-import Card from '../components/Card';
+import { LinearGradient } from 'expo-linear-gradient';
 import ScoreRing from '../components/ScoreRing';
+import Mascot from '../components/Mascot';
+import PromoCard, { PROMO_TONE } from '../components/PromoCard';
+import { usePremium } from '../context/PremiumContext';
 import CategoryRow from '../components/CategoryRow';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
-import { LockCard } from '../components/premium/Kit';
 import { ITEMS } from '../services/premium/catalog';
 import { parseISO } from '../utils/date';
 import { useApp } from '../context/AppContext';
 import { useQuery } from '@tanstack/react-query';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { Period } from '../types';
-import { CategoryKey, colors } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
+import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
+import { radius } from '../theme/typography';
 import { motion, useReducedMotion } from '../utils/motion';
-import { COPY } from '../content/copy';
 
 const TABS: { key: Period; label: string }[] = [
   { key: 'daily', label: '오늘' }, { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
 ];
 const CHART_H = 120;
+const TONES: (keyof typeof PROMO_TONE)[] = ['mint', 'lime', 'gold'];
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 /** 목록에 가격만 보여주기 위한 대표 상품 */
 const CONSULT_ITEM = { ...ITEMS.consult('preview'), title: '고민 상담 1회' };
@@ -41,9 +43,9 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
   }, [target, reduced]);
   return (
     <View style={s.col}>
-      <Text style={[s.colScore, best && { color: colors.purple }]}>{score}</Text>
-      <Animated.View style={[s.colBar, { height: h, backgroundColor: best ? colors.navy : colors.lavender }]} />
-      <Text style={[s.colLabel, best && { color: colors.purple, fontWeight: '700' }]}>{label}</Text>
+      <Text style={[s.colScore, best && s.colBest]}>{score}</Text>
+      <Animated.View style={[s.colBar, { height: h, backgroundColor: best ? colors.accent : BAR }]} />
+      <Text style={[s.colLabel, best && { fontWeight: '700' }]}>{label}</Text>
     </View>
   );
 }
@@ -52,6 +54,7 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
 export default function FortuneScreen() {
   const { user, fortune, today } = useApp();
   const nav = useNavigation();
+  const { owned } = usePremium();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
   const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
   const [open, setOpen] = useState<CategoryKey | null>(null);
@@ -90,66 +93,85 @@ export default function FortuneScreen() {
   const recs = [R[weak], ...BY_TAB[tab].map(k => R[k])].filter((r, i, a) => a.findIndex(x => x.key === r.key) === i).slice(0, 3);
 
   return (
-    <Screen largeTitle="운세" subtitle={COPY.four} back>
+    <Screen title="운세" back>
       <Segmented<Period> options={TABS} value={tab} onChange={t => { setTab(t); setOpen(null); }} />
 
-      <Card style={s.summary}>
-        <ScoreRing key={tab} score={score} size={84} stroke={7} color={colors.purpleSoft} track={colors.lavenderSoft} textColor={colors.purple} />
-        <View style={{ flex: 1 }}>
-          <Text style={txt.caption}>{label}의 흐름</Text>
-          <Text style={[txt.bodyStrong, { marginTop: 4 }]}>{summary}</Text>
-          {period ? (
-            <View style={s.focus}><Text style={s.focusText}>집중 테마 · {period.focus}</Text></View>
-          ) : null}
+      <LinearGradient colors={gradients.skyCard} style={s.hero}>
+        <Mascot name="cloud" size={88} style={{ alignSelf: 'center' }} />
+        <View style={s.heroRow}>
+          <ScoreRing key={tab} score={score} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
+          <View style={{ flex: 1 }}>
+            <View style={s.heroHead}>
+              <Text style={s.heroTitle}>{tab === 'weekly' ? '이번주' : label}의 흐름</Text>
+              {period ? <View style={s.focus}><Text style={s.focusText}>집중 테마 · {period.focus}</Text></View> : null}
+            </View>
+            <Text style={s.heroText}>{summary}</Text>
+          </View>
         </View>
-      </Card>
+      </LinearGradient>
 
       <SectionHeader title={`${label} 분야별 운세`} caption={tab === 'daily' ? '눌러서 자세히 보기' : '눌러서 풀이 펼치기'} />
-      <Card style={{ paddingVertical: 4 }}>
+      <View style={{ gap: 16 }}>
         {CATS.map((k, i) => {
           const c = tab === 'daily' ? { score: f[k], text: f.categoryTexts[k], best: '' } : period?.cats[k];
           if (!c) return null;
           return (
-            <View key={`${tab}-${k}`} style={i > 0 ? s.border : null}>
-              <CategoryRow
-                category={k} score={c.score} text={c.text} delay={i * 80}
-                badge={c.best ? `${c.best} 최고` : undefined}
-                lines={tab !== 'daily' && open === k ? 4 : 1}
-                onPress={() => (tab === 'daily' ? nav.navigate('CategoryDetail', { category: k }) : setOpen(open === k ? null : k))}
-              />
-            </View>
+            <CategoryRow
+              key={`${tab}-${k}`}
+              category={k} score={c.score} text={c.text} delay={i * 80}
+              badge={c.best ? `${c.best} 최고` : undefined}
+              lines={tab !== 'daily' && open === k ? 4 : 1}
+              expand={tab !== 'daily'} open={open === k}
+              onPress={() => (tab === 'daily' ? nav.navigate('CategoryDetail', { category: k }) : setOpen(open === k ? null : k))}
+            />
           );
         })}
-      </Card>
+      </View>
 
       {period ? (
         <>
           <SectionHeader title={tab === 'weekly' ? '요일별 흐름' : tab === 'monthly' ? '주차별 흐름' : '월별 흐름'} />
-          <Card style={s.chart}>
+          <View style={s.chart}>
             {period.flow.map((x, i) => (
               <FlowBar key={`${tab}-${x.label}`} label={x.label} score={x.score} best={x.score === bestScore} index={i} />
             ))}
-          </Card>
+          </View>
         </>
       ) : null}
 
       <SectionHeader title="더 깊이 보기" caption={`${label}의 흐름에 맞춰 골랐어요`} />
-      {recs.map((r, i) => (
-        <LockCard key={r.key} title={r.title} desc={r.desc} item={r.item} onPress={r.go} mt={i === 0 ? 0 : 10} />
-      ))}
-      <Disclaimer />
+      <View style={{ gap: 16 }}>
+        {recs.map((r, i) => {
+          const have = owned(r.item.key);
+          const verb = r.key === 'consult' ? '상담 시작하기' : '자세히 보기';
+          return (
+            <PromoCard
+              key={r.key} tone={TONES[i % TONES.length]} title={r.title} desc={r.desc}
+              owned={have} coin={!have} cta={have ? '다시보기 →' : `${r.item.cost}알 · ${verb} →`}
+              onPress={r.go}
+            />
+          );
+        })}
+      </View>
+      <Disclaimer compact />
     </Screen>
   );
 }
 
+const BAR = isDark ? colors.lineStrong : '#DDE0E6';
+
 const s = StyleSheet.create({
-  summary: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
-  focus: { alignSelf: 'flex-start', marginTop: 10, backgroundColor: colors.lavenderSoft, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
-  focusText: { fontSize: 12, fontWeight: '700', color: colors.purple },
-  border: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingTop: 22, height: CHART_H + 80 },
-  col: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6, height: '100%' },
-  colScore: { fontSize: 11, color: colors.inkMute, fontWeight: '700' },
-  colBar: { width: '72%', maxWidth: 26, borderRadius: 6 },
-  colLabel: { fontSize: 12, color: colors.inkSub },
+  hero: { marginTop: 20, minHeight: 180, borderRadius: radius.lg, paddingTop: 19, paddingBottom: 16, paddingHorizontal: 16 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 2 },
+  heroHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  heroTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  heroText: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 4 },
+  focus: { backgroundColor: colors.cream, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
+  focusText: { fontSize: 12, fontWeight: '600', color: colors.purpleSoft, letterSpacing: -0.4 },
+  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, paddingHorizontal: 18, height: CHART_H + 70 },
+  col: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%' },
+  colScore: { fontSize: 14, color: colors.ink, fontWeight: '500' },
+  colBest: { fontSize: 16, fontWeight: '700' },
+  colBar: { width: '78%', maxWidth: 26, borderRadius: 3 },
+  colLabel: { fontSize: 14, color: colors.ink, fontWeight: '500' },
 });

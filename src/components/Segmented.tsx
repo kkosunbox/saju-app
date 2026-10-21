@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View, Pressable, LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { colors } from '../theme/colors';
-import { radius, shadow } from '../theme/typography';
+import { colors, isDark } from '../theme/colors';
+import { radius } from '../theme/typography';
 
 interface Props<T extends string> { options: { key: T; label: string }[]; value: T; onChange(v: T): void }
 
@@ -39,9 +39,9 @@ export default function Segmented<T extends string>({ options, value, onChange }
 }
 
 const s = StyleSheet.create({
-  wrap: { flexDirection: 'row', backgroundColor: colors.line, borderRadius: 14, padding: 4 },
-  thumb: { position: 'absolute', top: 4, left: 4, bottom: 4, backgroundColor: colors.card, borderRadius: radius.sm, ...shadow.card },
-  item: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 14, fontWeight: '600', color: colors.inkMute },
+  wrap: { flexDirection: 'row', backgroundColor: isDark ? colors.card : '#ECEEF2', borderRadius: radius.sm, padding: 4 },
+  thumb: { position: 'absolute', top: 4, left: 4, bottom: 4, backgroundColor: colors.cream, borderRadius: radius.xs },
+  item: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: 14, fontWeight: '500', color: '#808080', letterSpacing: -0.4 },
   labelOn: { color: colors.ink, fontWeight: '700' },
 });

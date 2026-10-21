@@ -34,7 +34,7 @@ interface PremiumState {
   openCharge(i: number): void;
   attend(): Promise<void>;
   toggleMission(key: string): void;
-  /** 공유 보상: 콘텐츠마다 하루 한 번, 하루 최대 3번 +10P (서버가 판단) */
+  /** 공유 보상: 콘텐츠마다 하루 한 번, 하루 최대 3번 +10알 (서버가 판단) */
   rewardShare(key: string): Promise<void>;
   shareRewardsLeft: number;
   toast(msg: string): void;
@@ -152,7 +152,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       if (requireLogin() || wallet.data?.attendedToday) return;
       try {
         await pointsApi.attend();
-        toast('출석 체크 +10P');
+        toast('출석 체크 +10알');
       } catch (e) {
         if (!(e instanceof ApiError && e.code === 'ALREADY_CHECKED_IN')) toast('출석 체크를 하지 못했어요. 잠시 후 다시 시도해 주세요');
       }
@@ -169,7 +169,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
         const r = await pointsApi.rewardShare(`share:${key}`);
         if (r.granted) {
           refreshPoints();
-          setTimeout(() => toast(`공유 고마워요! +${SHARE_P}P`), 400);
+          setTimeout(() => toast(`공유 고마워요! +${SHARE_P}알`), 400);
         }
       } catch {
         // 보상을 못 받아도 공유는 이미 끝났다
@@ -227,7 +227,7 @@ function UnlockSheet({ item: it, points, busy, onConfirm, onClose, onWallet }: {
       </View>
       <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{it.scope}</Text>
       {enough
-        ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}P 사용하고 열기`} onPress={onConfirm} disabled={busy} />
+        ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}알 사용하고 열기`} onPress={onConfirm} disabled={busy} />
         : <PrimaryButton label="포인트 충전하러 가기" onPress={onWallet} />}
       <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
     </View>

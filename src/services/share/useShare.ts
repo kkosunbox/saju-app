@@ -5,7 +5,7 @@ import { resultUrl, shareLink } from './linkShare';
 
 /**
  * 공유 동작 모음 — 링크에는 내 결과 한 줄을 담아 친구가 열면 나란히 비교되게 하고,
- * 공유가 끝나면 공유 보상(+10P)을 준다.
+ * 공유가 끝나면 공유 보상(+10알)을 준다.
  */
 export function useShare() {
   const { user } = useApp();

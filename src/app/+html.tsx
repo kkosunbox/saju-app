@@ -18,11 +18,10 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <title>운Pick · 오늘의 운, 하나만 Pick!</title>
         <meta name="description" content="사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세. 오늘의 운, 하나만 Pick!" />
-        <meta name="theme-color" content="#22293F" />
+        <meta name="theme-color" content="#FFFFFF" />
         <meta property="og:title" content="운Pick · 오늘의 운, 하나만 Pick!" />
         <meta property="og:description" content="사주부터 MBTI까지, 오늘의 나를 PICK하다." />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700;900&display=swap" />
         <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
         <ScrollViewStyleReset />
       </head>

@@ -7,6 +7,7 @@ import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import FriendCompare from '../../components/FriendCompare';
 import BrandMark from '../../components/BrandMark';
+import Mascot from '../../components/Mascot';
 import { SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -30,7 +31,7 @@ export default function PastLifeScreen() {
       <FriendCompare route="PastLife" spec={spec} />
       <View style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
-        <View style={s.seal}><Text style={s.sealText}>{P.hanja}</Text></View>
+        <View style={s.seal}><Mascot name="pastLife" size={64} /></View>
         <Text style={s.eyebrow}>{u.nickname}님은 전생에</Text>
         <Text style={s.name}>{P.title}</Text>
         <Text style={s.era}>{P.era}</Text>
@@ -46,7 +47,7 @@ export default function PastLifeScreen() {
       </Card>
 
       <PressableScale onPress={() => nav.navigate('Spouse')} style={s.cta} scaleTo={0.98}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.purple }}>이번 생의 인연이 궁금하다면</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>이번 생의 인연이 궁금하다면</Text>
         <Text style={[txt.small, { marginTop: 2 }]}>미래 배우자는 어떤 사람일까? 첫 화면은 무료로 볼 수 있어요 →</Text>
       </PressableScale>
     </Screen>
@@ -63,14 +64,13 @@ function Row({ k, v }: { k: string; v: string }) {
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.heroBg, borderRadius: radius.xl, padding: 22, alignItems: 'center', marginTop: 4 },
+  card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, padding: 20, alignItems: 'center', marginTop: 4 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   brandText: { fontFamily: fonts.serif, color: colors.white, fontSize: 14, fontWeight: '600' },
-  seal: { marginTop: 18, width: 72, height: 72, borderRadius: 8, borderWidth: 2, borderColor: colors.moon, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-5deg' }] },
-  sealText: { fontFamily: fonts.serif, fontSize: 34, fontWeight: '700', color: colors.moon },
+  seal: { marginTop: 12, width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 18 },
   name: { fontFamily: fonts.serif, color: colors.white, fontSize: 30, lineHeight: 38, fontWeight: '700', marginTop: 4, textAlign: 'center' },
   era: { color: colors.moon, fontSize: 13, marginTop: 4 },
   scene: { color: 'rgba(255,255,255,0.86)', fontSize: 14, lineHeight: 22, marginTop: 16, textAlign: 'center' },
-  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.lavenderSoft, borderWidth: 1, borderColor: colors.lavender },
+  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.card },
 });

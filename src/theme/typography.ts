@@ -2,15 +2,14 @@ import { Platform, TextStyle, ViewStyle } from 'react-native';
 import { colors, isDark } from './colors';
 
 /**
- * 타입 시스템
- * - 제목 · 본문 · UI: Pretendard (로고의 둥근 단선 레터링과 어울리는 현대 고딕, 한국어 UI 표준)
- * - 강조(큰 숫자 · 한자 낙관 · 책력 카드 제목 · 인용): Noto Serif KR (한자까지 같은 서체로 일관)
- * 웹은 웹폰트(Pretendard CDN · Google Fonts)를 굵기별로, 네이티브는 굵기별 파일을 따로 불러온다(App.tsx).
- * 네이티브는 굵기마다 다른 글꼴 이름을 써야 해서 display/serif 는 대표 굵기(700) 파일을 쓴다.
- * 두 서체 모두 SIL Open Font License (assets/fonts/LICENSE-*.txt).
+ * 타입 시스템 — 모두 Pretendard (깔끔한 현대 고딕, 한국어 UI 표준).
+ * 예전 책력 디자인에서 명조(serif)를 쓰던 자리(큰 숫자 · 한자 · 인용)도 이제 Pretendard Bold로 쓴다.
+ * 이름 serif 는 그 자리를 표시하려고 남겨 둔다.
+ * 웹은 웹폰트(Pretendard CDN)를 굵기별로, 네이티브는 굵기별 파일을 따로 불러온다.
+ * SIL Open Font License (assets/fonts/LICENSE-Pretendard.txt).
  */
 export const fonts = {
-  serif: Platform.select({ web: "'Noto Serif KR', 'Nanum Myeongjo', serif", default: 'NotoSerifKR-Bold' })!,
+  serif: Platform.select({ web: "Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif", default: 'Pretendard-Bold' })!,
   display: Platform.select({ web: "Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif", default: 'Pretendard-Bold' })!,
   sans: Platform.select({ web: "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif", default: 'Pretendard-Regular' }),
 };
@@ -20,27 +19,28 @@ const PRE: Record<string, string> = { '400': 'Pretendard-Regular', '500': 'Prete
 export const sansW = (w: '400' | '500' | '600' | '700' | '800'): TextStyle =>
   Platform.OS === 'web' ? { fontFamily: fonts.sans, fontWeight: w } : { fontFamily: PRE[w] };
 
-/** 숫자·제목에 덧붙이는 명조체 */
+/** 숫자·제목 강조 (예전 명조 자리) */
 export const serif: TextStyle = { fontFamily: fonts.serif };
 
+/** 자간은 디자인의 -0.04em 에 맞춘다 */
 export const txt = {
-  title: { fontFamily: fonts.display, fontSize: 25, lineHeight: 34, fontWeight: '700', letterSpacing: -0.7, color: colors.ink },
-  h2: { fontFamily: fonts.display, fontSize: 19, lineHeight: 27, fontWeight: '700', letterSpacing: -0.5, color: colors.ink },
-  h3: { ...sansW('700'), fontSize: 16, lineHeight: 22, letterSpacing: -0.3, color: colors.ink },
-  body: { ...sansW('400'), fontSize: 15, lineHeight: 23, letterSpacing: -0.2, color: colors.inkSub },
-  bodyStrong: { ...sansW('600'), fontSize: 15, lineHeight: 22, letterSpacing: -0.2, color: colors.ink },
-  small: { ...sansW('500'), fontSize: 13, lineHeight: 19, color: colors.inkMute },
-  caption: { ...sansW('500'), fontSize: 12, lineHeight: 17, color: colors.inkMute },
+  title: { ...sansW('800'), fontSize: 24, lineHeight: 32, letterSpacing: -1, color: colors.ink },
+  h2: { ...sansW('600'), fontSize: 18, lineHeight: 25, letterSpacing: -0.5, color: colors.ink },
+  h3: { ...sansW('700'), fontSize: 16, lineHeight: 22, letterSpacing: -0.6, color: colors.ink },
+  body: { ...sansW('400'), fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: colors.inkSub },
+  bodyStrong: { ...sansW('600'), fontSize: 15, lineHeight: 22, letterSpacing: -0.5, color: colors.ink },
+  small: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: colors.inkMute },
+  caption: { ...sansW('500'), fontSize: 12, lineHeight: 17, letterSpacing: -0.4, color: colors.inkMute },
 } satisfies Record<string, TextStyle>;
 
-/** 반경: 히어로 18 · 카드 14 · 입력/버튼 10~12 · 칩 6 */
-export const radius = { xs: 6, sm: 10, md: 12, lg: 14, xl: 18, pill: 999 };
+/** 반경: 카드 12 · 버튼/탭 8 · 탭 손잡이 5 · 칩 알약 */
+export const radius = { xs: 5, sm: 8, md: 8, lg: 12, xl: 12, pill: 999 };
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, section: 32 };
-export const SCREEN_PX = 20;
+export const SCREEN_PX = 24;
 
-/** 그림자는 거의 평평하게, 히어로만 은은하게 */
+/** 카드는 평평하게(연회색 면), 떠 있는 것만 그림자 */
 export const shadow = {
-  card: { shadowColor: '#281E0A', shadowOpacity: isDark ? 0.4 : 0.06, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  hero: { shadowColor: '#141623', shadowOpacity: 0.16, shadowRadius: 13, shadowOffset: { width: 0, height: 10 }, elevation: 6 },
-  float: { shadowColor: '#281E0A', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -2 }, elevation: 12 },
+  card: { shadowColor: '#000', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  hero: { shadowColor: '#000', shadowOpacity: isDark ? 0.4 : 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  float: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
 } satisfies Record<string, ViewStyle>;

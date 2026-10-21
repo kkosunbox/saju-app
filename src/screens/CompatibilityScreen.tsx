@@ -14,6 +14,7 @@ import ScoreRing from '../components/ScoreRing';
 import ScoreBar from '../components/ScoreBar';
 import SectionHeader from '../components/SectionHeader';
 import Icon from '../components/Icon';
+import Mascot from '../components/Mascot';
 import Seal from '../components/Seal';
 import Disclaimer from '../components/Disclaimer';
 import { useApp } from '../context/AppContext';
@@ -222,17 +223,15 @@ export default function CompatibilityScreen() {
       subtitle="상대의 정보로 네 가지 관점의 궁합을 봐요"
       footer={<PrimaryButton label={busy ? '궁합 보는 중…' : '궁합 보기'} onPress={analyze} disabled={!ok || busy} />}
     >
-      {/* 두 사람의 책력 — 내 낙관 · 和 · 아직 비어 있는 상대 낙관 */}
+      {/* 두 사람 — 나 · 마스코트 · 아직 비어 있는 상대 */}
       <View style={s.pairSheet}>
         <View style={s.pairCol}>
-          <View style={[s.pairSeal, { backgroundColor: colors.seal }]}><Text style={s.pairSealText}>{user.nickname.slice(0, 1)}</Text></View>
+          <View style={[s.pairSeal, { backgroundColor: colors.accent }]}><Text style={s.pairSealText}>{user.nickname.slice(0, 1)}</Text></View>
           <Text style={s.pairName}>{user.nickname}</Text>
           <Text style={txt.caption}>{user.mbti} · {user.bloodType}형</Text>
         </View>
         <View style={s.pairMid}>
-          <View style={s.pairLine} />
-          <Text style={s.pairHan}>和</Text>
-          <View style={s.pairLine} />
+          <Mascot name="friends" size={30} />
         </View>
         <View style={s.pairCol}>
           <View style={[s.pairSeal, s.pairEmpty]}><Text style={[s.pairSealText, { color: colors.inkMute }]}>{name.trim() ? name.trim().slice(0, 1) : '?'}</Text></View>
@@ -241,12 +240,12 @@ export default function CompatibilityScreen() {
         </View>
       </View>
       <PressableScale onPress={sendInvite} style={s.inviteRow} scaleTo={0.98} accessibilityLabel="상대에게 링크로 궁합 신청 받기">
-        <Text style={s.inviteHan}>信</Text>
+        <View style={s.inviteIco}><Icon name="send" size={18} color={colors.accent} /></View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>생일을 모른다면, 링크로 신청받기</Text>
           <Text style={txt.caption}>상대가 링크를 열면 둘의 궁합이 바로 나와요</Text>
         </View>
-        <Icon name="share" size={18} color={colors.purple} />
+        <Icon name="chevronRight" size={18} color={colors.inkMute} />
       </PressableScale>
 
       {saved.data?.length ? (
@@ -379,17 +378,15 @@ const s = StyleSheet.create({
   savedSealText: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purple },
   savedScore: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.love },
   deleteLink: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
-  pairSheet: { flexDirection: 'row', alignItems: 'center', marginTop: 4, padding: 18, borderRadius: radius.xl, backgroundColor: colors.loveBg, borderWidth: 1, borderColor: colors.love + '40' },
+  pairSheet: { flexDirection: 'row', alignItems: 'center', marginTop: 4, padding: 18, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   pairCol: { flex: 1, alignItems: 'center', gap: 4 },
-  pairSeal: { width: 54, height: 54, borderRadius: 6, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-5deg' }] },
-  pairEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.inkMute, transform: [{ rotate: '5deg' }] },
-  pairSealText: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: '#FBF4E8' },
+  pairSeal: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  pairEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.accent, backgroundColor: colors.cream },
+  pairSealText: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.white },
   pairName: { fontFamily: fonts.display, fontSize: 15, fontWeight: '700', color: colors.ink, marginTop: 6 },
-  pairMid: { width: 64, flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 34 },
-  pairLine: { flex: 1, height: 1, backgroundColor: colors.love, opacity: 0.5 },
-  pairHan: { fontFamily: fonts.serif, fontSize: 20, fontWeight: '700', color: colors.love },
-  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10, marginBottom: 12, padding: 14, borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong },
-  inviteHan: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.purpleSoft, width: 28, textAlign: 'center' },
+  pairMid: { width: 64, alignItems: 'center', marginBottom: 34 },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12, marginBottom: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card },
+  inviteIco: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   form: { gap: 20, padding: 20 },
   me: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.lineStrong },
   fieldLabel: { fontSize: 13, fontWeight: '700', color: colors.inkSub, marginBottom: 8 },
@@ -400,7 +397,7 @@ const s = StyleSheet.create({
   select: { height: 52, borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   selectText: { fontSize: 17, fontWeight: '500', color: colors.ink },
   error: { color: colors.danger, fontSize: 12, marginTop: 6 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4F5F8A', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)' },
   avatarText: { fontFamily: fonts.serif, color: colors.white, fontWeight: '600', fontSize: 16 },
   heroWrap: { borderRadius: radius.xl, backgroundColor: colors.heroBg },
   hero: { borderRadius: radius.xl, padding: 24, alignItems: 'center' },

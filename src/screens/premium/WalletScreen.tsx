@@ -28,7 +28,7 @@ export default function WalletScreen() {
           <Coin size={30} />
           <Text style={{ fontSize: 40, fontWeight: '800', letterSpacing: -1, color: colors.white }}>{points.toLocaleString('ko-KR')}</Text>
         </View>
-        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>1,000원 = 100P · 보유 콘텐츠 {ownedCount}개</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>1,000원 = 100알 · 보유 콘텐츠 {ownedCount}개</Text>
         {expiringSoon > 0 ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>30일 안에 사라지는 포인트 {fmtP(expiringSoon)}</Text> : null}
       </Hero>
 
@@ -36,7 +36,7 @@ export default function WalletScreen() {
         <Seal ch="日" size={42} bg={colors.moneyBg} color={colors.money} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>출석 체크</Text>
-          <Text style={txt.small}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : '매일 한 번 10P를 받을 수 있어요'}</Text>
+          <Text style={txt.small}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : '매일 한 번 10알을 받을 수 있어요'}</Text>
         </View>
         <Pill>{att ? '완료' : '+10'}</Pill>
       </Card>
@@ -74,7 +74,7 @@ export default function WalletScreen() {
               <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>{h.label}</Text>
               <Text style={txt.caption}>{kstDate(h.createdAt).replace(/-/g, '.')} · {TYPE_LABEL[h.type]}</Text>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: h.amount > 0 ? colors.purple : colors.inkMute }}>{h.amount > 0 ? '+' : ''}{h.amount}P</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: h.amount > 0 ? colors.purple : colors.inkMute }}>{h.amount > 0 ? '+' : ''}{h.amount}알</Text>
           </View>
         )) : <Text style={[txt.body, { paddingVertical: 14 }]}>아직 이용 내역이 없어요.</Text>}
       </Card>

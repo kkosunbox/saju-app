@@ -11,7 +11,8 @@ import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
 import FriendCompare from '../../components/FriendCompare';
 import { ShareIconButton } from '../../components/ShareCta';
-import { ActRow, BodyState, Coin, DarkChip, Hero, LockCard, Para, SubHead, heroTxt } from '../../components/premium/Kit';
+import { ActRow, BodyState, Coin, LockCard, Para, SubHead } from '../../components/premium/Kit';
+import GradientBorder from '../../components/GradientBorder';
 import BottomSheet from '../../components/BottomSheet';
 import LoadingScreen from '../../components/LoadingScreen';
 import { useApp } from '../../context/AppContext';
@@ -22,9 +23,9 @@ import { ConsultAnswer, ConsultFacts, ConsultView, HelpLine, consultApi, consult
 import { consultSpec } from '../../services/share/shareSpecs';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
-import { colors } from '../../theme/colors';
-import { fonts, radius, sansW, SCREEN_PX, txt } from '../../theme/typography';
-import { CounselorTag, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, kstDate, kstTime } from './parts';
+import { colors, isDark } from '../../theme/colors';
+import { fonts, radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
+import { Counselor, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, kstDate, kstTime } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -88,7 +89,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
     );
   }
   return (
-    <Screen title="고민 상담" back>
+    <Screen title="고민 상담" back sky>
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'crisis' ? (
@@ -98,7 +99,6 @@ function PendingChat({ askKey }: { askKey?: string }) {
         </>
       ) : (
         <>
-          <CounselorTag />
           {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
           {state.kind === 'error' ? (
             <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.topic)); }} style={{ marginTop: 16 }} />
@@ -179,7 +179,7 @@ function Chat({ id }: { id: number }) {
       toast(`전체 답변을 열었어요. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
     } catch (err) {
       if (err instanceof ApiError && err.code === 'INSUFFICIENT_POINTS') {
-        toast(`${cost}P가 필요해요. 충전 후 다시 시도해 주세요`);
+        toast(`${cost}알이 필요해요. 충전 후 다시 시도해 주세요`);
         goWallet?.();
       } else {
         toast('열지 못했어요. 포인트는 쓰이지 않았어요');
@@ -203,21 +203,24 @@ function Chat({ id }: { id: number }) {
   };
 
   const rec = TOPIC_REC[e.topic];
-  const footer = e.locked ? (
-    <PrimaryButton label={unlocking ? '나머지 답을 쓰고 있어요' : `${cost}P로 전부 보고 이어서 물어보기`} icon={unlocking ? undefined : <Coin size={18} />} onPress={() => setUnlockOpen(true)} disabled={unlocking} />
-  ) : canAsk ? (
+  // 미리보기(잠김)여도 입력창을 보여 준다 — 보내면 전부 열기 안내가 뜬다
+  const footer = e.locked || canAsk ? (
     <>
       <View style={s.inputRow}>
         <TextInput
           value={input} onChangeText={setInput} multiline maxLength={300}
-          placeholder="이어서 물어보세요" placeholderTextColor={colors.inkMute}
-          style={s.input} editable={!sending} accessibilityLabel="이어서 묻는 말"
+          placeholder={e.locked ? '어떤 고민이든 편하게 말씀해주세요' : '이어서 물어보세요'} placeholderTextColor={colors.inkMute}
+          style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
         />
-        <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending} style={[s.sendBtn, (!input.trim() || sending) && { backgroundColor: colors.lavender }]} scaleTo={0.9} accessibilityLabel="보내기">
-          <Icon name="send" size={20} color={colors.white} strokeWidth={2.2} />
+        <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (!input.trim() || sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
+          <Icon name="send" size={18} color={colors.white} strokeWidth={2} />
         </PressableScale>
       </View>
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>{e.followUpsLeft}번 더 물어볼 수 있어요{e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}</Text>
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>
+        {e.locked
+          ? (unlocking ? '나머지 답을 쓰고 있어요' : `${cost}알로 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
+          : `${e.followUpsLeft}번 더 물어볼 수 있어요${e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}`}
+      </Text>
     </>
   ) : (
     <>
@@ -227,35 +230,30 @@ function Chat({ id }: { id: number }) {
   );
 
   return (
-    <Screen title="고민 상담" back right={spec ? <ShareIconButton spec={spec} /> : undefined} scroll={false}>
+    <Screen title="고민 상담" back sky right={spec ? <ShareIconButton spec={spec} /> : undefined} scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {spec ? <FriendCompare route="Consult" spec={spec} /> : null}
           <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
-          {e.question ? <MyBubble>{e.question}</MyBubble> : null}
+          {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
-          <CounselorTag />
-          <Hero>
-            <Text style={heroTxt.eyebrow}>{C.hanja} {C.label} 고민에 대한 답</Text>
-            <Text style={[heroTxt.summ, { fontSize: 20, lineHeight: 29 }]}>{e.answer.headline}</Text>
+          <Counselor>
+            <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
+            <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
+            <View style={s.headline}><Text style={s.headlineV}>{e.answer.headline}</Text></View>
             {full ? (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 14 }}>
-                <DarkChip gold>{full.facts.modeLabel}</DarkChip>
-                <DarkChip>풀리는 달 {full.facts.bestMonth}</DarkChip>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
+                <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
               </View>
             ) : null}
-          </Hero>
-          <Card style={s.direct}>
-            <Text style={s.directK}>결론부터</Text>
-            <Text style={s.directV}>{e.answer.direct}</Text>
-          </Card>
-          <SubHead title="마음 읽기" />
-          <Card><Para mt={0}>{e.answer.empathy}</Para></Card>
+            <Text style={s.replyText}>{e.answer.empathy}</Text>
+          </Counselor>
 
           {full ? (
             <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
           ) : unlocking ? (
-            <><CounselorTag /><ReplyBubble typing={STAGES.rest} /></>
+            <ReplyBubble typing={STAGES.rest} />
           ) : (
             <LockedRest cost={cost} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
           )}
@@ -264,15 +262,13 @@ function Chat({ id }: { id: number }) {
 
           {turns.map(t => (
             <View key={t.createdAt}>
-              <MyBubble>{t.question}</MyBubble>
-              <CounselorTag />
-              <ReplyBubble>{t.reply}</ReplyBubble>
+              <MyBubble at={t.createdAt}>{t.question}</MyBubble>
+              <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>
             </View>
           ))}
           {sending ? (
             <>
               <MyBubble>{sending}</MyBubble>
-              <CounselorTag />
               <ReplyBubble typing={STAGES.reply} />
             </>
           ) : null}
@@ -281,7 +277,7 @@ function Chat({ id }: { id: number }) {
           {!sending && !unlocking && (e.locked || canAsk) ? (
             <SuggestionChips
               items={suggestions}
-              caption={e.locked ? `${cost}P로 열면 이렇게 이어서 물어볼 수 있어요` : '이어서 물어보기'}
+              caption={e.locked ? `${cost}알로 열면 이렇게 이어서 물어볼 수 있어요` : '이어서 물어보기'}
               onPick={send}
             />
           ) : null}
@@ -299,9 +295,9 @@ function Chat({ id }: { id: number }) {
 
       <BottomSheet visible={unlockOpen} onClose={() => setUnlockOpen(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
-        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}P로 전부 열까요?</Text>
+        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 전부 열까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>사주로 본 나 · 3개월 흐름 · 해 볼 것과 피할 것 · 행동하기 좋은 날{'\n'}그리고 {hours}시간 동안 {limit}번 이어서 물어볼 수 있어요.</Text>
-        <PrimaryButton label={`${cost}P로 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
+        <PrimaryButton label={`${cost}알로 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setUnlockOpen(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
       <BottomSheet visible={del} onClose={() => setDel(false)}>
@@ -318,19 +314,21 @@ function Chat({ id }: { id: number }) {
 function LockedRest({ cost, hours, limit, onUnlock }: { cost: number; hours: number; limit: number; onUnlock(): void }) {
   const rows = ['사주로 본 나', '지금의 흐름 · 앞으로 3개월', '이렇게 해 보세요 3가지', '이것만은 피하세요', '행동하기 좋은 날', `${hours}시간 동안 ${limit}번 이어 묻기`];
   return (
-    <Card style={s.locked} onPress={onUnlock} accessibilityLabel={`${cost}P로 전체 답변 열기`}>
-      <Text style={txt.h3}>나머지 답이 기다리고 있어요</Text>
-      <View style={{ gap: 8, marginTop: 12 }}>
+    <GradientBorder outer={{ marginTop: 24 }} style={s.locked}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={s.lockIco}><Icon name="lock" size={18} color={colors.accent} /></View>
+        <Text style={s.lockTitle}>나머지 답이 기다리고 있어요</Text>
+      </View>
+      <View style={{ gap: 10, marginTop: 12, paddingLeft: 22 }}>
         {rows.map(r => (
           <View key={r} style={s.lockRow}>
             <View style={s.lockDot} />
-            <Text style={{ fontSize: 14, color: colors.inkSub, flex: 1 }}>{r}</Text>
-            <View style={s.lockBar} />
+            <Text style={s.lockText}>{r}</Text>
           </View>
         ))}
       </View>
-      <View style={s.lockCta}><Coin size={16} /><Text style={{ fontSize: 14, fontWeight: '800', color: colors.purple }}>{cost}P로 전부 열기</Text></View>
-    </Card>
+      <PrimaryButton small label={`${cost}알로 전부 열기`} icon={<Coin size={16} />} onPress={onUnlock} style={{ marginTop: 16 }} />
+    </GradientBorder>
   );
 }
 
@@ -380,18 +378,24 @@ function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; fac
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingBottom: 24 },
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong, backgroundColor: colors.cream },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 6, paddingLeft: 14, borderRadius: 24, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
-  input: { flex: 1, maxHeight: 110, paddingTop: 8, paddingBottom: 8, fontSize: 15, lineHeight: 21, color: colors.ink },
-  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
-  direct: { marginTop: 12, borderLeftWidth: 3, borderLeftColor: colors.seal },
-  directK: { fontSize: 12, fontWeight: '800', color: colors.seal, letterSpacing: 1 },
-  directV: { ...sansW('600'), fontSize: 16.5, lineHeight: 25, color: colors.ink, marginTop: 6 },
-  locked: { marginTop: 16, borderWidth: 1.5, borderColor: colors.purpleSoft, borderStyle: 'dashed' },
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 12, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
+  input: { flex: 1, maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
+  sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
+  eyebrow: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginTop: 4 },
+  direct: { padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
+  directV: { ...sansW('700'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
+  headline: { padding: 12, borderRadius: radius.lg, backgroundColor: isDark ? colors.accentSoft : '#E3F3FF' },
+  headlineV: { ...sansW('700'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
+  fact: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.card },
+  factT: { fontSize: 12, fontWeight: '700', color: colors.ink },
+  replyText: { fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
+  locked: { padding: 12 },
+  lockIco: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  lockTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  lockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.purpleSoft },
-  lockBar: { width: 64, height: 10, borderRadius: 5, backgroundColor: colors.lavenderSoft },
-  lockCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.lavenderSoft },
+  lockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
+  lockText: { fontSize: 13, color: colors.ink, letterSpacing: -0.5, flex: 1 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 120, marginTop: 16 },
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   barV: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },

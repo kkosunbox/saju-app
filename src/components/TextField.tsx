@@ -5,7 +5,7 @@ import { radius } from '../theme/typography';
 
 interface Props extends TextInputProps { suffix?: string; containerStyle?: StyleProp<ViewStyle>; invalid?: boolean }
 
-/** 포커스되면 보라 테두리 + 라벤더 배경으로 바뀌는 입력창 */
+/** 흰 입력창 — 포커스되면 하늘색 테두리 */
 export default function TextField({ suffix, containerStyle, invalid, style, onFocus, onBlur, ...rest }: Props) {
   const [focused, setFocused] = useState(false);
   return (
@@ -26,9 +26,9 @@ export default function TextField({ suffix, containerStyle, invalid, style, onFo
 const webInput = { outlineStyle: 'none', minWidth: 0, width: '100%' } as object;
 
 const s = StyleSheet.create({
-  box: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.lineStrong, paddingRight: 14 },
-  focus: { borderColor: colors.purple },
+  box: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.lineStrong, paddingRight: 14 },
+  focus: { borderColor: colors.accent },
   invalid: { borderColor: colors.danger },
-  input: { flex: 1, minHeight: 52, paddingHorizontal: 14, fontSize: 17, fontWeight: '500', color: colors.ink, fontVariant: ['tabular-nums'] },
+  input: { flex: 1, minHeight: 52, paddingHorizontal: 14, fontSize: 16, fontWeight: '500', letterSpacing: -0.4, color: colors.ink, fontVariant: ['tabular-nums'] },
   suffix: { fontSize: 15, fontWeight: '500', color: colors.inkMute },
 });
