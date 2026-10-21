@@ -27,14 +27,15 @@ export function HeadTitle({ title, caption }: { title: string; caption?: string 
   );
 }
 
-/** action 이 있으면 오른쪽 끝에 › 버튼 (라벨은 읽어 주기용) */
-export default function SectionHeader({ title, caption, action, onAction, first }: { title: string; caption?: string; action?: string; onAction?(): void; first?: boolean }) {
+/** action 이 있으면 오른쪽 끝에 › 버튼 (라벨은 읽어 주기용, showAction 이면 › 앞에 글로도 보인다) */
+export default function SectionHeader({ title, caption, action, onAction, first, showAction }: { title: string; caption?: string; action?: string; onAction?(): void; first?: boolean; showAction?: boolean }) {
   return (
     <View style={{ marginTop: first ? 8 : 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ flex: 1 }}><HeadTitle title={title} caption={caption} /></View>
       {action ? (
-        <PressableScale onPress={onAction} hitSlop={12} scaleTo={0.9} accessibilityLabel={action}>
-          <Icon name="chevronRight" size={20} color={colors.ink} />
+        <PressableScale onPress={onAction} hitSlop={12} scaleTo={0.9} accessibilityLabel={action} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          {showAction ? <Text style={{ fontSize: 14, fontWeight: '500', color: colors.inkSub, letterSpacing: -0.5 }}>{action}</Text> : null}
+          <Icon name="chevronRight" size={showAction ? 16 : 20} color={showAction ? colors.inkSub : colors.ink} />
         </PressableScale>
       ) : null}
     </View>

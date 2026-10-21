@@ -1,16 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
+import React, { RefObject, useEffect, useLayoutEffect, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import { Para } from '../../components/premium/Kit';
 import { ITEMS, Item } from '../../services/premium/catalog';
-import { ConsultCat } from '../../services/content/consult';
-import { HelpLine } from '../../services/server/consultApi';
+import { ConsultCat, catOf } from '../../services/content/consult';
+import { ConsultView, HelpLine } from '../../services/server/consultApi';
 import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { fonts, radius, txt } from '../../theme/typography';
 import Mascot from '../../components/Mascot';
 
 export const kstDate = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10).replace(/-/g, '.') : '');
+/** 같은 달끼리 묶는 이름 (KST, 2026년 10월) */
+export const kstMonth = (iso: string | null) => {
+  if (!iso) return '';
+  const d = new Date(Date.parse(iso) + 9 * 3600_000);
+  return `${d.getUTCFullYear()}년 ${d.getUTCMonth() + 1}월`;
+};
 /** 대화 시각 (KST, 22:24) */
 export const kstHM = (iso: string | null) => {
   if (!iso) return '';
@@ -22,6 +28,40 @@ export const kstTime = (iso: string | null) => {
   const d = new Date(Date.parse(iso) + 9 * 3600_000);
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 };
+
+/** 웹 textarea 는 기본 두 줄이라 한 줄로 시작한다 — 입력창에 펼쳐 넣는다 */
+export const WEB_ONE_ROW = (Platform.OS === 'web' ? { rows: 1 } : {}) as object;
+
+/** 웹: 입력창을 쓰는 만큼 max 까지 늘린다 (앱은 multiline 입력창이 스스로 늘어난다) */
+export function useWebAutoGrow(ref: RefObject<TextInput | null>, value: string, max: number) {
+  useLayoutEffect(() => {
+    const el = ref.current as unknown as HTMLTextAreaElement | null;
+    if (Platform.OS !== 'web' || !el?.style) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  }, [ref, value, max]);
+}
+
+/** 상담 기록 카드 — 한 줄에 한 상담 (주제 한자 · 답의 한 줄 · 날짜 · 남은 이어 묻기) */
+export function ConsultRows({ rows, onOpen }: { rows: ConsultView[]; onOpen(e: ConsultView): void }) {
+  return (
+    <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
+      {rows.map((e, i) => {
+        const C = catOf(e.topic);
+        const badge = e.locked ? '미리보기' : e.followUpsLeft > 0 ? `${e.followUpsLeft}번 더 물어볼 수 있어요` : '';
+        return (
+          <PressableScale key={e.id} onPress={() => onOpen(e)} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98} accessibilityLabel={e.answer?.headline ?? C.label}>
+            <View style={s.histH}><Text style={s.histHT}>{C.hanja}</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
+              <Text style={txt.caption}>{C.label} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
+            </View>
+          </PressableScale>
+        );
+      })}
+    </Card>
+  );
+}
 
 /** 위기 · 마음 건강 신호일 때: 운세보다 사람의 도움을 먼저 (탭하면 바로 전화) */
 export function HelpLines({ lines, crisis }: { lines: HelpLine[]; crisis?: boolean }) {
@@ -158,6 +198,10 @@ export const TOPIC_REC: Record<ConsultCat, { key: string; title: string; desc: s
 };
 
 const s = StyleSheet.create({
+  hist: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  histLine: { borderTopWidth: 1, borderTopColor: colors.line },
+  histH: { width: 36, height: 36, borderRadius: 8, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  histHT: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purpleSoft },
   crisis: { marginTop: 16, borderWidth: 1.5, borderColor: colors.love },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: radius.md, backgroundColor: colors.loveBg },
   mineWrap: { alignItems: 'flex-end', marginTop: 16, gap: 8 },

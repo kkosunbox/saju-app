@@ -1,31 +1,28 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
-import Card from '../../components/Card';
 import Icon from '../../components/Icon';
-import Mascot from '../../components/Mascot';
-import GradientBorder from '../../components/GradientBorder';
 import { PointPill } from '../../components/HeaderPoints';
 import { LinearGradient } from 'expo-linear-gradient';
-import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import Disclaimer from '../../components/Disclaimer';
+import Mascot from '../../components/Mascot';
 import BottomSheet from '../../components/BottomSheet';
-import { Coin, SubHead } from '../../components/premium/Kit';
+import SectionHeader from '../../components/SectionHeader';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
-import { fmtP, ro } from '../../services/premium/catalog';
-import { CONSULT_CATS, CONSULT_CONFIG, ConsultCat, catOf, guessCat } from '../../services/content/consult';
-import { ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
+import { fmtP } from '../../services/premium/catalog';
+import { CONSULT_CONFIG, catOf, guessCat } from '../../services/content/consult';
+import { ConsultListKind, ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
-import { fonts, radius, txt } from '../../theme/typography';
-import { HelpLines, kstDate } from './parts';
+import { radius, SCREEN_PX, txt } from '../../theme/typography';
+import { ConsultRows, HelpLines, WEB_ONE_ROW, useWebAutoGrow } from './parts';
+import WorryMarquee from './WorryMarquee';
 
 const TODAY_BG = isDark ? (['#15202B', '#172636', '#1B3348'] as const) : (['#F7FCFF', '#EFF9FF', '#CBECFE'] as const);
 
@@ -38,19 +35,22 @@ const EXAMPLES = [
   '모아 둔 돈으로 이사를 할지 더 모을지 고민이에요',
 ];
 
-/** 상담 탭 — 고민을 털어놓고(하루 5번 무료 미리보기), 지난 상담으로 돌아가 이어서 묻는다 */
+/** 상담 탭 — 상담가가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account, fortune } = useApp();
   const { points, toast } = usePremium();
-  const [cat, setCat] = useState<ConsultCat | null>(null);
-  const [picked, setPicked] = useState(false);
+  const input = useRef<TextInput>(null);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const status = useConsultStatus(!!account);
-  const history = useQuery({ queryKey: consultKeys.list, queryFn: consultApi.list, enabled: !!account });
+  // 각각 앞의 HOME_ROWS개만 보이고, 하나 더 받아 와서 넘치면 '더보기'로 목록 화면을 연다
+  const head = (kind: ConsultListKind) => ({ queryKey: consultKeys.head(kind), queryFn: () => consultApi.list({ kind, limit: HOME_ROWS + 1 }), enabled: !!account });
+  const openQ = useQuery(head('open'));
+  const pastQ = useQuery(head('past'));
+  useWebAutoGrow(input, text, INPUT_MAX);
   if (!u) return null;
 
   const cost = status.data?.cost ?? CONSULT_CONFIG.cost;
@@ -62,10 +62,12 @@ export default function ConsultHomeScreen() {
   const freeLeft = account ? status.data?.freeLeft ?? perDay : perDay;
   const free = freeLeft > 0;
 
-  // 직접 고르지 않았으면 글에서 주제를 추측해 미리 골라 둔다
-  const onText = (t: string) => { setText(t); setCrisis(null); if (!picked) setCat(guessCat(t)); };
+  // 주제는 글에서 추측해 서버에 함께 보낸다 (서버가 다시 판단한다)
+  const cat = text.trim() ? guessCat(text) : null;
+  const onText = (t: string) => { setText(t); setCrisis(null); };
+  const fillExample = (ex: string) => { onText(ex); input.current?.focus(); };
   const pickExample = (ex: string) => {
-    if (!text.trim() || text === ex) return onText(ex);
+    if (!text.trim() || text === ex) return fillExample(ex);
     setSwapTo(ex);
   };
   const len = text.trim().length;
@@ -82,79 +84,73 @@ export default function ConsultHomeScreen() {
   const ask = () => {
     setConfirm(false);
     const key = startAsk(text.trim(), cat ?? undefined);
-    setText(''); setCat(null); setPicked(false); setCrisis(null);
+    setText(''); setCrisis(null);
+    input.current?.blur();
     nav.push('ConsultChat', { id: 'new', ask: key });
   };
 
-  const rows = history.data ?? [];
-  const open = rows.filter(e => e.locked || e.followUpsLeft > 0);
-  const past = rows.filter(e => !e.locked && e.followUpsLeft <= 0);
   const openChat = (e: ConsultView) => nav.push('ConsultChat', { id: String(e.id) });
+  const section = (kind: ConsultListKind, title: string, rows: ConsultView[] | undefined) => (rows?.length ? (
+    <>
+      <SectionHeader
+        title={title}
+        action={rows.length > HOME_ROWS ? '더보기' : undefined} showAction
+        onAction={() => nav.push('ConsultHistory', { kind })}
+      />
+      <ConsultRows rows={rows.slice(0, HOME_ROWS)} onOpen={openChat} />
+    </>
+  ) : null);
 
   return (
-    <Screen largeTitle="상담" right={<PointPill />}>
-      {fortune ? (
-        <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
-          <Mascot size={46} />
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
-            <Text style={s.todayV} numberOfLines={2}>{fortune.combined.summary}</Text>
+    <Screen largeTitle="상담" right={<PointPill />} scroll={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={s.intro}>
+            <Mascot size={56} />
+            <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}편하게 얘기해 주시면 사주로 같이 살펴볼게요.</Text>
           </View>
-        </LinearGradient>
-      ) : null}
+          {fortune ? (
+            <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
+              <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
+              <Text style={s.todayV} numberOfLines={2}>{fortune.combined.summary}</Text>
+            </LinearGradient>
+          ) : null}
 
-      <GradientBorder outer={{ marginTop: 16 }}>
-        <TextField
-          value={text} onChangeText={onText} multiline maxLength={maxLen}
-          placeholder="지금 마음에 걸리는 일을 편하게 적어주세요."
-          containerStyle={s.inputBox}
-          style={s.input}
-          accessibilityLabel="고민 내용"
-        />
-      </GradientBorder>
-      <View style={s.between}>
-        <Text style={s.hint}>{cat ? `${catOf(cat).label} 고민${picked ? '' : '으로 골랐어요 · 다른 주제면 아래에서 골라 주세요'}` : '구체적일수록 답이 정확해져요'}</Text>
-        <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text>
-      </View>
-      <View style={s.chips}>
-        {CONSULT_CATS.map(c => {
-          const on = cat === c.key;
-          return (
-            <PressableScale key={c.key} onPress={() => { setCat(on ? null : c.key); setPicked(!on); }} style={[s.chip, on && s.chipOn]} scaleTo={0.95} accessibilityState={{ selected: on }} accessibilityLabel={`${c.label} 고민`}>
-              {on ? <Icon name="check" size={14} color={colors.white} strokeWidth={2.6} /> : null}
-              <Text style={[s.chipT, on && { color: colors.white, fontWeight: '700' }]}>{c.label}</Text>
+          {/* 눌러서 입력창에 채운다 — 두 줄이 서로 반대로 흘러간다 */}
+          <Text style={s.exampleK}>이런 고민도 괜찮아요</Text>
+          <View style={{ gap: 8 }}>
+            <WorryMarquee items={EXAMPLES.slice(0, 3)} onPick={pickExample} />
+            <WorryMarquee items={EXAMPLES.slice(3)} onPick={pickExample} reverse />
+          </View>
+
+          {crisis ? <HelpLines lines={crisis} crisis /> : null}
+
+          {section('open', '이어서 이야기하기', openQ.data)}
+          {section('past', '지난 상담', pastQ.data)}
+
+          <Text style={[s.note, { marginTop: 24 }]}>나만 볼 수 있어요. 1년 뒤 자동 삭제됩니다.</Text>
+        </ScrollView>
+
+        {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
+        <View style={s.footer}>
+          <View style={s.between}>
+            <Text style={s.hint} numberOfLines={1}>
+              {cat ? `${catOf(cat).label} 고민으로 읽었어요` : free ? `오늘 무료 ${freeLeft}번 남았어요` : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
+            </Text>
+            {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
+          </View>
+          <View style={s.inputRow}>
+            <TextInput
+              ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW}
+              placeholder="지금 마음에 걸리는 일을 편하게 적어주세요" placeholderTextColor={colors.inkMute}
+              style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
+            />
+            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 상담받기' : `${cost}알로 상담받기`}>
+              <Icon name="arrowUp" size={18} color={colors.white} strokeWidth={2.4} />
             </PressableScale>
-          );
-        })}
-      </View>
-
-      {crisis ? <HelpLines lines={crisis} crisis /> : null}
-
-      <PrimaryButton
-        label={free ? '무료로 상담받기' : `${cost}${ro(cost)} 상담받기`}
-        icon={free ? undefined : <Coin size={18} />}
-        onPress={start} disabled={!ok} style={{ marginTop: 24 }}
-      />
-      <Text style={s.note}>
-        {free
-          ? `오늘 무료 ${freeLeft}번 남았어요 · 결론을 먼저 보고, ${cost}알로 열면\n${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`
-          : `${account ? `보유 ${fmtP(points)} · ` : ''}${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`}
-      </Text>
-
-      <SubHead title="이런 고민도 괜찮아요" caption="눌러서 바로 확인해보세요" />
-      <View style={{ gap: 12, alignItems: 'flex-start' }}>
-        {EXAMPLES.map(ex => (
-          <PressableScale key={ex} onPress={() => pickExample(ex)} style={s.example} scaleTo={0.98} accessibilityLabel={`예시 고민: ${ex}`}>
-            <Text style={s.exampleT}>{ex}</Text>
-          </PressableScale>
-        ))}
-      </View>
-
-      {open.length ? <History title="이어서 이야기하기" rows={open} onOpen={openChat} /> : null}
-      {past.length ? <History title="지난 상담" rows={past} onOpen={openChat} /> : null}
-
-      <Text style={[s.note, { marginTop: 24 }]}>나만 볼 수 있어요. 공유 카드에는 고민 내용이 절대 들어가지 않아요.{'\n'}1년 뒤 자동 삭제됩니다.</Text>
-      <Disclaimer compact />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
 
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
@@ -167,53 +163,29 @@ export default function ConsultHomeScreen() {
       <BottomSheet visible={swapTo !== null} onClose={() => setSwapTo(null)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>예시로 바꿀까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>지금 적은 내용은 지워져요.</Text>
-        <PrimaryButton label="바꾸기" onPress={() => { if (swapTo) onText(swapTo); setSwapTo(null); }} style={{ marginTop: 20 }} />
+        <PrimaryButton label="바꾸기" onPress={() => { if (swapTo) fillExample(swapTo); setSwapTo(null); }} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setSwapTo(null)} style={{ marginTop: 8 }} />
       </BottomSheet>
     </Screen>
   );
 }
 
-function History({ title, rows, onOpen }: { title: string; rows: ConsultView[]; onOpen(e: ConsultView): void }) {
-  return (
-    <>
-      <SubHead title={title} />
-      <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
-        {rows.map((e, i) => {
-          const C = catOf(e.topic);
-          const badge = e.locked ? '미리보기' : e.followUpsLeft > 0 ? `${e.followUpsLeft}번 더 물어볼 수 있어요` : '';
-          return (
-            <PressableScale key={e.id} onPress={() => onOpen(e)} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98} accessibilityLabel={e.answer?.headline ?? C.label}>
-              <View style={s.histH}><Text style={s.histHT}>{C.hanja}</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
-                <Text style={txt.caption}>{C.label} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
-              </View>
-            </PressableScale>
-          );
-        })}
-      </Card>
-    </>
-  );
-}
+const INPUT_MAX = 120;
+const HOME_ROWS = 10;
 
 const s = StyleSheet.create({
-  today: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg },
+  content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 24 },
+  intro: { alignItems: 'center', gap: 12, marginTop: 8 },
+  greet: { fontSize: 15, lineHeight: 24, fontWeight: '500', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
+  today: { gap: 4, marginTop: 20, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg },
   todayK: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
   todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6 },
-  inputBox: { borderWidth: 0, backgroundColor: 'transparent', paddingRight: 0 },
-  input: { height: 125, paddingHorizontal: 16, paddingTop: 16, fontSize: 14, lineHeight: 20, fontWeight: '500' },
-  between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginTop: 8 },
-  hint: { fontSize: 13, lineHeight: 18, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong },
-  chipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-  chipT: { fontSize: 14, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
-  note: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, textAlign: 'center', marginTop: 12 },
-  example: { height: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.card },
-  exampleT: { fontSize: 14, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
-  hist: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  histLine: { borderTopWidth: 1, borderTopColor: colors.line },
-  histH: { width: 36, height: 36, borderRadius: 8, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  histHT: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purpleSoft },
+  exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 10 },
+  between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 6, paddingHorizontal: 4 },
+  hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
+  input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
+  sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
+  note: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, textAlign: 'center', marginTop: 6 },
 });

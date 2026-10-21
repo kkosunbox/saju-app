@@ -1,6 +1,6 @@
 /**
  * 고민 상담 — 주제 목록과 글에서 주제 고르기 (화면용). 서버 값(GET /consults/status)이 오기 전 기본값.
- * 답변 · 위기 판단 · 기록은 서버(/consults)가 한다. 고민 글은 공유 카드에 절대 넣지 않는다.
+ * 답변 · 위기 판단 · 기록은 서버(/consults)가 한다. 상담은 공유하지 않는다.
  */
 export const CONSULT_CONFIG = { maxLen: 500, minLen: 10, cost: 100 };
 

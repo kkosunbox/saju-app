@@ -16,6 +16,7 @@ export const ROUTES: Record<string, string> = {
   Home: '/',
   Fortune: '/fortune',
   ConsultChat: '/consult/[id]',
+  ConsultHistory: '/consult/history',
   Content: '/content',
   Compatibility: '/compatibility',
   MyPage: '/my',

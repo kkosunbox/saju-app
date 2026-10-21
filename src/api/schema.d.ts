@@ -1448,7 +1448,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 내 상담 기록 (최신 50건, 고민 글 · 대화 제외) */
+        /**
+         * 내 상담 기록 (최신순, 한 번에 최대 50건, 고민 글 · 대화 제외)
+         * @description kind로 이어서 이야기할 상담(open)과 끝난 상담(past)을 나눠 받습니다. 다음 페이지는 받은 마지막 id를 before로 넘기고, limit보다 적게 오면 끝입니다.
+         */
         get: operations["ConsultController_list_v1"];
         put?: never;
         /**
@@ -7398,7 +7401,13 @@ export interface operations {
     };
     ConsultController_list_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description open: 아직 이어서 이야기할 수 있는 상담(미리보기 · 이어 묻기 기한과 횟수가 남은 상담), past: 끝난 상담. 없으면 둘 다 */
+                kind?: "open" | "past";
+                /** @description 이 id보다 오래된 것부터 (지난 페이지 마지막 id) */
+                before?: number;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

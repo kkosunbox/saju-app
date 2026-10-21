@@ -42,6 +42,8 @@ export type RootStackParamList = {
   /** 상담 대화 (첫 답변 + 이어 묻기) */
   /** id 'new': 상담 탭이 시작한 요청(ask 키)의 답을 기다리는 중 */
   ConsultChat: { id: string; ask?: string };
+  /** 상담 기록 전체 (무한 스크롤) */
+  ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;
   Legal: { doc: 'terms' | 'privacy' };
 };

@@ -8,9 +8,6 @@ import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import Disclaimer from '../../components/Disclaimer';
-import FriendCompare from '../../components/FriendCompare';
-import { ShareIconButton } from '../../components/ShareCta';
 import { ActRow, BodyState, Coin, LockCard, Para, SubHead } from '../../components/premium/Kit';
 import GradientBorder from '../../components/GradientBorder';
 import BottomSheet from '../../components/BottomSheet';
@@ -21,15 +18,16 @@ import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
 import { ro } from '../../services/premium/catalog';
 import { ConsultAnswer, ConsultFacts, ConsultView, HelpLine, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
-import { consultSpec } from '../../services/share/shareSpecs';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { Counselor, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, kstDate, kstTime } from './parts';
+import { Counselor, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const INPUT_MAX = 110;
 
 const SEND_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '답변을 만들지 못했어요. 다시 물어봐 주세요',
@@ -116,6 +114,7 @@ function Chat({ id }: { id: number }) {
   const { toast, goWallet } = usePremium();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
@@ -125,6 +124,7 @@ function Chat({ id }: { id: number }) {
   const q = useQuery({ queryKey: consultKeys.one(id), queryFn: () => consultApi.get(id), enabled: Number.isFinite(id) });
   const status = useConsultStatus(!!account);
   const turnCount = q.data?.turns?.length ?? 0;
+  useWebAutoGrow(inputRef, input, INPUT_MAX);
   // 새 말이 붙으면 아래로 (첫 화면은 답변 위에서 시작)
   useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending, crisis]);
 
@@ -139,7 +139,6 @@ function Chat({ id }: { id: number }) {
   const limit = status.data?.followUpLimit ?? 10;
   const hours = status.data?.followUpHours ?? 24;
   const full = isFullAnswer(e.answer) && e.facts ? { answer: e.answer, facts: e.facts } : null;
-  const spec = full ? consultSpec(u, { ...e, ...full }) : null;
   const turns = e.turns ?? [];
   const suggestions = (turns.length ? turns[turns.length - 1].followUps : e.answer.followUps) ?? [];
   const canAsk = !e.locked && e.followUpsLeft > 0;
@@ -209,12 +208,12 @@ function Chat({ id }: { id: number }) {
     <>
       <View style={s.inputRow}>
         <TextInput
-          value={input} onChangeText={setInput} multiline maxLength={300}
+          ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW}
           placeholder={e.locked ? '어떤 고민이든 편하게 말씀해주세요' : '이어서 물어보세요'} placeholderTextColor={colors.inkMute}
           style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
         />
         <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (!input.trim() || sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
-          <Icon name="send" size={18} color={colors.white} strokeWidth={2} />
+          <Icon name="arrowUp" size={18} color={colors.white} strokeWidth={2.4} />
         </PressableScale>
       </View>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>
@@ -231,10 +230,9 @@ function Chat({ id }: { id: number }) {
   );
 
   return (
-    <Screen title="고민 상담" back sky right={spec ? <ShareIconButton spec={spec} /> : undefined} scroll={false}>
+    <Screen title="고민 상담" back sky scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {spec ? <FriendCompare route="Consult" spec={spec} /> : null}
           <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
           {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
@@ -289,7 +287,6 @@ function Chat({ id }: { id: number }) {
             <Text style={s.delete}>이 상담 기록 지우기</Text>
           </PressableScale>
           <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
-          <Disclaimer compact />
         </ScrollView>
         <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>{footer}</View>
       </KeyboardAvoidingView>
@@ -381,7 +378,7 @@ const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingBottom: 24 },
   footer: { paddingHorizontal: SCREEN_PX, paddingTop: 12, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
-  input: { flex: 1, maxHeight: 110, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
+  input: { flex: 1, maxHeight: INPUT_MAX, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
   sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
   eyebrow: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginTop: 4 },
   direct: { padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },

@@ -54,8 +54,15 @@ export interface ConsultStatus {
 /** 잠금이 풀린 전체 답변인지 */
 export const isFullAnswer = (a: ConsultView['answer']): a is ConsultAnswer => !!a && 'dos' in a;
 
+/** open: 아직 이어서 이야기할 수 있는 상담(미리보기 · 이어 묻기가 남은 상담), past: 끝난 상담 */
+export type ConsultListKind = 'open' | 'past';
+
 export const consultKeys = {
+  /** 상담 관련 캐시 전부 (목록이 바뀌면 이걸로 무효화) */
   list: ['consults'] as const,
+  /** 상담 탭에 보이는 앞부분 · 목록 화면의 무한 스크롤 */
+  head: (kind: ConsultListKind) => ['consults', 'head', kind] as const,
+  pages: (kind: ConsultListKind) => ['consults', 'pages', kind] as const,
   one: (id: number) => ['consults', id] as const,
   status: ['consults', 'status'] as const,
 };
@@ -71,8 +78,9 @@ export const consultApi = {
   followUp: (id: number, question: string) =>
     call<ConsultView>(api.POST('/v1/consults/{id}/messages', { params: { path: { id } }, body: { question } })),
 
-  async list(): Promise<ConsultView[]> {
-    return (await call<{ list: ConsultView[] }>(api.GET('/v1/consults'))).list;
+  /** 최신순 — 다음 페이지는 받은 마지막 id를 before로, limit보다 적게 오면 끝 */
+  async list(query: { kind?: ConsultListKind; before?: number; limit?: number } = {}): Promise<ConsultView[]> {
+    return (await call<{ list: ConsultView[] }>(api.GET('/v1/consults', { params: { query } }))).list;
   },
 
   get: (id: number) => call<ConsultView>(api.GET('/v1/consults/{id}', { params: { path: { id } } })),
