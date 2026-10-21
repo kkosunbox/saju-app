@@ -177,10 +177,11 @@ export default function MyPageScreen() {
         </Card>
       ) : (
         <Card style={s.group}>
-          <PressableScale onPress={() => nav.navigate('Login')} style={s.row} scaleTo={0.98} accessibilityLabel="로그인하기">
+          <PressableScale onPress={() => nav.navigate('Login')} style={[s.row, s.loginRow]} scaleTo={0.98} accessibilityLabel="로그인하기">
+            <View style={s.rowIcon}><Icon name="user" size={18} color={colors.purpleSoft} /></View>
             <View style={{ flex: 1 }}>
               <Text style={[s.rowLabel, { fontWeight: '600' }]}>로그인하기</Text>
-              <Text style={[txt.small, { marginTop: 2 }]}>로그인하면 알로 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
+              <Text style={[txt.small, { marginTop: 4 }]}>로그인하면 알로 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
             </View>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />
           </PressableScale>
@@ -245,6 +246,7 @@ const s = StyleSheet.create({
   todayScore: { fontFamily: fonts.serif, fontSize: 18, color: colors.moon, fontWeight: '700' },
   group: { paddingVertical: 2, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54 },
+  loginRow: { paddingVertical: 16 },
   border: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.lineStrong },
   rowIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, color: colors.ink, fontWeight: '500' },
