@@ -7,6 +7,7 @@ import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import BrandMark from '../../components/BrandMark';
 import Mascot from '../../components/Mascot';
+import CharacterArt, { artOfName } from '../../components/CharacterArt';
 import { Bullet, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -50,9 +51,9 @@ export default function CharacterScreen() {
       {wrap(
       <View ref={card} collapsable={false} style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
-        {/* 캐릭터 그림은 아직 호랑이 하나뿐 — 60가지 그림이 나오면 c.hanja(일주)로 고른다 */}
+        {/* 일주(60갑자)마다 다른 캐릭터 그림 */}
         <View style={s.art}>
-          <Mascot name="tiger" size={104} />
+          <CharacterArt hanja={c.hanja} size={120} />
           <View style={s.hanja}><Text style={s.hanjaText}>{c.hanja}</Text></View>
         </View>
         <Text style={s.eyebrow}>{u.nickname}님은</Text>
@@ -74,7 +75,7 @@ export default function CharacterScreen() {
 
       <SubHead title="찰떡 캐릭터" caption="함께 있으면 편안한 기운" />
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <Mascot name="friends" size={34} />
+        {artOfName(c.bestFriend) ? <View style={s.friendArt}><CharacterArt name={c.bestFriend} size={52} /></View> : <Mascot name="friends" size={34} />}
         <View style={{ flex: 1 }}>
           <Text style={txt.h3}>{c.bestFriend}</Text>
           <Text style={[txt.small, { marginTop: 2 }]}>친구에게 공유해서 찰떡 캐릭터인지 확인해 보세요</Text>
@@ -93,7 +94,8 @@ const s = StyleSheet.create({
   card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, padding: 20, alignItems: 'center', marginTop: 4 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
   brandText: { fontFamily: fonts.serif, color: colors.white, fontSize: 14, fontWeight: '600' },
-  art: { marginTop: 12, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  friendArt: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  art: { marginTop: 12, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   hanja: { position: 'absolute', right: -4, bottom: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.moon },
   hanjaText: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '700', color: colors.heroBg, letterSpacing: 1 },
   eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 18 },

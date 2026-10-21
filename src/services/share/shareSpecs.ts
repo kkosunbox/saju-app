@@ -19,6 +19,8 @@ export interface ShareSpec {
   kind: string;
   /** 도장·워터마크 한자 한 글자 */
   seal: string;
+  /** 사주 캐릭터 카드: 그림을 고를 일주 한자 (예: 己丑) */
+  pillar?: string;
   eyebrow: string;
   headline: string;
   sub?: string;
@@ -69,7 +71,7 @@ export function mbtiSpec(u: User, m: MbtiMatches): ShareSpec {
 
 export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
   return {
-    kind: '사주 캐릭터', seal: c.hanja.slice(0, 1), eyebrow: `60가지 캐릭터 중 ${u.nickname}님은`,
+    kind: '사주 캐릭터', seal: c.hanja.slice(0, 1), pillar: c.hanja, eyebrow: `60가지 캐릭터 중 ${u.nickname}님은`,
     headline: c.name, sub: `${c.title} · ${c.core}`,
     stats: [['일주', c.hanja], ['기운', `${ELEMENT_INFO[c.element].ko}(${ELEMENT_INFO[c.element].hanja})`], ['키워드', c.keyword]],
     teaser: `나와 찰떡인 캐릭터는 '${c.bestFriend.split(' ')[0]} ··'`,

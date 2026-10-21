@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import PrimaryButton from './PrimaryButton';
 import Mascot from './Mascot';
+import CharacterArt from './CharacterArt';
 import { STEMS, BRANCHES } from '../data/sajuData';
 import { colors } from '../theme/colors';
 import { fonts, radius } from '../theme/typography';
@@ -49,7 +50,8 @@ export default function PillarSlot({ target, onDone }: { target: string; onDone(
     <View style={{ alignItems: 'center' }}>
       <View style={s.machine}>
         <Animated.View style={[s.mascot, { transform: [{ translateY: pop.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }, { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }]}>
-          <Mascot size={58} />
+          {/* 멈추면 마스코트 자리에 내 캐릭터가 튀어나온다 */}
+          {state === 'stop' ? <CharacterArt hanja={target} size={72} style={{ marginTop: 2 }} /> : <Mascot size={58} />}
         </Animated.View>
         <View style={s.window}>
           <Animated.View style={{ transform: [{ translateY: Animated.multiply(y, -1) }] }}>

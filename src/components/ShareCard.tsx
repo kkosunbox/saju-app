@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, Logo } from './Mascot';
 import Icon from './Icon';
+import CharacterArt from './CharacterArt';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { parseISO } from '../utils/date';
 
@@ -49,7 +50,7 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
 
       {/* 남는 높이에는 마스코트 */}
       <View style={s.spacer}>
-        <Mascot name={POSE[spec.seal] ?? 'mascot'} size={72} />
+        {spec.pillar ? <CharacterArt hanja={spec.pillar} size={96} /> : <Mascot name={POSE[spec.seal] ?? 'mascot'} size={72} />}
       </View>
 
       {spec.big ? (
