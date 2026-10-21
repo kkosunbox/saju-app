@@ -38,7 +38,7 @@ import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
-import { useWebThemeColor } from '../utils/webThemeColor';
+import { useWebTopBar } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import BottomSheet from '../components/BottomSheet';
 import OptionChip from '../components/OptionChip';
@@ -105,9 +105,14 @@ export default function HomeScreen() {
   const tabBack = useTabBack();
   const hasHistory = useHasTabHistory();
   const insets = useSafeAreaInsets();
-  // 맨 위 하늘이 보이는 동안만 상단 바를 하늘색으로, 내리면 흰 내용에 맞춰 기본색으로
-  const [nearTop, setNearTop] = useState(true);
-  useWebThemeColor(nearTop ? gradients.sky[0] : colors.cream);
+  // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바).
+  // 상단 바(상태바 + 로고 줄)까지는 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 한다
+  const skyH = 296 + insets.top;
+  const skyHold = insets.top + 56;
+  // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
+  const onScrollTopBar = useWebTopBar([
+    [0, gradients.sky[0]], [skyHold, gradients.sky[0]], [skyH * 0.48, gradients.sky[1]], [skyH * 0.88, gradients.sky[2]],
+  ]);
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -126,13 +131,11 @@ export default function HomeScreen() {
       </View>
     </View>
   );
-  // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바)
-  const skyH = 296 + insets.top;
   const sky = (
     <LinearGradient
       pointerEvents="none"
       colors={[gradients.sky[0], ...gradients.sky]}
-      locations={[0, 400 / (400 + skyH), (400 + skyH * 0.48) / (400 + skyH), (400 + skyH * 0.88) / (400 + skyH)]}
+      locations={[0, (400 + skyHold) / (400 + skyH), (400 + skyH * 0.48) / (400 + skyH), (400 + skyH * 0.88) / (400 + skyH)]}
       style={[s.sky, { height: 400 + skyH }]}
     />
   );
@@ -205,8 +208,8 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32, backgroundColor: colors.cream }}
         showsVerticalScrollIndicator={false}
-        scrollEventThrottle={64}
-        onScroll={e => setNearTop(e.nativeEvent.contentOffset.y < 40)}
+        scrollEventThrottle={16}
+        onScroll={e => onScrollTopBar(e.nativeEvent.contentOffset.y)}
         refreshControl={<RefreshControl refreshing={fortuneLoading} onRefresh={() => refreshFortune()} tintColor={colors.white} />}
       >
         {sky}

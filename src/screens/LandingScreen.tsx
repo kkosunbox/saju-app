@@ -13,7 +13,7 @@ import ScoreRing from '../components/ScoreRing';
 import { COPY } from '../content/copy';
 import { analysisTheme, CategoryKey, categoryTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
-import { useWebThemeColor } from '../utils/webThemeColor';
+import { useWebTopBar } from '../utils/webThemeColor';
 
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
 const SOURCE_LINE: Record<(typeof SOURCES)[number], string> = {
@@ -59,9 +59,19 @@ export default function LandingScreen() {
   const [lastCtaY, setLastCtaY] = useState(0);
   const [viewH, setViewH] = useState(0);
   const [y, setY] = useState(0);
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setY(e.nativeEvent.contentOffset.y);
-  // 맨 위 하늘이 보이는 동안만 상단 바를 하늘색으로, 내리면 흰 내용에 맞춰 기본색으로
-  useWebThemeColor(y < 40 ? gradients.sky[0] : colors.cream);
+  // 히어로는 상단 바(상태바 + 로고 줄)까지 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 하고,
+  // 웹에서는 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
+  const heroHold = insets.top + 52;
+  const heroGradient = heroH > heroHold * 2
+    ? { colors: [gradients.sky[0], ...gradients.sky] as const, locations: [0, heroHold / heroH, 0.5, 0.92] as const }
+    : { colors: gradients.sky, locations: [0, 0.5, 0.92] as const };
+  const onScrollTopBar = useWebTopBar(heroH > heroHold * 2
+    ? [[0, gradients.sky[0]], [heroHold, gradients.sky[0]], [heroH * 0.5, gradients.sky[1]], [heroH * 0.92, gradients.sky[2]]]
+    : [[0, gradients.sky[0]]]);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setY(e.nativeEvent.contentOffset.y);
+    onScrollTopBar(e.nativeEvent.contentOffset.y);
+  };
   // lastCtaY는 히어로 아래 본문 기준 위치
   const floating = heroH > 0 && y > heroH - 40 && (!lastCtaY || y + viewH < heroH + lastCtaY + 40);
 
@@ -69,9 +79,9 @@ export default function LandingScreen() {
     <View style={{ flex: 1, backgroundColor: colors.cream, overflow: 'hidden' }}>
       {/* 당겨도 위가 하얗게 비지 않게 */}
       <View pointerEvents="none" style={[s.overscroll, { backgroundColor: gradients.sky[0] }]} />
-      <ScrollView onScroll={onScroll} scrollEventThrottle={32} onLayout={e => setViewH(e.nativeEvent.layout.height)}>
+      <ScrollView onScroll={onScroll} scrollEventThrottle={16} onLayout={e => setViewH(e.nativeEvent.layout.height)}>
         <View onLayout={e => setHeroH(e.nativeEvent.layout.height)}>
-        <LinearGradient colors={gradients.sky} locations={[0, 0.5, 0.92]} style={[s.hero, { paddingTop: insets.top }]}>
+        <LinearGradient colors={heroGradient.colors} locations={heroGradient.locations} style={[s.hero, { paddingTop: insets.top }]}>
           <View style={s.top}>
             <BrandMark light />
             <PressableScale onPress={login} hitSlop={12} scaleTo={0.94} accessibilityRole="link"><Text style={s.topLink}>로그인</Text></PressableScale>
