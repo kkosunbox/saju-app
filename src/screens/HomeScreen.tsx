@@ -197,8 +197,11 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
+      {/* 웹(아이폰 Safari)은 스크롤 영역 위로 삐져나간 하늘을 잘라 버려서, 당기면 뒤가 보인다.
+          뒤쪽 위 절반을 하늘색으로 깔고 내용은 흰 바탕으로 덮어, 위로 당기면 하늘색·아래로 당기면 흰색이 보이게 한다 */}
+      <View pointerEvents="none" style={[s.overscrollTop, { backgroundColor: gradients.sky[0] }]} />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 32, backgroundColor: colors.cream }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={fortuneLoading} onRefresh={() => refreshFortune()} tintColor={colors.white} />}
       >
@@ -393,6 +396,7 @@ export default function HomeScreen() {
 
 const s = StyleSheet.create({
   sky: { position: 'absolute', top: -400, left: 0, right: 0 },
+  overscrollTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%' },
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
   hello: { ...txt.title, marginTop: 8 },
   date: { fontSize: 14, fontWeight: '500', color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.5, marginTop: 6 },
