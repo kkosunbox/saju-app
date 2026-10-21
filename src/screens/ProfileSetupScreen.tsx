@@ -9,12 +9,11 @@ import OptionChip from '../components/OptionChip';
 import TextField from '../components/TextField';
 import MoonLoader from '../components/MoonLoader';
 import Icon from '../components/Icon';
-import { CheckRow } from '../components/auth/AuthKit';
+import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, fmtTime, sijinLabel, sijinOf, sijinTime } from '../components/BirthFields';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 import { BloodType, Gender, MBTI } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
-import { formatKoreanDate, isValidDate } from '../utils/date';
 import { motion, useReducedMotion } from '../utils/motion';
 import { ApiError } from '../api/client';
 import { ProfileInput } from '../services/server/profileApi';
@@ -42,32 +41,16 @@ const QUIZ: { q: string; a: [string, string]; axis: [string, string] }[] = [
   { q: '여행을 떠날 때 나는?', a: ['일정을 미리 짜둔다', '가서 끌리는 대로 다닌다'], axis: ['J', 'P'] },
 ];
 
-/**
- * 시진 — 서버는 서울 평균태양시(KST −32분)로 시주를 정하니, 시계 기준 경계는 :30.
- * 칩을 고르면 그 시진의 가운데 시각을 보낸다. 자시는 날짜가 갈리므로 자정 전·후를 한 번 더 묻는다.
- */
-const SIJIN = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'].map((n, b) => {
-  const hm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
-  const start = (b * 120 + 1410) % 1440;
-  return { label: `${n}시`, range: `${hm(start)}~${hm(start + 120)}`, time: hm(b * 120 + 30) };
-});
-const JASI_TIME = { before: '23:45', after: '00:30' } as const;
-
 type TimeMode = 'unknown' | 'sijin' | 'exact';
 
 /** 저장된 시각이 칩이 보내는 시각이면 그 칩으로, 아니면 정확한 시각으로 되살린다 */
-function restoreTime(t: string | null | undefined): { mode: TimeMode | null; sijin: number | null; jasi: 'before' | 'after' | null; exact: string } {
+function restoreTime(t: string | null | undefined): { mode: TimeMode | null; sijin: number | null; jasi: JasiSide | null; exact: string } {
   if (t === undefined) return { mode: null, sijin: null, jasi: null, exact: '' };
   if (t === null) return { mode: 'unknown', sijin: null, jasi: null, exact: '' };
-  if (t === JASI_TIME.before || t === JASI_TIME.after) return { mode: 'sijin', sijin: 0, jasi: t === JASI_TIME.before ? 'before' : 'after', exact: '' };
-  const b = SIJIN.findIndex(x => x.time === t);
-  if (b > 0) return { mode: 'sijin', sijin: b, jasi: null, exact: '' };
+  const chip = sijinOf(t);
+  if (chip) return { mode: 'sijin', ...chip, exact: '' };
   return { mode: 'exact', sijin: null, jasi: null, exact: t.replace(':', '') };
 }
-
-/** 숫자만 받아 "1995. 03. 15" / "14:30" 모양으로 */
-const fmtDate = (v: string) => v.slice(0, 4) + (v.length > 4 ? `. ${v.slice(4, 6)}` : '') + (v.length > 6 ? `. ${v.slice(6)}` : '');
-const fmtTime = (v: string) => v.slice(0, 2) + (v.length > 2 ? `:${v.slice(2)}` : '');
 
 const LOADING_MSGS = ['오늘의 운을 고르는 중', '사주 원국을 세우는 중', '태어난 요일의 행성을 찾는 중', 'MBTI 성향을 읽는 중', '네 가지 결과를 엮는 중'];
 
@@ -149,12 +132,12 @@ export default function ProfileSetupScreen() {
   const [generating, setGenerating] = useState(false);
 
   const [nickname, setNickname] = useState(editing ? user!.nickname : '');
-  const [calendar, setCalendar] = useState<'solar' | 'lunar'>(editing ? user!.calendarType ?? 'solar' : 'solar');
+  const [calendar, setCalendar] = useState<CalendarType>(editing ? user!.calendarType ?? 'solar' : 'solar');
   const [leap, setLeap] = useState(editing ? !!user!.isLeapMonth : false);
   const [birth, setBirth] = useState(editing ? (user!.birthDateInput ?? user!.birthDate).replace(/\D/g, '') : '');
   const [timeMode, setTimeMode] = useState<TimeMode | null>(savedTime.mode);
   const [sijin, setSijin] = useState<number | null>(savedTime.sijin);
-  const [jasi, setJasi] = useState<'before' | 'after' | null>(savedTime.jasi);
+  const [jasi, setJasi] = useState<JasiSide | null>(savedTime.jasi);
   const [exact, setExact] = useState(savedTime.exact);
   const [gender, setGender] = useState<Gender | null>(editing ? user!.gender : null);
   const [blood, setBlood] = useState<BloodType | null>(editing ? user!.bloodType : null);
@@ -163,19 +146,13 @@ export default function ProfileSetupScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const nameOk = nickname.trim().length > 0;
-  const [y, m, d] = [Number(birth.slice(0, 4)), Number(birth.slice(4, 6)), Number(birth.slice(6, 8))];
-  const dateFilled = birth.length === 8;
-  // 음력은 날짜 범위만 보고, 실제로 있는 날인지는 서버가 확인한다 (INVALID_BIRTH_DATE)
-  const dateOk = dateFilled && (calendar === 'lunar'
-    ? y >= 1900 && m >= 1 && m <= 12 && d >= 1 && d <= 30
-    : isValidDate(y, m, d));
-  const birthISO = `${birth.slice(0, 4)}-${birth.slice(4, 6)}-${birth.slice(6, 8)}`;
+  const { ok: dateOk, iso: birthISO } = checkBirth(birth, calendar);
   const validExact = (v: string) => v.length === 4 && Number(v.slice(0, 2)) <= 23 && Number(v.slice(2)) <= 59;
   const timeOk = timeMode === 'unknown'
     || (timeMode === 'sijin' && sijin !== null && (sijin !== 0 || !!jasi))
     || (timeMode === 'exact' && validExact(exact));
   const birthTime = timeMode === 'sijin' && sijin !== null
-    ? (sijin === 0 ? JASI_TIME[jasi ?? 'after'] : SIJIN[sijin].time)
+    ? sijinTime(sijin, jasi)
     : timeMode === 'exact' ? fmtTime(exact) : null;
   const answered = [nameOk, dateOk, timeOk, !!gender, !!blood, !!mbti || skipMbti];
   const allDone = stage === LAST && answered.every(Boolean);
@@ -247,8 +224,7 @@ export default function ProfileSetupScreen() {
   const mbtiFolded = (!!mbti || skipMbti) && open !== 'mbti';
   const timeValue = timeMode === 'unknown' ? '몰라요'
     : timeMode === 'exact' ? fmtTime(exact)
-      : sijin === 0 ? `자시 · 자정 ${jasi === 'before' ? '전' : '후'}`
-        : sijin !== null ? `${SIJIN[sijin].label} (${SIJIN[sijin].range})` : '';
+      : sijin !== null ? sijinLabel(sijin, jasi) : '';
   const pickSijin = (b: number) => { setTimeMode('sijin'); setSijin(b); if (b !== 0) { setJasi(null); setOpen(null); } };
 
   const sections = [
@@ -261,27 +237,8 @@ export default function ProfileSetupScreen() {
 
     // 1 생년월일
     <Reveal key="birth" reduced={reduced}>
-      <View style={[s.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
-        <Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>
-        <View style={s.seg} accessibilityRole="radiogroup">
-          {(['solar', 'lunar'] as const).map(c => (
-            <PressableScale key={c} onPress={() => { setCalendar(c); if (c === 'solar') setLeap(false); }} scaleTo={0.96} style={[s.segItem, calendar === c && s.segOn]}
-              accessibilityRole="radio" accessibilityState={{ selected: calendar === c }}>
-              <Text style={[s.segText, calendar === c && { color: colors.ink }]}>{c === 'solar' ? '양력' : '음력'}</Text>
-            </PressableScale>
-          ))}
-        </View>
-      </View>
-      <TextField value={fmtDate(birth)} onChangeText={t => setBirth(t.replace(/\D/g, '').slice(0, 8))} placeholder="1995. 03. 15" keyboardType="number-pad" maxLength={12}
-        autoFocus={!editing} style={s.bigInput} invalid={dateFilled && !dateOk} accessibilityLabel={`생년월일 8자리${calendar === 'lunar' ? ', 음력' : ''}`} />
-      {dateFilled && !dateOk ? <Text style={s.error}>1900년 이후의 실제 날짜를 입력해 주세요.</Text>
-        : dateOk ? <Text style={s.ok}>✓ {calendar === 'solar' ? formatKoreanDate(birthISO) : `음력 ${y}년 ${m}월 ${d}일${leap ? ' (윤달)' : ''}`}</Text>
-          : null}
-      {calendar === 'lunar' ? (
-        <View style={{ marginTop: 8 }}>
-          <CheckRow checked={leap} label="윤달이에요" onPress={() => setLeap(!leap)} />
-        </View>
-      ) : null}
+      <BirthDateField label={<Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth}
+        calendar={calendar} onCalendar={setCalendar} leap={leap} onLeap={setLeap} autoFocus={!editing} />
     </Reveal>,
 
     // 2 태어난 시간
@@ -289,20 +246,7 @@ export default function ProfileSetupScreen() {
       {timeFolded ? <Summary label="태어난 시간" value={timeValue} onPress={() => setOpen('time')} /> : (
         <>
           <Text style={s.label}>태어난 시간</Text>
-          <View style={s.grid}>
-            {SIJIN.map((x, b) => (
-              <OptionChip key={x.label} compact style={s.sijinCell} label={x.label} sub={x.range} selected={timeMode === 'sijin' && sijin === b} onPress={() => pickSijin(b)} />
-            ))}
-          </View>
-          {timeMode === 'sijin' && sijin === 0 ? (
-            <>
-              <Text style={[txt.caption, { marginTop: 12, marginBottom: 8 }]}>자시는 자정을 사이에 두고 날짜가 바뀌어요. 언제였나요?</Text>
-              <View style={s.row}>
-                <OptionChip compact style={{ flex: 1 }} label="자정 전" sub="23:30~24:00" selected={jasi === 'before'} onPress={() => { setJasi('before'); setOpen(null); }} />
-                <OptionChip compact style={{ flex: 1 }} label="자정 후" sub="00:00~01:30" selected={jasi === 'after'} onPress={() => { setJasi('after'); setOpen(null); }} />
-              </View>
-            </>
-          ) : null}
+          <SijinGrid sijin={timeMode === 'sijin' ? sijin : null} jasi={jasi} onPick={pickSijin} onJasi={side => { setJasi(side); setOpen(null); }} />
           <View style={[s.row, { marginTop: 8 }]}>
             <OptionChip compact style={{ flex: 1 }} label="몰라요" selected={timeMode === 'unknown'} onPress={() => { setTimeMode('unknown'); setOpen(null); }} />
             <OptionChip compact style={{ flex: 1 }} label="정확한 시각 입력" selected={timeMode === 'exact'}
@@ -420,13 +364,6 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   mbtiCell: { width: '23%' },
-  sijinCell: { flexGrow: 1, flexBasis: '30%' },
-  bigInput: { fontSize: 20, letterSpacing: 0.5 },
-  ok: { color: colors.success, fontSize: 12, fontWeight: '600', marginTop: 8 },
-  seg: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.sm, padding: 3, gap: 2 },
-  segItem: { paddingHorizontal: 14, height: 30, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  segOn: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong },
-  segText: { fontSize: 13, fontWeight: '600', color: colors.inkMute },
   summary: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 14, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.lineStrong, gap: 10 },
   summaryLabel: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
   summaryValue: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.ink, textAlign: 'right' },

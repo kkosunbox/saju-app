@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Card from '../components/Card';
 import OptionChip from '../components/OptionChip';
 import TextField from '../components/TextField';
+import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, sijinLabel, sijinTime } from '../components/BirthFields';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import ScoreRing from '../components/ScoreRing';
@@ -31,9 +32,8 @@ import { queryClient } from '../api/query';
 import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
 import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
-import { MBTI_LIST } from '../data/mbtiData';
+import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
-import { isValidDate } from '../utils/date';
 import { analysisTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
 import ShareCta from '../components/ShareCta';
@@ -71,8 +71,13 @@ export default function CompatibilityScreen() {
   const { toast, owned } = usePremium();
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [name, setName] = useState('');
-  const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
-  const [hh, setHh] = useState('');
+  const [birth, setBirth] = useState('');
+  const [calendar, setCalendar] = useState<CalendarType>('solar');
+  const [leap, setLeap] = useState(false);
+  // 태어난 시간은 선택 — 고르지 않으면 모름
+  const [sijin, setSijin] = useState<number | null>(null);
+  const [jasi, setJasi] = useState<JasiSide | null>(null);
+  const [showTime, setShowTime] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [mbti, setMbti] = useState<MBTI | null>(null);
   const [blood, setBlood] = useState<BloodType | null>(null);
@@ -88,15 +93,26 @@ export default function CompatibilityScreen() {
     if (r === 'copied') toast('초대 링크를 복사했어요. 상대에게 보내 보세요');
     else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
-  const dateFilled = y.length === 4 && !!m && !!d;
-  const dateOk = isValidDate(+y, +m, +d);
-  const hourOk = hh === '' || (+hh >= 0 && +hh <= 23);
+  const { ok: dateOk, iso: birthISO } = checkBirth(birth, calendar);
+  const timeOk = sijin !== 0 || !!jasi;
   // MBTI·혈액형은 모르면 비워 둔다 (궁합에서 빠진다)
-  const ok = !!relationship && !!name.trim() && dateOk && !!gender && hourOk;
+  const ok = !!relationship && !!name.trim() && dateOk && !!gender && timeOk;
+  // 버튼이 왜 안 눌리는지 — 하나라도 채우기 시작하면 남은 칸을 알려 준다
+  const missing = [
+    !relationship && '어떤 사이',
+    !name.trim() && '이름',
+    !dateOk && '생년월일',
+    !gender && '성별',
+    !timeOk && '자시의 자정 전·후',
+  ].filter(Boolean) as string[];
+  const started = !!relationship || !!name.trim() || !!birth || !!gender;
+
+  // 생년월일을 다 쓰면 키보드를 내려 아래 칸이 보이게
+  useEffect(() => { if (dateOk) Keyboard.dismiss(); }, [dateOk]);
 
   const [busy, setBusy] = useState(false);
   /** 서버가 계산하고 내 궁합 기록에 저장한다 (상대 정보는 기록을 지우면 함께 삭제). */
-  const run = async (partner: PartnerInput & { relationship: Relationship }) => {
+  const run = async (partner: PartnerInput & { relationship: Relationship; calendarType: CalendarType; isLeapMonth: boolean }) => {
     if (!user || busy) return;
     setBusy(true);
     try {
@@ -113,8 +129,10 @@ export default function CompatibilityScreen() {
     run({
       relationship: relationship!,
       nickname: name.trim(),
-      birthDate: `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`,
-      birthTime: hh ? `${hh.padStart(2, '0')}:00` : null,
+      calendarType: calendar,
+      birthDate: birthISO,
+      isLeapMonth: calendar === 'lunar' && leap,
+      birthTime: sijin === null ? null : sijinTime(sijin, jasi),
       gender: gender!, mbti, bloodType: blood,
     });
   };
@@ -221,7 +239,12 @@ export default function CompatibilityScreen() {
     <Screen
       largeTitle="궁합"
       subtitle="상대의 정보로 네 가지 관점의 궁합을 봐요"
-      footer={<PrimaryButton label={busy ? '궁합 보는 중…' : '궁합 보기'} onPress={analyze} disabled={!ok || busy} />}
+      footer={(
+        <>
+          {started && missing.length ? <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>남은 칸 · {missing.join(', ')}</Text> : null}
+          <PrimaryButton label={busy ? '궁합 보는 중…' : '궁합 보기'} onPress={analyze} disabled={!ok || busy} />
+        </>
+      )}
     >
       {/* 두 사람 — 나 · 마스코트 · 아직 비어 있는 상대 */}
       <View style={s.pairSheet}>
@@ -289,18 +312,24 @@ export default function CompatibilityScreen() {
         </View>
 
         <View>
-          <Label>생년월일 (양력)</Label>
-          <View style={s.row}>
-            <TextField containerStyle={{ flex: 1.5 }} value={y} onChangeText={t => setY(t.replace(/\D/g, ''))} placeholder="1994" keyboardType="number-pad" maxLength={4} suffix="년" invalid={dateFilled && !dateOk} />
-            <TextField containerStyle={{ flex: 1 }} value={m} onChangeText={t => setM(t.replace(/\D/g, ''))} placeholder="7" keyboardType="number-pad" maxLength={2} suffix="월" invalid={dateFilled && !dateOk} />
-            <TextField containerStyle={{ flex: 1 }} value={d} onChangeText={t => setD(t.replace(/\D/g, ''))} placeholder="2" keyboardType="number-pad" maxLength={2} suffix="일" invalid={dateFilled && !dateOk} />
-          </View>
-          {dateFilled && !dateOk ? <Text style={s.error}>실제 있는 날짜인지 확인해 주세요.</Text> : null}
+          <BirthDateField label={<Text style={[s.fieldLabel, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth}
+            calendar={calendar} onCalendar={setCalendar} leap={leap} onLeap={setLeap} />
         </View>
 
         <View>
-          <Label>태어난 시 (선택)</Label>
-          <TextField value={hh} onChangeText={t => setHh(t.replace(/\D/g, ''))} placeholder="모르면 비워두세요" keyboardType="number-pad" maxLength={2} suffix="시" invalid={!hourOk} />
+          <Label>태어난 시간 (선택)</Label>
+          <PressableScale onPress={() => setShowTime(v => !v)} style={[s.select, showTime && { borderColor: colors.purple }]} scaleTo={0.98} accessibilityLabel="태어난 시간 고르기">
+            <Text style={[s.selectText, sijin === null && { color: colors.inkMute }]}>{sijin === null ? '모르면 비워 두세요' : sijinLabel(sijin, jasi)}</Text>
+            <View style={{ transform: [{ rotate: showTime ? '-90deg' : '90deg' }] }}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+          </PressableScale>
+          {showTime && (
+            <View style={{ marginTop: 8, gap: 8 }}>
+              <SijinGrid sijin={sijin} jasi={jasi}
+                onPick={b => { setSijin(b); if (b !== 0) { setJasi(null); setShowTime(false); } }}
+                onJasi={side => { setJasi(side); setShowTime(false); }} />
+              <OptionChip compact label="몰라요" selected={sijin === null} onPress={() => { setSijin(null); setJasi(null); setShowTime(false); }} />
+            </View>
+          )}
         </View>
 
         <View>
@@ -314,13 +343,13 @@ export default function CompatibilityScreen() {
         <View>
           <Label>MBTI (선택)</Label>
           <PressableScale onPress={() => setShowMbti(v => !v)} style={[s.select, showMbti && { borderColor: colors.purple }]} scaleTo={0.98}>
-            <Text style={[s.selectText, !mbti && { color: colors.inkMute }]}>{mbti ?? '모르면 비워 두세요'}</Text>
+            <Text style={[s.selectText, !mbti && { color: colors.inkMute }]}>{mbti ? `${mbti} · ${MBTI_INFO[mbti].nickname}` : '모르면 비워 두세요'}</Text>
             <View style={{ transform: [{ rotate: showMbti ? '-90deg' : '90deg' }] }}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
           </PressableScale>
           {showMbti && (
             <View style={[s.grid, { marginTop: 8 }]}>
               {MBTI_LIST.map(t => (
-                <OptionChip key={t} compact style={s.mbtiCell} label={t} selected={mbti === t} onPress={() => { setMbti(t); setShowMbti(false); }} />
+                <OptionChip key={t} compact style={s.mbtiCell} label={t} sub={MBTI_INFO[t].nickname} selected={mbti === t} onPress={() => { setMbti(t); setShowMbti(false); }} />
               ))}
               <OptionChip compact style={{ width: '100%' }} label="몰라요" selected={!mbti} onPress={() => { setMbti(null); setShowMbti(false); }} />
             </View>
@@ -392,7 +421,7 @@ const s = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontWeight: '700', color: colors.inkSub, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  mbtiCell: { width: '23.8%' },
+  mbtiCell: { flexGrow: 1, flexBasis: '22%' },
   relCell: { width: '48.9%' },
   select: { height: 52, borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   selectText: { fontSize: 17, fontWeight: '500', color: colors.ink },
