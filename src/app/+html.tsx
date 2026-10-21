@@ -18,7 +18,7 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <title>운Pick · 오늘의 운, 하나만 Pick!</title>
         <meta name="description" content="사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세. 오늘의 운, 하나만 Pick!" />
         <meta name="theme-color" content="#FFFFFF" />

@@ -51,7 +51,6 @@ const CTA = '내 운세 보기 · 무료';
 export default function LandingScreen() {
   const { completeOnboarding } = useApp();
   const insets = useSafeAreaInsets();
-  useWebThemeColor(gradients.sky[0]);
   const start = () => { completeOnboarding(); };
   const login = async () => { await completeOnboarding(); router.push('/login'); };
 
@@ -61,6 +60,8 @@ export default function LandingScreen() {
   const [viewH, setViewH] = useState(0);
   const [y, setY] = useState(0);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setY(e.nativeEvent.contentOffset.y);
+  // 맨 위 하늘이 보이는 동안만 상단 바를 하늘색으로, 내리면 흰 내용에 맞춰 기본색으로
+  useWebThemeColor(y < 40 ? gradients.sky[0] : colors.cream);
   // lastCtaY는 히어로 아래 본문 기준 위치
   const floating = heroH > 0 && y > heroH - 40 && (!lastCtaY || y + viewH < heroH + lastCtaY + 40);
 
