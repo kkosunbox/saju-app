@@ -17,6 +17,9 @@ import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 import { mbtiSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
+import MbtiDeck from '../../components/MbtiDeck';
+import Reveal from '../../components/Reveal';
+import { useOpened } from '../../services/content/opened';
 
 /** 무료: 나와 가장 잘 맞는 MBTI */
 export default function MbtiMatchScreen() {
@@ -25,15 +28,30 @@ export default function MbtiMatchScreen() {
   const card = useRef<View>(null);
   const [showAll, setShowAll] = useState(false);
   const q = useFreeContent('mbti-match');
+  const draw = useOpened('mbti-match');
+  const [drawn, setDrawn] = useState(false);
   if (!u) return null;
-  if (!q.data) return <LoadingScreen title="찰떡 MBTI" error={q.error} onRetry={q.refetch} />;
+  if (!q.data || !draw.ready) return <LoadingScreen title="찰떡 MBTI" error={q.error} onRetry={q.refetch} />;
   const { best, worst, all } = q.data;
   const top = best[0];
+
+  const wrap = (node: React.ReactNode) => (drawn ? <Reveal>{node}</Reveal> : node);
+  // 처음엔 엎어 둔 16장 — 다 뒤집히면 결과 화면
+  if (!draw.opened) {
+    return (
+      <Screen title="찰떡 MBTI" back>
+        <Text style={[txt.title, { marginTop: 8 }]}>16가지 MBTI 중{'\n'}{u.nickname}님의 찰떡은?</Text>
+        <Text style={[txt.small, { marginTop: 8, marginBottom: 24 }]}>{u.mbti}인 나와의 궁합 점수 순서대로 카드가 뒤집혀요</Text>
+        <MbtiDeck all={all} top={top.type} onDone={() => { setDrawn(true); draw.open(); }} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen title="찰떡 MBTI" back right={<HeaderPoints onSave={() => nav.navigate('Share', { spec: mbtiSpec(u, q.data) })} saveLabel="스토리 카드 만들기" />}>
       <FriendCompare route="MbtiMatch" spec={mbtiSpec(u, q.data)} />
       {/* 결과 카드 */}
+      {wrap(
       <View ref={card} collapsable={false} style={s.card}>
         <Mascot name="headphone" size={115} style={s.cardArt} />
         <Logo height={19} />
@@ -42,6 +60,7 @@ export default function MbtiMatchScreen() {
         <Text style={s.nick}>{top.nickname} ㆍ 궁합 {top.score}점</Text>
         <Text style={s.reason}>{top.reason}</Text>
       </View>
+      )}
       <View style={s.rankRow}>
         {best.slice(1).map((b, i) => (
           <View key={b.type} style={s.rankCell}>

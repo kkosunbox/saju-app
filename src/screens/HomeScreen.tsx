@@ -17,6 +17,8 @@ import HomeSkeleton from '../components/Skeleton';
 import Disclaimer from '../components/Disclaimer';
 import ScoreRing from '../components/ScoreRing';
 import Mascot, { ArtName, Logo } from '../components/Mascot';
+import DrawMascot from '../components/DrawMascot';
+import AnimatedNumber from '../components/AnimatedNumber';
 import PromoCard from '../components/PromoCard';
 import { CategoryGlyph } from '../components/CategoryIcon';
 import { PointPill } from '../components/HeaderPoints';
@@ -24,6 +26,8 @@ import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
+import { useOpened } from '../services/content/opened';
+import { motion } from '../utils/motion';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { queryClient } from '../api/query';
 import { ApiError } from '../api/client';
@@ -32,7 +36,6 @@ import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
-import { useReducedMotion } from '../utils/motion';
 import { COPY } from '../content/copy';
 import BottomSheet from '../components/BottomSheet';
 import OptionChip from '../components/OptionChip';
@@ -44,26 +47,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 /** 점수 링 색 — 디자인의 분야별 링 그라디언트 시작색 */
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
-
-/** 말풍선 아래에서 둥실 떠 있는 마스코트 */
-function FloatingMascot() {
-  const reduced = useReducedMotion();
-  const [y] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    if (reduced) return;
-    const a = Animated.loop(Animated.sequence([
-      Animated.timing(y, { toValue: -6, duration: 1400, useNativeDriver: true }),
-      Animated.timing(y, { toValue: 0, duration: 1400, useNativeDriver: true }),
-    ]));
-    a.start();
-    return () => a.stop();
-  }, [reduced, y]);
-  return (
-    <Animated.View style={{ alignSelf: 'center', marginTop: -2, transform: [{ translateY: y }] }} pointerEvents="none">
-      <Mascot size={103} />
-    </Animated.View>
-  );
-}
 
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
@@ -78,6 +61,16 @@ export default function HomeScreen() {
   const match = useFreeContent('mbti-match').data?.best[0];
   const ch = useFreeContent('character').data;
   const pl = useFreeContent('past-life').data;
+  // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤에 보여준다
+  const draw = useOpened('fortune');
+  const sealed = draw.ready && !draw.opened;
+  const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
+  const [pop] = useState(() => new Animated.Value(1));
+  const [count] = useState(() => new Animated.Value(0));
+  // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
+  const opened = {
+    tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
+  };
   const [friend, setFriend] = useState<FriendResult | null>(null);
   useEffect(() => { getPendingInvite().then(setInvite); getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
 
@@ -96,7 +89,7 @@ export default function HomeScreen() {
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
         <PointPill />
-        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune}>
+        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune || sealed} style={sealed && { opacity: 0.35 }}>
           <Icon name="download" size={24} color={colors.ink} />
         </PressableScale>
       </View>
@@ -147,15 +140,33 @@ export default function HomeScreen() {
     }
   };
 
-  // 오늘의 무료 콘텐츠 — 결과의 일부를 미리 보여줘 누르고 싶게
-  const FREE: { k: string; art?: ArtName; big?: string; title: string; sub: string; go(): void }[] = [
+  // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
+  type Free = { k: string; art?: ArtName; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
+  const FREE = ([
     { k: 'tal', art: 'talisman', title: '오늘의 부적', sub: tal?.keyword ?? '…', go: () => nav.navigate('Talisman') },
-    { k: 'mbti', big: match?.type ?? 'MBTI', title: '찰떡 MBTI', sub: match ? `${match.nickname} · ${match.score}점` : '…', go: () => nav.navigate('MbtiMatch') },
+    { k: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: match ? `${match.nickname} · ${match.score}점` : '…', go: () => nav.navigate('MbtiMatch') },
     { k: 'char', art: 'tiger', title: '사주 캐릭터', sub: ch?.name ?? '…', go: () => nav.navigate('Character') },
     { k: 'past', art: 'pastLife', title: '전생 테스트', sub: pl?.title ?? '…', go: () => nav.navigate('PastLife') },
     { k: 'inv', art: 'friends', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
-  ];
+  ] as Free[]).map((x): Free => {
+    const o = opened[x.k as keyof typeof opened];
+    if (!o) return x;
+    if (!o.ready) return { ...x, sub: '…' };
+    // 부적은 날마다 새로 뽑아서 'NEW'
+    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal', sub: x.k === 'tal' ? '오늘 부적 받기' : '눌러서 뽑기' };
+  });
   const spouseOwned = owned(ITEMS.spouse().key);
+
+  const onDrawn = () => {
+    draw.open();
+    setDrawn(true);
+    pop.setValue(0.8);
+    count.setValue(0);
+    Animated.spring(pop, { toValue: 1, speed: 12, bounciness: 12, useNativeDriver: true }).start();
+    Animated.timing(count, { toValue: f.totalScore, duration: 900, delay: 120, easing: motion.easeOut, useNativeDriver: false }).start();
+  };
+  /** 방금 뽑았을 때만 차례로 나타나게 (Reveal은 처음 그려질 때 한 번 움직인다) */
+  const later = (delay: number, node: React.ReactNode) => (drawn ? <Reveal delay={delay}>{node}</Reveal> : node);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
@@ -203,16 +214,19 @@ export default function HomeScreen() {
             </PressableScale>
           ) : null}
 
-          {/* 오늘의 점수 말풍선 + 마스코트 */}
+          {/* 오늘의 점수 말풍선 + 마스코트 — 뽑기 전엔 '?'와 안내, 저장값을 읽기 전엔 비워 둔다 */}
+          <View style={!draw.ready && { opacity: 0 }}>
           <Reveal delay={90}>
-            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={`오늘의 종합운 ${f.totalScore}점. ${f.summary} 종합 풀이 보기`}>
-              <View style={[s.bubble, shadow.hero]}>
-                <Text style={s.bubbleScore}>{f.totalScore}</Text>
-                <Text style={s.bubbleText} numberOfLines={3}>{f.summary}</Text>
-              </View>
+            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={sealed} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : `오늘의 종합운 ${f.totalScore}점. ${f.summary} 종합 풀이 보기`}>
+              <Animated.View style={[s.bubble, shadow.hero, { transform: [{ scale: pop }] }]}>
+                {sealed ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
+                  : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
+                  : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
+                <Text style={s.bubbleText} numberOfLines={3}>{sealed ? '오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!' : f.summary}</Text>
+              </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <FloatingMascot />
+            <DrawMascot sealed={sealed} onDrawn={onDrawn} />
           </Reveal>
 
           {/* 분야별 점수 */}
@@ -220,8 +234,12 @@ export default function HomeScreen() {
             {CATS.map((c, i) => {
               const t = categoryTheme[c];
               return (
-                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} style={s.ringCell} scaleTo={0.94} accessibilityLabel={`${t.label} ${f[c]}점`}>
-                  <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={24} delay={250 + i * 80} />
+                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} disabled={sealed} style={s.ringCell} scaleTo={0.94} accessibilityLabel={sealed ? `${t.label}, 아직 안 뽑음` : `${t.label} ${f[c]}점`}>
+                  {sealed ? (
+                    <View style={s.ringSealed}><Text style={s.ringQ}>?</Text></View>
+                  ) : (
+                    <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={24} delay={drawn ? 450 + i * 140 : 250 + i * 80} />
+                  )}
                   <View style={s.ringLabel}>
                     <CategoryGlyph category={c} size={13} />
                     <Text style={s.ringText}>{t.short}</Text>
@@ -232,6 +250,12 @@ export default function HomeScreen() {
           </View>
 
           {/* 오늘의 운세 */}
+          {sealed ? (
+            <View style={[s.today, s.todaySealed]}>
+              <Text style={s.todayTitle}>오늘의 운세</Text>
+              <Text style={s.sealedText}>뽑으면 오늘의 이야기와{'\n'}행운의 컬러 · 숫자 · 시간이 나와요</Text>
+            </View>
+          ) : later(900, (
           <View style={s.today}>
             <View style={s.todayHead}>
               <Text style={s.todayTitle}>오늘의 운세</Text>
@@ -256,10 +280,14 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-
-          <View style={{ marginTop: 16 }}>
-            <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
+          ))}
           </View>
+
+          {sealed ? null : later(1050, (
+            <View style={{ marginTop: 16 }}>
+              <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
+            </View>
+          ))}
           <PressableScale onPress={() => nav.navigate('Fortune')} style={s.link} scaleTo={0.98} accessibilityLabel="기간별 운세 보기">
             <Text style={s.linkText}>이번 주 · 이번 달 · 올해 운세 흐름 보기</Text>
             <Icon name="chevronRight" size={16} color={colors.ink} />
@@ -281,12 +309,14 @@ export default function HomeScreen() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 12 }}>
           {FREE.map(x => (
-            <PressableScale key={x.k} onPress={x.go} style={s.freeCard} scaleTo={0.96} accessibilityLabel={x.title}>
+            <PressableScale key={x.k} onPress={x.go} style={s.freeCard} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
               <View style={s.freeTop}>
                 {x.art ? <Mascot name={x.art} size={44} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
+                {x.sealed ? <View style={s.freeQ}><Text style={s.freeQText}>?</Text></View> : null}
               </View>
+              {x.isNew ? <View style={s.freeNew}><Text style={s.freeNewText}>NEW</Text></View> : null}
               <Text style={s.freeTitle}>{x.title}</Text>
-              <Text style={s.freeSub} numberOfLines={1}>{x.sub}</Text>
+              <Text style={[s.freeSub, x.sealed && s.freeSubSealed]} numberOfLines={1}>{x.sub}</Text>
             </PressableScale>
           ))}
         </ScrollView>
@@ -295,12 +325,12 @@ export default function HomeScreen() {
           <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={() => nav.navigate('CombinedAnalysis')} />
           <View style={s.grid}>
             <View style={s.gridRow}>
-              <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
-              <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
+              <AnalysisTile sealed={sealed} analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
+              <AnalysisTile sealed={sealed} analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
             </View>
             <View style={s.gridRow}>
-              <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              <AnalysisTile analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
+              <AnalysisTile sealed={sealed} analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
+              <AnalysisTile sealed={sealed} analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
             </View>
           </View>
 
@@ -344,6 +374,10 @@ const s = StyleSheet.create({
   bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },
 
+  ringSealed: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
+  ringQ: { fontSize: 24, fontWeight: '700', color: colors.inkMute },
+  todaySealed: { alignItems: 'center', paddingVertical: 22 },
+  sealedText: { fontSize: 13, lineHeight: 19, color: colors.inkMute, letterSpacing: -0.5, textAlign: 'center', marginTop: 8 },
   rings: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingHorizontal: 6 },
   ringCell: { alignItems: 'center', gap: 4 },
   ringLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -367,6 +401,11 @@ const s = StyleSheet.create({
   freeCard: { width: 116, height: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   freeTop: { height: 44, justifyContent: 'center' },
   freeBig: { fontSize: 24, fontWeight: '700', color: colors.inkSub, letterSpacing: -0.5 },
+  freeQ: { position: 'absolute', left: 34, top: -2, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy, borderWidth: 2, borderColor: colors.card },
+  freeQText: { fontSize: 11, fontWeight: '800', color: colors.white },
+  freeNew: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },
+  freeNewText: { fontSize: 9, fontWeight: '800', color: colors.white, letterSpacing: 0.3 },
+  freeSubSealed: { color: colors.accent, fontWeight: '700' },
   freeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5, marginTop: 6 },
   freeSub: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.6, marginTop: 2 },
 

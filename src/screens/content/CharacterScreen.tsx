@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
@@ -16,6 +16,9 @@ import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { characterSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
+import PillarSlot from '../../components/PillarSlot';
+import Reveal from '../../components/Reveal';
+import { useOpened } from '../../services/content/opened';
 
 /** 무료: 일주(60갑자)로 보는 나의 사주 캐릭터 */
 export default function CharacterScreen() {
@@ -23,13 +26,28 @@ export default function CharacterScreen() {
   const { user: u } = useApp();
   const card = useRef<View>(null);
   const q = useFreeContent('character');
+  const draw = useOpened('character');
+  const [drawn, setDrawn] = useState(false);
   if (!u) return null;
-  if (!q.data) return <LoadingScreen title="나의 사주 캐릭터" error={q.error} onRetry={q.refetch} />;
+  if (!q.data || !draw.ready) return <LoadingScreen title="나의 사주 캐릭터" error={q.error} onRetry={q.refetch} />;
   const c = q.data;
+
+  // 처음엔 60갑자 슬롯에서 내 일주를 찾는다
+  if (!draw.opened) {
+    return (
+      <Screen title="나의 사주 캐릭터" back>
+        <Text style={[txt.title, { marginTop: 8 }]}>60가지 사주 캐릭터 중{'\n'}{u.nickname}님은 누구일까?</Text>
+        <Text style={[txt.small, { marginTop: 8 }]}>태어난 날의 기둥(일주)이 캐릭터를 정해요</Text>
+        <PillarSlot target={c.hanja} onDone={() => { setDrawn(true); draw.open(); }} />
+      </Screen>
+    );
+  }
+  const wrap = (node: React.ReactNode) => (drawn ? <Reveal>{node}</Reveal> : node);
 
   return (
     <Screen title="나의 사주 캐릭터" back>
       <FriendCompare route="Character" spec={characterSpec(u, c)} />
+      {wrap(
       <View ref={card} collapsable={false} style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
         {/* 캐릭터 그림은 아직 호랑이 하나뿐 — 60가지 그림이 나오면 c.hanja(일주)로 고른다 */}
@@ -45,6 +63,7 @@ export default function CharacterScreen() {
         </View>
         <Text style={s.foot}>60가지 사주 캐릭터 중 하나 · {ELEMENT_INFO[c.element].ko}({ELEMENT_INFO[c.element].hanja})의 기운</Text>
       </View>
+      )}
       <ShareActions spec={characterSpec(u, c)} />
 
       <SubHead title="이런 사람이에요" caption={c.core} />

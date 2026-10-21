@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
@@ -6,6 +6,9 @@ import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import FriendCompare from '../../components/FriendCompare';
+import ScrollUnroll from '../../components/ScrollUnroll';
+import Reveal from '../../components/Reveal';
+import { useOpened } from '../../services/content/opened';
 import BrandMark from '../../components/BrandMark';
 import Mascot from '../../components/Mascot';
 import { SubHead } from '../../components/premium/Kit';
@@ -14,21 +17,42 @@ import { useFreeContent } from '../../services/server/contentApi';
 import LoadingScreen from '../../components/LoadingScreen';
 import { pastLifeSpec } from '../../services/share/shareSpecs';
 import { colors } from '../../theme/colors';
-import { fonts, radius, txt } from '../../theme/typography';
+import { fonts, radius, txt, SCREEN_PX } from '../../theme/typography';
 
 /** 무료: 전생 테스트 — 띠(시대) · 일간 오행 × MBTI(신분) · 일지(장면) */
 export default function PastLifeScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
   const q = useFreeContent('past-life');
+  const draw = useOpened('past-life');
+  const [drawn, setDrawn] = useState(false);
   if (!u) return null;
-  if (!q.data) return <LoadingScreen title="전생 테스트" error={q.error} onRetry={q.refetch} />;
+  if (!q.data || !draw.ready) return <LoadingScreen title="전생 테스트" error={q.error} onRetry={q.refetch} />;
   const P = q.data;
   const spec = pastLifeSpec(u, P);
+
+  // 처음엔 말린 두루마리 — 끌어내려 펼치면 결과 화면
+  if (!draw.opened) {
+    return (
+      <Screen title="전생 테스트" back scroll={false} contentStyle={SEALED_PAD}>
+        <Text style={[txt.title, { marginTop: 8 }]}>{u.nickname}님은{'\n'}전생에 누구였을까?</Text>
+        <Text style={[txt.small, { marginTop: 8, marginBottom: 24 }]}>띠와 타고난 기운에 적힌 전생의 기록이에요</Text>
+        <ScrollUnroll onDone={() => { setDrawn(true); draw.open(); }}>
+          <Mascot name="pastLife" size={56} />
+          <Text style={s.eyebrow}>{u.nickname}님은 전생에</Text>
+          <Text style={s.name}>{P.title}</Text>
+          <Text style={s.era}>{P.era}</Text>
+          <Text style={s.scene}>“{P.scene}”</Text>
+        </ScrollUnroll>
+      </Screen>
+    );
+  }
+  const wrap = (node: React.ReactNode) => (drawn ? <Reveal>{node}</Reveal> : node);
 
   return (
     <Screen title="전생 테스트" back>
       <FriendCompare route="PastLife" spec={spec} />
+      {wrap(
       <View style={s.card}>
         <View style={s.brand}><BrandMark light size={15} /></View>
         <View style={s.seal}><Mascot name="pastLife" size={64} /></View>
@@ -37,6 +61,7 @@ export default function PastLifeScreen() {
         <Text style={s.era}>{P.era}</Text>
         <Text style={s.scene}>“{P.scene}”</Text>
       </View>
+      )}
       <ShareActions spec={spec} title="친구는 전생에 누구였을까?" />
 
       <SubHead title="이번 생까지 가져온 것" />
@@ -62,6 +87,9 @@ function Row({ k, v }: { k: string; v: string }) {
     </View>
   );
 }
+
+/** 스크롤을 끈 봉인 화면은 Screen의 기본 여백을 받지 못해 직접 준다 */
+const SEALED_PAD = { paddingHorizontal: SCREEN_PX, paddingTop: 8 };
 
 const s = StyleSheet.create({
   card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, padding: 20, alignItems: 'center', marginTop: 4 },

@@ -16,18 +16,20 @@ const POSE = { saju: 'pose-saju', thai: 'pose-thai', mbti: 'pose-mbti', blood: '
  * 4가지 관점 타일 — 관점마다 다른 파스텔 그라디언트와 마스코트 포즈.
  * 관점 이름 · 한 줄 결과 · 키워드 칩 · › 동그라미.
  */
-export default function AnalysisTile({ analysis, onPress }: { analysis: AnalysisResult; onPress(): void }) {
+export default function AnalysisTile({ analysis, onPress, sealed }: { analysis: AnalysisResult; onPress(): void; sealed?: boolean }) {
   const t = analysisTheme[analysis.source];
   return (
-    <PressableScale onPress={onPress} style={s.wrap} scaleTo={0.97} accessibilityLabel={`${t.label}: ${analysis.headline}`}>
+    <PressableScale onPress={onPress} disabled={sealed} style={s.wrap} scaleTo={0.97} accessibilityLabel={sealed ? `${t.label}, 오늘의 운세를 뽑으면 보여요` : `${t.label}: ${analysis.headline}`}>
       <LinearGradient colors={t.tile} style={s.tile}>
         <Mascot name={POSE[analysis.source]} size={64} style={s.art} />
         <Text style={s.label} numberOfLines={1}>{t.label} · {t.sub}</Text>
-        <Text style={[s.headline, KEEP]} numberOfLines={3}>{analysis.headline}</Text>
+        <Text style={[s.headline, KEEP, sealed && { color: colors.inkMute }]} numberOfLines={3}>{sealed ? '오늘의 운세를 뽑으면 보여요' : analysis.headline}</Text>
         <View style={s.foot}>
-          <View style={[s.tag, { borderColor: t.color }]}>
-            <Text style={[s.tagText, { color: t.color }]}>{KEYWORDS[analysis.tags[0]].label}</Text>
-          </View>
+          {sealed ? <View /> : (
+            <View style={[s.tag, { borderColor: t.color }]}>
+              <Text style={[s.tagText, { color: t.color }]}>{KEYWORDS[analysis.tags[0]].label}</Text>
+            </View>
+          )}
           <View style={s.more}><Icon name="chevronRight" size={18} color={colors.ink} strokeWidth={2} /></View>
         </View>
       </LinearGradient>

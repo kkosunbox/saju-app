@@ -16,7 +16,7 @@ class RingCircle extends React.Component<CircleProps & { collapsable?: boolean }
     return <Circle {...props} />;
   }
 }
-const AnimatedCircle = Animated.createAnimatedComponent(RingCircle);
+export const AnimatedCircle = Animated.createAnimatedComponent(RingCircle);
 
 interface Props {
   score: number; size?: number; stroke?: number;
