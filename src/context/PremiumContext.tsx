@@ -120,7 +120,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   /** 게스트가 포인트 기능을 쓰려 하면 로그인으로 보낸다. 로그인했으면 false */
   const requireLogin = (): boolean => {
     if (account) return false;
-    toast('로그인하면 알로 열어볼 수 있어요');
+    toast('로그인하면 열어볼 수 있어요');
     router.push('/login');
     return true;
   };

@@ -181,7 +181,7 @@ export default function MyPageScreen() {
             <View style={s.rowIcon}><Icon name="user" size={18} color={colors.purpleSoft} /></View>
             <View style={{ flex: 1 }}>
               <Text style={[s.rowLabel, { fontWeight: '600' }]}>로그인하기</Text>
-              <Text style={[txt.small, { marginTop: 4 }]}>로그인하면 알로 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
+              <Text style={[txt.small, { marginTop: 4 }]}>로그인하면 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
             </View>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />
           </PressableScale>
