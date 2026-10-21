@@ -6,6 +6,9 @@ import { colors } from '../theme/colors';
 const TOP_TINT_ID = 'top-bar-tint';
 // Safari는 가장자리 몇 px 안쪽에서 맨 위에 보이는 고정 요소를 찾고, 10px 이하로 얇으면 건너뛴다
 const TOP_TINT_H = 12;
+// 아이패드 Safari는 데스크톱(Mac)처럼 자신을 밝히므로 터치 지원으로 가린다
+const IS_IOS = Platform.OS === 'web' && typeof navigator !== 'undefined'
+  && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 /** 내용 맨 위 기준 [위치, 색]. 위치 순서대로, 마지막 색이 그 아래로 이어진다 */
 export type TopBarStops = readonly (readonly [number, string])[];
@@ -32,9 +35,10 @@ function setTint(color: string | null) {
   // (viewport 메타에 viewport-fit=cover 가 있어야 한다, +html.tsx)
   document.documentElement.style.backgroundColor = colors.cream;
   let tint = document.getElementById(TOP_TINT_ID);
-  if (!color) {
+  // 띠는 iOS Safari에서만 상단 바 밑에 가려진다. PC·안드로이드에서는 화면 맨 위에 줄로 보이므로 theme-color만 바꾼다
+  if (!color || !IS_IOS) {
     tint?.remove();
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors.cream);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color ?? colors.cream);
     return;
   }
   if (!tint) {
