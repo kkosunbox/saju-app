@@ -16,16 +16,19 @@ import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, categoryTheme, colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
+import LoadingScreen from '../components/LoadingScreen';
 
 const KICKER = { love: '緣分 · 연애운', money: '財物 · 재물운', work: '事業 · 직장운', relationship: '人和 · 관계운' } as const;
 
 export default function CategoryDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
-  const { fortune, today } = useApp();
+  const { fortune, today, fortuneWriting } = useApp();
   useMarkOpened('fortune');
   useFortuneDraw();
   if (!fortune) return null;
   const t = categoryTheme[params.category];
+  // 풀이(AI)가 다 써질 때까지 기다렸다가 한 번에 보여준다
+  if (fortuneWriting) return <LoadingScreen title={`오늘의 ${t.label}`} message="오늘의 풀이를 쓰고 있어요" />;
   const f = fortune.combined;
   const score = f[params.category];
   const a = fortune.analyses;

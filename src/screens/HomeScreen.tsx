@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
@@ -29,7 +29,6 @@ import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
-import WritingLines from '../components/WritingLines';
 import { motion } from '../utils/motion';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { queryClient } from '../api/query';
@@ -48,6 +47,19 @@ import { Relationship } from '../types';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
+/** 뽑은 뒤 '풀어보는 중'을 보여주는 최소 시간 — 풀이가 이미 있거나(AI 꺼짐) 빨리 와도 의식은 같게 */
+const READ_MIN_MS = 3200;
+const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '혈액형 한마디까지 엮는 중…', '오늘의 이야기를 쓰는 중…'];
+
+/** 말풍선 안에서 차례로 바뀌는 '풀어보는 중' 문구 (마지막 문구에서 멈춘다) */
+function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI(n => Math.min(n + 1, READ_STEPS.length - 1)), 900);
+    return () => clearInterval(id);
+  }, []);
+  return <Text style={style} numberOfLines={3} accessibilityLiveRegion="polite">{READ_STEPS[i]}</Text>;
+}
 /** 점수 링 색 — 디자인의 분야별 링 그라디언트 시작색 */
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
 
@@ -64,15 +76,24 @@ export default function HomeScreen() {
   const match = useFreeContent('mbti-match').data?.best[0];
   const ch = useFreeContent('character').data;
   const pl = useFreeContent('past-life').data;
-  // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤에 보여준다
+  // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤, 풀이가 다 써지면 한 번에 펼친다
   const draw = useFortuneDraw();
-  const sealed = draw.ready && !draw.opened;
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
+  const [minWait, setMinWait] = useState(false); // 풀이가 빨리 와도 '풀어보는 중'은 잠깐 보여준다
+  const sealed = draw.ready && !draw.opened;
+  const reading = draw.ready && draw.opened && (fortuneWriting || minWait);
+  const hidden = sealed || reading; // 결과를 가리는 동안 (뽑기 전 · 풀이를 기다리는 중)
   const [pop] = useState(() => new Animated.Value(1));
   const [count] = useState(() => new Animated.Value(0));
-  // 방금 뽑고 AI 문장을 기다렸다면, 도착할 때 부드럽게 나타나게
-  const [waited, setWaited] = useState(false);
-  const writing = !sealed && fortuneWriting;
+  // 풀이가 도착하면: 말풍선이 팡 뜨며 점수가 올라간다 (나머지는 later()로 차례로)
+  const total = fortune?.combined.totalScore;
+  useEffect(() => {
+    if (!drawn || reading || total === undefined) return;
+    pop.setValue(0.8);
+    count.setValue(0);
+    Animated.spring(pop, { toValue: 1, speed: 12, bounciness: 12, useNativeDriver: true }).start();
+    Animated.timing(count, { toValue: total, duration: 900, delay: 120, easing: motion.easeOut, useNativeDriver: false }).start();
+  }, [drawn, reading, total, pop, count]);
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
   const opened = {
     tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
@@ -95,7 +116,7 @@ export default function HomeScreen() {
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
         <PointPill />
-        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune || sealed} style={sealed && { opacity: 0.35 }}>
+        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
           <Icon name="download" size={24} color={colors.ink} />
         </PressableScale>
       </View>
@@ -164,13 +185,10 @@ export default function HomeScreen() {
   const spouseOwned = owned(ITEMS.spouse().key);
 
   const onDrawn = () => {
-    draw.open();
+    draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
     setDrawn(true);
-    if (fortune.textsPending) setWaited(true);
-    pop.setValue(0.8);
-    count.setValue(0);
-    Animated.spring(pop, { toValue: 1, speed: 12, bounciness: 12, useNativeDriver: true }).start();
-    Animated.timing(count, { toValue: f.totalScore, duration: 900, delay: 120, easing: motion.easeOut, useNativeDriver: false }).start();
+    setMinWait(true);
+    setTimeout(() => setMinWait(false), READ_MIN_MS);
   };
   /** 방금 뽑았을 때만 차례로 나타나게 (Reveal은 처음 그려질 때 한 번 움직인다) */
   const later = (delay: number, node: React.ReactNode) => (drawn ? <Reveal delay={delay}>{node}</Reveal> : node);
@@ -224,16 +242,18 @@ export default function HomeScreen() {
           {/* 오늘의 점수 말풍선 + 마스코트 — 뽑기 전엔 '?'와 안내, 저장값을 읽기 전엔 비워 둔다 */}
           <View style={!draw.ready && { opacity: 0 }}>
           <Reveal delay={90}>
-            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={sealed} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : `오늘의 종합운 ${f.totalScore}점. ${f.summary} 종합 풀이 보기`}>
+            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={hidden} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : reading ? '오늘의 운세를 풀어보는 중이에요' : `오늘의 종합운 ${f.totalScore}점. ${f.summary} 종합 풀이 보기`}>
               <Animated.View style={[s.bubble, shadow.hero, { transform: [{ scale: pop }] }]}>
-                {sealed ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
+                {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
                   : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
                   : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
-                <Text style={s.bubbleText} numberOfLines={3}>{sealed ? '오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!' : f.summary}</Text>
+                {sealed ? <Text style={s.bubbleText} numberOfLines={3}>{'오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!'}</Text>
+                  : reading ? <ReadingSteps style={s.bubbleText} />
+                  : <Text style={s.bubbleText} numberOfLines={3}>{f.summary}</Text>}
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <DrawMascot sealed={sealed} onDrawn={onDrawn} />
+            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} />
           </Reveal>
 
           {/* 분야별 점수 */}
@@ -241,8 +261,8 @@ export default function HomeScreen() {
             {CATS.map((c, i) => {
               const t = categoryTheme[c];
               return (
-                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} disabled={sealed} style={s.ringCell} scaleTo={0.94} accessibilityLabel={sealed ? `${t.label}, 아직 안 뽑음` : `${t.label} ${f[c]}점`}>
-                  {sealed ? (
+                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} disabled={hidden} style={s.ringCell} scaleTo={0.94} accessibilityLabel={hidden ? `${t.label}, 아직 안 나옴` : `${t.label} ${f[c]}점`}>
+                  {hidden ? (
                     <View style={s.ringSealed}><Text style={s.ringQ}>?</Text></View>
                   ) : (
                     <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={24} delay={drawn ? 450 + i * 140 : 250 + i * 80} />
@@ -257,10 +277,10 @@ export default function HomeScreen() {
           </View>
 
           {/* 오늘의 운세 */}
-          {sealed ? (
+          {hidden ? (
             <View style={[s.today, s.todaySealed]}>
               <Text style={s.todayTitle}>오늘의 운세</Text>
-              <Text style={s.sealedText}>뽑으면 오늘의 이야기와{'\n'}행운의 컬러 · 숫자 · 시간이 나와요</Text>
+              <Text style={s.sealedText}>{reading ? '네 가지 관점을 엮어\n오늘의 이야기를 쓰고 있어요' : '뽑으면 오늘의 이야기와\n행운의 컬러 · 숫자 · 시간이 나와요'}</Text>
             </View>
           ) : later(900, (
           <View style={s.today}>
@@ -271,9 +291,7 @@ export default function HomeScreen() {
                 <Icon name="chevronRight" size={16} color={colors.inkMute} />
               </PressableScale>
             </View>
-            {writing ? <WritingLines label="오늘의 이야기를 쓰는 중이에요…" />
-              : waited ? <Reveal><Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text></Reveal>
-              : <Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text>}
+            <Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text>
             <View style={s.lucky}>
               <View style={s.luck}>
                 <Text style={s.luckK}>행운의 컬러</Text>
@@ -292,7 +310,7 @@ export default function HomeScreen() {
           ))}
           </View>
 
-          {sealed || writing ? null : later(waited ? 200 : 1050, (
+          {hidden ? null : later(1050, (
             <View style={{ marginTop: 16 }}>
               <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
             </View>
@@ -338,12 +356,12 @@ export default function HomeScreen() {
           <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={() => nav.navigate('CombinedAnalysis')} />
           <View style={s.grid}>
             <View style={s.gridRow}>
-              <AnalysisTile sealed={sealed} analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
-              <AnalysisTile sealed={sealed} analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
+              <AnalysisTile sealed={hidden} analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
+              <AnalysisTile sealed={hidden} analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
             </View>
             <View style={s.gridRow}>
-              <AnalysisTile sealed={sealed} analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              <AnalysisTile sealed={sealed} analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
+              <AnalysisTile sealed={hidden} analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
+              <AnalysisTile sealed={hidden} analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
             </View>
           </View>
 

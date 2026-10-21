@@ -53,7 +53,7 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
 
 /** 오늘 · 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다) */
 export default function FortuneScreen() {
-  const { user, fortune, today } = useApp();
+  const { user, fortune, today, fortuneWriting } = useApp();
   useMarkOpened('fortune');
   useFortuneDraw();
   const nav = useNavigation();
@@ -116,7 +116,8 @@ export default function FortuneScreen() {
       <SectionHeader title={`${label} 분야별 운세`} caption={tab === 'daily' ? '눌러서 자세히 보기' : '눌러서 풀이 펼치기'} />
       <View style={{ gap: 16 }}>
         {CATS.map((k, i) => {
-          const c = tab === 'daily' ? { score: f[k], text: f.categoryTexts[k], best: '' } : period?.cats[k];
+          // 오늘 풀이(AI)가 아직이면 문장 은행 문장 대신 '쓰는 중'
+          const c = tab === 'daily' ? { score: f[k], text: fortuneWriting ? '오늘의 풀이를 쓰고 있어요…' : f.categoryTexts[k], best: '' } : period?.cats[k];
           if (!c) return null;
           return (
             <CategoryRow

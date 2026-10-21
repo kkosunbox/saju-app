@@ -17,19 +17,30 @@ const HINT_H = 36; // 안내 알약 + 위 여백
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
  * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 튀어 올라 onDrawn.
+ * busy 이면(풀이를 기다리는 중) 점선 링이 돌고 마스코트가 갸웃거린다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
-export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDrawn(): void }) {
+export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: boolean; busy?: boolean; onDrawn(): void }) {
   const reduced = useReducedMotion();
   const [y] = useState(() => new Animated.Value(0));
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
   const [holding, setHolding] = useState(false);
   // 안내 자리: 뽑고 나면 서서히 접혀 아래 화면이 살짝 올라온다 (이미 뽑은 날엔 처음부터 접힌 채)
-  const [hintO] = useState(() => new Animated.Value(sealed ? 1 : 0));
+  const showHint = sealed || busy;
+  const [hintO] = useState(() => new Animated.Value(showHint ? 1 : 0));
   useEffect(() => {
-    Animated.timing(hintO, { toValue: sealed ? 1 : 0, duration: reduced ? 0 : 420, delay: sealed || reduced ? 0 : 350, easing: motion.easeInOut, useNativeDriver: false }).start();
-  }, [sealed, reduced, hintO]);
+    Animated.timing(hintO, { toValue: showHint ? 1 : 0, duration: reduced ? 0 : 420, delay: showHint || reduced ? 0 : 350, easing: motion.easeInOut, useNativeDriver: false }).start();
+  }, [showHint, reduced, hintO]);
+  // 풀이를 기다리는 동안: 점선 링이 돌고, 마스코트는 좌우로 갸웃
+  const [spin] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (!busy || reduced) return;
+    spin.setValue(0);
+    const a = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 2400, easing: t => t, useNativeDriver: true }));
+    a.start();
+    return () => a.stop();
+  }, [busy, reduced, spin]);
   const done = useRef(false);
   const ticks = useRef(0);
 
@@ -88,8 +99,10 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
   const lift = jump.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
   const dash = p.interpolate({ inputRange: [0, 1], outputRange: [C, 0] });
 
+  const ringTurn = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const tilt = spin.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['0deg', '-7deg', '0deg', '7deg', '0deg'] });
   const body = (
-    <Animated.View style={{ transform: [{ translateY: lift }, { scaleX }, { scaleY }] }}>
+    <Animated.View style={{ transform: [{ translateY: lift }, { scaleX }, { scaleY }, { rotate: busy ? tilt : '0deg' }] }}>
       <Mascot size={SIZE} />
     </Animated.View>
   );
@@ -115,8 +128,9 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
         importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'}
         style={s.hit}
       >
-        {sealed ? (
-          <Svg width={RING} height={RING} style={StyleSheet.absoluteFill} pointerEvents="none">
+        {sealed || busy ? (
+          <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: busy ? ringTurn : '0deg' }] }]} pointerEvents="none">
+          <Svg width={RING} height={RING} pointerEvents="none">
             <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={isDark ? colors.white : colors.accent} strokeOpacity={isDark ? 0.55 : 0.45} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
             <AnimatedCircle
               cx={RING / 2} cy={RING / 2} r={R}
@@ -125,12 +139,13 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
               transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
             />
           </Svg>
+          </Animated.View>
         ) : null}
         {body}
       </Pressable>
-      <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!sealed}>
+      <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
         <Animated.View style={[s.hint, { opacity: hintO }]}>
-          <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+          <Text style={s.hintText}>{busy ? '풀어보는 중…' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
         </Animated.View>
       </Animated.View>
     </Animated.View>

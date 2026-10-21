@@ -14,12 +14,15 @@ import { fonts, radius, shadow, txt, sansW } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
 import { AlmanacHero, Figure } from '../components/Almanac';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function CombinedAnalysisScreen() {
-  const { fortune, today } = useApp();
+  const { fortune, today, fortuneWriting } = useApp();
   useMarkOpened('fortune');
   useFortuneDraw();
   if (!fortune) return null;
+  // 풀이(AI)가 다 써질 때까지 기다렸다가 한 번에 보여준다
+  if (fortuneWriting) return <LoadingScreen title="종합 분석" message="네 가지 관점을 엮어 오늘의 이야기를 쓰고 있어요" />;
   const f = fortune.combined;
   const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, fortune.analyses.blood];
   const common = new Set(f.commonKeywords);
