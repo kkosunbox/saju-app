@@ -18,7 +18,8 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+        {/* maximum-scale=1: iOS 사파리가 16px보다 작은 입력창(상담 14px)에 포커스할 때 화면을 확대하지 않게. 손가락 확대는 iOS가 그대로 허용한다 */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <title>운Pick · 오늘의 운, 하나만 Pick!</title>
         <meta name="description" content="사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세. 오늘의 운, 하나만 Pick!" />
         <meta name="theme-color" content="#FFFFFF" />
