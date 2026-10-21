@@ -525,11 +525,31 @@ export interface paths {
         };
         /**
          * 오늘의 운세
-         * @description 점수·키워드·행운 정보는 규칙 엔진, 문장은 AI가 씁니다(engine=ai). AI를 쓸 수 없으면 규칙 엔진 문장(engine=rule). 사용자·날짜·프로필 버전마다 한 번 만들어 저장합니다. 첫 요청은 수 초 걸릴 수 있습니다.
+         * @description 규칙 엔진 운세(점수·키워드·행운 정보·요약·문장)를 바로 줍니다(AI 없음). 사용자·날짜·프로필 버전마다 한 번 만들어 저장합니다. textsPending=true면 뽑기(POST daily/draw)에서 AI가 문장을 다시 씁니다.
          */
         get: operations["FortuneController_getDailyFortune_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortunes/daily/draw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 오늘의 운세 뽑기
+         * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다.
+         */
+        post: operations["FortuneController_drawDailyFortune_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -762,7 +782,7 @@ export interface paths {
         put?: never;
         /**
          * 초대 링크로 궁합 보기
-         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 같은 링크를 다시 열면 기록을 새로 만들지 않고 갱신합니다.
+         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 같은 링크를 다시 열면 기록을 새로 만들지 않고 갱신합니다. 관계(relationship)를 보내지 않으면 연인으로 봅니다.
          */
         post: operations["CompatibilityInviteController_accept_v1"];
         delete?: never;
@@ -1895,6 +1915,16 @@ export interface components {
             work: number;
             relationship: number;
         };
+        AstroSystemReadingDto: {
+            /** @enum {string} */
+            system: "western" | "vedic" | "thai";
+            title: string;
+            headline: string;
+            details: components["schemas"]["LabelValueDto"][];
+            description: string;
+            tags: string[];
+            scoreBias: components["schemas"]["CategoryNumbersDto"];
+        };
         AnalysisResultDto: {
             /** @enum {string} */
             source: "saju" | "thai" | "mbti" | "blood";
@@ -1907,9 +1937,12 @@ export interface components {
             tags: string[];
             /** @description 분야별 점수 보정 -10~+10 */
             scoreBias: components["schemas"]["CategoryNumbersDto"];
+            /** @description 점성술(thai)만: 서양 · 인도 · 태국 풀이. 예전에 저장된 운세에는 없음 */
+            systems?: components["schemas"]["AstroSystemReadingDto"][];
         };
         DailyAnalysesDto: {
             saju: components["schemas"]["AnalysisResultDto"];
+            /** @description 점성술 */
             thai: components["schemas"]["AnalysisResultDto"];
             mbti: components["schemas"]["AnalysisResultDto"];
             blood: components["schemas"]["AnalysisResultDto"];
@@ -1949,6 +1982,8 @@ export interface components {
             combined: components["schemas"]["CombinedFortuneDto"];
             /** @description 그날의 일진 { stem 0~9, branch 0~11 } */
             dayPillar: Record<string, never>;
+            /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
+            textsPending: boolean;
         };
         PeriodFlowDto: {
             /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
@@ -2096,18 +2131,31 @@ export interface components {
             birthTime: string | null;
             /** @enum {string} */
             gender: "female" | "male";
-            mbti: string;
-            /** @description 사주로 추정한 MBTI면 true */
-            mbtiIsEstimated: boolean;
-            /** @enum {string} */
-            bloodType: "A" | "B" | "O" | "AB";
+            /** @description 모르면 null */
+            mbti: string | null;
+            /**
+             * @description 모르면 null
+             * @enum {string|null}
+             */
+            bloodType: "A" | "B" | "O" | "AB" | null;
         };
         CompatibilityPointDto: {
             title: string;
             text: string;
+            /**
+             * @description 풀이의 근거. 상대 MBTI·혈액형을 모르면 그 자리에 zodiac(띠)이 오거나 빠짐
+             * @enum {string}
+             */
+            kind?: "saju" | "zodiac" | "mbti" | "blood";
         };
         CompatibilityResultDto: {
+            /**
+             * @description 관계 도입 전 결과에는 없음 (= lover)
+             * @enum {string}
+             */
+            relationship?: "lover" | "friend" | "family" | "work";
             total: number;
+            /** @description 관계마다 이름이 달라요 (연애 / 우정 / 정 / 협업) */
             love: number;
             personality: number;
             conversation: number;
@@ -2123,6 +2171,8 @@ export interface components {
              */
             source: "manual" | "invite";
             partnerNickname: string;
+            /** @enum {string} */
+            relationship: "lover" | "friend" | "family" | "work";
             /** @description 초대로 만든 기록은 상대 정보를 주지 않음 (null) */
             partner: components["schemas"]["CompatibilityPartnerDto"] | null;
             result: components["schemas"]["CompatibilityResultDto"];
@@ -2132,6 +2182,12 @@ export interface components {
         CreateCompatibilityRequest: {
             /** @description 상대 이름 */
             nickname: string;
+            /**
+             * @description lover: 연인·썸·부부 · friend: 친구 · family: 가족 · work: 직장·비즈니스. 관계에 맞는 풀이가 나오고, 속마음은 연인일 때만 열 수 있어요
+             * @default lover
+             * @enum {string}
+             */
+            relationship: "lover" | "friend" | "family" | "work";
             /** @enum {string} */
             calendarType: "solar" | "lunar";
             /**
@@ -2152,12 +2208,15 @@ export interface components {
             /** @enum {string} */
             gender: "female" | "male";
             /**
-             * @description 모르면 null → 사주로 추정
+             * @description 모르면 null → 궁합 점수·풀이에서 빠짐
              * @example ISTJ
              */
             mbti?: string | null;
-            /** @enum {string} */
-            bloodType: "A" | "B" | "O" | "AB";
+            /**
+             * @description 모르면 null → 궁합 점수·풀이에서 빠짐
+             * @enum {string|null}
+             */
+            bloodType?: "A" | "B" | "O" | "AB" | null;
         };
         CompatibilityInviteDto: {
             /**
@@ -2177,6 +2236,14 @@ export interface components {
             inviterNickname: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        AcceptCompatibilityInviteRequest: {
+            /**
+             * @description lover: 연인·썸·부부 · friend: 친구 · family: 가족 · work: 직장·비즈니스. 관계에 맞는 풀이가 나오고, 속마음은 연인일 때만 열 수 있어요
+             * @default lover
+             * @enum {string}
+             */
+            relationship: "lover" | "friend" | "family" | "work";
         };
         WalletDto: {
             /** @description 잔액 (환불 회수로 음수일 수 있음) */
@@ -2263,7 +2330,7 @@ export interface components {
         TossOrderDto: {
             /** @description 서버가 발급한 주문 ID */
             orderId: string;
-            /** @example 운Pick 포인트 550P */
+            /** @example 운Pick 550알 */
             orderName: string;
             /** @description 결제 금액 (원). 위젯 setAmount에 그대로 사용 */
             amount: number;
@@ -3785,6 +3852,86 @@ export interface operations {
             };
         };
     };
+    FortuneController_drawDailyFortune_v1: {
+        parameters: {
+            query?: {
+                /** @description KST 날짜. 생략하면 오늘. 오늘 ±1일만 허용 */
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DailyFortuneDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     FortuneController_getPeriodFortune_v1: {
         parameters: {
             query: {
@@ -4714,7 +4861,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptCompatibilityInviteRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {

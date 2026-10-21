@@ -28,7 +28,8 @@ import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
-import { useOpened } from '../services/content/opened';
+import { useFortuneDraw, useOpened } from '../services/content/opened';
+import WritingLines from '../components/WritingLines';
 import { motion } from '../utils/motion';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { queryClient } from '../api/query';
@@ -52,7 +53,7 @@ const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', w
 
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
-  const { user, account, fortune, today, fortuneLoading, refreshFortune } = useApp();
+  const { user, account, fortune, today, fortuneLoading, refreshFortune, fortuneWriting } = useApp();
   const consultStatus = useConsultStatus(!!account).data;
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const consultCost = consultStatus?.cost ?? 100;
@@ -64,11 +65,14 @@ export default function HomeScreen() {
   const ch = useFreeContent('character').data;
   const pl = useFreeContent('past-life').data;
   // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤에 보여준다
-  const draw = useOpened('fortune');
+  const draw = useFortuneDraw();
   const sealed = draw.ready && !draw.opened;
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
   const [pop] = useState(() => new Animated.Value(1));
   const [count] = useState(() => new Animated.Value(0));
+  // 방금 뽑고 AI 문장을 기다렸다면, 도착할 때 부드럽게 나타나게
+  const [waited, setWaited] = useState(false);
+  const writing = !sealed && fortuneWriting;
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
   const opened = {
     tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
@@ -162,6 +166,7 @@ export default function HomeScreen() {
   const onDrawn = () => {
     draw.open();
     setDrawn(true);
+    if (fortune.textsPending) setWaited(true);
     pop.setValue(0.8);
     count.setValue(0);
     Animated.spring(pop, { toValue: 1, speed: 12, bounciness: 12, useNativeDriver: true }).start();
@@ -266,7 +271,9 @@ export default function HomeScreen() {
                 <Icon name="chevronRight" size={16} color={colors.inkMute} />
               </PressableScale>
             </View>
-            <Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text>
+            {writing ? <WritingLines label="오늘의 이야기를 쓰는 중이에요…" />
+              : waited ? <Reveal><Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text></Reveal>
+              : <Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text>}
             <View style={s.lucky}>
               <View style={s.luck}>
                 <Text style={s.luckK}>행운의 컬러</Text>
@@ -285,7 +292,7 @@ export default function HomeScreen() {
           ))}
           </View>
 
-          {sealed ? null : later(1050, (
+          {sealed || writing ? null : later(waited ? 200 : 1050, (
             <View style={{ marginTop: 16 }}>
               <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
             </View>

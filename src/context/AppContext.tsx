@@ -3,7 +3,7 @@
  * No account yet: the first profile submit creates a guest. Login / signup while a guest
  * keeps the guest's data on the server (upgrade or merge).
  */
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DailyFortune, User } from '../types';
 import { storage } from '../services/storage/storageService';
 import { Account, authApi } from '../services/server/authApi';
@@ -27,6 +27,10 @@ interface AppState {
   fortune: DailyFortune | null;
   fortuneLoading: boolean;
   fortuneError: Error | null;
+  /** 뽑은 뒤 AI가 오늘의 문장을 쓰는 중 (끝나거나 실패하면 false — 그땐 규칙 문장을 보여준다) */
+  fortuneWriting: boolean;
+  /** 뽑았을 때 한 번: 서버에 AI 문장을 요청한다 (이미 썼거나 AI가 꺼져 있으면 아무것도 안 함) */
+  drawFortune(): Promise<void>;
   completeOnboarding(): Promise<void>;
   /** Creates (as a guest if needed) or updates the profile. */
   saveUser(input: ProfileInput): Promise<void>;
@@ -116,8 +120,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
 
+  // 날짜별로 한 번만 요청한다 — 서버가 실패를 돌려줘도 다음에 앱을 열 때 다시
+  const drawing = useRef<string | null>(null);
+  const [drawnKey, setDrawnKey] = useState<string | null>(null);
+  const fortuneKey = fortune ? `${fortune.userId}:${fortune.date}` : null;
+  const fortuneWriting = !!fortune?.textsPending && drawnKey !== fortuneKey;
+  const drawFortune = useCallback(async () => {
+    if (!fortune?.textsPending || !fortuneKey || drawing.current === fortuneKey) return;
+    drawing.current = fortuneKey;
+    try {
+      setFortune(await fortuneApi.draw(fortune.userId, fortune.date));
+    } catch {
+      // 규칙 문장을 그대로 보여준다
+    } finally {
+      setDrawnKey(fortuneKey);
+    }
+  }, [fortune, fortuneKey]);
+
   const value: AppState = {
-    booting, onboarded, account, user, editingProfile, today, fortune, fortuneLoading, fortuneError, refreshFortune,
+    booting, onboarded, account, user, editingProfile, today, fortune, fortuneLoading, fortuneError, refreshFortune, fortuneWriting, drawFortune,
     completeOnboarding: async () => { await storage.setOnboarded(true); setOnboarded(true); },
     saveUser: async input => {
       if (!(await getTokens())) await authApi.startGuest();

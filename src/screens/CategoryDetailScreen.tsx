@@ -15,7 +15,7 @@ import { ACTION_NOTE } from '../data/keywords';
 import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, categoryTheme, colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
-import { useMarkOpened } from '../services/content/opened';
+import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 
 const KICKER = { love: '緣分 · 연애운', money: '財物 · 재물운', work: '事業 · 직장운', relationship: '人和 · 관계운' } as const;
 
@@ -23,6 +23,7 @@ export default function CategoryDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
   const { fortune, today } = useApp();
   useMarkOpened('fortune');
+  useFortuneDraw();
   if (!fortune) return null;
   const t = categoryTheme[params.category];
   const f = fortune.combined;

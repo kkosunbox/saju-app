@@ -64,3 +64,15 @@ export function useMarkOpened(kind: OpenKind) {
   const { ready, opened, open } = useOpened(kind);
   useEffect(() => { if (ready && !opened) open(); }, [ready, opened, open]);
 }
+
+/**
+ * 오늘의 운세 뽑기 상태 + 뽑았으면 AI 문장을 서버에 요청 (홈과 운세 결과 화면에서).
+ * 뽑기 직후는 물론, 예전에 뽑았는데 문장이 아직이면(실패·다른 길로 들어옴) 앱을 열 때 다시 요청한다.
+ */
+export function useFortuneDraw() {
+  const o = useOpened('fortune');
+  const { fortune, drawFortune } = useApp();
+  const pending = !!fortune?.textsPending;
+  useEffect(() => { if (o.opened && pending) drawFortune(); }, [o.opened, pending, drawFortune]);
+  return o;
+}

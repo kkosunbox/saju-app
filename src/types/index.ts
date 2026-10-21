@@ -89,6 +89,8 @@ export interface DailyFortune {
   analyses: { saju: AnalysisResult; thai: AnalysisResult; mbti: AnalysisResult; blood: AnalysisResult };
   combined: CombinedFortune;
   engine: 'rule' | 'ai';
+  /** 문장이 아직 규칙 엔진 것이고, 뽑으면 AI가 다시 쓴다 (점수·요약은 그대로). */
+  textsPending?: boolean;
   /** 그날의 일진 (서버 만세력). */
   dayPillar?: { stem: number; branch: number };
 }

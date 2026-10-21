@@ -3,7 +3,7 @@ import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Mascot from './Mascot';
 import { AnimatedCircle } from './ScoreRing';
-import { colors } from '../theme/colors';
+import { colors, isDark } from '../theme/colors';
 import { useReducedMotion, motion } from '../utils/motion';
 import { haptic } from '../utils/haptic';
 
@@ -12,6 +12,7 @@ const RING = 136;
 const R = RING / 2 - 4;
 const C = 2 * Math.PI * R;
 const HOLD_MS = 900;
+const HINT_H = 36; // 안내 알약 + 위 여백
 
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
@@ -24,9 +25,10 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
   const [holding, setHolding] = useState(false);
+  // 안내 자리: 뽑고 나면 서서히 접혀 아래 화면이 살짝 올라온다 (이미 뽑은 날엔 처음부터 접힌 채)
   const [hintO] = useState(() => new Animated.Value(sealed ? 1 : 0));
   useEffect(() => {
-    Animated.timing(hintO, { toValue: sealed ? 1 : 0, duration: reduced ? 0 : 240, useNativeDriver: true }).start();
+    Animated.timing(hintO, { toValue: sealed ? 1 : 0, duration: reduced ? 0 : 420, delay: sealed || reduced ? 0 : 350, easing: motion.easeInOut, useNativeDriver: false }).start();
   }, [sealed, reduced, hintO]);
   const done = useRef(false);
   const ticks = useRef(0);
@@ -115,7 +117,7 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
       >
         {sealed ? (
           <Svg width={RING} height={RING} style={StyleSheet.absoluteFill} pointerEvents="none">
-            <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={colors.white} strokeOpacity={0.55} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
+            <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={isDark ? colors.white : colors.accent} strokeOpacity={isDark ? 0.55 : 0.45} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
             <AnimatedCircle
               cx={RING / 2} cy={RING / 2} r={R}
               stroke={colors.accent} strokeWidth={5} fill="none" strokeLinecap="round"
@@ -126,17 +128,20 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
         ) : null}
         {body}
       </Pressable>
-      {/* 뽑은 뒤에도 안내 자리는 남겨 둔다 — 사라지며 아래 링이 끌려 올라오지 않게 */}
-      <Animated.View style={[s.hint, { opacity: hintO }]} pointerEvents="none" importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!sealed}>
-        <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+      <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!sealed}>
+        <Animated.View style={[s.hint, { opacity: hintO }]}>
+          <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+        </Animated.View>
       </Animated.View>
     </Animated.View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { alignSelf: 'center', alignItems: 'center', marginTop: 10, marginBottom: 14 },
+  // 뽑은 뒤(안내 접힘) 말풍선 ↔ 마스코트 ↔ 점수 링 여백이 같게
+  wrap: { alignSelf: 'center', alignItems: 'center', marginTop: 10, marginBottom: 20 },
   hit: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
+  hintSlot: { overflow: 'hidden', alignItems: 'center' },
   hint: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.navy },
   hintText: { fontSize: 12, fontWeight: '700', color: colors.white, letterSpacing: -0.3 },
 });

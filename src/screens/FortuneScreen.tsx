@@ -21,7 +21,7 @@ import { Period } from '../types';
 import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
 import { motion, useReducedMotion } from '../utils/motion';
-import { useMarkOpened } from '../services/content/opened';
+import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 
 const TABS: { key: Period; label: string }[] = [
   { key: 'daily', label: '오늘' }, { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
@@ -55,6 +55,7 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
 export default function FortuneScreen() {
   const { user, fortune, today } = useApp();
   useMarkOpened('fortune');
+  useFortuneDraw();
   const nav = useNavigation();
   const { owned } = usePremium();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();

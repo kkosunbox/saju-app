@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -47,6 +47,7 @@ export default function ConsultHomeScreen() {
   const [picked, setPicked] = useState(false);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
+  const [swapTo, setSwapTo] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const status = useConsultStatus(!!account);
   const history = useQuery({ queryKey: consultKeys.list, queryFn: consultApi.list, enabled: !!account });
@@ -65,7 +66,7 @@ export default function ConsultHomeScreen() {
   const onText = (t: string) => { setText(t); setCrisis(null); if (!picked) setCat(guessCat(t)); };
   const pickExample = (ex: string) => {
     if (!text.trim() || text === ex) return onText(ex);
-    Alert.alert('예시로 바꿀까요?', '지금 적은 내용은 지워져요.', [{ text: '취소', style: 'cancel' }, { text: '바꾸기', style: 'destructive', onPress: () => onText(ex) }]);
+    setSwapTo(ex);
   };
   const len = text.trim().length;
   const ok = len >= CONSULT_CONFIG.minLen;
@@ -161,6 +162,13 @@ export default function ConsultHomeScreen() {
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
         <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
+      </BottomSheet>
+
+      <BottomSheet visible={swapTo !== null} onClose={() => setSwapTo(null)}>
+        <Text style={[txt.h2, { textAlign: 'center' }]}>예시로 바꿀까요?</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>지금 적은 내용은 지워져요.</Text>
+        <PrimaryButton label="바꾸기" onPress={() => { if (swapTo) onText(swapTo); setSwapTo(null); }} style={{ marginTop: 20 }} />
+        <PrimaryButton label="취소" variant="soft" onPress={() => setSwapTo(null)} style={{ marginTop: 8 }} />
       </BottomSheet>
     </Screen>
   );

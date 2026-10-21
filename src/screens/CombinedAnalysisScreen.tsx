@@ -13,11 +13,12 @@ import { analysisTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt, sansW } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
 import { AlmanacHero, Figure } from '../components/Almanac';
-import { useMarkOpened } from '../services/content/opened';
+import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 
 export default function CombinedAnalysisScreen() {
   const { fortune, today } = useApp();
   useMarkOpened('fortune');
+  useFortuneDraw();
   if (!fortune) return null;
   const f = fortune.combined;
   const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, fortune.analyses.blood];

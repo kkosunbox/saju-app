@@ -18,7 +18,7 @@ import { Pillar } from '../types/content';
 import { AXES, MBTI_INFO } from '../data/mbtiData';
 import { AstroSystemReading, BloodType, User } from '../types';
 import { weekdayOf } from '../utils/date';
-import { useMarkOpened } from '../services/content/opened';
+import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 
 const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
 const NOTE: Record<string, string> = {
@@ -33,6 +33,7 @@ export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
   const { fortune, user, today } = useApp();
   useMarkOpened('fortune');
+  useFortuneDraw();
   const nav = useNavigation();
   if (!fortune || !user) return null;
   const a = fortune.analyses[params.source];
