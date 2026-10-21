@@ -6,7 +6,10 @@ const SANS = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic',
 // 한국어는 낱말 단위로 줄바꿈하고, 너무 긴 영문·숫자만 예외로 끊는다.
 const GLOBAL_CSS =
   `[class*="css-text-"]:not([class*="r-fontFamily"]):not([class*="textHasAncestor"]),[class*="css-textinput-"]:not([class*="r-fontFamily"]){font-family:${SANS};letter-spacing:-.2px}` +
-  '[class*="css-text-"]{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}';
+  '[class*="css-text-"]{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}' +
+  // iOS 사파리에서 꾹 누르면(마스코트 뽑기 등) 이미지 미리보기·저장 메뉴가 뜨거나 글자가 선택되지 않게
+  'img{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none}' +
+  '[role="button"]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}';
 
 /** 웹 정적 렌더링(SEO)용 HTML 셸. 화면별 메타는 expo-router/head 의 <Head>로 추가한다. */
 export default function Root({ children }: PropsWithChildren) {

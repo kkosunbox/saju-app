@@ -38,6 +38,7 @@ import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
+import { useWebThemeColor } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import BottomSheet from '../components/BottomSheet';
 import OptionChip from '../components/OptionChip';
@@ -104,6 +105,7 @@ export default function HomeScreen() {
   const tabBack = useTabBack();
   const hasHistory = useHasTabHistory();
   const insets = useSafeAreaInsets();
+  useWebThemeColor(gradients.sky[0]);
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
