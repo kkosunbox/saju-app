@@ -20,6 +20,7 @@ import Mascot, { ArtName, Logo } from '../components/Mascot';
 import DrawMascot from '../components/DrawMascot';
 import AnimatedNumber from '../components/AnimatedNumber';
 import PromoCard from '../components/PromoCard';
+import HScroll from '../components/HScroll';
 import { CategoryGlyph } from '../components/CategoryIcon';
 import { PointPill } from '../components/HeaderPoints';
 import { usePremium } from '../context/PremiumContext';
@@ -307,19 +308,21 @@ export default function HomeScreen() {
 
           <SectionHeader title="무료로 즐기기" caption={COPY.friend} action="콘텐츠 전체 보기" onAction={() => nav.navigate('Tabs', { screen: 'Content' })} />
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 12 }}>
+        <HScroll contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 12 }}>
           {FREE.map(x => (
             <PressableScale key={x.k} onPress={x.go} style={s.freeCard} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
               <View style={s.freeTop}>
-                {x.art ? <Mascot name={x.art} size={44} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
-                {x.sealed ? <View style={s.freeQ}><Text style={s.freeQText}>?</Text></View> : null}
+                {/* 뽑기 전 찰떡 MBTI는 결과 대신 MBTI 카드 그림 */}
+                {x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={44} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
               </View>
-              {x.isNew ? <View style={s.freeNew}><Text style={s.freeNewText}>NEW</Text></View> : null}
+              {/* 뽑기 전 표시는 카드 오른쪽 위 — NEW는 그 아래에 */}
+              {x.sealed ? <View style={s.freeQ}><Text style={s.freeQText}>?</Text></View> : null}
+              {x.isNew ? <View style={[s.freeNew, x.sealed && { top: 40 }]}><Text style={s.freeNewText}>NEW</Text></View> : null}
               <Text style={s.freeTitle}>{x.title}</Text>
               <Text style={[s.freeSub, x.sealed && s.freeSubSealed]} numberOfLines={1}>{x.sub}</Text>
             </PressableScale>
           ))}
-        </ScrollView>
+        </HScroll>
 
         <View style={{ paddingHorizontal: SCREEN_PX }}>
           <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={() => nav.navigate('CombinedAnalysis')} />
@@ -401,9 +404,9 @@ const s = StyleSheet.create({
   freeCard: { width: 116, height: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   freeTop: { height: 44, justifyContent: 'center' },
   freeBig: { fontSize: 24, fontWeight: '700', color: colors.inkSub, letterSpacing: -0.5 },
-  freeQ: { position: 'absolute', left: 34, top: -2, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy, borderWidth: 2, borderColor: colors.card },
-  freeQText: { fontSize: 11, fontWeight: '800', color: colors.white },
-  freeNew: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },
+  freeQ: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
+  freeQText: { fontSize: 12, fontWeight: '800', color: colors.white },
+  freeNew: { position: 'absolute', top: 16, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },
   freeNewText: { fontSize: 9, fontWeight: '800', color: colors.white, letterSpacing: 0.3 },
   freeSubSealed: { color: colors.accent, fontWeight: '700' },
   freeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5, marginTop: 6 },

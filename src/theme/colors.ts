@@ -1,6 +1,6 @@
 /**
  * 운픽 디자인 시스템 — 흰 바탕 · 하늘색 그라디언트 · 연회색 카드 · 먹남색 버튼 · 마스코트.
- * 화면 모드는 마이 > 화면 모드(시스템·라이트·다크)를 따른다. 앱 시작 시 결정(index.ts가 먼저 읽음).
+ * 화면 모드는 마이 > 화면 모드(시스템·라이트·다크, 기본 라이트)를 따른다. 앱 시작 시 결정(index.ts가 먼저 읽음).
  * - purple: 강조 글자 (다크에서 밝아짐)   - purpleSoft: 링크·보조 강조(파랑)
  * - navy: 채움용 (버튼·선택 상태)          - accent: 하늘색 포인트 (보내기 버튼·테두리·차트 최고값)
  * 이름(purple·cream 등)은 예전 책력 디자인에서 물려받은 의미 이름이다.
@@ -9,6 +9,8 @@ import { Appearance } from 'react-native';
 import { readThemePrefSync } from './themePref';
 
 const pref = readThemePrefSync();
+// 키보드·알림창 같은 네이티브 UI도 고른 모드를 따르게 한다(시스템 다크 + 앱 라이트일 때 섞이지 않게)
+if (pref !== 'system') Appearance.setColorScheme?.(pref);
 export const isDark = pref === 'dark' ? true : pref === 'light' ? false : Appearance.getColorScheme() === 'dark';
 
 const light = {

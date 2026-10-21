@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Mascot from './Mascot';
 import { AnimatedCircle } from './ScoreRing';
@@ -94,18 +94,26 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
 
   return (
     <Animated.View style={[s.wrap, { transform: [{ translateY: y }] }]}>
-      {sealed ? (
-        <Pressable
-          onPressIn={pressIn}
-          onPressOut={pressOut}
-          onPress={reduced ? burst : undefined}
-          accessibilityRole="button"
-          accessibilityLabel="오늘의 운세 뽑기"
-          accessibilityHint="마스코트를 꾹 누르면 오늘의 운세가 나와요"
-          accessibilityActions={[{ name: 'activate' }]}
-          onAccessibilityAction={burst}
-          style={s.hit}
-        >
+      {/*
+        뽑기 전후로 같은 Pressable을 그대로 둔다. 마스코트를 다시 그리면 옛 뷰가 떨어지는 순간
+        Animated 값에 붙은 뷰가 없어져 진행 중이던 애니메이션이 멈추고, 눌린 모양(납작) 그대로 굳는다.
+      */}
+      <Pressable
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        onPress={reduced ? burst : undefined}
+        disabled={!sealed}
+        // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !sealed }}
+        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : undefined}
+        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : undefined}
+        accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
+        onAccessibilityAction={sealed ? burst : undefined}
+        importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'}
+        style={s.hit}
+      >
+        {sealed ? (
           <Svg width={RING} height={RING} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={colors.white} strokeOpacity={0.55} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
             <AnimatedCircle
@@ -115,11 +123,9 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
               transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
             />
           </Svg>
-          {body}
-        </Pressable>
-      ) : (
-        <View style={s.hit} pointerEvents="none">{body}</View>
-      )}
+        ) : null}
+        {body}
+      </Pressable>
       {/* 뽑은 뒤에도 안내 자리는 남겨 둔다 — 사라지며 아래 링이 끌려 올라오지 않게 */}
       <Animated.View style={[s.hint, { opacity: hintO }]} pointerEvents="none" importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!sealed}>
         <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>

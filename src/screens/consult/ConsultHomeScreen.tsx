@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -63,6 +63,10 @@ export default function ConsultHomeScreen() {
 
   // 직접 고르지 않았으면 글에서 주제를 추측해 미리 골라 둔다
   const onText = (t: string) => { setText(t); setCrisis(null); if (!picked) setCat(guessCat(t)); };
+  const pickExample = (ex: string) => {
+    if (!text.trim() || text === ex) return onText(ex);
+    Alert.alert('예시로 바꿀까요?', '지금 적은 내용은 지워져요.', [{ text: '취소', style: 'cancel' }, { text: '바꾸기', style: 'destructive', onPress: () => onText(ex) }]);
+  };
   const len = text.trim().length;
   const ok = len >= CONSULT_CONFIG.minLen;
 
@@ -136,18 +140,14 @@ export default function ConsultHomeScreen() {
           : `${account ? `보유 ${fmtP(points)} · ` : ''}${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`}
       </Text>
 
-      {!text ? (
-        <>
-          <SubHead title="이런 고민도 괜찮아요" caption="눌러서 바로 확인해보세요" />
-          <View style={{ gap: 12, alignItems: 'flex-start' }}>
-            {EXAMPLES.map(ex => (
-              <PressableScale key={ex} onPress={() => onText(ex)} style={s.example} scaleTo={0.98} accessibilityLabel={`예시 고민: ${ex}`}>
-                <Text style={s.exampleT}>{ex}</Text>
-              </PressableScale>
-            ))}
-          </View>
-        </>
-      ) : null}
+      <SubHead title="이런 고민도 괜찮아요" caption="눌러서 바로 확인해보세요" />
+      <View style={{ gap: 12, alignItems: 'flex-start' }}>
+        {EXAMPLES.map(ex => (
+          <PressableScale key={ex} onPress={() => pickExample(ex)} style={s.example} scaleTo={0.98} accessibilityLabel={`예시 고민: ${ex}`}>
+            <Text style={s.exampleT}>{ex}</Text>
+          </PressableScale>
+        ))}
+      </View>
 
       {open.length ? <History title="이어서 이야기하기" rows={open} onOpen={openChat} /> : null}
       {past.length ? <History title="지난 상담" rows={past} onOpen={openChat} /> : null}
