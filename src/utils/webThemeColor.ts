@@ -19,14 +19,17 @@ function apply(color: string) {
     tint = document.createElement('div');
     tint.id = TOP_TINT_ID;
     tint.setAttribute('aria-hidden', 'true');
-    // 화면 내용 뒤에 깔아 보이지는 않게 한다
-    tint.style.cssText = 'position:fixed;top:0;left:0;right:0;height:8px;z-index:-1;pointer-events:none';
+    // Safari는 가장자리에서 맨 위에 보이는 요소를 찾으므로 내용 뒤에 숨기면 안 된다. 같은 색 화면 위에서만 깔아 둘 것
+    tint.style.cssText = 'position:fixed;top:0;left:0;right:0;height:4px;z-index:2147483647';
     document.body.appendChild(tint);
   }
   tint.style.backgroundColor = color;
 }
 
-/** 웹(아이폰 Safari)에서 이 화면이 보이는 동안 상단 바 색을 화면 상단 색에 맞춘다. 떠나면 기본 바탕색으로 돌린다. */
+/**
+ * 웹(아이폰 Safari)에서 이 화면이 보이는 동안 상단 바 색을 화면 상단 색에 맞춘다. 떠나면 기본 바탕색으로 돌린다.
+ * 화면 맨 위에 그 색 띠가 실제로 보이므로, 화면 상단이 그 색일 때만 넘기고 아니면 colors.cream 을 넘긴다.
+ */
 export function useWebThemeColor(color: string) {
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'web') return;

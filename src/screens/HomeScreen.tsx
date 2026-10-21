@@ -105,7 +105,9 @@ export default function HomeScreen() {
   const tabBack = useTabBack();
   const hasHistory = useHasTabHistory();
   const insets = useSafeAreaInsets();
-  useWebThemeColor(gradients.sky[0]);
+  // 맨 위 하늘이 보이는 동안만 상단 바를 하늘색으로, 내리면 흰 내용에 맞춰 기본색으로
+  const [nearTop, setNearTop] = useState(true);
+  useWebThemeColor(nearTop ? gradients.sky[0] : colors.cream);
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -203,6 +205,8 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32, backgroundColor: colors.cream }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={64}
+        onScroll={e => setNearTop(e.nativeEvent.contentOffset.y < 40)}
         refreshControl={<RefreshControl refreshing={fortuneLoading} onRefresh={() => refreshFortune()} tintColor={colors.white} />}
       >
         {sky}
