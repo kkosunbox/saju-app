@@ -11,6 +11,7 @@ import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { LogoMark } from '@/components/BrandMark';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
+import { useWebSideScroll } from '@/utils/webSideScroll';
 
 const AUTH_PATHS = ['/login', '/signup', '/find-password'];
 const isAuthPath = (path: string) => AUTH_PATHS.some(p => path === p || path.startsWith(`${p}/`));
@@ -103,6 +104,9 @@ function RootStack() {
 export default function RootLayout() {
   // 네이티브: 굵기별 글꼴 파일 (src/theme/fontFiles.native.ts). 로드 전에는 시스템 글꼴로 먼저 보여준다. 웹은 +html.tsx 의 웹폰트.
   useFonts(FONT_FILES);
+  const bg = useRef<View>(null);
+  const frame = useRef<View>(null);
+  useWebSideScroll(bg, frame);
   const app = (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
@@ -118,8 +122,8 @@ export default function RootLayout() {
   if (Platform.OS !== 'web') return app;
   // 웹: 데스크톱 브라우저에서도 폰 화면 폭으로 가운데 정렬
   return (
-    <View style={s.webBg}>
-      <View style={s.webFrame}>{app}</View>
+    <View ref={bg} style={s.webBg}>
+      <View ref={frame} style={s.webFrame}>{app}</View>
     </View>
   );
 }
