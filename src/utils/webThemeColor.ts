@@ -19,8 +19,9 @@ function apply(color: string) {
     tint = document.createElement('div');
     tint.id = TOP_TINT_ID;
     tint.setAttribute('aria-hidden', 'true');
-    // Safari는 가장자리에서 맨 위에 보이는 요소를 찾으므로 내용 뒤에 숨기면 안 된다. 같은 색 화면 위에서만 깔아 둘 것
-    tint.style.cssText = 'position:fixed;top:0;left:0;right:0;height:4px;z-index:2147483647';
+    // Safari는 가장자리 몇 px 안쪽에서 맨 위에 보이는 고정 요소를 찾고, 10px 이하로 얇으면 건너뛴다고 한다.
+    // 그래서 내용 위에 12px로 깐다 — 같은 색 화면 위에서만 깔아 둘 것
+    tint.style.cssText = 'position:fixed;top:0;left:0;right:0;height:12px;z-index:2147483647';
     document.body.appendChild(tint);
   }
   tint.style.backgroundColor = color;
