@@ -28,7 +28,7 @@ export default function WalletScreen() {
           <Coin size={30} />
           <Text style={{ fontSize: 40, fontWeight: '800', letterSpacing: -1, color: colors.white }}>{points.toLocaleString('ko-KR')}</Text>
         </View>
-        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>1,000원 = 100알 · 보유 콘텐츠 {ownedCount}개</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>보유 콘텐츠 {ownedCount}개</Text>
         {expiringSoon > 0 ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>30일 안에 사라지는 알 {fmtP(expiringSoon)}</Text> : null}
       </Hero>
 
