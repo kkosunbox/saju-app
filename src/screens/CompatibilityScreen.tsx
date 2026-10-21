@@ -29,8 +29,9 @@ import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '../api/query';
 import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
-import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, User } from '../types';
+import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
 import { MBTI_LIST } from '../data/mbtiData';
+import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
 import { isValidDate } from '../utils/date';
 import { analysisTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
@@ -38,13 +39,19 @@ import ShareCta from '../components/ShareCta';
 import { compatSpec, crushSpec } from '../services/share/shareSpecs';
 import { shareInvite } from '../services/share/linkShare';
 
-const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; l: string; c: string; e: string }[] = [
-  { k: 'love', l: '연애 궁합', c: colors.love, e: '緣' },
-  { k: 'personality', l: '성격 궁합', c: colors.purpleSoft, e: '和' },
-  { k: 'conversation', l: '대화 궁합', c: colors.work, e: '言' },
-  { k: 'money', l: '금전 궁합', c: colors.money, e: '財' },
+const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; e: string }[] = [
+  { k: 'love', c: colors.love, e: '緣' },
+  { k: 'personality', c: colors.purpleSoft, e: '和' },
+  { k: 'conversation', c: colors.work, e: '言' },
+  { k: 'money', c: colors.money, e: '財' },
 ];
+/** 풀이 카드 색: 띠는 사주에서 나오므로 사주 색 (kind가 없는 예전 결과는 순서대로) */
+const POINT_THEME = { saju: 'saju', zodiac: 'saju', mbti: 'mbti', blood: 'blood' } as const;
 const POINT_SOURCE = ['saju', 'mbti', 'blood'] as const;
+const BLOOD_TYPES: BloodType[] = ['A', 'B', 'O', 'AB'];
+
+/** 아는 것만: "ENFP · A형" / 하나도 모르면 null */
+const traitsOf = (p: PartnerInput): string | null => [p.mbti, p.bloodType && `${p.bloodType}형`].filter(Boolean).join(' · ') || null;
 
 function Label({ children }: { children: string }) {
   return <Text style={s.fieldLabel}>{children}</Text>;
@@ -61,6 +68,7 @@ function Avatar({ name, light }: { name: string; light?: boolean }) {
 export default function CompatibilityScreen() {
   const { user } = useApp();
   const { toast, owned } = usePremium();
+  const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [name, setName] = useState('');
   const [y, setY] = useState(''); const [m, setM] = useState(''); const [d, setD] = useState('');
   const [hh, setHh] = useState('');
@@ -82,11 +90,12 @@ export default function CompatibilityScreen() {
   const dateFilled = y.length === 4 && !!m && !!d;
   const dateOk = isValidDate(+y, +m, +d);
   const hourOk = hh === '' || (+hh >= 0 && +hh <= 23);
-  const ok = !!name.trim() && dateOk && !!gender && !!mbti && !!blood && hourOk;
+  // MBTI·혈액형은 모르면 비워 둔다 (궁합에서 빠진다)
+  const ok = !!relationship && !!name.trim() && dateOk && !!gender && hourOk;
 
   const [busy, setBusy] = useState(false);
   /** 서버가 계산하고 내 궁합 기록에 저장한다 (상대 정보는 기록을 지우면 함께 삭제). */
-  const run = async (partner: PartnerInput) => {
+  const run = async (partner: PartnerInput & { relationship: Relationship }) => {
     if (!user || busy) return;
     setBusy(true);
     try {
@@ -101,10 +110,11 @@ export default function CompatibilityScreen() {
   const analyze = () => {
     if (!ok) return;
     run({
+      relationship: relationship!,
       nickname: name.trim(),
       birthDate: `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`,
       birthTime: hh ? `${hh.padStart(2, '0')}:00` : null,
-      gender: gender!, mbti: mbti!, bloodType: blood!,
+      gender: gender!, mbti, bloodType: blood,
     });
   };
 
@@ -132,16 +142,17 @@ export default function CompatibilityScreen() {
   if (!user) return null;
 
   if (result) {
+    const rel = RELATIONSHIP_INFO[result.relationship];
     return (
       <Screen largeTitle="우리 둘의 궁합" onBack={() => setResult(null)}>
         <View style={[s.heroWrap, shadow.hero]}>
           <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={s.hero}>
             <View style={s.pair}>
               <Avatar name={user.nickname} light />
-              <Icon name="heart" size={18} color="rgba(255,255,255,0.7)" filled />
+              {result.relationship === 'lover' ? <Icon name="heart" size={18} color="rgba(255,255,255,0.7)" filled /> : <Text style={s.pairRel}>{rel.han}</Text>}
               <Avatar name={result.target.nickname} />
             </View>
-            <Text style={s.pairNames}>{user.nickname} · {result.target.nickname}</Text>
+            <Text style={s.pairNames}>{user.nickname} · {result.target.nickname} · {rel.label}</Text>
             <View style={{ marginVertical: 16 }}><ScoreRing score={result.total} size={128} label="종합 궁합" /></View>
             <Text style={s.heroSummary}>{result.summary}</Text>
           </LinearGradient>
@@ -152,7 +163,7 @@ export default function CompatibilityScreen() {
           {BARS.map((b, i) => (
             <View key={b.k} style={{ gap: 8 }}>
               <View style={s.barHead}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Seal ch={b.e} /><Text style={s.barLabel}>{b.l}</Text></View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}><Seal ch={b.k === 'love' ? rel.seal : b.e} /><Text style={s.barLabel}>{rel.bars[b.k]}</Text></View>
                 <Text style={[s.barScore, { color: b.c }]}>{result[b.k]}</Text>
               </View>
               <ScoreBar value={result[b.k]} color={b.c} height={8} delay={300 + i * 90} />
@@ -165,7 +176,7 @@ export default function CompatibilityScreen() {
         <SectionHeader title="관점별 풀이" />
         <View style={{ gap: 10 }}>
           {result.points.map((p, i) => {
-            const t = analysisTheme[POINT_SOURCE[i] ?? 'saju'];
+            const t = analysisTheme[p.kind ? POINT_THEME[p.kind] : POINT_SOURCE[i] ?? 'saju'];
             return (
               <Card key={p.title} style={s.point}>
                 <View style={[s.pointBand, { backgroundColor: t.color }]} />
@@ -177,13 +188,14 @@ export default function CompatibilityScreen() {
         </View>
 
         {result.source === 'invite' ? (
-          <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. 심층 궁합·속마음은 상대 정보를 직접 넣어 볼 수 있어요.</Text>
+          <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. {result.relationship === 'lover' ? '심층 궁합·속마음은' : '심층 궁합은'} 상대 정보를 직접 넣어 볼 수 있어요.</Text>
         ) : null}
 
         {result.source !== 'invite' && result.id != null ? (
           <>
             <DeepSection u={user} r={result} id={result.id} />
-            <CrushSection u={user} r={result} id={result.id} />
+            {/* 속마음은 연애 리포트라 연인일 때만 */}
+            {result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
           </>
         ) : null}
 
@@ -196,7 +208,7 @@ export default function CompatibilityScreen() {
         <Disclaimer compact />
         <BottomSheet visible={confirmDelete} onClose={() => setConfirmDelete(false)}>
           <Text style={[txt.h2, { textAlign: 'center' }]}>{result.target.nickname}님 정보를 지울까요?</Text>
-          <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>상대 정보와 궁합 결과가 바로 지워져요.{'\n'}열어 둔 심층 궁합·속마음도 다시 볼 수 없어요.</Text>
+          <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>상대 정보와 궁합 결과가 바로 지워져요.{'\n'}열어 둔 {result.relationship === 'lover' ? '심층 궁합·속마음도' : '심층 궁합도'} 다시 볼 수 없어요.</Text>
           <PrimaryButton label="지우기" onPress={removeResult} style={{ marginTop: 20 }} />
           <PrimaryButton label="취소" variant="soft" onPress={() => setConfirmDelete(false)} style={{ marginTop: 8 }} />
         </BottomSheet>
@@ -225,7 +237,7 @@ export default function CompatibilityScreen() {
         <View style={s.pairCol}>
           <View style={[s.pairSeal, s.pairEmpty]}><Text style={[s.pairSealText, { color: colors.inkMute }]}>{name.trim() ? name.trim().slice(0, 1) : '?'}</Text></View>
           <Text style={s.pairName}>{name.trim() || '그 사람'}</Text>
-          <Text style={txt.caption}>{mbti && blood ? `${mbti} · ${blood}형` : '정보를 채워 주세요'}</Text>
+          <Text style={txt.caption}>{relationship ? RELATIONSHIP_INFO[relationship].label : '정보를 채워 주세요'}</Text>
         </View>
       </View>
       <PressableScale onPress={sendInvite} style={s.inviteRow} scaleTo={0.98} accessibilityLabel="상대에게 링크로 궁합 신청 받기">
@@ -247,7 +259,8 @@ export default function CompatibilityScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{r.target.nickname}</Text>
                   <Text style={txt.caption}>
-                    {r.source === 'invite' ? '초대 링크로 본 궁합' : `${r.target.mbti} · ${r.target.bloodType}형`}
+                    {RELATIONSHIP_INFO[r.relationship].label}
+                    {r.source === 'invite' ? ' · 초대 링크로 본 궁합' : traitsOf(r.target) ? ` · ${traitsOf(r.target)}` : ''}
                     {r.id != null && owned(`compat:${r.id}`) ? ' · 심층 궁합' : ''}
                     {r.id != null && owned(`crush:${r.id}`) ? ' · 속마음' : ''}
                   </Text>
@@ -261,6 +274,15 @@ export default function CompatibilityScreen() {
         </>
       ) : null}
       <Card style={s.form}>
+
+        <View>
+          <Label>어떤 사이인가요?</Label>
+          <View style={s.grid}>
+            {RELATIONSHIPS.map(x => (
+              <OptionChip key={x.k} compact style={s.relCell} label={x.l} sub={x.hint} selected={relationship === x.k} onPress={() => setRelationship(x.k)} />
+            ))}
+          </View>
+        </View>
 
         <View>
           <Label>상대 이름</Label>
@@ -291,9 +313,9 @@ export default function CompatibilityScreen() {
         </View>
 
         <View>
-          <Label>MBTI</Label>
+          <Label>MBTI (선택)</Label>
           <PressableScale onPress={() => setShowMbti(v => !v)} style={[s.select, showMbti && { borderColor: colors.purple }]} scaleTo={0.98}>
-            <Text style={[s.selectText, !mbti && { color: colors.inkMute }]}>{mbti ?? '선택하기'}</Text>
+            <Text style={[s.selectText, !mbti && { color: colors.inkMute }]}>{mbti ?? '모르면 비워 두세요'}</Text>
             <View style={{ transform: [{ rotate: showMbti ? '-90deg' : '90deg' }] }}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
           </PressableScale>
           {showMbti && (
@@ -301,16 +323,19 @@ export default function CompatibilityScreen() {
               {MBTI_LIST.map(t => (
                 <OptionChip key={t} compact style={s.mbtiCell} label={t} selected={mbti === t} onPress={() => { setMbti(t); setShowMbti(false); }} />
               ))}
+              <OptionChip compact style={{ width: '100%' }} label="몰라요" selected={!mbti} onPress={() => { setMbti(null); setShowMbti(false); }} />
             </View>
           )}
         </View>
 
         <View>
-          <Label>혈액형</Label>
+          <Label>혈액형 (선택)</Label>
           <View style={s.row}>
-            {(['A', 'B', 'O', 'AB'] as BloodType[]).map(b => <OptionChip key={b} style={{ flex: 1 }} compact label={`${b}형`} selected={blood === b} onPress={() => setBlood(b)} />)}
+            {BLOOD_TYPES.map(b => <OptionChip key={b} style={{ flex: 1 }} compact label={`${b}형`} selected={blood === b} onPress={() => setBlood(blood === b ? null : b)} />)}
+            <OptionChip style={{ flex: 1 }} compact label="몰라요" selected={!blood} onPress={() => setBlood(null)} />
           </View>
         </View>
+        {!mbti || !blood ? <Text style={[txt.caption, { marginTop: -8 }]}>모르는 정보는 빼고 사주로 봐요.</Text> : null}
       </Card>
       <Disclaimer compact />
     </Screen>
@@ -319,7 +344,7 @@ export default function CompatibilityScreen() {
 
 /** 심층 궁합: 열기 전엔 가격 카드, 열면 서버가 계산한 두 사람 비교 */
 function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number }) {
-  const item = ITEMS.compat(id, r.target.nickname);
+  const item = ITEMS.compat(id, r.target.nickname, r.relationship, !!r.target.mbti);
   const content = usePremiumContent<DeepCompatibility>({ kind: 'compat', id });
   const { reading, retry } = useReading<CompatReading>(content);
   if (!content.open) return <PriceCard item={item} />;
@@ -371,6 +396,7 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   mbtiCell: { width: '23.8%' },
+  relCell: { width: '48.9%' },
   select: { height: 52, borderRadius: radius.sm, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   selectText: { fontSize: 17, fontWeight: '500', color: colors.ink },
   error: { color: colors.danger, fontSize: 12, marginTop: 6 },
@@ -379,6 +405,7 @@ const s = StyleSheet.create({
   heroWrap: { borderRadius: radius.xl, backgroundColor: colors.heroBg },
   hero: { borderRadius: radius.xl, padding: 24, alignItems: 'center' },
   pair: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  pairRel: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
   pairNames: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600', marginTop: 8 },
   heroSummary: { fontFamily: fonts.serif, color: colors.white, fontSize: 18, fontWeight: '600', letterSpacing: -0.4, textAlign: 'center' },
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },

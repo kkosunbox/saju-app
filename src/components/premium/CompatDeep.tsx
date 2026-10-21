@@ -12,6 +12,7 @@ import { CompatReading, ReadingView } from '../../types/reading';
 import { TG } from '../../services/premium/data';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
+import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
@@ -34,9 +35,11 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
     D.partnerHasMyYongsin && D.meHasPartnerYongsin ? '서로의 용신' : D.partnerHasMyYongsin || D.meHasPartnerYongsin ? '용신 보완' : null,
     D.partnerFillsMe.length || D.meFillsPartner.length ? '오행 보완' : null,
   ].filter((t): t is string => !!t);
+  const F = RELATIONSHIP_INFO[r.relationship].fields;
   const scoreRows: [keyof CompatReading['fields'], string, number][] = [
-    ['love', '緣 연애 궁합', r.love], ['life', '家 결혼·생활 궁합', Math.round((r.personality + r.money) / 2)], ['talk', '言 소통 궁합', r.conversation], ['money', '財 금전 궁합', r.money],
+    ['love', `${RELATIONSHIP_INFO[r.relationship].seal} ${F.love}`, r.love], ['life', `家 ${F.life}`, Math.round((r.personality + r.money) / 2)], ['talk', `言 ${F.talk}`, r.conversation], ['money', `財 ${F.money}`, r.money],
   ];
+  const theirMbti = p.mbti;
 
   return (
     <>
@@ -47,8 +50,8 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
       <Card style={{ paddingVertical: 14, paddingHorizontal: 10 }}>
         <View style={s.cpRow}><Text style={s.cpL} /><Text style={s.cpH}>{nmA}</Text><Text style={s.cpH}>{nmB}</Text></View>
         {rows.map(([l, f]) => <View key={l} style={s.cpRow}><Text style={[txt.caption, s.cpL]}>{l}</Text><Text style={s.cpV}>{f(A)}</Text><Text style={s.cpV}>{f(B)}</Text></View>)}
-        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>MBTI</Text><Text style={s.cpV}>{u.mbti}</Text><Text style={s.cpV}>{p.mbti}</Text></View>
-        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>혈액형</Text><Text style={s.cpV}>{u.bloodType}형</Text><Text style={s.cpV}>{p.bloodType}형</Text></View>
+        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>MBTI</Text><Text style={s.cpV}>{u.mbti}</Text><Text style={[s.cpV, !p.mbti && s.cpUnknown]}>{p.mbti ?? '모름'}</Text></View>
+        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>혈액형</Text><Text style={s.cpV}>{u.bloodType}형</Text><Text style={[s.cpV, !p.bloodType && s.cpUnknown]}>{p.bloodType ? `${p.bloodType}형` : '모름'}</Text></View>
       </Card>
 
       <SubHead title="命 사주로 본 인연" />
@@ -63,13 +66,15 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         {bond ? <Para mt={4}>{bond.partnerToMe}</Para> : pending(2)}
         <Text style={[s.label, { marginTop: 14 }]}>{nmB}님에게 {nmA}님은 · {TG[D.tenGodPartnerToMe]}</Text>
         {bond ? <Para mt={4}>{bond.meToPartner}</Para> : pending(2)}
-        <Text style={[s.label, { marginTop: 14 }]}>서로 끌리는 이유</Text>
+        <Text style={[s.label, { marginTop: 14 }]}>{r.relationship === 'lover' ? '서로 끌리는 이유' : '서로 잘 맞는 이유'}</Text>
         {bond ? <Para mt={4}>{bond.attraction}</Para> : pending(2)}
       </Card>
 
       <SubHead title="性 네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
       <Card>
-        <View style={s.chips}>{AXES.map((x, i) => <Pill key={x} tone={u.mbti[i] === p.mbti[i] ? 'ok' : 'care'}>{`${x} ${u.mbti[i]}×${p.mbti[i]}`}</Pill>)}</View>
+        {theirMbti
+          ? <View style={s.chips}>{AXES.map((x, i) => <Pill key={x} tone={u.mbti[i] === theirMbti[i] ? 'ok' : 'care'}>{`${x} ${u.mbti[i]}×${theirMbti[i]}`}</Pill>)}</View>
+          : <Text style={txt.caption}>{nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.</Text>}
         {bond ? <Para mt={12}>{bond.views}</Para> : pending(3)}
       </Card>
 
@@ -131,6 +136,7 @@ const s = StyleSheet.create({
   cpL: { width: 64, textAlign: 'center' },
   cpH: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '700', color: colors.purple },
   cpV: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600', color: colors.ink },
+  cpUnknown: { color: colors.inkMute, fontWeight: '500' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
   goodDay: { flex: 1, alignItems: 'center', backgroundColor: colors.loveBg, borderRadius: radius.md, paddingVertical: 12 },

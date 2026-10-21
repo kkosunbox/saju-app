@@ -81,13 +81,17 @@ export interface DailyFortune {
   dayPillar?: { stem: number; branch: number };
 }
 
+/** 궁합 상대와의 관계 */
+export type Relationship = 'lover' | 'friend' | 'family' | 'work';
+
 export interface PartnerInput {
   nickname: string;
   birthDate: string;
   birthTime: string | null;
   gender: Gender;
-  mbti: MBTI;
-  bloodType: BloodType;
+  /** 모르면 null (궁합에서 빠진다) */
+  mbti: MBTI | null;
+  bloodType: BloodType | null;
 }
 
 export interface CompatibilityResult {
@@ -95,6 +99,7 @@ export interface CompatibilityResult {
   id?: number;
   /** invite: made from a friend's link — no partner details. */
   source?: 'manual' | 'invite';
+  relationship: Relationship;
   userId: string;
   target: PartnerInput;
   total: number;
@@ -103,7 +108,8 @@ export interface CompatibilityResult {
   conversation: number;
   money: number;
   summary: string;
-  points: { title: string; text: string }[];
+  /** kind: 풀이의 근거 (상대 MBTI·혈액형을 모르면 zodiac(띠)이 대신하거나 빠진다) */
+  points: { title: string; text: string; kind?: 'saju' | 'zodiac' | 'mbti' | 'blood' }[];
   createdAt: string;
 }
 

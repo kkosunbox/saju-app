@@ -45,7 +45,7 @@ export default function CrushView({ r, R, reading, onRetry }: {
         {heart ? <Para mt={4}>{heart.hesitate}</Para> : pending(2)}
       </Card>
 
-      <SubHead title="02 · 그 사람의 호감 신호" caption={`${r.target.mbti} 성향이 마음을 보일 때`} />
+      <SubHead title="02 · 그 사람의 호감 신호" caption={r.target.mbti ? `${r.target.mbti} 성향이 마음을 보일 때` : '그 사람이 마음을 보일 때'} />
       <Card style={{ gap: 10 }}>{heart ? heart.signals.map(t => <ActRow key={t} icon="sparkle">{t}</ActRow>) : pending(4)}</Card>
 
       <SubHead title="03 · 관계의 속도" />

@@ -5,6 +5,7 @@
  */
 import { CombinedFortune, CompatibilityResult, User } from '../../types';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
+import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
 import { catOf } from '../content/consult';
 import { ConsultAnswer, ConsultView } from '../server/consultApi';
@@ -91,7 +92,7 @@ export function compatSpec(u: User, r: CompatibilityResult): ShareSpec {
   return {
     kind: '궁합', seal: '和', eyebrow: `${u.nickname} × ${r.target.nickname}`,
     headline: r.summary, big: { value: String(r.total), unit: '점', label: '우리 둘의 궁합' },
-    stats: [['연애', String(r.love)], ['대화', String(r.conversation)], ['재물', String(r.money)]],
+    stats: [[RELATIONSHIP_INFO[r.relationship].bars.love.replace(/ 궁합$/, ''), String(r.love)], ['대화', String(r.conversation)], [RELATIONSHIP_INFO[r.relationship].bars.money.replace(/ 궁합$/, ''), String(r.money)]],
     teaser: '둘이 가장 부딪히기 쉬운 순간',
     hook: '우리 궁합은 몇 점일까?',
     text: `${u.nickname} × ${r.target.nickname} 궁합 ${r.total}점 나왔어. 생일만 넣으면 우리 궁합도 바로 나와.`, file: 'woonpick-compat', route: 'Compatibility', short: `궁합 ${r.total}점`,

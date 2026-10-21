@@ -30,6 +30,10 @@ import { colors } from '../theme/colors';
 import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
 import { COPY } from '../content/copy';
+import BottomSheet from '../components/BottomSheet';
+import OptionChip from '../components/OptionChip';
+import { RELATIONSHIPS } from '../data/relationships';
+import { Relationship } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,6 +44,7 @@ export default function HomeScreen() {
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const { points, toast } = usePremium();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
+  const [askRelationship, setAskRelationship] = useState(false);
   const tal = useFreeContent('talisman').data;
   const match = useFreeContent('mbti-match').data?.best[0];
   const ch = useFreeContent('character').data;
@@ -87,10 +92,12 @@ export default function HomeScreen() {
     if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
     else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
-  const openInvite = async () => {
+  /** 관계를 고르면 그 관계에 맞는 궁합이 나온다 */
+  const openInvite = async (relationship: Relationship) => {
+    setAskRelationship(false);
     if (!invite) return;
     try {
-      const result = await compatApi.acceptInvite(user.id, invite.token);
+      const result = await compatApi.acceptInvite(user.id, invite.token, relationship);
       await clearPendingInvite();
       setInvite(null);
       queryClient.invalidateQueries({ queryKey: compatKeys.list });
@@ -125,7 +132,7 @@ export default function HomeScreen() {
         </Reveal>
 
         {invite ? (
-          <PressableScale onPress={openInvite} style={s.invite} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
+          <PressableScale onPress={() => setAskRelationship(true)} style={s.invite} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
             <Text style={{ fontFamily: fonts.serif, fontSize: 26, color: colors.seal }}>和</Text>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{invite.inviterNickname}님이 궁합을 신청했어요</Text>
@@ -133,6 +140,15 @@ export default function HomeScreen() {
             </View>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />
           </PressableScale>
+        ) : null}
+        {invite ? (
+          <BottomSheet visible={askRelationship} onClose={() => setAskRelationship(false)}>
+            <Text style={[txt.h2, { textAlign: 'center' }]}>{invite.inviterNickname}님과 어떤 사이인가요?</Text>
+            <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>관계에 맞는 궁합으로 보여 드려요</Text>
+            <View style={s.relGrid}>
+              {RELATIONSHIPS.map(x => <OptionChip key={x.k} compact style={s.relCell} label={x.l} sub={x.hint} selected={false} onPress={() => openInvite(x.k)} />)}
+            </View>
+          </BottomSheet>
         ) : null}
 
         {friend ? (
@@ -218,6 +234,8 @@ const s = StyleSheet.create({
   iconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   ptPill: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.lavenderSoft },
   ptText: { fontSize: 13, fontWeight: '800', color: colors.purple },
+  relGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 18 },
+  relCell: { width: '48.9%' },
   invite: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, marginBottom: 12, borderRadius: radius.lg, backgroundColor: colors.loveBg, borderWidth: 1, borderColor: colors.love },
   grid: { gap: 12 },
   gridRow: { flexDirection: 'row', gap: 12 },
