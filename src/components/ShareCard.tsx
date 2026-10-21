@@ -76,7 +76,7 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
           <View style={s.teaserHead}>
             <View style={s.lock}><Icon name="lock" size={12} color={C.accent} strokeWidth={2.2} /></View>
             <Text style={s.teaserLabel} numberOfLines={1}>{spec.teaser}</Text>
-            <Text style={s.teaserOpen}>앱에서만 열려요</Text>
+            <Text style={s.teaserOpen}>운Pick에서 확인</Text>
           </View>
           <View style={s.bars}>
             {BARS.map((w, i) => <View key={i} style={[s.bar, { width: w, opacity: 0.5 + (i % 3) * 0.12 }]} />)}

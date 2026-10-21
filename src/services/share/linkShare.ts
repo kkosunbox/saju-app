@@ -68,7 +68,7 @@ export async function captureInvite() {
 
 /* ---------- 친구 결과 링크 (공유 → 비교 → 답장 공유) ---------- */
 /** 결과 링크로 열 수 있는 화면 (그 외 값은 무시) */
-export const RESULT_ROUTES = ['MbtiMatch', 'Character', 'Talisman', 'PastLife', 'Spouse', 'Life', 'SajuDeep', 'NewYear', 'Monthly', 'Lucky', 'Theme', 'Home', 'Compatibility'];
+export const RESULT_ROUTES = ['MbtiMatch', 'Character', 'Talisman', 'PastLife', 'Spouse', 'Life', 'SajuDeep', 'NewYear', 'Monthly', 'Lucky', 'Theme', 'ThemeMoney', 'ThemeCareer', 'Home', 'Compatibility'];
 export interface FriendResult { c: string; k: string; n: string; h: string; seen?: boolean }
 const FRIEND = 'onulna:friendResult';
 

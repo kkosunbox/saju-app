@@ -33,5 +33,7 @@ export function defaultItem(key: Exclude<PremiumKey, 'lounge'>, today: string): 
 export function openFriendRoute(nav: Nav, c: string) {
   if (c === 'Home' || c === 'Compatibility') return nav.navigate('Tabs', { screen: c });
   if (c === 'Theme') return nav.navigate('Theme', { kind: 'love' });
+  if (c === 'ThemeMoney') return nav.navigate('Theme', { kind: 'money' });
+  if (c === 'ThemeCareer') return nav.navigate('Theme', { kind: 'career' });
   return nav.navigate(c);
 }

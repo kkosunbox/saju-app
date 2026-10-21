@@ -115,9 +115,9 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
 export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
   return {
     kind: '미래 배우자 리포트', seal: '緣', eyebrow: `${u.nickname}님의 미래 배우자는`,
-    headline: R.headline, sub: `${R.mbti} · ${R.animal}띠 · ${R.ageGap}`,
+    headline: R.headline, sub: `${R.ageGap} 상대`,
     big: { value: String(R.bestYear), unit: '년', label: '인연이 가장 강한 해' },
-    stats: [['MBTI', R.mbti], ['띠', `${R.animal}띠`], ['나이', R.ageGap.startsWith('동갑') ? '동갑·연하' : R.ageGap.includes('연상') ? '연상' : '상관없음']],
+    stats: [['MBTI', R.mbti], ['띠', `${R.animal}띠`], ['올해 인연 지수', String(R.thisYear)]],
     teaser: '그 사람을 처음 만나는 곳',
     hook: '내 미래 배우자는 어떤 사람일까?',
     text: `내 미래 배우자는 '${R.headline}'래. ${R.bestYear}년에 인연이 제일 강하다는데, 너는?`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
@@ -126,7 +126,7 @@ export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
 
 export function crushSpec(u: User, r: CompatibilityResult, R: CrushReport): ShareSpec {
   return {
-    kind: '그 사람의 속마음', seal: '心', eyebrow: `${r.target.nickname}님이 나를 생각하는 마음`,
+    kind: '그 사람의 속마음', seal: '心', eyebrow: '그 사람이 나를 생각하는 마음',
     headline: R.oneLine, big: { value: String(R.temp), unit: '℃', label: '마음 온도' },
     stats: [['연인 가능성', `${R.chance}%`], ['나는 그에게', R.tg], ['연락하기 좋은 날', md(R.contact[0].iso)]],
     teaser: '마음을 표현하기 가장 좋은 날',
@@ -209,7 +209,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
       stats: [['재물 강한 달', M.ms.map(x => x.m).sort((a, b) => a - b).join('·') + '월'], ['재물 기운', `${M.cnt}개`], ['강점', M.t.str.split(' ')[0]]],
       teaser: '재물이 크게 모이는 10년',
       hook: '나는 어떤 부자가 될 사람일까?',
-      text: `내 돈 성향은 '${M.t.name}'래. 너는 어떤 타입이야?`, file: 'woonpick-money', route: 'Theme', short: M.t.name,
+      text: `내 돈 성향은 '${M.t.name}'래. 너는 어떤 타입이야?`, file: 'woonpick-money', route: 'ThemeMoney', short: M.t.name,
     };
   }
   const C = data as ThemeCareer; const up = C.ups[0];
@@ -219,7 +219,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
     stats: [['커리어 상승기', up ? `${up.age}세~` : '—'], ['일하는 방식', C.style[1].split(' ')[0]], ['추천', C.jobs[2] ?? '—']],
     teaser: '이직·창업하기 좋은 타이밍',
     hook: '나에게 꼭 맞는 일은 뭘까?',
-    text: `나한테 맞는 일은 ${C.jobs[0]}·${C.jobs[1]}래. 너는 뭐 나와?`, file: 'woonpick-career', route: 'Theme', short: `${C.jobs[0]} · ${C.jobs[1]}`,
+    text: `나한테 맞는 일은 ${C.jobs[0]}·${C.jobs[1]}래. 너는 뭐 나와?`, file: 'woonpick-career', route: 'ThemeCareer', short: `${C.jobs[0]} · ${C.jobs[1]}`,
   };
 }
 
