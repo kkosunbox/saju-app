@@ -24,6 +24,10 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
   const [holding, setHolding] = useState(false);
+  const [hintO] = useState(() => new Animated.Value(sealed ? 1 : 0));
+  useEffect(() => {
+    Animated.timing(hintO, { toValue: sealed ? 1 : 0, duration: reduced ? 0 : 240, useNativeDriver: true }).start();
+  }, [sealed, reduced, hintO]);
   const done = useRef(false);
   const ticks = useRef(0);
 
@@ -89,7 +93,7 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
   );
 
   return (
-    <Animated.View style={[s.wrap, !sealed && { marginTop: -2, marginBottom: -8 }, { transform: [{ translateY: y }] }]}>
+    <Animated.View style={[s.wrap, { transform: [{ translateY: y }] }]}>
       {sealed ? (
         <Pressable
           onPressIn={pressIn}
@@ -116,11 +120,10 @@ export default function DrawMascot({ sealed, onDrawn }: { sealed: boolean; onDra
       ) : (
         <View style={s.hit} pointerEvents="none">{body}</View>
       )}
-      {sealed ? (
-        <View style={s.hint} pointerEvents="none">
-          <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
-        </View>
-      ) : null}
+      {/* 뽑은 뒤에도 안내 자리는 남겨 둔다 — 사라지며 아래 링이 끌려 올라오지 않게 */}
+      <Animated.View style={[s.hint, { opacity: hintO }]} pointerEvents="none" importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!sealed}>
+        <Text style={s.hintText}>{reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+      </Animated.View>
     </Animated.View>
   );
 }
