@@ -1,6 +1,6 @@
 # saju-app (운Pick)
 
-> 오늘의 운, 하나만 Pick! — 사주 · 태국 점성술 · MBTI · 혈액형을 겹쳐 읽는 운세 앱
+> 오늘의 운, 하나만 Pick! — 사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 운세 앱
 
 Expo(SDK 57) + Expo Router로 **iOS · Android · Web을 하나의 코드베이스**로 운영한다.
 화면은 `onulna-prototype`(v0.6, 운Pick)을 옮긴 것이고, 서버는 [`saju-be-monorepo`](../saju-be-monorepo).

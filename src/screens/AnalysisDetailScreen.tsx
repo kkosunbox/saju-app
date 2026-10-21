@@ -8,7 +8,7 @@ import { AlmanacHero, Figure, Ledger, Quote } from '../components/Almanac';
 import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, colors } from '../theme/colors';
-import { fonts, radius } from '../theme/typography';
+import { fonts, radius, sansW } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
 import { LockCard } from '../components/premium/Kit';
 import { ITEMS } from '../services/premium/catalog';
@@ -16,13 +16,13 @@ import { BRANCHES, ELEMENT_INFO, Element, STEMS } from '../data/sajuData';
 import { THAI_DAYS, ThaiDay, WEEKDAY_TO_THAI } from '../data/thaiData';
 import { Pillar } from '../types/content';
 import { AXES, MBTI_INFO } from '../data/mbtiData';
-import { BloodType, User } from '../types';
+import { AstroSystemReading, BloodType, User } from '../types';
 import { weekdayOf } from '../utils/date';
 
-const KICKER = { saju: '四柱 · 사주', thai: '七曜 · 태국 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
+const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
 const NOTE: Record<string, string> = {
   saju: '한국천문연구원 음양력 자료와 절기 시각으로 세운 만세력이에요. 태어난 시각은 서울 기준으로 보정해요.',
-  thai: '태어난 요일의 수호 행성과 오늘 행성의 관계로 풀어요.',
+  thai: '서양은 태양 별자리와 오늘의 달, 인도는 달 라시(시데리얼)에서 본 오늘 달의 자리, 태국은 태어난 요일의 수호 행성으로 풀어요.',
   mbti: 'MBTI는 예측이 아닌 성향 분석이에요.',
   blood: '혈액형 성격론은 재미를 위한 콘텐츠예요.',
 };
@@ -43,12 +43,17 @@ export default function AnalysisDetailScreen() {
       </AlmanacHero>
 
       {a.source === 'saju' && user.natal ? <SajuFigure u={user} day={fortune.dayPillar ?? null} tone={t.color} /> : null}
-      {a.source === 'thai' && user.natal ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'thai' && a.systems ? <AstroSystems systems={a.systems} u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'thai' && !a.systems && user.natal ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
       {a.source === 'mbti' ? <MbtiFigure u={user} focus={a.details[2]?.value ?? ''} tone={t.color} /> : null}
       {a.source === 'blood' ? <BloodFigure b={user.bloodType} tone={t.color} /> : null}
 
-      <SectionHeader title="분석 내용" />
-      <Ledger rows={a.details.map(d => [d.label, d.value] as [string, string])} tone={t.color} />
+      {a.systems ? null : (
+        <>
+          <SectionHeader title="분석 내용" />
+          <Ledger rows={a.details.map(d => [d.label, d.value] as [string, string])} tone={t.color} />
+        </>
+      )}
 
       {a.source === 'saju' ? (
         <LockCard mt={12} title="상세 사주 해석 보기" desc="원국표 · 오행 분포 · 나의 본성 · 올해와 이달의 흐름" item={ITEMS.sajuDeep()} onPress={() => nav.navigate('SajuDeep')} />
@@ -96,29 +101,58 @@ function SajuFigure({ u, day, tone }: { u: User; day: Pillar | null; tone: strin
   );
 }
 
+/* ---------- 점성술: 서양 · 인도 · 태국 ---------- */
+const ASTRO_CAPTION = { western: '태양 별자리 × 오늘의 달', vedic: '달 라시 × 오늘의 달', thai: '태어난 요일 × 오늘의 행성' } as const;
+function AstroSystems({ systems, u, today, tone }: { systems: AstroSystemReading[]; u: User; today: string; tone: string }) {
+  return (
+    <>
+      <SectionHeader title="세 갈래 점성술" />
+      {systems.map(x => (
+        <Figure key={x.system} title={x.title} caption={ASTRO_CAPTION[x.system]}>
+          <Text style={s.astroHead}>{x.headline}</Text>
+          <Text style={s.astroDesc}>{x.description}</Text>
+          <View style={s.astroTags}>
+            {x.tags.map(tag => <Text key={tag} style={[s.astroTag, { color: tone }]}>#{KEYWORDS[tag].label}</Text>)}
+          </View>
+          {x.system === 'thai' && u.natal ? <View style={{ marginTop: 16 }}><ThaiWeek u={u} today={today} tone={tone} /></View> : null}
+          <View style={{ marginTop: 14 }}>
+            <Ledger rows={x.details.map(d => [d.label, d.value] as [string, string])} tone={tone} />
+          </View>
+        </Figure>
+      ))}
+    </>
+  );
+}
+
 /* ---------- 태국 점성술: 일주일 띠 ---------- */
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 function ThaiFigure({ u, today, tone }: { u: User; today: string; tone: string }) {
   const mine = u.natal!.thaiBirthDay;
+  return (
+    <Figure title="일곱 요일의 행성" caption="● 태어난 요일 · ▬ 오늘">
+      <ThaiWeek u={u} today={today} tone={tone} />
+      <Text style={[s.figNote, { borderLeftColor: tone }]}>{THAI_DAYS[mine].label}생 · 수호 행성 {THAI_DAYS[mine].planetKo} · 행운색 {THAI_DAYS[mine].color}</Text>
+    </Figure>
+  );
+}
+function ThaiWeek({ u, today, tone }: { u: User; today: string; tone: string }) {
+  const mine = u.natal!.thaiBirthDay;
   const mineIdx = WEEKDAY_TO_THAI.indexOf(mine === 'wedNight' ? 'wedDay' : mine);
   const todayIdx = weekdayOf(today);
   return (
-    <Figure title="일곱 요일의 행성" caption="● 태어난 요일 · ▬ 오늘">
-      <View style={s.week}>
-        {WEEKDAY_TO_THAI.map((k: ThaiDay, i) => {
-          const d = THAI_DAYS[k]; const isMine = i === mineIdx; const isToday = i === todayIdx;
-          return (
-            <View key={k} style={s.day}>
-              <View style={[s.dot, { backgroundColor: isMine ? d.hex : 'transparent', borderColor: d.hex }, isToday && s.todayRing]} />
-              <Text style={[s.dayL, (isMine || isToday) && { color: colors.ink, fontWeight: '800' }]}>{WEEK[i]}</Text>
-              <Text style={s.planet}>{d.planetKo}</Text>
-              {isToday ? <View style={[s.todayMark, { backgroundColor: tone }]} /> : <View style={s.todayMark} />}
-            </View>
-          );
-        })}
-      </View>
-      <Text style={[s.figNote, { borderLeftColor: tone }]}>{THAI_DAYS[mine].label}생 · 수호 행성 {THAI_DAYS[mine].planetKo} · 행운색 {THAI_DAYS[mine].color}</Text>
-    </Figure>
+    <View style={s.week}>
+      {WEEKDAY_TO_THAI.map((k: ThaiDay, i) => {
+        const d = THAI_DAYS[k]; const isMine = i === mineIdx; const isToday = i === todayIdx;
+        return (
+          <View key={k} style={s.day}>
+            <View style={[s.dot, { backgroundColor: isMine ? d.hex : 'transparent', borderColor: d.hex }, isToday && s.todayRing]} />
+            <Text style={[s.dayL, (isMine || isToday) && { color: colors.ink, fontWeight: '800' }]}>{WEEK[i]}</Text>
+            <Text style={s.planet}>{d.planetKo}</Text>
+            {isToday ? <View style={[s.todayMark, { backgroundColor: tone }]} /> : <View style={s.todayMark} />}
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -166,6 +200,10 @@ function BloodFigure({ b, tone }: { b: BloodType; tone: string }) {
 }
 
 const s = StyleSheet.create({
+  astroHead: { ...sansW('700'), fontSize: 16, lineHeight: 23, color: colors.ink, letterSpacing: -0.3 },
+  astroDesc: { fontSize: 14, lineHeight: 21, color: colors.inkSub, marginTop: 6 },
+  astroTags: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  astroTag: { fontSize: 12, fontWeight: '700' },
   note: { fontSize: 12, color: colors.inkMute, textAlign: 'center', marginTop: 16 },
   pillars: { flexDirection: 'row', gap: 8 },
   pillar: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },

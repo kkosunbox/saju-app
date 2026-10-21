@@ -284,7 +284,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </Card>
       ) : writing ? <Card style={{ marginTop: 12 }}><PartPending writing /></Card> : null}
 
-      <SubHead title="09 · 네 관점 교차 분석" caption="사주 · 태국 점성술 · MBTI · 혈액형이 같은 말을 할 때" />
+      <SubHead title="09 · 네 관점 교차 분석" caption="사주 · 점성술 · MBTI · 혈액형이 같은 말을 할 때" />
       <Card style={{ gap: 18 }}>
         {data.axes.map(a => {
           const { pos, neg, verdict } = axisVerdict(a);

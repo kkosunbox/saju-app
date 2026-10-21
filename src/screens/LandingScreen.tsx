@@ -15,7 +15,7 @@ import { fonts, radius, txt } from '../theme/typography';
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
 const SOURCE_LINE: Record<(typeof SOURCES)[number], string> = {
   saju: '태어난 날의 네 기둥과 오늘의 일진이 만나는 자리',
-  thai: '태어난 요일의 수호 행성이 오늘 건네는 힌트',
+  thai: '서양 · 인도 · 태국, 세 갈래 별점이 오늘 건네는 힌트',
   mbti: '지금의 성향이 오늘의 흐름을 어떻게 받는지',
   blood: '기질 한마디로 보는 오늘의 컨디션',
 };

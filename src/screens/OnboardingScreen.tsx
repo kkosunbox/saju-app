@@ -11,7 +11,7 @@ import { COPY } from '../content/copy';
 
 const PAGES = [
   { title: '오늘, 어떤 운을\nPICK하시겠어요?', body: COPY.pickMe, art: 'sheet' },
-  { title: '네 가지 관점으로\n나를 읽어요', body: '사주 · 태국 점성술 · MBTI · 혈액형을 겹쳐 읽어요.', art: 'four' },
+  { title: '네 가지 관점으로\n나를 읽어요', body: '사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽어요.', art: 'four' },
   { title: '뽑은 결과는\n친구와 나눠요', body: '친구 결과와 나란히 비교하고, 스토리에도 올려 보세요.', art: 'story' },
 ] as const;
 

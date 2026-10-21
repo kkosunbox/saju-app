@@ -88,7 +88,7 @@ export const categoryTheme: Record<CategoryKey, { label: string; short: string; 
 export type SourceKey = 'saju' | 'thai' | 'mbti' | 'blood';
 export const analysisTheme: Record<SourceKey, { label: string; sub: string; emoji: string; color: string; bg: string }> = {
   saju: { label: '사주', sub: '타고난 기운', emoji: '命', color: colors.saju, bg: colors.sajuBg },
-  thai: { label: '태국 점성술', sub: '요일의 행성', emoji: '星', color: colors.thai, bg: colors.thaiBg },
+  thai: { label: '점성술', sub: '별과 행성', emoji: '星', color: colors.thai, bg: colors.thaiBg },
   mbti: { label: 'MBTI', sub: '지금의 성향', emoji: '性', color: colors.mbti, bg: colors.mbtiBg },
   blood: { label: '혈액형', sub: '기질 한마디', emoji: '血', color: colors.blood, bg: colors.bloodBg },
 };

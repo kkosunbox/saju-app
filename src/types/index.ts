@@ -49,6 +49,18 @@ export interface AnalysisResult {
   description: string; // 2~3문장 해석
   tags: KeywordTag[]; // 오늘 강하게 작용하는 키워드
   scoreBias: { love: number; money: number; work: number; relationship: number }; // -10 ~ +10
+  /** 점성술만: 서양 · 인도 · 태국 각각의 풀이 (예전에 저장된 운세에는 없다) */
+  systems?: AstroSystemReading[];
+}
+
+export interface AstroSystemReading {
+  system: 'western' | 'vedic' | 'thai';
+  title: string;
+  headline: string;
+  details: { label: string; value: string }[];
+  description: string;
+  tags: KeywordTag[];
+  scoreBias: AnalysisResult['scoreBias'];
 }
 
 /** AI(또는 규칙 엔진)가 반드시 반환해야 하는 JSON 구조 */

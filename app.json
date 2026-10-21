@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F3EEE4",
-    "description": "오늘의 운, 하나만 Pick! 사주 · 태국 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세.",
+    "description": "오늘의 운, 하나만 Pick! 사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세.",
     "primaryColor": "#22293F",
     "ios": {
       "supportsTablet": false,
