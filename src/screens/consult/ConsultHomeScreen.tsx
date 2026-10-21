@@ -117,7 +117,7 @@ export default function ConsultHomeScreen() {
           ) : null}
 
           {/* 눌러서 입력창에 채운다 — 두 줄이 서로 반대로 흘러간다 */}
-          <Text style={s.exampleK}>이런 고민도 괜찮아요</Text>
+          <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
           <View style={{ gap: 8 }}>
             <WorryMarquee items={EXAMPLES.slice(0, 3)} onPick={pickExample} />
             <WorryMarquee items={EXAMPLES.slice(3)} onPick={pickExample} reverse />
