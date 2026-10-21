@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Amount } from '../../components/premium/Kit';
 import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import { usePremium, refreshPoints } from '../../context/PremiumContext';
@@ -74,12 +75,12 @@ export default function ChargeScreen() {
       pointsApi.confirmToss({ paymentKey: q.paymentKey ?? '', orderId: q.orderId ?? '', amount: Number(q.amount) })
         .then(async () => {
           await refreshPoints();
-          toast('포인트가 충전됐어요');
+          toast('알이 충전됐어요');
           router.replace('/wallet');
         })
         .catch(e => fail(e instanceof ApiError && e.code === 'PAYMENT_FAILED'
           ? '결제가 승인되지 않았어요. 돈은 빠져나가지 않았어요.'
-          : '결제를 확인하지 못했어요. 잠시 후 내 포인트에서 다시 확인해 주세요.'));
+          : '결제를 확인하지 못했어요. 잠시 후 내 알 화면에서 다시 확인해 주세요.'));
       return;
     }
 
@@ -118,13 +119,13 @@ export default function ChargeScreen() {
 
   const footer = phase === 'ready' || phase === 'paying'
     ? <PrimaryButton label={phase === 'paying' ? '결제창 여는 중…' : `${order!.amount.toLocaleString('ko-KR')}원 결제하기`} onPress={pay} disabled={phase === 'paying'} />
-    : phase === 'error' ? <PrimaryButton label="내 포인트로" onPress={() => router.replace('/wallet')} /> : undefined;
+    : phase === 'error' ? <PrimaryButton label="내 알 보러 가기" onPress={() => router.replace('/wallet')} /> : undefined;
 
   return (
-    <Screen title="포인트 충전" back footer={footer}>
+    <Screen title="알 충전" back footer={footer}>
       {pack && phase !== 'confirming' && phase !== 'error' ? (
         <View style={s.sum}>
-          <Text style={txt.h2}>{fmtP(pack[1] + pack[2])}</Text>
+          <Amount value={pack[1] + pack[2]} size={22} style={txt.h2} />
           <Text style={txt.small}>{pack[2] ? `기본 ${fmtP(pack[1])} + 보너스 ${fmtP(pack[2])} · ` : ''}{pack[0].toLocaleString('ko-KR')}원</Text>
         </View>
       ) : null}

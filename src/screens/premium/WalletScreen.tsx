@@ -4,9 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
-import { Coin, Hero, Pill, Seal, SubHead, heroTxt } from '../../components/premium/Kit';
+import { Amount, Coin, Hero, Pill, Seal, SubHead, heroTxt } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
-import { PACKS, PRICE_TABLE, fmtP } from '../../services/premium/catalog';
+import { PACKS, PRICE_TABLE, fmtN, fmtP } from '../../services/premium/catalog';
 import { PointTransaction, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { colors } from '../../theme/colors';
@@ -21,15 +21,15 @@ export default function WalletScreen() {
   const { points, expiringSoon, attendedToday: att, ownedCount, attend, openCharge } = usePremium();
   const { data: history = [] } = useQuery<PointTransaction[]>({ queryKey: [...pointsKeys.transactions, account?.id], queryFn: () => pointsApi.transactions(20), enabled: !!account });
   return (
-    <Screen title="내 포인트" back>
+    <Screen title="내 알" back>
       <Hero style={{ marginTop: 4, padding: 22 }}>
-        <Text style={heroTxt.eyebrow}>보유 포인트</Text>
+        <Text style={heroTxt.eyebrow}>보유 알</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
           <Coin size={30} />
           <Text style={{ fontSize: 40, fontWeight: '800', letterSpacing: -1, color: colors.white }}>{points.toLocaleString('ko-KR')}</Text>
         </View>
         <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>1,000원 = 100알 · 보유 콘텐츠 {ownedCount}개</Text>
-        {expiringSoon > 0 ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>30일 안에 사라지는 포인트 {fmtP(expiringSoon)}</Text> : null}
+        {expiringSoon > 0 ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>30일 안에 사라지는 알 {fmtP(expiringSoon)}</Text> : null}
       </Hero>
 
       <Card onPress={att ? undefined : attend} style={[s.attend, att && { opacity: 0.6 }]} accessibilityLabel="출석 체크">
@@ -47,7 +47,7 @@ export default function WalletScreen() {
           <PressableScale key={w} onPress={() => openCharge(i)} style={[s.pack, i === 3 && { borderColor: colors.purpleSoft }]} accessibilityLabel={`${fmtP(p + b)} ${w}원`}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Coin size={20} />
-              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{fmtP(p)}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{fmtN(p)}</Text>
               {b ? <View style={s.bonus}><Text style={s.bonusText}>+{b} 보너스</Text></View> : null}
             </View>
             <Text style={s.won}>{w.toLocaleString('ko-KR')}원</Text>
@@ -74,11 +74,11 @@ export default function WalletScreen() {
               <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>{h.label}</Text>
               <Text style={txt.caption}>{kstDate(h.createdAt).replace(/-/g, '.')} · {TYPE_LABEL[h.type]}</Text>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: h.amount > 0 ? colors.purple : colors.inkMute }}>{h.amount > 0 ? '+' : ''}{h.amount}알</Text>
+            <Amount value={Math.abs(h.amount)} sign={h.amount > 0 ? '+' : '−'} size={15} style={{ fontSize: 15, fontWeight: '700', color: h.amount > 0 ? colors.purple : colors.inkMute }} />
           </View>
         )) : <Text style={[txt.body, { paddingVertical: 14 }]}>아직 이용 내역이 없어요.</Text>}
       </Card>
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>충전한 포인트(보너스 포함)는 5년, 출석·공유 등으로 받은 포인트는 1년 동안 쓸 수 있어요. 받은 포인트부터 먼저 쓰여요. 충전 후 7일 안에 하나도 쓰지 않았다면 환불을 요청할 수 있어요.</Text>
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>충전한 알(보너스 포함)은 5년, 출석·공유 등으로 받은 알은 1년 동안 쓸 수 있어요. 받은 알부터 먼저 쓰여요. 충전 후 7일 안에 하나도 쓰지 않았다면 환불을 요청할 수 있어요.</Text>
     </Screen>
   );
 }

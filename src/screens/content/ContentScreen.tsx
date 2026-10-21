@@ -10,10 +10,10 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
 import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services/content/registry';
-import { Coin, PriceTag, SubHead } from '../../components/premium/Kit';
+import { Amount, Coin, PriceTag, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
-import { BUNDLE, ITEMS, bundleFor, fmtP } from '../../services/premium/catalog';
+import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP, ro } from '../../services/premium/catalog';
 import { shareInvite } from '../../services/share/linkShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors, isDark } from '../../theme/colors';
@@ -66,9 +66,9 @@ export default function ContentScreen() {
   return (
     <Screen largeTitle="콘텐츠" sky>
       <Mascot name="coin" size={78} style={s.coinArt} />
-      <PressableScale onPress={() => nav.navigate('Wallet')} style={[s.points, shadow.hero]} scaleTo={0.98} accessibilityLabel={`내 포인트 ${fmtP(points)} · 지갑 열기`}>
+      <PressableScale onPress={() => nav.navigate('Wallet')} style={[s.points, shadow.hero]} scaleTo={0.98} accessibilityLabel={`내 알 ${fmtP(points)} · 알 주머니 열기`}>
         <Coin size={32} />
-        <Text style={s.pointsV}>{fmtP(points)}</Text>
+        <Text style={s.pointsV}>{fmtN(points)}</Text>
         <Text style={s.pointsK} numberOfLines={1}>·  출석하고 매일 10알 받기</Text>
       </PressableScale>
 
@@ -100,12 +100,12 @@ export default function ContentScreen() {
       <View style={{ gap: 16 }}>
         <PromoCard
           tone="gold" isNew title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
-          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · 리포트 열기 →`}
+          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost} · 리포트 열기 →`}
           onPress={() => nav.navigate('Spouse')}
         />
         <PromoCard
           tone="lime" isNew title="그 사람의 속마음" desc="궁합을 본 뒤 상대의 마음 온도와 연락하기 좋은 날까지"
-          coin cta={`${ITEMS.crush(0, '').cost}알 · 궁합 보러 가기 →`}
+          coin cta={`${ITEMS.crush(0, '').cost} · 궁합 보러 가기 →`}
           onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })}
         />
       </View>
@@ -121,8 +121,8 @@ export default function ContentScreen() {
           <Text style={s.bundleD}>{bundle.desc}</Text>
           {bOwned ? null : (
             <>
-              <Text style={s.bundleOrig}>{fmtP(bundle.orig!)}</Text>
-              <PrimaryButton label={`${fmtP(bundle.cost)}로 전부 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={{ marginTop: 12 }} small />
+              <Amount value={bundle.orig!} size={13} style={s.bundleOrig} />
+              <PrimaryButton label={`${fmtN(bundle.cost)}${ro(bundle.cost)} 전부 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={{ marginTop: 12 }} small />
             </>
           )}
         </GradientBorder>
@@ -151,7 +151,7 @@ export default function ContentScreen() {
           <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
             <View style={s.freeHead}>
               <Text style={s.soonH}>{c.hanja}</Text>
-              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : <Text style={[s.soonTier, c.tier === 'free' && { color: colors.success }]}>{c.tier === 'free' ? '무료' : `${c.cost}알`}</Text>}
+              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <Text style={[s.soonTier, { color: colors.success }]}>무료</Text> : <Amount value={c.cost ?? 0} size={12} style={s.soonTier} />}
             </View>
             <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink, marginTop: 8 }} numberOfLines={1}>{c.title}</Text>
             <Text style={[txt.caption, { marginTop: 2 }]} numberOfLines={1}>{c.hook}</Text>

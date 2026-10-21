@@ -12,7 +12,7 @@ export const PROMO_TONE = { gold: '#ECDB7B', lime: '#DFEEA5', mint: '#9FE3D2', s
 interface Props {
   title: string;
   desc: string;
-  /** 아래 알약 버튼 문구 (예: "100알 · 상담 시작하기 →") */
+  /** 아래 알약 버튼 문구 (예: "100 · 상담 시작하기 →" — coin이면 앞에 마스코트 아이콘) */
   cta: string;
   /** 알약 앞에 동전을 붙인다 (유료) */
   coin?: boolean;

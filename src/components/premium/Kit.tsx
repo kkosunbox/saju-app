@@ -10,23 +10,18 @@ import Icon from '../Icon';
 import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
 import { usePremium } from '../../context/PremiumContext';
-import { Item, fmtP } from '../../services/premium/catalog';
+import { Item, fmtP, ro } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
 import { fonts, radius, SCREEN_PX, shadow, txt } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
 import Mascot from '../Mascot';
+import { Coin } from '../Amount';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
 
-/* ---------- 포인트 표시 ---------- */
-export function Coin({ size = 14 }: { size?: number }) {
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.moon, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontFamily: fonts.serif, fontSize: size * 0.7, lineHeight: size * 0.86, fontWeight: '700', color: colors.white }}>P</Text>
-    </View>
-  );
-}
+/* ---------- 알(재화) 표시 ---------- */
+export { Amount, Coin } from '../Amount';
 
 export function Pill({ children, tone = 'default', style }: { children: React.ReactNode; tone?: 'default' | 'ok' | 'care'; style?: StyleProp<ViewStyle> }) {
   const bg = tone === 'ok' ? colors.okBg : tone === 'care' ? colors.careBg : colors.lavenderSoft;
@@ -246,7 +241,7 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
         <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{item.desc}</Text>
-        <PrimaryButton label={`${item.cost}알로 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
+        <PrimaryButton label={`${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>보유 {fmtP(points)} · {item.scope}</Text>
       </View>
     </View>

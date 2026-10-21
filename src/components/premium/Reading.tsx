@@ -32,7 +32,7 @@ export function ReadingBanner({ reading, onRetry }: { reading: ReadingView<unkno
     return (
       <Card style={s.card}>
         <Text style={txt.h3}>{'풀이 일부를 쓰지 못했어요'}</Text>
-        <Text style={[txt.small, { marginTop: 4 }]}>{'다시 쓰기를 누르면 남은 부분을 마저 써요. 포인트는 더 들지 않아요.'}</Text>
+        <Text style={[txt.small, { marginTop: 4 }]}>{'다시 쓰기를 누르면 남은 부분을 마저 써요. 알은 더 들지 않아요.'}</Text>
         <PrimaryButton label="다시 쓰기" variant="soft" onPress={onRetry} style={{ marginTop: 12, alignSelf: 'stretch' }} />
       </Card>
     );

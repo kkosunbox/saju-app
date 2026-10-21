@@ -149,7 +149,7 @@ export default function FortuneScreen() {
           return (
             <PromoCard
               key={r.key} tone={TONES[i % TONES.length]} title={r.title} desc={r.desc}
-              owned={have} coin={!have} cta={have ? '다시보기 →' : `${r.item.cost}알 · ${verb} →`}
+              owned={have} coin={!have} cta={have ? '다시보기 →' : `${r.item.cost} · ${verb} →`}
               onPress={r.go}
             />
           );

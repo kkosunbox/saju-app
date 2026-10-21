@@ -16,7 +16,7 @@ const AGREES: { k: AgreeKey; label: string; required: boolean }[] = [
   { k: 'marketing', label: '[선택] 아침 운세·이벤트 알림 받기', required: false },
 ];
 const DOC: Partial<Record<AgreeKey, string>> = {
-  terms: '운세 콘텐츠는 재미와 참고를 위한 것이며 중요한 결정의 근거가 될 수 없어요. 포인트는 콘텐츠 열람에만 쓸 수 있어요.',
+  terms: '운세 콘텐츠는 재미와 참고를 위한 것이며 중요한 결정의 근거가 될 수 없어요. 알은 콘텐츠 열람에만 쓸 수 있어요.',
   privacy: '항목: 이메일, 닉네임, 생년월일·출생시간, 성별, MBTI, 혈액형, 고민 상담 글 · 목적: 맞춤 운세·상담 제공 · 보관: 회원 탈퇴 시까지 (고민 상담은 1년) · 고민 상담 글은 답변 작성을 위해 Anthropic(미국)에 전달돼요',
 };
 

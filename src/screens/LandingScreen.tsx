@@ -77,7 +77,7 @@ export default function LandingScreen() {
 
         <Text style={s.h}>{COPY.deeper}</Text>
         <View style={s.chips}>{PAID.map(p => <View key={p} style={s.chip}><Text style={s.chipText}>{p}</Text></View>)}</View>
-        <Text style={[txt.small, { marginTop: 10 }]}>포인트로 원하는 것만 열어 보세요. 1,000원 = 100알, 가입하면 100알을 드려요.</Text>
+        <Text style={[txt.small, { marginTop: 10 }]}>알로 원하는 것만 열어 보세요. 1,000원 = 100알, 가입하면 100알을 드려요.</Text>
 
         <Text style={s.h}>뽑은 결과는 친구와 나눠요</Text>
         <Illustration kind="story" />

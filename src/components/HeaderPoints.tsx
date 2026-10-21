@@ -13,7 +13,7 @@ export function PointPill() {
   const nav = useNavigation();
   const { points } = usePremium();
   return (
-    <PressableScale onPress={() => nav.navigate('Wallet')} style={s.pill} scaleTo={0.94} accessibilityLabel={`내 포인트 ${points}알`}>
+    <PressableScale onPress={() => nav.navigate('Wallet')} style={s.pill} scaleTo={0.94} accessibilityLabel={`내 알 ${points}개`}>
       <Coin size={16} />
       <Text style={s.text}>{points.toLocaleString('ko-KR')}</Text>
     </PressableScale>

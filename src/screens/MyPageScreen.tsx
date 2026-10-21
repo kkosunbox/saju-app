@@ -18,7 +18,7 @@ import { useApp } from '../context/AppContext';
 import { inputOf } from '../services/server/profileApi';
 import { usePremium } from '../context/PremiumContext';
 import { Coin } from '../components/premium/Kit';
-import { fmtP } from '../services/premium/catalog';
+import { fmtN } from '../services/premium/catalog';
 import { storage, NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
@@ -148,13 +148,13 @@ export default function MyPageScreen() {
         </Card>
       )}
 
-      <SectionHeader title="포인트" />
+      <SectionHeader title="알" />
       <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
         <View style={[s.row, { paddingVertical: 12 }]}>
           <View style={[s.rowIcon, { width: 42, height: 42, borderRadius: 21 }]}><Coin size={22} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={txt.caption}>보유 포인트</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: colors.purple }}>{fmtP(points)}</Text>
+            <Text style={txt.caption}>보유 알</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: colors.purple }}>{fmtN(points)}</Text>
           </View>
           <PressableScale onPress={() => nav.navigate('Wallet')} style={s.charge} scaleTo={0.95}>
             <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>충전</Text>
@@ -180,7 +180,7 @@ export default function MyPageScreen() {
           <PressableScale onPress={() => nav.navigate('Login')} style={s.row} scaleTo={0.98} accessibilityLabel="로그인하기">
             <View style={{ flex: 1 }}>
               <Text style={[s.rowLabel, { fontWeight: '600' }]}>로그인하기</Text>
-              <Text style={[txt.small, { marginTop: 2 }]}>로그인하면 포인트로 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
+              <Text style={[txt.small, { marginTop: 2 }]}>로그인하면 알로 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
             </View>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />
           </PressableScale>
@@ -203,7 +203,7 @@ export default function MyPageScreen() {
         <PressableScale
           hitSlop={8}
           onPress={() => {
-            const msg = '프로필 · 운세 기록 · 포인트가 모두 지워지고 되돌릴 수 없어요.';
+            const msg = '프로필 · 운세 기록 · 알이 모두 지워지고 되돌릴 수 없어요.';
             if (Platform.OS !== 'web') {
               Alert.alert('회원 탈퇴할까요?', msg, [{ text: '취소', style: 'cancel' }, { text: '탈퇴하기', style: 'destructive', onPress: () => deleteAccount() }]);
               return;
@@ -215,7 +215,7 @@ export default function MyPageScreen() {
           <Text style={[s.accountLink, deleteArm && { color: colors.danger, fontWeight: '700' }]}>{deleteArm ? '한 번 더 누르면 탈퇴' : '회원 탈퇴'}</Text>
         </PressableScale>
       </View> : null}
-      {deleteArm ? <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>프로필 · 운세 기록 · 포인트가 모두 지워지고 되돌릴 수 없어요.</Text> : null}
+      {deleteArm ? <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>프로필 · 운세 기록 · 알이 모두 지워지고 되돌릴 수 없어요.</Text> : null}
 
       <Disclaimer />
       <BottomSheet visible={mbtiSheet} onClose={() => setMbtiSheet(false)}>

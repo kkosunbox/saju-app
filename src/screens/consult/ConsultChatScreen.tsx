@@ -19,6 +19,7 @@ import { useApp } from '../../context/AppContext';
 import { refreshPoints, usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
+import { ro } from '../../services/premium/catalog';
 import { ConsultAnswer, ConsultFacts, ConsultView, HelpLine, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
 import { consultSpec } from '../../services/share/shareSpecs';
 import { queryClient } from '../../api/query';
@@ -37,9 +38,9 @@ const SEND_ERROR: Record<string, string> = {
 };
 
 const ASK_ERROR: Record<string, string> = {
-  CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 포인트는 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
+  CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 알은 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
   DUPLICATE_REQUEST: '이미 답을 쓰고 있어요. 잠시만 기다려 주세요',
-  INSUFFICIENT_POINTS: '상담에 쓸 포인트가 모자라요. 충전한 뒤 다시 시도해 주세요',
+  INSUFFICIENT_POINTS: '상담에 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
 };
 
 /** 상담 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
@@ -182,7 +183,7 @@ function Chat({ id }: { id: number }) {
         toast(`${cost}알이 필요해요. 충전 후 다시 시도해 주세요`);
         goWallet?.();
       } else {
-        toast('열지 못했어요. 포인트는 쓰이지 않았어요');
+        toast('열지 못했어요. 알은 쓰이지 않았어요');
       }
     } finally {
       setUnlocking(false);
@@ -297,7 +298,7 @@ function Chat({ id }: { id: number }) {
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 전부 열까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>사주로 본 나 · 3개월 흐름 · 해 볼 것과 피할 것 · 행동하기 좋은 날{'\n'}그리고 {hours}시간 동안 {limit}번 이어서 물어볼 수 있어요.</Text>
-        <PrimaryButton label={`${cost}알로 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
+        <PrimaryButton label={`${cost}${ro(cost)} 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setUnlockOpen(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
       <BottomSheet visible={del} onClose={() => setDel(false)}>
@@ -327,7 +328,7 @@ function LockedRest({ cost, hours, limit, onUnlock }: { cost: number; hours: num
           </View>
         ))}
       </View>
-      <PrimaryButton small label={`${cost}알로 전부 열기`} icon={<Coin size={16} />} onPress={onUnlock} style={{ marginTop: 16 }} />
+      <PrimaryButton small label={`${cost}${ro(cost)} 전부 열기`} icon={<Coin size={16} />} onPress={onUnlock} style={{ marginTop: 16 }} />
     </GradientBorder>
   );
 }

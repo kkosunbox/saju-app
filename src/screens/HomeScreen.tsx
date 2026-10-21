@@ -298,7 +298,7 @@ export default function HomeScreen() {
               tone="lime"
               title="오늘 마음에 걸리는 일 있나요?"
               desc="털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요"
-              cta={consultFreeLeft > 0 ? `오늘 무료 상담 ${consultFreeLeft}번 남음 →` : `${consultCost}알 · 상담 시작하기 →`}
+              cta={consultFreeLeft > 0 ? `오늘 무료 상담 ${consultFreeLeft}번 남음 →` : `${consultCost} · 상담 시작하기 →`}
               coin={consultFreeLeft <= 0}
               onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
               accessibilityLabel="고민 상담하기"
@@ -342,7 +342,7 @@ export default function HomeScreen() {
             desc="어떤 사람을, 언제, 어디서 만나게 될까?"
             owned={spouseOwned}
             coin={!spouseOwned}
-            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · 리포트 열기 →`}
+            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost} · 리포트 열기 →`}
             onPress={() => nav.navigate('Spouse')}
           />
           <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} style={s.link} scaleTo={0.98}>

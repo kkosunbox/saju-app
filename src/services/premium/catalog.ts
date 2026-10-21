@@ -72,7 +72,21 @@ export const PRICE_TABLE: [string, string][] = [
 export const PACKS: [number, number, number][] = [[1000, 100, 0], [3000, 300, 0], [5000, 500, 50], [10000, 1000, 150], [30000, 3000, 600]];
 export const packProductId = (won: number) => `points_${won}`;
 
+/** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */
 export const fmtP = (n: number) => n.toLocaleString('ko-KR') + '알';
+export const fmtN = (n: number) => n.toLocaleString('ko-KR');
+
+/** 숫자를 읽은 소리의 받침 — 끝자리(0이면 십·백·천·만은 모두 받침 있음): 일·칠·팔은 ㄹ */
+function numFinal(n: number): 'none' | 'l' | 'other' {
+  const d = Math.abs(n) % 10;
+  if (d === 0) return 'other';
+  if (d === 1 || d === 7 || d === 8) return 'l';
+  if (d === 3 || d === 6) return 'other';
+  return 'none';
+}
+/** 아이콘+숫자 뒤에 붙는 조사: 100으로 / 2로 · 100이 / 2가 */
+export const ro = (n: number) => (numFinal(n) === 'other' ? '으로' : '로');
+export const iga = (n: number) => (numFinal(n) === 'none' ? '가' : '이');
 
 /** 열람권 키 → 사람이 읽는 이름 (알림 문구용). */
 export function titleOfKey(key: string): string {

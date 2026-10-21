@@ -19,7 +19,7 @@ import { Coin, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
-import { fmtP } from '../../services/premium/catalog';
+import { fmtP, ro } from '../../services/premium/catalog';
 import { CONSULT_CATS, CONSULT_CONFIG, ConsultCat, catOf, guessCat } from '../../services/content/consult';
 import { ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
 import { startAsk } from './pendingAsk';
@@ -126,7 +126,7 @@ export default function ConsultHomeScreen() {
       {crisis ? <HelpLines lines={crisis} crisis /> : null}
 
       <PrimaryButton
-        label={free ? '무료로 상담받기' : `${cost}알로 상담받기`}
+        label={free ? '무료로 상담받기' : `${cost}${ro(cost)} 상담받기`}
         icon={free ? undefined : <Coin size={18} />}
         onPress={start} disabled={!ok} style={{ marginTop: 24 }}
       />
@@ -158,7 +158,7 @@ export default function ConsultHomeScreen() {
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 상담받을까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 포인트가 쓰여요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
         <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>

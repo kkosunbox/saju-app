@@ -9,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, fmtP, packProductId, titleOfKey } from '../services/premium/catalog';
+import { Item, PACKS, fmtP, packProductId, ro, titleOfKey } from '../services/premium/catalog';
+import { Amount, Coin } from '../components/Amount';
 import { pointsApi, pointsKeys } from '../services/server/pointsApi';
 import { listReadings, readingsKey } from '../services/server/premiumApi';
 import { ApiError } from '../api/client';
@@ -46,7 +47,7 @@ const Ctx = createContext<PremiumState | null>(null);
 export const SHARE_P = 10;
 
 const UNLOCK_ERROR: Record<string, string> = {
-  INSUFFICIENT_POINTS: '포인트가 모자라요. 충전 후 다시 열어 주세요',
+  INSUFFICIENT_POINTS: '알이 모자라요. 충전 후 다시 열어 주세요',
   CONTENT_NOT_FOR_SALE: '지금은 열 수 없는 콘텐츠예요',
 };
 
@@ -119,7 +120,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   /** 게스트가 포인트 기능을 쓰려 하면 로그인으로 보낸다. 로그인했으면 false */
   const requireLogin = (): boolean => {
     if (account) return false;
-    toast('로그인하면 포인트로 열어볼 수 있어요');
+    toast('로그인하면 알로 열어볼 수 있어요');
     router.push('/login');
     return true;
   };
@@ -203,11 +204,14 @@ export function usePremium() {
 }
 
 /* ---------- 시트 내용 · 토스트 ---------- */
-function SumRow({ label, value, color }: { label: string; value: string; color?: string }) {
+/** value 가 숫자면 [마스코트]숫자로 보여 준다 (sign: '−' 등) */
+function SumRow({ label, value, color, sign }: { label: string; value: string | number; color?: string; sign?: string }) {
   return (
     <View style={s.sumRow}>
       <Text style={txt.small}>{label}</Text>
-      <Text style={[s.sumVal, color ? { color } : null]}>{value}</Text>
+      {typeof value === 'number'
+        ? <Amount value={value} sign={sign} size={15} style={[s.sumVal, color ? { color } : null]} />
+        : <Text style={[s.sumVal, color ? { color } : null]}>{value}</Text>}
     </View>
   );
 }
@@ -216,19 +220,19 @@ function UnlockSheet({ item: it, points, busy, onConfirm, onClose, onWallet }: {
   const enough = points >= it.cost;
   return (
     <View>
-      <Text style={[txt.caption, s.center]}>포인트 사용</Text>
+      <Text style={[txt.caption, s.center]}>알 사용</Text>
       <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{it.title}</Text>
       <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
       <View style={s.sumBox}>
-        <SumRow label="보유 포인트" value={fmtP(points)} />
-        <SumRow label="사용 포인트" value={'−' + fmtP(it.cost)} color={colors.love} />
+        <SumRow label="보유 알" value={points} />
+        <SumRow label="사용할 알" value={it.cost} sign="−" color={colors.love} />
         <View style={s.hr} />
-        <SumRow label={enough ? '사용 후 잔액' : '부족한 포인트'} value={enough ? fmtP(points - it.cost) : fmtP(it.cost - points)} color={enough ? colors.purple : colors.danger} />
+        <SumRow label={enough ? '사용 후 잔액' : '부족한 알'} value={enough ? points - it.cost : it.cost - points} color={enough ? colors.purple : colors.danger} />
       </View>
       <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{it.scope}</Text>
       {enough
-        ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}알 사용하고 열기`} onPress={onConfirm} disabled={busy} />
-        : <PrimaryButton label="포인트 충전하러 가기" onPress={onWallet} />}
+        ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}${ro(it.cost)} 열기`} icon={busy ? undefined : <Coin size={18} />} onPress={onConfirm} disabled={busy} />
+        : <PrimaryButton label="알 충전하러 가기" onPress={onWallet} />}
       <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
     </View>
   );
@@ -238,12 +242,12 @@ function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: num
   const [w, p, b] = PACKS[i];
   return (
     <View>
-      <Text style={[txt.caption, s.center]}>포인트 충전</Text>
+      <Text style={[txt.caption, s.center]}>알 충전</Text>
       <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{fmtP(p + b)} 충전</Text>
       {b ? <Text style={[txt.small, s.center, { marginTop: 2 }]}>기본 {fmtP(p)} + 보너스 {fmtP(b)}</Text> : null}
       <View style={s.sumBox}>
         <SumRow label="결제 금액" value={w.toLocaleString('ko-KR') + '원'} />
-        <SumRow label="충전 후 잔액" value={fmtP(points + p + b)} color={colors.purple} />
+        <SumRow label="충전 후 잔액" value={points + p + b} color={colors.purple} />
       </View>
       {Platform.OS === 'web' ? (
         <>
