@@ -1,5 +1,5 @@
 /** Compatibility history and invites on the server. */
-import { api, call } from '../../api/client';
+import { ApiError, api, call } from '../../api/client';
 import { CompatibilityResult, PartnerInput, Relationship } from '../../types';
 
 interface CompatibilityDto {
@@ -12,7 +12,9 @@ interface CompatibilityDto {
     birthTime: string | null; gender: PartnerInput['gender']; mbti: PartnerInput['mbti'];
     bloodType: PartnerInput['bloodType'];
   };
-  result: Omit<CompatibilityResult, 'userId' | 'target' | 'createdAt' | 'id' | 'source' | 'relationship'> & { relationship?: Relationship };
+  result: Omit<CompatibilityResult, 'userId' | 'target' | 'createdAt' | 'id' | 'source' | 'relationship' | 'inviteRole' | 'isNew'> & { relationship?: Relationship };
+  inviteRole?: 'inviter' | 'friend' | null;
+  isNew?: boolean;
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult =>
   ...dto.result,
   id: dto.id,
   source: dto.source,
+  inviteRole: dto.inviteRole ?? null,
+  isNew: !!dto.isNew,
   // 관계가 없던 예전 기록은 연인 궁합
   relationship: dto.relationship ?? dto.result.relationship ?? 'lover',
   userId,
@@ -56,8 +60,23 @@ export const compatApi = {
     return data.list.map(dto => toResult(userId, dto));
   },
 
+  /** 내 링크로 상대가 본 궁합을 열었다 (isNew → false) */
+  async markSeen(id: number): Promise<void> {
+    await call(api.POST('/v1/compatibilities/{id}/seen', { params: { path: { id } } }));
+  },
+
   async remove(id: number): Promise<void> {
     await call(api.DELETE('/v1/compatibilities/{id}', { params: { path: { id } } }));
+  },
+
+  /** My live invite token, or null when I have none. */
+  async myInviteToken(): Promise<string | null> {
+    try {
+      return (await call<{ token: string }>(api.GET('/v1/compatibility-invites/me'))).token;
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'INVITATION_NOT_FOUND') return null;
+      throw e;
+    }
   },
 
   /** Public: who invited (no login). */

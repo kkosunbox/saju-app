@@ -17,6 +17,7 @@ import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { motion, useReducedMotion } from '../utils/motion';
 import { ApiError } from '../api/client';
 import { ProfileInput } from '../services/server/profileApi';
+import { getPendingInvite } from '../services/share/linkShare';
 
 /**
  * 한 화면에 질문이 차례로 쌓인다: 이름 → 생년월일 → 태어난 시간 → 성별 → 혈액형 → MBTI (직업·관심사는 마이에서 나중에).
@@ -130,6 +131,9 @@ export default function ProfileSetupScreen() {
   const [open, setOpen] = useState<'time' | 'mbti' | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // 궁합 초대 링크로 들어왔으면 왜 정보를 넣는지 계속 보여 준다 (다 넣으면 홈에서 바로 궁합)
+  const [inviter, setInviter] = useState<string | null>(null);
+  useEffect(() => { if (!editing) getPendingInvite().then(i => setInviter(i?.inviterNickname ?? null)); }, [editing]);
 
   const [nickname, setNickname] = useState(editing ? user!.nickname : '');
   const [calendar, setCalendar] = useState<CalendarType>(editing ? user!.calendarType ?? 'solar' : 'solar');
@@ -329,6 +333,11 @@ export default function ProfileSetupScreen() {
           <View style={s.progress}><Animated.View style={[s.progressBar, { width: barW }]} /></View>
 
           <ScrollView ref={scroll} contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            {inviter ? (
+              <View style={s.invite}>
+                <Text style={s.inviteText}>{inviter}님과의 궁합을 보려면 내 정보를 넣어 주세요. 다 넣으면 바로 결과가 나와요.</Text>
+              </View>
+            ) : null}
             <Text style={txt.title}>{title}</Text>
             {hint ? <Text style={[txt.small, { marginTop: 6 }]}>{hint}</Text> : null}
 
@@ -358,6 +367,8 @@ const s = StyleSheet.create({
   top: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   skip: { fontSize: 14, color: colors.inkMute, fontWeight: '600', paddingHorizontal: 8 },
+  invite: { marginBottom: 20, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.card },
+  inviteText: { fontSize: 13, fontWeight: '600', color: colors.ink, lineHeight: 19 },
   progress: { height: 3, backgroundColor: colors.line, marginHorizontal: 24, borderRadius: 2, overflow: 'hidden' },
   progressBar: { height: 3, backgroundColor: colors.navy, borderRadius: 2 },
   label: { fontSize: 13, fontWeight: '600', color: colors.inkSub, marginBottom: 8 },

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Animated, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@/navigation/compat';
+import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
 import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
@@ -31,9 +32,7 @@ import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
 import { motion } from '../utils/motion';
 import { compatApi, compatKeys } from '../services/server/compatApi';
-import { queryClient } from '../api/query';
-import { ApiError } from '../api/client';
-import { FriendResult, PendingInvite, clearPendingInvite, getFriendResult, markFriendSeen, getPendingInvite, shareInvite } from '../services/share/linkShare';
+import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, shareInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
@@ -41,9 +40,7 @@ import { formatKoreanDate } from '../utils/date';
 import { useWebTopBar } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import BottomSheet from '../components/BottomSheet';
-import OptionChip from '../components/OptionChip';
-import { RELATIONSHIPS } from '../data/relationships';
-import { Relationship } from '../types';
+import InvitePicker from '../components/InvitePicker';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -100,7 +97,20 @@ export default function HomeScreen() {
     tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
   };
   const [friend, setFriend] = useState<FriendResult | null>(null);
-  useEffect(() => { getPendingInvite().then(setInvite); getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
+  useEffect(() => { getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
+  // 초대 링크는 홈이 이미 떠 있을 때도 들어오니 홈에 올 때마다 다시 읽는다.
+  // 프로필을 넣으러 갔다 온 초대(auto)는 관계 고르기를 바로 한 번 연다
+  useFocusEffect(useCallback(() => {
+    getPendingInvite().then(inv => {
+      setInvite(inv);
+      if (inv?.auto) { setAskRelationship(true); savePendingInvite({ ...inv, auto: false }); }
+    });
+  }, []));
+  // 내 초대 링크로 상대가 본 궁합 중 아직 안 연 것 — 궁합 탭과 같은 캐시
+  const compat = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user });
+  const { refetch: refetchCompat } = compat;
+  useFocusEffect(useCallback(() => { if (user) refetchCompat(); }, [user, refetchCompat]));
+  const arrived = compat.data?.filter(r => r.isNew) ?? [];
 
   const tabBack = useTabBack();
   const hasHistory = useHasTabHistory();
@@ -157,23 +167,6 @@ export default function HomeScreen() {
     if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
     else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
   };
-  /** 관계를 고르면 그 관계에 맞는 궁합이 나온다 */
-  const openInvite = async (relationship: Relationship) => {
-    setAskRelationship(false);
-    if (!invite) return;
-    try {
-      const result = await compatApi.acceptInvite(user.id, invite.token, relationship);
-      await clearPendingInvite();
-      setInvite(null);
-      queryClient.invalidateQueries({ queryKey: compatKeys.list });
-      nav.navigate('Tabs', { screen: 'Compatibility', params: { result } });
-    } catch (e) {
-      const gone = e instanceof ApiError && ['INVITATION_NOT_FOUND', 'INVITATION_TOKEN_EXPIRED', 'BAD_REQUEST'].includes(e.code);
-      if (gone) { await clearPendingInvite(); setInvite(null); }
-      toast(gone ? '초대 링크가 만료됐거나 꺼졌어요' : '궁합을 불러오지 못했어요. 잠시 후 다시 시도해 주세요');
-    }
-  };
-
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
   type Free = { k: string; art?: ArtName; pillar?: string; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
   const FREE = ([
@@ -238,16 +231,26 @@ export default function HomeScreen() {
           ) : null}
           {invite ? (
             <BottomSheet visible={askRelationship} onClose={() => setAskRelationship(false)}>
-              <Text style={[txt.h2, { textAlign: 'center' }]}>{invite.inviterNickname}님과 어떤 사이인가요?</Text>
-              <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>관계에 맞는 궁합으로 보여 드려요</Text>
-              <View style={s.relGrid}>
-                {RELATIONSHIPS.map(x => <OptionChip key={x.k} compact style={s.relCell} label={x.l} sub={x.hint} selected={false} onPress={() => openInvite(x.k)} />)}
-              </View>
+              <InvitePicker invite={invite} onDone={() => { setAskRelationship(false); setInvite(null); }} />
             </BottomSheet>
           ) : null}
 
+          {/* 내 링크로 상대가 궁합을 봤다 — 누르면 결과로 (열면 궁합 탭이 '봤음'으로 바꾼다) */}
+          {arrived.length ? (
+            <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility', params: { result: arrived[0] } })} style={[s.notice, { marginTop: invite ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${arrived[0].target.nickname}님과의 궁합 결과 보기`}>
+              <Mascot name="friends" size={30} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.noticeTitle} numberOfLines={1}>
+                  {arrived.length > 1 ? `${arrived[0].target.nickname}님 외 ${arrived.length - 1}명이` : `${arrived[0].target.nickname}님이`} 내 링크로 궁합을 봤어요
+                </Text>
+                <Text style={txt.small} numberOfLines={1}>둘의 궁합 {arrived[0].total}점 · 눌러서 결과 보기</Text>
+              </View>
+              <Icon name="chevronRight" size={18} color={colors.inkMute} />
+            </PressableScale>
+          ) : null}
+
           {friend ? (
-            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: invite ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
+            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: invite || arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
               <Mascot size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 '{friend.k}' 결과가 도착했어요</Text>
@@ -414,8 +417,6 @@ const s = StyleSheet.create({
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
   hello: { ...txt.title, marginTop: 8 },
   date: { fontSize: 14, fontWeight: '500', color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.5, marginTop: 6 },
-  relGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 18 },
-  relCell: { width: '48.9%' },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.accent },
   noticeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
 

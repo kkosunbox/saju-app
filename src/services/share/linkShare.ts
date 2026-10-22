@@ -8,7 +8,8 @@ import { Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, call } from '../../api/client';
 
-const APP_URL = 'https://onulna-prototype.vercel.app';
+/** 앱(네이티브)에서 만든 링크가 여는 웹 주소 — 배포마다 EXPO_PUBLIC_WEB_URL (없으면 프로토타입 주소) */
+const APP_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://onulna-prototype.vercel.app';
 export const appUrl = () => (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : APP_URL);
 
 /** 공유 결과: 'shared' | 'copied' | 'cancelled' */
@@ -42,8 +43,11 @@ export async function shareInvite(nickname: string): Promise<'shared' | 'copied'
   return shareLink(`${nickname}님이 궁합 보자고 보냈어요. 내 생일만 넣으면 둘의 궁합이 바로 나와요.`, url);
 }
 
-/** 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름만). */
-export interface PendingInvite { token: string; inviterNickname: string }
+/**
+ * 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름만).
+ * auto: 프로필을 넣으러 갔다 — 홈에 오면 관계 고르기를 바로 연다 (한 번만)
+ */
+export interface PendingInvite { token: string; inviterNickname: string; auto?: boolean }
 
 export async function savePendingInvite(invite: PendingInvite) {
   await AsyncStorage.setItem(PENDING, JSON.stringify(invite));

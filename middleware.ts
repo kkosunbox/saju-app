@@ -5,6 +5,8 @@ import { next, rewrite } from '@vercel/functions';
  * - /api/* → the API server of this deployment's environment.
  *   API_ORIGIN is set per environment in Vercel (Production = 운영 API, Preview = 개발 API).
  *   The web calls its own /api (EXPO_PUBLIC_API_URL=/api) so the httpOnly refresh cookie stays first-party.
+ *   With API_PROXY_SECRET set (the same value as the API's), the visitor's IP goes along in x-woonpick-client-ip:
+ *   the API otherwise sees Vercel's address for every web user and their per-IP limits would be shared.
  * - Every deployment but Production answers with X-Robots-Tag: noindex, so the 개발 site (even on its own domain)
  *   stays out of search engines.
  */
@@ -20,5 +22,18 @@ export default function middleware(request: Request): Response {
   if (!origin) {
     return new Response('API_ORIGIN is not set for this environment', { status: 503, headers });
   }
-  return rewrite(new URL(url.pathname.replace(/^\/api/, '') + url.search, origin), { headers });
+  const secret = process.env.API_PROXY_SECRET;
+  const upstream = new Headers(request.headers);
+  // never pass on what the visitor sent in these
+  upstream.delete('x-woonpick-client-ip');
+  upstream.delete('x-woonpick-proxy-secret');
+  const clientIp = request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  if (secret && clientIp) {
+    upstream.set('x-woonpick-client-ip', clientIp);
+    upstream.set('x-woonpick-proxy-secret', secret);
+  }
+  return rewrite(new URL(url.pathname.replace(/^\/api/, '') + url.search, origin), {
+    headers,
+    request: { headers: upstream },
+  });
 }

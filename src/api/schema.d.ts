@@ -675,7 +675,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 궁합 기록 = 저장된 상대 (최근에 본 순 50건) */
+        /**
+         * 궁합 기록 = 저장된 상대 (최근에 본 순 50건)
+         * @description 내 초대 링크로 상대가 궁합을 보면 그 결과도 여기 들어옵니다 (inviteRole = inviter, 처음엔 isNew = true).
+         */
         get: operations["CompatibilityController_list_v1"];
         put?: never;
         /**
@@ -705,6 +708,26 @@ export interface paths {
          * @description 상대 정보도 함께 바로 지웁니다.
          */
         delete: operations["CompatibilityController_delete_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/compatibilities/{id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 궁합 기록을 열어 봄
+         * @description 내 초대 링크로 상대가 본 궁합(isNew = true)을 열었을 때 부릅니다. 이후 isNew = false.
+         */
+        post: operations["CompatibilityController_markSeen_v1"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -782,7 +805,7 @@ export interface paths {
         put?: never;
         /**
          * 초대 링크로 궁합 보기
-         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 같은 링크를 다시 열면 기록을 새로 만들지 않고 갱신합니다. 관계(relationship)를 보내지 않으면 연인으로 봅니다.
+         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(내 생년월일 등은 없음, isNew = true). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계(relationship)를 보내지 않으면 연인으로 봅니다. 내 링크를 내가 열면 INVITATION_OWN.
          */
         post: operations["CompatibilityInviteController_accept_v1"];
         delete?: never;
@@ -1966,6 +1989,11 @@ export interface components {
             work: string;
             relationship: string;
         };
+        StorySectionDto: {
+            /** @example 오늘의 흐름 */
+            title: string;
+            body: string;
+        };
         CombinedFortuneDto: {
             totalScore: number;
             summary: string;
@@ -1976,6 +2004,11 @@ export interface components {
             work: number;
             relationship: number;
             categoryTexts: components["schemas"]["CategoryTextsDto"];
+            /** @description 홈 카드용 두 문장 요약 (오늘의 흐름 + 가장 강한 분야) */
+            storyBrief: string;
+            /** @description 종합 풀이 문단: 오늘의 흐름 · 다른 관점에서 · 오늘의 중심. 예전에 저장된 운세는 한 문단 */
+            storySections: components["schemas"]["StorySectionDto"][];
+            /** @description storySections 본문을 빈 줄로 이은 전문 (예전 클라이언트용) */
             combinedStory: string;
             goodActions: string[];
             avoidActions: string[];
@@ -2189,6 +2222,13 @@ export interface components {
             /** @description 초대로 만든 기록은 상대 정보를 주지 않음 (null) */
             partner: components["schemas"]["CompatibilityPartnerDto"] | null;
             result: components["schemas"]["CompatibilityResultDto"];
+            /**
+             * @description 초대로 만든 기록에서 나의 쪽 — inviter: 내 링크를 상대가 열어 생긴 기록 · friend: 내가 상대 링크를 열어 본 기록 · 직접 입력은 null
+             * @enum {string|null}
+             */
+            inviteRole: "inviter" | "friend" | null;
+            /** @description 내 링크로 상대가 궁합을 봤는데 아직 열어 보지 않음 (POST /compatibilities/{id}/seen 으로 끔) */
+            isNew: boolean;
             /** Format: date-time */
             createdAt: string;
         };
@@ -4657,6 +4697,55 @@ export interface operations {
             };
         };
     };
+    CompatibilityController_markSeen_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     CompatibilityInviteController_createOrGet_v1: {
         parameters: {
             query?: never;
@@ -4910,7 +4999,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Possible error codes: INVITATION_TOKEN_EXPIRED, BAD_REQUEST */
+            /** @description Possible error codes: INVITATION_TOKEN_EXPIRED, INVITATION_OWN */
             400: {
                 headers: {
                     [name: string]: unknown;

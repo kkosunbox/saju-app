@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { RouteProp, useRoute } from '@/navigation/compat';
+import React, { useCallback, useEffect, useState } from 'react';
+import { RouteProp, useFocusEffect, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
@@ -86,6 +86,9 @@ export default function CompatibilityScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 저장된 상대 = 궁합 기록 (상대마다 하나, 최근에 본 순)
   const saved = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user });
+  // 내 링크로 상대가 본 궁합이 언제든 들어오니 탭에 올 때마다 새로
+  const { refetch } = saved;
+  useFocusEffect(useCallback(() => { if (user) refetch(); }, [user, refetch]));
 
   const sendInvite = async () => {
     if (!user) return;
@@ -157,6 +160,12 @@ export default function CompatibilityScreen() {
     setSeenResult(params?.result);
     if (params?.result) setResult(params.result);
   }
+  // 내 링크로 상대가 본 궁합을 열면 '새 결과'를 끈다 (홈 알림·목록의 NEW)
+  const newId = result?.isNew ? result.id : undefined;
+  useEffect(() => {
+    if (newId == null) return;
+    compatApi.markSeen(newId).then(() => queryClient.invalidateQueries({ queryKey: compatKeys.list })).catch(() => {});
+  }, [newId]);
 
   if (!user) return null;
 
@@ -207,7 +216,7 @@ export default function CompatibilityScreen() {
         </View>
 
         {result.source === 'invite' ? (
-          <Text style={[txt.small, { marginTop: 20 }]}>초대 링크로 본 궁합이라 상대의 생년월일을 몰라요. {result.relationship === 'lover' ? '심층 궁합·속마음은' : '심층 궁합은'} 상대 정보를 직접 넣어 볼 수 있어요.</Text>
+          <Text style={[txt.small, { marginTop: 20 }]}>{result.inviteRole === 'inviter' ? '내 링크로 상대가 본 궁합이라' : '초대 링크로 본 궁합이라'} 상대의 생년월일을 몰라요. {result.relationship === 'lover' ? '심층 궁합·속마음은' : '심층 궁합은'} 상대 정보를 직접 넣어 볼 수 있어요.</Text>
         ) : null}
 
         {result.source !== 'invite' && result.id != null ? (
@@ -266,7 +275,7 @@ export default function CompatibilityScreen() {
         <View style={s.inviteIco}><Icon name="send" size={18} color={colors.accent} /></View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>생일을 모른다면, 링크로 신청받기</Text>
-          <Text style={txt.caption}>상대가 링크를 열면 둘의 궁합이 바로 나와요</Text>
+          <Text style={txt.caption}>상대가 링크를 열면 둘의 궁합이 여기로 와요</Text>
         </View>
         <Icon name="chevronRight" size={18} color={colors.inkMute} />
       </PressableScale>
@@ -279,10 +288,13 @@ export default function CompatibilityScreen() {
               <PressableScale key={r.id} onPress={() => setResult(r)} style={[s.savedRow, i > 0 && s.savedLine]} scaleTo={0.98} accessibilityLabel={`${r.target.nickname}님과 궁합 다시 보기`}>
                 <View style={s.savedSeal}><Text style={s.savedSealText}>{r.target.nickname.slice(0, 1)}</Text></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{r.target.nickname}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{r.target.nickname}</Text>
+                    {r.isNew ? <Text style={s.newBadge}>NEW</Text> : null}
+                  </View>
                   <Text style={txt.caption}>
                     {RELATIONSHIP_INFO[r.relationship].label}
-                    {r.source === 'invite' ? ' · 초대 링크로 본 궁합' : traitsOf(r.target) ? ` · ${traitsOf(r.target)}` : ''}
+                    {r.inviteRole === 'inviter' ? ' · 내 링크로 본 궁합' : r.source === 'invite' ? ' · 초대 링크로 본 궁합' : traitsOf(r.target) ? ` · ${traitsOf(r.target)}` : ''}
                     {r.id != null && owned(`compat:${r.id}`) ? ' · 심층 궁합' : ''}
                     {r.id != null && owned(`crush:${r.id}`) ? ' · 속마음' : ''}
                   </Text>
@@ -405,6 +417,7 @@ const s = StyleSheet.create({
   savedLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   savedSeal: { width: 34, height: 34, borderRadius: 6, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
   savedSealText: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purple },
+  newBadge: { fontSize: 10, fontWeight: '800', color: colors.white, backgroundColor: colors.accent, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, overflow: 'hidden' },
   savedScore: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.love },
   deleteLink: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
   pairSheet: { flexDirection: 'row', alignItems: 'center', marginTop: 4, padding: 18, borderRadius: radius.lg, backgroundColor: colors.accentSoft },

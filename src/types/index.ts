@@ -111,8 +111,12 @@ export interface PartnerInput {
 export interface CompatibilityResult {
   /** Server record id (궁합 기록). */
   id?: number;
-  /** invite: made from a friend's link — no partner details. */
+  /** invite: made from an invite link — no partner details. */
   source?: 'manual' | 'invite';
+  /** invite 기록에서 나의 쪽 — inviter: 내 링크를 상대가 열어 생김 · friend: 내가 상대 링크를 열어 봄 */
+  inviteRole?: 'inviter' | 'friend' | null;
+  /** 내 링크로 상대가 본 궁합을 아직 열어 보지 않음 */
+  isNew?: boolean;
   relationship: Relationship;
   userId: string;
   target: PartnerInput;
