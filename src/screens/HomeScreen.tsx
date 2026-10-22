@@ -337,8 +337,8 @@ export default function HomeScreen() {
             <PromoCard
               tone="lime"
               title="오늘 마음에 걸리는 일 있나요?"
-              desc="털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요"
-              cta={consultFreeLeft > 0 ? `오늘 무료 상담 ${consultFreeLeft}번 남음 →` : `${consultCost} · 상담 시작하기 →`}
+              desc="저한테 편하게 얘기해 주세요. 도움이 될 거예요."
+              cta={consultFreeLeft > 0 ? '무료 티켓 사용 →' : `${consultCost} · 상담 시작하기 →`}
               coin={consultFreeLeft <= 0}
               onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
               accessibilityLabel="고민 상담하기"

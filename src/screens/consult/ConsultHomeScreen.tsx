@@ -134,9 +134,18 @@ export default function ConsultHomeScreen() {
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
         <View style={s.footer}>
           <View style={s.between}>
-            <Text style={s.hint} numberOfLines={1}>
-              {cat ? `${catOf(cat).label} 고민으로 읽었어요` : free ? `오늘 무료 ${freeLeft}번 남았어요` : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
-            </Text>
+            {/* 무료 상담권은 티켓처럼 남은 장수로 — 마지막 한 장이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
+            <View style={s.hintRow}>
+              {free ? (
+                <View style={s.ticket} accessibilityLabel={`오늘 무료 상담권 ${perDay}장 중 ${freeLeft}장 남음`}>
+                  <Icon name="ticket" size={14} color={colors.accent} strokeWidth={2} />
+                  <Text style={s.ticketText}>무료 상담권 {freeLeft}/{perDay}</Text>
+                </View>
+              ) : null}
+              <Text style={s.hint} numberOfLines={1}>
+                {cat ? `${catOf(cat).label} 고민으로 읽었어요` : free ? (freeLeft === 1 ? '오늘 마지막 무료 상담권이에요' : '') : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
+              </Text>
+            </View>
             {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
           </View>
           <View style={s.inputRow}>
@@ -155,7 +164,7 @@ export default function ConsultHomeScreen() {
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 상담받을까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담권 {perDay}장을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
         <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
@@ -183,7 +192,10 @@ const s = StyleSheet.create({
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
   footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 10 },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 6, paddingHorizontal: 4 },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
+  ticket: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.pill, backgroundColor: colors.accentSoft },
+  ticketText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.accent, letterSpacing: -0.4 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
   input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
   sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
