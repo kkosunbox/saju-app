@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Seal from '../components/Seal';
 import KeywordChip from '../components/KeywordChip';
@@ -9,7 +8,7 @@ import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
 import { LogoMark } from '../components/BrandMark';
 import { useApp } from '../context/AppContext';
-import { analysisTheme, colors, gradients } from '../theme/colors';
+import { analysisTheme, colors } from '../theme/colors';
 import { fonts, radius, shadow, txt, sansW } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
 import { AlmanacHero, Figure } from '../components/Almanac';
@@ -26,6 +25,7 @@ export default function CombinedAnalysisScreen() {
   const f = fortune.combined;
   const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, fortune.analyses.blood];
   const common = new Set(f.commonKeywords);
+  const sections = f.storySections?.length ? f.storySections : [{ title: '오늘의 이야기', body: f.combinedStory }];
 
   return (
     <Screen title="종합 분석" back>
@@ -55,11 +55,14 @@ export default function CombinedAnalysisScreen() {
         })}
       </Figure>
 
-      <View style={[s.storyWrap, shadow.hero]}>
-        <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.story}>
-          <View style={s.storyHead}><LogoMark size={18} fg={'#F4EDDF'} /><Text style={s.storyLabel}>오늘의 나에게 맞는 이야기</Text></View>
-          <Text style={s.storyText}>{f.combinedStory}</Text>
-        </LinearGradient>
+      <View style={s.story}>
+        <View style={s.storyHead}><LogoMark size={18} /><Text style={s.storyLabel}>오늘의 나에게 맞는 이야기</Text></View>
+        {sections.map((section, i) => (
+          <View key={section.title} style={[s.section, i > 0 && s.sectionBorder]}>
+            <Text style={s.sectionTitle}>{section.title}</Text>
+            <Text style={s.sectionBody}>{section.body}</Text>
+          </View>
+        ))}
       </View>
 
       <SectionHeader title="그래서 오늘은" />
@@ -88,9 +91,11 @@ const s = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
   tag: { backgroundColor: colors.cream, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 4 },
   tagText: { fontSize: 12, color: colors.inkMute, fontWeight: '600' },
-  storyWrap: { marginTop: 24, borderRadius: radius.xl, backgroundColor: colors.heroBg },
-  story: { borderRadius: radius.xl, padding: 22 },
-  storyHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  storyLabel: { color: colors.moon, fontSize: 13, fontWeight: '700' },
-  storyText: { ...sansW('400'), color: colors.white, fontSize: 15.5, lineHeight: 26, marginTop: 12, letterSpacing: -0.2 },
+  story: { marginTop: 24, borderRadius: radius.xl, backgroundColor: colors.card, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 6 },
+  storyHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  storyLabel: { color: colors.inkMute, fontSize: 13, fontWeight: '700' },
+  section: { paddingVertical: 16 },
+  sectionBorder: { borderTopWidth: 1, borderTopColor: colors.lineStrong, borderStyle: 'dashed' },
+  sectionTitle: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  sectionBody: { ...sansW('400'), color: colors.ink, fontSize: 15.5, lineHeight: 27, marginTop: 8, letterSpacing: -0.3 },
 });

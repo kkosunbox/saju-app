@@ -74,6 +74,11 @@ export interface CombinedFortune {
   work: number;
   relationship: number;
   categoryTexts: { love: string; money: string; work: string; relationship: string };
+  /** 홈 카드용 두 문장 요약 */
+  storyBrief: string;
+  /** 종합 풀이 문단 (오늘의 흐름 · 다른 관점에서 · 오늘의 중심) */
+  storySections: { title: string; body: string }[];
+  /** storySections 본문을 빈 줄로 이은 전문 */
   combinedStory: string;
   goodActions: string[];
   avoidActions: string[];

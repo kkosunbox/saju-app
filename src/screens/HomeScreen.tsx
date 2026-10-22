@@ -312,7 +312,7 @@ export default function HomeScreen() {
                 <Icon name="chevronRight" size={16} color={colors.inkMute} />
               </PressableScale>
             </View>
-            <Text style={s.todayStory} numberOfLines={6}>{f.combinedStory || f.summary}</Text>
+            <Text style={s.todayStory}>{f.storyBrief || f.summary}</Text>
             <View style={s.lucky}>
               <View style={s.luck}>
                 <Text style={s.luckK}>행운의 컬러</Text>
@@ -440,7 +440,7 @@ const s = StyleSheet.create({
   todayTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
   todayMore: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   todayMoreText: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
-  todayStory: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8 },
+  todayStory: { fontSize: 14, lineHeight: 21, color: colors.ink, letterSpacing: -0.5, marginTop: 8 },
   lucky: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
   luck: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   luckK: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },

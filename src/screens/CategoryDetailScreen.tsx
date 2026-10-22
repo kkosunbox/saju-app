@@ -42,7 +42,7 @@ export default function CategoryDetailScreen() {
           <ScoreRing score={score} size={76} stroke={6} color={t.color} track="rgba(0,0,0,0.06)" textColor={t.color} label="점" />
           <View style={{ flex: 1, gap: 6 }}>
             <Stars score={score} color={t.color} size={13} />
-            <Text style={s.scoreNote}>{score >= 83 ? '힘이 실리는 날이에요. 미뤄 둔 일을 꺼내 보세요.' : score >= 62 ? '무난하게 흘러가는 날이에요. 평소 리듬을 지켜요.' : '한 박자 쉬어 가면 좋은 날이에요. 무리하지 마세요.'}</Text>
+            <Text style={s.scoreNote}>{score >= 83 ? '힘이 실리는 날이에요. 미뤄 둔 일을 꺼내 보세요.' : score >= 66 ? '무난하게 흘러가는 날이에요. 평소 리듬을 지켜요.' : '한 박자 쉬어 가면 좋은 날이에요. 무리하지 마세요.'}</Text>
           </View>
         </View>
       </AlmanacHero>
@@ -71,7 +71,7 @@ export default function CategoryDetailScreen() {
       <Ledger tone={t.color} rows={[
         [`해 봐요 · ${f.goodActions[0]}`, ACTION_NOTE[f.goodActions[0]] ?? '오늘 한 번 해 보세요.'],
         [`행운의 시간 ${f.luckyTime}`, '중요한 연락이나 결정은 이 시간대에 잡아 보세요.'],
-        ...(score < 62 ? [[`피해요 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
+        ...(score < 66 ? [[`피해요 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
       ]} />
       <Disclaimer compact />
     </Screen>
