@@ -16,6 +16,7 @@ import { Appearance } from 'react-native';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
 import { inputOf } from '../services/server/profileApi';
+import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
 import { Coin } from '../components/premium/Kit';
 import { fmtN } from '../services/premium/catalog';
@@ -41,6 +42,7 @@ function Row({ icon, label, value, last, right }: { icon: IconName; label: strin
 export default function MyPageScreen() {
   const { user, fortune, resetProfile, account, signOut, deleteAccount, saveUser } = useApp();
   const { points, ownedCount, toast } = usePremium();
+  const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [mbtiSheet, setMbtiSheet] = useState(false);
   const [theme, setTheme] = useState<ThemePref>(readThemePrefSync());
   const nav = useNavigation();
@@ -89,11 +91,16 @@ export default function MyPageScreen() {
             </View>
             <LogoMark size={26} fg={'#F4EDDF'} />
           </View>
-          {fortune ? (
+          {fortune && fortuneOpened ? (
             <View style={s.todayRow}>
               <Text style={s.todayLabel}>오늘의 종합운</Text>
               <Text style={s.todayScore}>{fortune.combined.totalScore}점</Text>
             </View>
+          ) : fortune ? (
+            <PressableScale onPress={() => nav.navigate('Home')} scaleTo={0.98} accessibilityLabel="홈에서 오늘의 운세 뽑기" style={s.todayRow}>
+              <Text style={s.todayLabel}>오늘의 종합운</Text>
+              <Text style={s.todayDraw}>뽑으러 가기 ›</Text>
+            </PressableScale>
           ) : null}
         </LinearGradient>
       </View>
@@ -244,6 +251,7 @@ const s = StyleSheet.create({
   todayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.22)' },
   todayLabel: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '600' },
   todayScore: { fontFamily: fonts.serif, fontSize: 18, color: colors.moon, fontWeight: '700' },
+  todayDraw: { fontSize: 14, color: colors.moon, fontWeight: '700' },
   group: { paddingVertical: 2, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54 },
   loginRow: { paddingVertical: 16 },

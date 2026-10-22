@@ -18,6 +18,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
 import { CONSULT_CONFIG, catOf, guessCat } from '../../services/content/consult';
 import { ConsultListKind, ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
+import { useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
@@ -39,6 +40,7 @@ const EXAMPLES = [
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account, fortune } = useApp();
+  const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 요약 대신 홈으로 뽑으러 가게 한다
   const { points, toast } = usePremium();
   const input = useRef<TextInput>(null);
   const [text, setText] = useState('');
@@ -109,11 +111,18 @@ export default function ConsultHomeScreen() {
             <Mascot size={56} />
             <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}편하게 얘기해 주시면 사주로 같이 살펴볼게요.</Text>
           </View>
-          {fortune ? (
+          {fortune && fortuneOpened ? (
             <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
               <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
               <Text style={s.todayV} numberOfLines={2}>{fortune.combined.summary}</Text>
             </LinearGradient>
+          ) : fortune ? (
+            <PressableScale onPress={() => nav.navigate('Home')} scaleTo={0.98} accessibilityLabel="홈에서 오늘의 운세 뽑기">
+              <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
+                <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
+                <Text style={s.todayV}>아직 오늘의 운세를 안 뽑았어요. 홈에서 뽑아 보세요 ›</Text>
+              </LinearGradient>
+            </PressableScale>
           ) : null}
 
           {/* 눌러서 입력창에 채운다 — 두 줄이 서로 반대로 흘러간다 */}

@@ -18,7 +18,7 @@ import { Pillar } from '../types/content';
 import { AXES, MBTI_INFO } from '../data/mbtiData';
 import { AstroSystemReading, BloodType, User } from '../types';
 import { weekdayOf } from '../utils/date';
-import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
+import { useFortuneDraw } from '../services/content/opened';
 
 const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
 const NOTE: Record<string, string> = {
@@ -32,8 +32,7 @@ const NOTE: Record<string, string> = {
 export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
   const { fortune, user, today } = useApp();
-  useMarkOpened('fortune');
-  useFortuneDraw();
+  useFortuneDraw(); // 관점은 뽑기 전에도 볼 수 있으니 들어왔다고 뽑은 셈으로 치지 않는다
   const nav = useNavigation();
   if (!fortune || !user) return null;
   const a = fortune.analyses[params.source];

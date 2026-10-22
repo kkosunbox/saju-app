@@ -198,6 +198,12 @@ export default function HomeScreen() {
     setTimeout(() => setMinWait(false), READ_MIN_MS);
   };
   /** 방금 뽑았을 때만 차례로 나타나게 (Reveal은 처음 그려질 때 한 번 움직인다) */
+  // 종합 풀이는 오늘의 운세를 뽑고 풀이가 나온 뒤에만 연다
+  const openCombined = () => {
+    if (sealed) toast('마스코트를 꾹 눌러 오늘의 운세를 먼저 뽑아 보세요');
+    else if (reading) toast('오늘의 이야기를 쓰고 있어요. 잠깐만 기다려 주세요');
+    else nav.navigate('CombinedAnalysis');
+  };
   const later = (delay: number, node: React.ReactNode) => (drawn ? <Reveal delay={delay}>{node}</Reveal> : node);
 
   return (
@@ -366,15 +372,15 @@ export default function HomeScreen() {
         </HScroll>
 
         <View style={{ paddingHorizontal: SCREEN_PX }}>
-          <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={() => nav.navigate('CombinedAnalysis')} />
+          <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어져요" action="종합 풀이 보기" onAction={openCombined} />
           <View style={s.grid}>
             <View style={s.gridRow}>
-              <AnalysisTile sealed={hidden} analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
-              <AnalysisTile sealed={hidden} analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
+              <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
+              <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
             </View>
             <View style={s.gridRow}>
-              <AnalysisTile sealed={hidden} analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              <AnalysisTile sealed={hidden} analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
+              <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
+              <AnalysisTile analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
             </View>
           </View>
 
