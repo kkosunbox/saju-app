@@ -199,7 +199,7 @@ const s = StyleSheet.create({
   todayK: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
   todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6 },
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 10 },
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 18 },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 6, paddingHorizontal: 4 },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },

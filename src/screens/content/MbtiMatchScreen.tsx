@@ -6,7 +6,7 @@ import Card from '../../components/Card';
 import ScoreBar from '../../components/ScoreBar';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
-import Mascot, { Logo } from '../../components/Mascot';
+import { Logo } from '../../components/Mascot';
 import HeaderPoints from '../../components/HeaderPoints';
 import { SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
@@ -18,6 +18,7 @@ import { radius, txt } from '../../theme/typography';
 import { mbtiSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 import MbtiDeck from '../../components/MbtiDeck';
+import MbtiArt from '../../components/MbtiArt';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
 
@@ -53,7 +54,7 @@ export default function MbtiMatchScreen() {
       {/* 결과 카드 */}
       {wrap(
       <View ref={card} collapsable={false} style={s.card}>
-        <Mascot name="headphone" size={115} style={s.cardArt} />
+        <MbtiArt type={top.type} size={115} style={s.cardArt} />
         <Logo height={19} />
         <Text style={s.eyebrow}>{u.mbti} {u.nickname}님의 찰떡 MBTI는</Text>
         <Text style={s.big}>{top.type}</Text>
@@ -82,6 +83,7 @@ export default function MbtiMatchScreen() {
             <View style={s.between}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={[s.medal, i === 0 && { backgroundColor: colors.navy }]}><Text style={[s.medalText, i === 0 && { color: colors.white }]}>{i + 1}</Text></View>
+                <MbtiArt type={b.type} size={36} />
                 <Text style={s.topType}>{b.type}</Text>
                 <Text style={txt.small}>{b.nickname}</Text>
               </View>
@@ -99,7 +101,10 @@ export default function MbtiMatchScreen() {
       <SubHead title="조금 노력이 필요한 사이" />
       <Card>
         <View style={s.between}>
-          <Text style={s.topType}>{worst.type} <Text style={txt.small}>{worst.nickname}</Text></Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MbtiArt type={worst.type} size={36} />
+            <Text style={s.topType}>{worst.type} <Text style={txt.small}>{worst.nickname}</Text></Text>
+          </View>
           <Text style={[s.topScore, { color: colors.inkMute }]}>{worst.score}</Text>
         </View>
         <Text style={[txt.body, { marginTop: 8, fontSize: 14 }]}>보는 방식이 많이 달라 오해가 생기기 쉬워요. 대신 서로의 다름을 인정하면 가장 크게 배우는 사이이기도 해요. {u.mbti}인 내가 '{MBTI_INFO[u.mbti].watch}'만 조심하면 충분해요.</Text>
