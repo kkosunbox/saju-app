@@ -43,10 +43,18 @@ export function CostPill({ cost, small }: { cost: number; small?: boolean }) {
   );
 }
 
+export const FREE_BLUE = '#00A3FF';
+export const OWNED_GREEN = '#00A220';
+
+/** 테두리만 있는 작은 태그 — 무료(파랑) · 보유(초록) */
+export function LineTag({ label, color = FREE_BLUE }: { label: string; color?: string }) {
+  return <View style={[s.lineTag, { borderColor: color }]}><Text style={[s.lineTagText, { color }]}>{label}</Text></View>;
+}
+
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
 export function PriceTag({ item }: { item: Item }) {
   const { owned } = usePremium();
-  if (owned(item.key)) return <Pill tone="ok">보유</Pill>;
+  if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} />;
   return <CostPill cost={item.cost} />;
 }
 
@@ -366,6 +374,9 @@ const s = StyleSheet.create({
   costSmall: { gap: 2, paddingRight: 6, paddingVertical: 2 },
   costText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.white },
   costTextSmall: { fontSize: 10, lineHeight: 14 },
+  // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 테두리 · 줄높이를 정하고 전체를 옅게 한다
+  lineTag: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, opacity: 0.85 },
+  lineTagText: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   para: { fontSize: 14.5, lineHeight: 23, color: colors.inkSub },
   bullet: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 4 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },

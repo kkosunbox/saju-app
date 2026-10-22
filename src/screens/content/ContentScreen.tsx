@@ -10,7 +10,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
 import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services/content/registry';
-import { Amount, Coin, CostPill, PriceTag, SubHead } from '../../components/premium/Kit';
+import { Amount, Coin, CostPill, LineTag, PriceTag, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP, ro } from '../../services/premium/catalog';
@@ -88,7 +88,7 @@ export default function ContentScreen() {
           <PressableScale key={t} onPress={go} style={[s.free, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
             <View style={s.freeHead}>
               <Mascot name={art} size={40} />
-              <View style={s.freeTag}><Text style={s.freeTagText}>무료</Text></View>
+              <LineTag label="무료" />
             </View>
             <Text style={s.freeT}>{t}</Text>
             <Text style={s.freeD}>{d}</Text>
@@ -151,7 +151,7 @@ export default function ContentScreen() {
           <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
             <View style={s.freeHead}>
               <Text style={s.soonH}>{c.hanja}</Text>
-              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <Text style={[s.soonTier, { color: colors.success }]}>무료</Text> : <CostPill cost={c.cost ?? 0} small />}
+              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <LineTag label="무료" /> : <CostPill cost={c.cost ?? 0} small />}
             </View>
             <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink, marginTop: 8 }} numberOfLines={1}>{c.title}</Text>
             <Text style={[txt.caption, { marginTop: 2 }]} numberOfLines={1}>{c.hook}</Text>
@@ -197,8 +197,6 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   free: { width: '47.5%', flexGrow: 1, minHeight: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   freeHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', height: 40 },
-  freeTag: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5, borderColor: '#00A3FF' },
-  freeTagText: { fontSize: 12, fontWeight: '600', color: '#00A3FF', opacity: 0.85 },
   freeT: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5, marginTop: 8 },
   freeD: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.6, marginTop: 2 },
   bundle: { padding: 16, paddingBottom: 14 },
@@ -213,5 +211,4 @@ const s = StyleSheet.create({
   line: { borderTopWidth: 1, borderTopColor: colors.line },
   soon: { width: '47.5%', flexGrow: 1, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong, borderStyle: 'dashed' },
   soonH: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: colors.inkMute },
-  soonTier: { fontSize: 11, fontWeight: '800', color: colors.purpleSoft },
 });
