@@ -1,32 +1,25 @@
 import React, { useEffect, useId, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, G, Path, RadialGradient, Stop } from 'react-native-svg';
+import { Animated, StyleSheet } from 'react-native';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { isDark } from '../theme/colors';
 import { haptic } from '../utils/haptic';
 import { motion } from '../utils/motion';
 
-const CLOVER_SIZE = 36 * 0.7;
-
-/** 누를 때마다 네잎클로버가 위로 떠오르고 은은한 후광이 퍼지는 행운 연출. 운세 점수와는 별개다. */
+/** 누를 때마다 마스코트가 튕기고 은은한 후광이 퍼지는 행운 연출. 운세 점수와는 별개다. */
 export function useMascotPlay(enabled: boolean, reduced: boolean, luckyColor: string) {
   const glowId = `mascotGlow${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const glowColor = luckyColor;
   const [bounce] = useState(() => new Animated.Value(0));
   const [glow] = useState(() => new Animated.Value(0));
-  // 하나의 이미지만 재사용해서 연타해도 클로버가 여러 개 겹치지 않는다.
-  const [burst] = useState(() => new Animated.Value(1));
-  const [position] = useState(() => new Animated.ValueXY({ x: 0, y: 0 }));
 
   useEffect(() => {
     bounce.setValue(0);
     glow.setValue(0);
-    burst.setValue(1);
     return () => {
       bounce.stopAnimation();
       glow.stopAnimation();
-      burst.stopAnimation();
     };
-  }, [enabled, reduced, bounce, glow, burst]);
+  }, [enabled, reduced, bounce, glow]);
 
   const play = () => {
     if (!enabled) return;
@@ -53,14 +46,7 @@ export function useMascotPlay(enabled: boolean, reduced: boolean, luckyColor: st
     Animated.spring(bounce, {
       toValue: 0, speed: 16, bounciness: 9, useNativeDriver: true, isInteraction: false,
     }).start();
-    burst.stopAnimation();
-    // 136px 터치 영역 바깥의 좌우 여백에 배치해 캐릭터와 겹치지 않게 한다.
-    const side = Math.random() < 0.5 ? -44 : 136;
-    position.setValue({ x: side + Math.random() * 18, y: 48 + Math.random() * 44 });
-    burst.setValue(0);
-    Animated.timing(burst, {
-      toValue: 1, duration: 1400, easing: motion.easeOut, useNativeDriver: true, isInteraction: false,
-    }).start();
+
   };
 
   return {
@@ -94,34 +80,10 @@ export function useMascotPlay(enabled: boolean, reduced: boolean, luckyColor: st
         </Svg>
       </Animated.View>
     ) : null,
-    feedback: enabled && !reduced ? (
-      <View pointerEvents="none" style={StyleSheet.absoluteFill} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Animated.View
-          style={[s.clover, {
-            opacity: burst.interpolate({ inputRange: [0, 0.1, 0.65, 1], outputRange: [0, 1, 0.9, 0] }),
-            transform: [
-              { translateX: Animated.add(position.x, burst.interpolate({ inputRange: [0, 0.45, 1], outputRange: [0, 5, -3] })) },
-              { translateY: Animated.add(position.y, burst.interpolate({ inputRange: [0, 1], outputRange: [0, -72] })) },
-              { rotate: burst.interpolate({ inputRange: [0, 1], outputRange: ['-12deg', '16deg'] }) },
-              { scale: burst.interpolate({ inputRange: [0, 0.18, 1], outputRange: [0.35, 1, 0.75] }) },
-            ],
-          }]}
-        >
-          <Svg width={CLOVER_SIZE} height={CLOVER_SIZE} viewBox="0 0 24 26">
-            {[45, 135, 225, 315].map(turn => (
-              <G key={turn} transform={`rotate(${turn} 12 10.5)`}>
-                <Path d="M12 10 C10.6 8.4 7.8 6.5 7.8 4.2 C7.8 2.1 10.3 1.5 12 3.5 C13.7 1.5 16.2 2.1 16.2 4.2 C16.2 6.5 13.4 8.4 12 10Z" fill={luckyColor} />
-              </G>
-            ))}
-            <Circle cx={12} cy={10.5} r={0.85} fill={luckyColor} />
-          </Svg>
-        </Animated.View>
-      </View>
-    ) : null,
+
   };
 }
 
 const s = StyleSheet.create({
-  clover: { position: 'absolute', left: 0, top: 0, width: CLOVER_SIZE, height: CLOVER_SIZE },
   aura: { position: 'absolute', left: -26, top: -26, width: 188, height: 188, alignItems: 'center', justifyContent: 'center' },
 });
