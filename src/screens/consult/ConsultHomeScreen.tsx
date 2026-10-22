@@ -150,6 +150,8 @@ export default function ConsultHomeScreen() {
 
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
         <View style={s.footer}>
+          {/* 스크롤 내용이 안내 줄에서 탁 잘리지 않게 위로 바탕색 페이드 */}
+          <LinearGradient pointerEvents="none" colors={FOOTER_FADE} style={s.fade} />
           <View style={s.between}>
             {/* 오늘 남은 무료 상담 횟수 — 마지막 한 번이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
             <View style={s.hintRow}>
@@ -199,6 +201,7 @@ export default function ConsultHomeScreen() {
 const INPUT_MAX = 120;
 const TICKET_INK = isDark ? colors.accent : 'rgba(0, 163, 255, 0.8)'; // 디자인: #00A3FF 80%
 const HOME_ROWS = 10;
+const FOOTER_FADE = [`${colors.cream}00`, colors.cream] as const;
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 24 },
@@ -209,7 +212,8 @@ const s = StyleSheet.create({
   todayK: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
   todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 18 },
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 18, backgroundColor: colors.cream },
+  fade: { position: 'absolute', left: 0, right: 0, top: -28, height: 28 },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   freeK: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.6 },
