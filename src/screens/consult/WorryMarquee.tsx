@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { AccessibilityInfo, Animated, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../../components/PressableScale';
 import { colors } from '../../theme/colors';
 import { radius, SCREEN_PX } from '../../theme/typography';
 
 const SPEED = 0.025; // px/ms — 천천히 흘러간다
+const FADE = 28; // 좌우 끝에서 화면 바탕으로 스며드는 폭
+const FADE_COLORS = [colors.cream, `${colors.cream}00`] as const;
 
 /**
  * 예시 고민 한 줄 — 옆으로 천천히 흘러가고, 끌어서 넘길 수 있다(웹은 마우스로도). 누르면 고른다.
@@ -72,6 +75,9 @@ export default function WorryMarquee({ items, onPick, reverse }: { items: string
         {row(false)}
         {row(true)}
       </Animated.View>
+      {/* 좌우 끝이 뚝 잘리지 않게 바탕색으로 흐려 준다 */}
+      <LinearGradient pointerEvents="none" colors={FADE_COLORS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.fade, { left: 0 }]} />
+      <LinearGradient pointerEvents="none" colors={FADE_COLORS} start={{ x: 1, y: 0 }} end={{ x: 0, y: 0 }} style={[s.fade, { right: 0 }]} />
     </View>
   );
 }
@@ -82,6 +88,7 @@ const WEB_DRAG = { userSelect: 'none', cursor: 'grab' } as object;
 const s = StyleSheet.create({
   clip: { marginHorizontal: -SCREEN_PX, overflow: 'hidden' },
   track: { flexDirection: 'row' },
+  fade: { position: 'absolute', top: 0, bottom: 0, width: FADE },
   row: { flexDirection: 'row', gap: 8, paddingRight: 8 },
   chip: { height: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.card },
   chipT: { fontSize: 14, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
