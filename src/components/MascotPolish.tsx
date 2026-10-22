@@ -78,16 +78,19 @@ function revealGlint(progress: number, delay: number) {
 }
 
 /** 기존 이미지와 버튼을 유지하고, 천과 반사광만 별도 레이어로 합성한다. */
-export default function MascotPolish({ busy, reduced, size, children }: PropsWithChildren<{
-  busy: boolean; reduced: boolean; size: number;
+export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, children }: PropsWithChildren<{
+  busy: boolean; reduced: boolean; size: number; sparkleTrigger?: number;
 }>) {
   const id = useId().replace(/:/g, '');
   const wasBusy = useRef(false);
+  const lastSparkleTrigger = useRef(sparkleTrigger);
   const phase = useSharedValue(0);
   const cloth = useSharedValue(0);
   const finish = useSharedValue(1);
 
   useEffect(() => {
+    const tapped = sparkleTrigger !== lastSparkleTrigger.current;
+    lastSparkleTrigger.current = sparkleTrigger;
     cancelAnimation(phase);
     cancelAnimation(cloth);
     cancelAnimation(finish);
@@ -98,16 +101,16 @@ export default function MascotPolish({ busy, reduced, size, children }: PropsWit
       phase.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }), -1, false);
     } else {
       cloth.value = withTiming(0, { duration: reduced ? 0 : 280, easing: Easing.out(Easing.cubic) });
-      if (wasBusy.current && !busy && !reduced) {
+      if ((wasBusy.current || tapped) && !busy && !reduced) {
         finish.value = 0;
-        // busy가 풀리는 렌더에서 홈 점수·풀이도 함께 공개된다.
+        // 운세 공개와 터치 모두 같은 반사광·반짝임을 재생한다. 연타는 겹치지 않고 다시 시작한다.
         finish.value = withTiming(1, { duration: FINISH_MS, easing: Easing.linear });
       } else {
         finish.value = 1;
       }
     }
     wasBusy.current = busy;
-  }, [busy, reduced, phase, cloth, finish]);
+  }, [busy, reduced, sparkleTrigger, phase, cloth, finish]);
 
   useEffect(() => () => {
     cancelAnimation(phase);
