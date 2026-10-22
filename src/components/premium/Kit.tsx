@@ -33,11 +33,21 @@ export function Pill({ children, tone = 'default', style }: { children: React.Re
   );
 }
 
+/** 남색 알약 가격 "◎ 300" — small은 '곧 오픈' 카드처럼 좁은 자리용 */
+export function CostPill({ cost, small }: { cost: number; small?: boolean }) {
+  return (
+    <View style={[s.cost, small && s.costSmall]}>
+      <Coin size={small ? 11 : 14} />
+      <Text style={[s.costText, small && s.costTextSmall]}>{cost.toLocaleString('ko-KR')}</Text>
+    </View>
+  );
+}
+
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
 export function PriceTag({ item }: { item: Item }) {
   const { owned } = usePremium();
   if (owned(item.key)) return <Pill tone="ok">보유</Pill>;
-  return <Pill><View style={s.row4}><Coin size={12} /><Text style={s.pillText}>{item.cost}</Text></View></Pill>;
+  return <CostPill cost={item.cost} />;
 }
 
 /** 화면 상단: 열람 중 / 미리보기 */
@@ -352,6 +362,10 @@ const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
   pillText: { fontSize: 12, fontWeight: '800', color: colors.purple },
+  cost: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 5, paddingRight: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.heroBg },
+  costSmall: { gap: 2, paddingRight: 6, paddingVertical: 2 },
+  costText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.white },
+  costTextSmall: { fontSize: 10, lineHeight: 14 },
   para: { fontSize: 14.5, lineHeight: 23, color: colors.inkSub },
   bullet: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 4 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },

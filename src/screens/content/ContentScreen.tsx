@@ -10,7 +10,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
 import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services/content/registry';
-import { Amount, Coin, PriceTag, SubHead } from '../../components/premium/Kit';
+import { Amount, Coin, CostPill, PriceTag, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP, ro } from '../../services/premium/catalog';
@@ -151,7 +151,7 @@ export default function ContentScreen() {
           <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
             <View style={s.freeHead}>
               <Text style={s.soonH}>{c.hanja}</Text>
-              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <Text style={[s.soonTier, { color: colors.success }]}>무료</Text> : <Amount value={c.cost ?? 0} size={12} style={s.soonTier} />}
+              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <Text style={[s.soonTier, { color: colors.success }]}>무료</Text> : <CostPill cost={c.cost ?? 0} small />}
             </View>
             <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink, marginTop: 8 }} numberOfLines={1}>{c.title}</Text>
             <Text style={[txt.caption, { marginTop: 2 }]} numberOfLines={1}>{c.hook}</Text>
