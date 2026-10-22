@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import PrimaryButton from './PrimaryButton';
 import Mascot from './Mascot';
 import CharacterArt from './CharacterArt';
@@ -61,8 +62,9 @@ export default function PillarSlot({ target, onDone }: { target: string; onDone(
               </View>
             ))}
           </Animated.View>
-          <View pointerEvents="none" style={[s.fade, { top: 0 }]} />
-          <View pointerEvents="none" style={[s.fade, { bottom: 0 }]} />
+          {/* 단색 띠는 가운데만 밝은 줄처럼 보여서, 가장자리로 갈수록 서서히 어두워지게 */}
+          <LinearGradient pointerEvents="none" colors={[colors.heroBg + 'B0', colors.heroBg + '00']} style={[s.fade, { top: 0 }]} />
+          <LinearGradient pointerEvents="none" colors={[colors.heroBg + '00', colors.heroBg + 'B0']} style={[s.fade, { bottom: 0 }]} />
         </View>
         <Text style={s.caption}>{state === 'stop' ? `${ko}일주를 찾았어요!` : state === 'spin' ? '60갑자에서 찾는 중…' : '태어난 날의 기둥, 일주는?'}</Text>
       </View>
@@ -77,6 +79,6 @@ const s = StyleSheet.create({
   window: { width: 180, height: ITEM, overflow: 'hidden', borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 2, borderColor: colors.moon + '88' },
   item: { height: ITEM, alignItems: 'center', justifyContent: 'center' },
   hanja: { fontFamily: fonts.serif, fontSize: 52, lineHeight: 64, fontWeight: '700', color: colors.white, letterSpacing: 6 },
-  fade: { position: 'absolute', left: 0, right: 0, height: 14, backgroundColor: colors.heroBg, opacity: 0.55 },
+  fade: { position: 'absolute', left: 0, right: 0, height: 22 },
   caption: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '600', marginTop: 14, letterSpacing: -0.4 },
 });

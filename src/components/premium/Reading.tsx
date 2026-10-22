@@ -6,6 +6,7 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import PrimaryButton from '../PrimaryButton';
+import SolidIcon from '../SolidIcon';
 import { SkeletonBlock } from '../Skeleton';
 import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
@@ -28,20 +29,19 @@ export function ReadingBanner({ reading, onRetry }: { reading: ReadingView<unkno
       </Card>
     );
   }
-  if (reading.status === 'failed') {
-    return (
-      <Card style={s.card}>
-        <Text style={txt.h3}>{'풀이 일부를 쓰지 못했어요'}</Text>
-        <Text style={[txt.small, { marginTop: 4 }]}>{'다시 쓰기를 누르면 남은 부분을 마저 써요. 알은 더 들지 않아요.'}</Text>
-        <PrimaryButton label="다시 쓰기" variant="soft" onPress={onRetry} style={{ marginTop: 12, alignSelf: 'stretch' }} />
-      </Card>
-    );
-  }
+  const [title, desc, action] = reading.status === 'failed'
+    ? ['풀이 일부를 쓰지 못했어요', '다시 쓰기를 누르면 남은 부분을 마저 써요. 알은 더 들지 않아요.', '다시 쓰기']
+    : ['지금은 풀이를 쓸 수 없어요', '계산 결과를 먼저 보여 드려요. 잠시 후 다시 열면 풀이를 써 드릴게요.', '다시 시도'];
   return (
-    <Card style={s.card}>
-      <Text style={txt.h3}>{'지금은 풀이를 쓸 수 없어요'}</Text>
-      <Text style={[txt.small, { marginTop: 4 }]}>{'계산 결과를 먼저 보여 드려요. 잠시 후 다시 열면 풀이를 써 드릴게요.'}</Text>
-      <PrimaryButton label="다시 시도" variant="soft" onPress={onRetry} style={{ marginTop: 12, alignSelf: 'stretch' }} />
+    <Card style={[s.card, { padding: 12 }]}>
+      <View style={s.alertRow}>
+        <View style={s.alertIco}><SolidIcon name="alert" size={16} color={colors.love} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.alertTitle}>{title}</Text>
+          <Text style={s.alertText}>{desc}</Text>
+        </View>
+      </View>
+      <PrimaryButton label={action} small onPress={onRetry} style={{ marginTop: 12, alignSelf: 'stretch' }} />
     </Card>
   );
 }
@@ -60,6 +60,10 @@ export function PartPending({ lines = 4, writing }: { lines?: number; writing: b
 
 const s = StyleSheet.create({
   card: { marginTop: 16 },
+  alertRow: { flexDirection: 'row', gap: 12, paddingTop: 4, paddingRight: 4 },
+  alertIco: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  alertTitle: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
+  alertText: { marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   count: { fontSize: 14, fontWeight: '700', color: colors.purple },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden', marginTop: 12 },

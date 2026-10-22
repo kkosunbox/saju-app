@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -16,7 +16,7 @@ import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
-import { CONSULT_CONFIG, catOf, guessCat } from '../../services/content/consult';
+import { CONSULT_CONFIG, guessCat } from '../../services/content/consult';
 import { ConsultListKind, ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
 import { useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
@@ -25,7 +25,14 @@ import { radius, SCREEN_PX, txt } from '../../theme/typography';
 import { ConsultRows, HelpLines, WEB_ONE_ROW, useWebAutoGrow } from './parts';
 import WorryMarquee from './WorryMarquee';
 
-const TODAY_BG = isDark ? (['#15202B', '#172636', '#1B3348'] as const) : (['#F7FCFF', '#EFF9FF', '#CBECFE'] as const);
+const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
+const TODAY_IMG = require('../../../assets/images/consult-today.webp');
+
+/** 오늘의 기운 카드 바탕 — 밝은 화면은 디자인의 구름 그림, 어두운 화면은 같은 하늘색 결의 그라데이션 */
+function TodayCard({ children }: { children: React.ReactNode }) {
+  if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>{children}</LinearGradient>;
+  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={s.today} imageStyle={s.todayImg}>{children}</ImageBackground>;
+}
 
 const EXAMPLES = [
   '헤어진 지 3개월, 아직도 연락할지 말지 매일 고민돼요',
@@ -35,6 +42,8 @@ const EXAMPLES = [
   '부모님과 자꾸 부딪히는데 어떻게 해야 할까요?',
   '모아 둔 돈으로 이사를 할지 더 모을지 고민이에요',
 ];
+// 세 줄에 두 개씩 — 디자인처럼 첫째·넷째, 둘째·다섯째, 셋째·여섯째를 한 줄에
+const EXAMPLE_ROWS = [0, 1, 2].map(i => [EXAMPLES[i], EXAMPLES[i + 3]]);
 
 /** 상담 탭 — 상담가가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
 export default function ConsultHomeScreen() {
@@ -108,28 +117,27 @@ export default function ConsultHomeScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
-            <Mascot size={56} />
+            <Mascot size={80} />
             <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}편하게 얘기해 주시면 사주로 같이 살펴볼게요.</Text>
           </View>
           {fortune && fortuneOpened ? (
-            <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
+            <TodayCard>
               <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
               <Text style={s.todayV} numberOfLines={2}>{fortune.combined.summary}</Text>
-            </LinearGradient>
+            </TodayCard>
           ) : fortune ? (
             <PressableScale onPress={() => nav.navigate('Home')} scaleTo={0.98} accessibilityLabel="홈에서 오늘의 운세 뽑기">
-              <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>
+              <TodayCard>
                 <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
                 <Text style={s.todayV}>아직 오늘의 운세를 안 뽑았어요. 홈에서 뽑아 보세요 ›</Text>
-              </LinearGradient>
+              </TodayCard>
             </PressableScale>
           ) : null}
 
-          {/* 눌러서 입력창에 채운다 — 두 줄이 서로 반대로 흘러간다 */}
+          {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
           <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
-          <View style={{ gap: 8 }}>
-            <WorryMarquee items={EXAMPLES.slice(0, 3)} onPick={pickExample} />
-            <WorryMarquee items={EXAMPLES.slice(3)} onPick={pickExample} reverse />
+          <View style={{ gap: 12 }}>
+            {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
           </View>
 
           {crisis ? <HelpLines lines={crisis} crisis /> : null}
@@ -137,22 +145,22 @@ export default function ConsultHomeScreen() {
           {section('open', '이어서 이야기하기', openQ.data)}
           {section('past', '지난 상담', pastQ.data)}
 
-          <Text style={[s.note, { marginTop: 24 }]}>나만 볼 수 있어요. 1년 뒤 자동 삭제됩니다.</Text>
+          <Text style={[s.note, { marginTop: 12 }]}>나만 볼 수 있어요. 1년 뒤 자동 삭제됩니다.</Text>
         </ScrollView>
 
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
         <View style={s.footer}>
           <View style={s.between}>
-            {/* 무료 상담권은 티켓처럼 남은 장수로 — 마지막 한 장이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
+            {/* 오늘 남은 무료 상담 횟수 — 마지막 한 번이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
             <View style={s.hintRow}>
               {free ? (
-                <View style={s.ticket} accessibilityLabel={`오늘 무료 상담권 ${perDay}장 중 ${freeLeft}장 남음`}>
-                  <Icon name="ticket" size={14} color={colors.accent} strokeWidth={2} />
-                  <Text style={s.ticketText}>무료 상담권 {freeLeft}/{perDay}</Text>
+                <View style={s.hintRow} accessibilityLabel={`오늘 무료 상담 ${perDay}회 중 ${freeLeft}회 남음`}>
+                  <Text style={s.freeK}>오늘 무료상담</Text>
+                  <View style={s.ticket}><Text style={s.ticketText}>{freeLeft}회 남음</Text></View>
                 </View>
               ) : null}
               <Text style={s.hint} numberOfLines={1}>
-                {cat ? `${catOf(cat).label} 고민으로 읽었어요` : free ? (freeLeft === 1 ? '오늘 마지막 무료 상담권이에요' : '') : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
+                {free ?(freeLeft === 1 ? '오늘 마지막 무료 상담이에요' : '') : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
               </Text>
             </View>
             {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
@@ -164,7 +172,7 @@ export default function ConsultHomeScreen() {
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
             <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 상담받기' : `${cost}알로 상담받기`}>
-              <Icon name="arrowUp" size={18} color={colors.white} strokeWidth={2.4} />
+              <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
             </PressableScale>
           </View>
         </View>
@@ -189,24 +197,27 @@ export default function ConsultHomeScreen() {
 }
 
 const INPUT_MAX = 120;
+const TICKET_INK = isDark ? colors.accent : 'rgba(0, 163, 255, 0.8)'; // 디자인: #00A3FF 80%
 const HOME_ROWS = 10;
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 24 },
   intro: { alignItems: 'center', gap: 12, marginTop: 8 },
-  greet: { fontSize: 15, lineHeight: 24, fontWeight: '500', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
-  today: { gap: 4, marginTop: 20, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.lg },
-  todayK: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
-  todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6 },
+  greet: { fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
+  today: { gap: 5, minHeight: 72, marginTop: 28, padding: 16, borderRadius: radius.lg, overflow: 'hidden' },
+  todayImg: { width: '100%', height: '100%', borderRadius: radius.lg }, // 웹은 크기를 안 주면 그림 원래 크기로 그린다
+  todayK: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
+  todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
   footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 18 },
-  between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 6, paddingHorizontal: 4 },
-  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  freeK: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.6 },
   hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
-  ticket: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.pill, backgroundColor: colors.accentSoft },
-  ticketText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.accent, letterSpacing: -0.4 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
-  input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
+  ticket: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
+  ticketText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: TICKET_INK },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingRight: 8, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
+  input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 11, paddingBottom: 11, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
   note: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, textAlign: 'center', marginTop: 6 },
 });

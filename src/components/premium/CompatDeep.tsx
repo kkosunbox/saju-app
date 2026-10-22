@@ -1,9 +1,12 @@
 /** 심층 궁합 — 두 사람의 비교·점수·좋은 날은 서버 계산값, 풀이 글은 AI */
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import ScoreBar from '../ScoreBar';
-import { Bullet, Para, Pill, SoftCard, SubHead, Tip, scoreColor } from './Kit';
+import Segmented from '../Segmented';
+import SolidIcon from '../SolidIcon';
+import { ART } from '../Mascot';
+import { Bullet, Para, SoftCard, SubHead, Tip } from './Kit';
 import { PartPending, ReadingBanner } from './Reading';
 import { CompatibilityResult, User } from '../../types';
 import { WEEK, pText, toSajuFull } from '../../services/premium/helpers';
@@ -13,17 +16,21 @@ import { TG } from '../../services/premium/data';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
-import { colors } from '../../theme/colors';
+import { colors, isDark } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
 const EK = (e: keyof typeof ELEMENT_INFO) => ELEMENT_INFO[e].ko;
 const AXES = ['에너지', '정보', '판단', '생활'];
+// MBTI 축 타일 글자색 — 라이트는 디자인의 진한 초록·갈색, 다크는 밝은 톤
+const OK_INK = isDark ? colors.success : '#07883C';
+const CARE_INK = isDark ? colors.thai : '#C07F10';
 
 export default function CompatDeep({ u, r, D, reading, onRetry }: {
   u: User; r: CompatibilityResult; D: DeepCompatibility; reading: ReadingView<CompatReading> | null; onRetry(): void;
 }) {
   const p = r.target; const A = toSajuFull(D.me), B = toSajuFull(D.partner);
   const nmA = u.nickname, nmB = p.nickname;
+  const [adviceFor, setAdviceFor] = useState<'me' | 'partner'>('me');
   const writing = reading?.status === 'writing';
   const { bond, fields, together } = reading?.parts ?? {};
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
@@ -37,9 +44,15 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   ].filter((t): t is string => !!t);
   const F = RELATIONSHIP_INFO[r.relationship].fields;
   const scoreRows: [keyof CompatReading['fields'], string, number][] = [
-    ['love', `${RELATIONSHIP_INFO[r.relationship].seal} ${F.love}`, r.love], ['life', `家 ${F.life}`, Math.round((r.personality + r.money) / 2)], ['talk', `言 ${F.talk}`, r.conversation], ['money', `財 ${F.money}`, r.money],
+    ['love', F.love, r.love], ['life', F.life, Math.round((r.personality + r.money) / 2)], ['talk', F.talk, r.conversation], ['money', F.money, r.money],
   ];
   const theirMbti = p.mbti;
+  const advice = adviceFor === 'me' ? { who: nmA, text: together?.forMe } : { who: nmB, text: together?.forPartner };
+  const table: [string, string, string, boolean?][] = [
+    ...rows.map(([l, f]): [string, string, string] => [l, f(A), f(B)]),
+    ['MBTI', u.mbti, p.mbti ?? '모름', !p.mbti],
+    ['혈액형', `${u.bloodType}형`, p.bloodType ? `${p.bloodType}형` : '모름', !p.bloodType],
+  ];
 
   return (
     <>
@@ -47,84 +60,104 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
       <Card style={{ marginTop: 16 }}>{bond ? <><Text style={txt.h3}>{bond.headline}</Text><Para>{bond.summary}</Para></> : pending(4)}</Card>
 
       <SubHead title="두 사람 한눈에" />
-      <Card style={{ paddingVertical: 14, paddingHorizontal: 10 }}>
-        <View style={s.cpRow}><Text style={s.cpL} /><Text style={s.cpH}>{nmA}</Text><Text style={s.cpH}>{nmB}</Text></View>
-        {rows.map(([l, f]) => <View key={l} style={s.cpRow}><Text style={[txt.caption, s.cpL]}>{l}</Text><Text style={s.cpV}>{f(A)}</Text><Text style={s.cpV}>{f(B)}</Text></View>)}
-        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>MBTI</Text><Text style={s.cpV}>{u.mbti}</Text><Text style={[s.cpV, !p.mbti && s.cpUnknown]}>{p.mbti ?? '모름'}</Text></View>
-        <View style={s.cpRow}><Text style={[txt.caption, s.cpL]}>혈액형</Text><Text style={s.cpV}>{u.bloodType}형</Text><Text style={[s.cpV, !p.bloodType && s.cpUnknown]}>{p.bloodType ? `${p.bloodType}형` : '모름'}</Text></View>
+      <View style={s.table}>
+        <View style={s.tRow}>
+          <View style={s.tL} />
+          <View style={s.tHead}><Image source={ART.faceA} style={s.face} /><Text style={s.tV}>{nmA}</Text></View>
+          {/* 두 이름 사이 하트 — 폭 0인 칸에 겹쳐 둔다 */}
+          <View style={s.tMid}><SolidIcon name="heart" size={13} color={colors.love} /></View>
+          <View style={s.tHead}><Image source={ART.faceB} style={s.face} /><Text style={s.tV}>{nmB}</Text></View>
+        </View>
+        {table.map(([l, a, b, unknown]) => (
+          <View key={l} style={[s.tRow, s.tLine]}>
+            <Text style={[s.tLabel, s.tL]}>{l}</Text>
+            <Text style={[s.tV, s.tCol]}>{a}</Text>
+            <Text style={[s.tV, s.tCol, unknown && s.tUnknown]}>{b}</Text>
+          </View>
+        ))}
+      </View>
+
+      <SubHead title="사주로 본 인연" />
+      {tags.length ? <View style={s.chips}>{tags.map((t, i) => <View key={t} style={[s.tag, { backgroundColor: i % 2 ? colors.mbtiBg : colors.workBg }]}><Text style={s.tagText}>{t}</Text></View>)}</View> : null}
+      {bond || writing ? <Card style={{ marginTop: tags.length ? 16 : 0, padding: 16 }}>{bond ? <Text style={s.body}>{bond.bond}</Text> : pending(4)}</Card> : null}
+
+      <SubHead title="서로에게 어떤 사람일까" />
+      <Card style={{ padding: 16, gap: 16 }}>
+        <View>
+          <Text style={s.whoLine}><Text style={s.whoName}>{nmA}</Text> 님에게 <Text style={s.whoName}>{nmB}</Text> 님은? <Text style={s.whoTg}>{TG[D.tenGodMeToPartner]}</Text></Text>
+          {bond ? <Text style={[s.body, { marginTop: 8 }]}>{bond.partnerToMe}</Text> : pending(2)}
+        </View>
+        <View>
+          <Text style={s.whoLine}><Text style={s.whoName}>{nmB}</Text> 님에게 <Text style={s.whoName}>{nmA}</Text> 님은? <Text style={s.whoTg}>{TG[D.tenGodPartnerToMe]}</Text></Text>
+          {bond ? <Text style={[s.body, { marginTop: 8 }]}>{bond.meToPartner}</Text> : pending(2)}
+        </View>
+        <View>
+          <Text style={s.title}>{r.relationship === 'lover' ? '서로 끌리는 이유' : '서로 잘 맞는 이유'}</Text>
+          {bond ? <Text style={[s.body, { marginTop: 4 }]}>{bond.attraction}</Text> : pending(2)}
+        </View>
       </Card>
 
-      <SubHead title="命 사주로 본 인연" />
-      <Card>
-        {tags.length ? <View style={s.chips}>{tags.map(t => <Pill key={t}>{t}</Pill>)}</View> : null}
-        {bond ? <Para mt={tags.length ? 12 : 0}>{bond.bond}</Para> : pending(4)}
-      </Card>
-
-      <SubHead title="對 서로에게 어떤 사람일까" />
-      <Card>
-        <Text style={s.label}>{nmA}님에게 {nmB}님은 · {TG[D.tenGodMeToPartner]}</Text>
-        {bond ? <Para mt={4}>{bond.partnerToMe}</Para> : pending(2)}
-        <Text style={[s.label, { marginTop: 14 }]}>{nmB}님에게 {nmA}님은 · {TG[D.tenGodPartnerToMe]}</Text>
-        {bond ? <Para mt={4}>{bond.meToPartner}</Para> : pending(2)}
-        <Text style={[s.label, { marginTop: 14 }]}>{r.relationship === 'lover' ? '서로 끌리는 이유' : '서로 잘 맞는 이유'}</Text>
-        {bond ? <Para mt={4}>{bond.attraction}</Para> : pending(2)}
-      </Card>
-
-      <SubHead title="性 네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
-      <Card>
-        {theirMbti
-          ? <View style={s.chips}>{AXES.map((x, i) => <Pill key={x} tone={u.mbti[i] === theirMbti[i] ? 'ok' : 'care'}>{`${x} ${u.mbti[i]}×${theirMbti[i]}`}</Pill>)}</View>
-          : <Text style={txt.caption}>{nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.</Text>}
-        {bond ? <Para mt={12}>{bond.views}</Para> : pending(3)}
-      </Card>
+      <SubHead title="네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
+      {theirMbti
+        ? (
+          <View style={s.axes}>
+            {AXES.map((x, i) => {
+              const same = u.mbti[i] === theirMbti[i];
+              return (
+                <View key={x} style={[s.axis, { backgroundColor: same ? colors.okBg : colors.careBg }]}>
+                  <Text style={[s.axisText, { color: same ? OK_INK : CARE_INK }]}>{`${x} ${u.mbti[i]}×${theirMbti[i]}`}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )
+        : <Text style={txt.caption}>{nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.</Text>}
+      {bond || writing ? <Card style={{ marginTop: 16, padding: 16 }}>{bond ? <Text style={s.body}>{bond.views}</Text> : pending(3)}</Card> : null}
 
       <SubHead title="분야별 궁합 풀이" />
-      {scoreRows.map(([k, t, v]) => {
-        const f = fields?.[k];
-        return (
-          <Card key={k} style={{ marginTop: 10 }}>
-            <View style={s.between}><Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{t}</Text><Text style={{ fontWeight: '700', color: scoreColor(v) }}>{v}</Text></View>
-            <View style={{ marginTop: 8, marginBottom: 2 }}><ScoreBar value={v} color={colors.love} height={5} /></View>
-            {f ? <><Text style={[txt.bodyStrong, { marginTop: 8 }]}>{f.headline}</Text><Para>{f.text}</Para><Text style={[txt.small, { marginTop: 6, color: colors.purple }]}>둘이 해 볼 것 · {f.tip}</Text></> : pending(3)}
-          </Card>
-        );
-      })}
+      <Card style={{ padding: 16, gap: 24 }}>
+        {scoreRows.map(([k, t, v]) => {
+          const f = fields?.[k];
+          return (
+            <View key={k}>
+              <View style={s.between}><Text style={s.title}>{t}</Text><Text style={[s.title, { fontVariant: ['tabular-nums'] }]}>{v}</Text></View>
+              <View style={{ marginTop: 8 }}><ScoreBar value={v} color={colors.accent} track={colors.lavender} height={6} /></View>
+              {f ? <><Text style={[s.title, { marginTop: 12 }]}>{f.headline}</Text><Text style={[s.body, { marginTop: 4 }]}>{f.text}</Text><Text style={[s.body, { marginTop: 6, color: colors.purpleSoft }]}>둘이 해 볼 것 · {f.tip}</Text></> : pending(3)}
+            </View>
+          );
+        })}
+      </Card>
 
-      <SubHead title="爭 부딪히기 쉬운 순간" />
+      <SubHead title="부딪히기 쉬운 순간" />
       {together ? together.frictions.map((f, i) => (
-        <Card key={i} style={{ marginTop: i ? 10 : 0 }}>
-          <Text style={txt.h3}>{f.title}</Text>
-          <Para>{f.text}</Para>
-          <SoftCard style={{ marginTop: 10 }}>
+        <Card key={i} style={{ marginTop: i ? 12 : 0, padding: 16 }}>
+          <Text style={s.title}>{f.title}</Text>
+          <Text style={[s.body, { marginTop: 4 }]}>{f.text}</Text>
+          <SoftCard style={{ marginTop: 12, padding: 12, backgroundColor: colors.surface, borderRadius: radius.sm }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>이렇게 말해 보세요</Text>
-            <Text style={{ fontSize: 14.5, lineHeight: 22, marginTop: 4, color: colors.ink }}>{f.say}</Text>
+            <Text style={[s.body, { marginTop: 4 }]}>{f.say}</Text>
           </SoftCard>
         </Card>
       )) : <Card>{pending(5)}</Card>}
 
       <SubHead title="서로를 위한 조언" />
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        {([[nmA, together?.forMe], [nmB, together?.forPartner]] as [string, string | undefined][]).map(([who, t]) => (
-          <Card key={who} style={{ flex: 1, padding: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>{who}님께</Text>
-            {t ? <Text style={{ fontSize: 14, lineHeight: 21, marginTop: 6, color: colors.ink }}>{t}</Text> : pending(3)}
-          </Card>
+      <Segmented<'me' | 'partner'> options={[{ key: 'me' as const, label: `${nmA}님께` }, { key: 'partner' as const, label: `${nmB}님께` }]} value={adviceFor} onChange={setAdviceFor} />
+      <Card style={{ marginTop: 16, padding: 16 }}>
+        <Text style={s.title}>{advice.who}님을 위한 조언</Text>
+        {advice.text ? <Text style={[s.body, { marginTop: 4 }]}>{advice.text}</Text> : pending(3)}
+      </Card>
+      {together ? <Card style={{ marginTop: 12, padding: 16 }}><Text style={[s.title, { marginBottom: 4 }]}>오래 가는 법</Text>{together.lasting.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card> : null}
+
+      <SubHead title="앞으로 30일, 둘에게 좋은 날" />
+      <View style={{ flexDirection: 'row', gap: 16 }}>
+        {D.goodDays.map(g => (
+          <View key={g.iso} style={s.goodDay}>
+            <Text style={s.goodDate}>{parseISO(g.iso).m}/{g.d}</Text>
+            <Text style={s.goodWeek}>{WEEK[weekdayOf(g.iso)]}요일</Text>
+          </View>
         ))}
       </View>
-      {together ? <Card style={{ marginTop: 12 }}><Text style={s.label}>오래 가는 법</Text>{together.lasting.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card> : null}
-
-      <Card style={{ marginTop: 12 }}>
-        <Text style={txt.h3}>앞으로 30일, 둘에게 좋은 날</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-          {D.goodDays.map(g => (
-            <View key={g.iso} style={s.goodDay}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.love }}>{parseISO(g.iso).m}/{g.d}</Text>
-              <Text style={txt.caption}>{WEEK[weekdayOf(g.iso)]}요일</Text>
-            </View>
-          ))}
-        </View>
-        {together ? <View style={{ marginTop: 10 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</View> : null}
-      </Card>
+      {together ? <Card style={{ marginTop: 12, padding: 16 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</Card> : null}
       {together ? <Tip title="두 사람에게">{together.closing}</Tip> : null}
     </>
   );
@@ -132,12 +165,29 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  cpRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4.5 },
-  cpL: { width: 64, textAlign: 'center' },
-  cpH: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '700', color: colors.purple },
-  cpV: { flex: 1, textAlign: 'center', fontSize: 14, fontWeight: '600', color: colors.ink },
-  cpUnknown: { color: colors.inkMute, fontWeight: '500' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
-  goodDay: { flex: 1, alignItems: 'center', backgroundColor: colors.loveBg, borderRadius: radius.md, paddingVertical: 12 },
+  title: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
+  body: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  table: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card },
+  tRow: { height: 42, flexDirection: 'row', alignItems: 'center', paddingRight: 10 },
+  tLine: { borderTopWidth: 1, borderTopColor: colors.line },
+  tL: { width: 82, textAlign: 'center' },
+  tCol: { flex: 1, textAlign: 'center' },
+  tHead: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  tMid: { width: 0, alignItems: 'center', overflow: 'visible' },
+  face: { width: 20, height: 20, borderRadius: 10 },
+  tLabel: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  tV: { fontSize: 13, lineHeight: 18, fontWeight: '600', letterSpacing: -0.65, color: colors.ink },
+  tUnknown: { color: colors.inkMute, fontWeight: '500' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { height: 32, paddingHorizontal: 16, borderRadius: 30, justifyContent: 'center' },
+  tagText: { fontSize: 14, fontWeight: '500', color: colors.ink, opacity: 0.8 },
+  whoLine: { fontSize: 13, fontWeight: '500', letterSpacing: -0.52, color: colors.inkMute },
+  whoName: { fontSize: 18, fontWeight: '600', letterSpacing: -0.9, color: colors.ink },
+  whoTg: { fontSize: 13, fontWeight: '700', color: colors.purpleSoft },
+  axes: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  axis: { flexBasis: '45%', flexGrow: 1, height: 44, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  axisText: { fontSize: 16, fontWeight: '600', letterSpacing: -0.8 },
+  goodDay: { flex: 1, height: 63, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? colors.loveBg : '#FFE7E7', borderRadius: radius.lg },
+  goodDate: { fontSize: 18, fontWeight: '700', letterSpacing: -0.72, color: colors.blood },
+  goodWeek: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
 });

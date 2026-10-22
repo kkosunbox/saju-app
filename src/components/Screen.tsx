@@ -1,6 +1,6 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, ViewStyle, RefreshControlProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useRef } from 'react';
+import { Animated, StyleSheet, Text, View, ViewStyle, RefreshControlProps } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
 import { useTabBack } from '../navigation/tabBack';
@@ -24,17 +24,25 @@ interface Props {
   refreshControl?: React.ReactElement<RefreshControlProps>;
   footer?: React.ReactNode; // 하단 고정 버튼 영역
   onBack?: () => void;      // 뒤로 가기를 화면 안 단계로 돌릴 때 (예: 결과 → 입력)
+  /**
+   * 상단 바를 본문 위에 띄운다: 맨 위에서는 바 배경이 투명해 본문이 바 자리까지 보이고(콘텐츠의 동전 마스코트),
+   * 스크롤을 내리면 바 배경이 나타나 그 아래로 지나가는 본문을 가린다
+   */
+  floatingBar?: boolean;
 }
 
-export default function Screen({ children, title, largeTitle, back, scroll = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack }: Props) {
+export default function Screen({ children, title, largeTitle, back, scroll = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
   const nav = useNavigation();
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const floating = floatingBar && scroll;
   const tabBack = useTabBack();
   // 탭 화면(큰 제목)에도 뒤로 가기: 화면 안 단계 → 이전에 보던 탭 → 홈
   const showBack = back || !!largeTitle || !!onBack;
   const goBack = onBack ?? (largeTitle && !back ? tabBack : () => nav.goBack());
   const heading = title ?? largeTitle;
   const bar = (heading || showBack || right) && (
-    <View style={s.bar}>
+    <View style={[s.bar, floating && [s.floatBar, { top: insets.top }]]}>
       {showBack ? (
         <PressableScale onPress={goBack} hitSlop={10} style={s.iconBtn} accessibilityLabel="뒤로 가기" scaleTo={0.9}>
           <Icon name="chevronLeft" size={24} strokeWidth={2} />
@@ -48,22 +56,36 @@ export default function Screen({ children, title, largeTitle, back, scroll = tru
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, 0.64]} style={s.sky} /> : null}
-      {bar}
+      {floating ? null : bar}
       {scroll ? (
-        <ScrollView contentContainerStyle={[s.content, contentStyle]} showsVerticalScrollIndicator={false} refreshControl={refreshControl} keyboardShouldPersistTaps="handled">
+        <Animated.ScrollView
+          contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
+          onScroll={floating ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false }) : undefined} scrollEventThrottle={16}
+        >
           {children}
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
       )}
+      {floating ? (
+        // 바 배경: 화면 맨 위 그라디언트와 같은 그림을 바 높이만큼 잘라, 스크롤을 내리면 나타나게 한다
+        <Animated.View pointerEvents="none" style={[s.barBg, { height: insets.top + BAR_H, opacity: scrollY.interpolate({ inputRange: [0, 16], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+          {sky ? <LinearGradient colors={gradients.skySoft} locations={[0, 0.64]} style={s.sky} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: bg }]} />}
+        </Animated.View>
+      ) : null}
+      {floating ? bar : null}
       {footer ? <View style={s.footer}>{footer}</View> : null}
     </SafeAreaView>
   );
 }
 
+const BAR_H = 56;
+
 const s = StyleSheet.create({
   sky: { position: 'absolute', top: 0, left: 0, right: 0, height: 150 },
-  bar: { height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_PX },
+  bar: { height: BAR_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_PX },
+  floatBar: { position: 'absolute', left: 0, right: 0 },
+  barBg: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   iconBtn: { width: 32, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
   title: { ...txt.h2, flex: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: 12 },

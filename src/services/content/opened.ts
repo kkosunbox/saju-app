@@ -29,8 +29,9 @@ function load(uid: string): Promise<Stamps> {
   return loading;
 }
 
-function save(uid: string, kind: OpenKind, stamp: string) {
+function save(uid: string, kind: OpenKind, stamp: string | undefined) {
   const stamps = { ...(mem?.uid === uid ? mem.stamps : {}), [kind]: stamp };
+  if (stamp === undefined) delete stamps[kind];
   mem = { uid, stamps };
   AsyncStorage.setItem(KEY(uid), JSON.stringify(stamps)).catch(() => {});
   subs.forEach(f => f());
@@ -39,6 +40,7 @@ function save(uid: string, kind: OpenKind, stamp: string) {
 /**
  * ready: 저장된 값을 읽었는지 (읽기 전엔 봉인도 결과도 그리지 않는다 — 깜빡임 방지)
  * opened: 이번 날짜·프로필로 이미 뽑았는지 · open(): 뽑았다고 기록 (홈 타일도 같이 바뀐다)
+ * reset(): 뽑은 기록을 지워 다시 뽑기 전으로 (테스트용)
  */
 export function useOpened(kind: OpenKind) {
   const { user, today } = useApp();
@@ -56,7 +58,8 @@ export function useOpened(kind: OpenKind) {
   }, [uid]);
 
   const open = useCallback(() => { if (uid) save(uid, kind, stamp); }, [uid, kind, stamp]);
-  return { ready: !!stamps, opened: stamps?.[kind] === stamp, open };
+  const reset = useCallback(() => { if (uid) save(uid, kind, undefined); }, [uid, kind]);
+  return { ready: !!stamps, opened: stamps?.[kind] === stamp, open, reset };
 }
 
 /** 결과 화면에 다른 길(알림·링크·기간별 운세)로 먼저 들어왔으면 그걸로 뽑은 셈 */

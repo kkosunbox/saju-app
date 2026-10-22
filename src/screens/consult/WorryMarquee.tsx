@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, PanResponder, Platform, StyleSheet, Text, 
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../../components/PressableScale';
 import { colors } from '../../theme/colors';
-import { radius, SCREEN_PX } from '../../theme/typography';
+import { SCREEN_PX } from '../../theme/typography';
 
 const SPEED = 0.025; // px/ms — 천천히 흘러간다
 const FADE = 28; // 좌우 끝에서 화면 바탕으로 스며드는 폭
@@ -89,7 +89,7 @@ const s = StyleSheet.create({
   clip: { marginHorizontal: -SCREEN_PX, overflow: 'hidden' },
   track: { flexDirection: 'row' },
   fade: { position: 'absolute', top: 0, bottom: 0, width: FADE },
-  row: { flexDirection: 'row', gap: 8, paddingRight: 8 },
-  chip: { height: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: colors.card },
-  chipT: { fontSize: 14, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
+  row: { flexDirection: 'row', gap: 16, paddingRight: 16 },
+  chip: { height: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.card },
+  chipT: { fontSize: 14, lineHeight: 22, fontWeight: '500', color: colors.ink, letterSpacing: 0.1 },
 });

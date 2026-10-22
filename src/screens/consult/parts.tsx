@@ -7,8 +7,10 @@ import { ITEMS, Item } from '../../services/premium/catalog';
 import { ConsultCat, catOf } from '../../services/content/consult';
 import { ConsultView, HelpLine } from '../../services/server/consultApi';
 import { colors } from '../../theme/colors';
-import { fonts, radius, txt } from '../../theme/typography';
+import { radius, txt } from '../../theme/typography';
+import Icon from '../../components/Icon';
 import Mascot from '../../components/Mascot';
+import CatIcon from './CatIcon';
 
 export const kstDate = (iso: string | null) => (iso ? new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10).replace(/-/g, '.') : '');
 /** 같은 달끼리 묶는 이름 (KST, 2026년 10월) */
@@ -42,20 +44,21 @@ export function useWebAutoGrow(ref: RefObject<TextInput | null>, value: string, 
   }, [ref, value, max]);
 }
 
-/** 상담 기록 카드 — 한 줄에 한 상담 (주제 한자 · 답의 한 줄 · 날짜 · 남은 이어 묻기) */
+/** 상담 기록 카드 — 한 줄에 한 상담 (주제 아이콘 · 답의 한 줄 · 날짜 · 남은 이어 묻기 · ›) */
 export function ConsultRows({ rows, onOpen }: { rows: ConsultView[]; onOpen(e: ConsultView): void }) {
   return (
-    <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
+    <Card style={{ padding: 0, overflow: 'hidden' }}>
       {rows.map((e, i) => {
         const C = catOf(e.topic);
         const badge = e.locked ? '미리보기' : e.followUpsLeft > 0 ? `${e.followUpsLeft}번 더 물어볼 수 있어요` : '';
         return (
           <PressableScale key={e.id} onPress={() => onOpen(e)} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98} accessibilityLabel={e.answer?.headline ?? C.label}>
-            <View style={s.histH}><Text style={s.histHT}>{C.hanja}</Text></View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
-              <Text style={txt.caption}>{C.label} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
+            <CatIcon cat={e.topic} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.histT} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
+              <Text style={s.histM} numberOfLines={1}>{C.label.replace('·', ' · ')} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
             </View>
+            <Icon name="chevronRight" size={16} color={colors.inkMute} />
           </PressableScale>
         );
       })}
@@ -198,10 +201,10 @@ export const TOPIC_REC: Record<ConsultCat, { key: string; title: string; desc: s
 };
 
 const s = StyleSheet.create({
-  hist: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  histLine: { borderTopWidth: 1, borderTopColor: colors.line },
-  histH: { width: 36, height: 36, borderRadius: 8, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  histHT: { fontFamily: fonts.serif, fontSize: 16, fontWeight: '700', color: colors.purpleSoft },
+  hist: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 64, paddingVertical: 12, paddingLeft: 12, paddingRight: 16 },
+  histLine: { borderTopWidth: 1, borderTopColor: colors.lineStrong },
+  histT: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
+  histM: { fontSize: 11, lineHeight: 18, color: colors.inkMute, letterSpacing: -0.55 },
   crisis: { marginTop: 16, borderWidth: 1.5, borderColor: colors.love },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: radius.md, backgroundColor: colors.loveBg },
   mineWrap: { alignItems: 'flex-end', marginTop: 16, gap: 8 },

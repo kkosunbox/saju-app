@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import PressableScale from './PressableScale';
-import Mascot from './Mascot';
+import { MascotPeek } from './Mascot';
 import { Coin } from './premium/Kit';
 import { colors } from '../theme/colors';
 import { radius } from '../theme/typography';
@@ -28,7 +28,7 @@ interface Props {
 export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, onPress, accessibilityLabel }: Props) {
   return (
     <PressableScale onPress={onPress} style={s.card} scaleTo={0.98} accessibilityLabel={accessibilityLabel ?? title}>
-      <Mascot name="shadow" size={110} style={s.art} />
+      <MascotPeek width={112} top={17} opacity={0.2} />
       <View style={s.titleRow}>
         <Text style={[s.title, { color: PROMO_TONE[tone] }]}>{title}</Text>
         {isNew ? <View style={s.new}><Text style={s.newText}>NEW</Text></View> : null}
@@ -46,7 +46,6 @@ export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold'
 
 const s = StyleSheet.create({
   card: { minHeight: 110, padding: 16, borderRadius: radius.lg, backgroundColor: colors.heroBg, overflow: 'hidden' },
-  art: { position: 'absolute', right: 0, bottom: -16, opacity: 0.18 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   title: { fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8 },
   // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 반투명 테두리와 줄높이를 정해 둔다

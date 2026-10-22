@@ -4,7 +4,7 @@ import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
-import Ico from '../../components/Ico';
+import SolidIcon, { SolidIconName } from '../../components/SolidIcon';
 import PressableScale from '../../components/PressableScale';
 import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
@@ -19,22 +19,24 @@ import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, shadow, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
-import Mascot, { ArtName } from '../../components/Mascot';
+import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
 import PromoCard from '../../components/PromoCard';
 import GradientBorder from '../../components/GradientBorder';
 import { COPY } from '../../content/copy';
 import { Period } from '../../types';
 
-type Entry = [PremiumKey, string, string, string];
+type Entry = [PremiumKey, SolidIconName, string, string];
 const PERIODS: [Period, ArtName, string, string][] = isDark
   ? [['daily', 'today', '오늘', '#3A3418'], ['weekly', 'week', '주간', '#2E3A18'], ['monthly', 'month', '월간', '#3A1E24'], ['yearly', 'year', '연간', '#2A2140']]
   : [['daily', 'today', '오늘', '#FFFADD'], ['weekly', 'week', '주간', '#F3FFC6'], ['monthly', 'month', '월간', '#FFE4E8'], ['yearly', 'year', '연간', '#F1EAFF']];
 const LIST: [string, Entry[]][] = [
-  ['나의 인생 지도', [['life', '圖', '평생운', '초년 · 중년 · 말년 · 10년 대운'], ['sajuDeep', '命', '상세 사주 해석', '원국 · 오행 · 나의 본성']]],
-  ['올해와 이달', [['newyear', '年', '신년운세', '올해 · 새해 미리보기 · 분기 전략'], ['monthly', '月', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션']]],
-  ['테마 운세', [['theme-love', '緣', '연애·결혼', '연애 스타일 · 인연의 해'], ['theme-money', '財', '재물', '돈 성향 · 재물 흐름'], ['theme-career', '業', '직업·적성', '맞는 일 · 커리어 상승기']]],
-  ['도구', [['lucky', '日', '길일 찾기', '이사 · 계약 · 고백 · 면접']]],
+  ['나의 인생 지도', [['life', 'book', '평생운', '초년 · 중년 · 말년 · 10년대운'], ['sajuDeep', 'clipboard', '상세 사주 해석', '원국 · 오행 · 나의 본성']]],
+  ['올해와 이달', [['newyear', 'calendar', '신년운세', '올해 · 새해 미리보기 · 분기 전략'], ['monthly', 'calendarMoon', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션']]],
+  ['테마 운세', [['theme-love', 'heart', '연애 · 결혼', '연애 스타일 · 인연의 해'], ['theme-money', 'coins', '재물', '돈 성향 · 재물 흐름'], ['theme-career', 'work', '직업 · 적성', '맞는 일 · 커리어 상승기']]],
+  ['도구', [['lucky', 'calendarStar', '길일 찾기', '이사 · 계약 · 고백 · 면접']]],
 ];
+/** 아이콘마다 원본 여백이 달라 Figma에서 보이는 크기에 맞춘 값 (book 은 20칸 안에 여백이 있다) */
+const ICON_SIZE: Partial<Record<SolidIconName, number>> = { book: 20, coins: 17 };
 
 /** 콘텐츠 탭 — 무료로 즐기고(공유) → 궁금한 건 프리미엄으로 */
 export default function ContentScreen() {
@@ -59,13 +61,14 @@ export default function ContentScreen() {
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
-    ['friends', '친구 궁합 초대', '링크 하나로 궁합 보기', invite],
+    ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);
 
   return (
-    <Screen largeTitle="콘텐츠" sky>
-      <Mascot name="coin" size={78} style={s.coinArt} />
+    // 동전 마스코트가 상단 바 자리까지 올라가 있어 바를 본문 위에 띄운다 (스크롤하면 바 배경 아래로 지나간다)
+    <Screen largeTitle="콘텐츠" sky floatingBar>
+      <Mascot name="coin" size={81} style={s.coinArt} />
       <PressableScale onPress={() => nav.navigate('Wallet')} style={[s.points, shadow.hero]} scaleTo={0.98} accessibilityLabel={`내 알 ${fmtP(points)} · 알 주머니 열기`}>
         <Coin size={32} />
         <Text style={s.pointsV}>{fmtN(points)}</Text>
@@ -112,8 +115,7 @@ export default function ContentScreen() {
 
       {bundle && (
         <GradientBorder width={1.5} outer={{ marginTop: 16 }} style={s.bundle}>
-          <Mascot name="shadow" size={137} style={s.bundleArt} />
-          <Mascot size={92} style={s.bundleMascot} />
+          <MascotPeek width={112} top={7.5} opacity={0.55} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={s.bundleT}>인생 패키지</Text>
             <View style={s.bundleTag}><Text style={s.bundleTagText}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
@@ -134,10 +136,10 @@ export default function ContentScreen() {
           <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
             {items.map(([k, e, t, d], i) => (
               <PressableScale key={k} onPress={() => openPremium(nav, k)} style={[s.lrow, i > 0 && s.line]} scaleTo={0.98} accessibilityLabel={t}>
-                <Ico ch={e} size={40} />
+                <View style={s.lico}><SolidIcon name={e} size={ICON_SIZE[e] ?? 16} color={colors.accent} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{t}</Text>
-                  <Text style={txt.small}>{d}</Text>
+                  <Text style={s.lT}>{t}</Text>
+                  <Text style={s.lD}>{d}</Text>
                 </View>
                 <PriceTag item={defaultItem(k as Exclude<PremiumKey, 'lounge'>, today)} />
               </PressableScale>
@@ -150,11 +152,11 @@ export default function ContentScreen() {
         {UPCOMING.filter(c => c.status === 'soon').map(c => (
           <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
             <View style={s.freeHead}>
-              <Text style={s.soonH}>{c.hanja}</Text>
+              <Mascot name={c.art} size={39} />
               {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <LineTag label="무료" /> : <CostPill cost={c.cost ?? 0} small />}
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink, marginTop: 8 }} numberOfLines={1}>{c.title}</Text>
-            <Text style={[txt.caption, { marginTop: 2 }]} numberOfLines={1}>{c.hook}</Text>
+            <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{c.title}</Text>
+            <Text style={s.freeD} numberOfLines={1}>{c.hook}</Text>
           </PressableScale>
         ))}
       </View>
@@ -163,7 +165,7 @@ export default function ContentScreen() {
         {peek ? (
           <>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Ico ch={peek.hanja} size={48} />
+              <Mascot name={peek.art} size={48} />
               <View style={{ flex: 1 }}>
                 <Text style={txt.caption}>곧 오픈 · {peek.tier === 'free' ? '무료' : `${peek.cost}알`}</Text>
                 <Text style={txt.h2}>{peek.title}</Text>
@@ -186,8 +188,8 @@ export default function ContentScreen() {
 }
 
 const s = StyleSheet.create({
-  coinArt: { position: 'absolute', right: 54, top: -4, zIndex: 2 },
-  points: { marginTop: 58, flexDirection: 'row', alignItems: 'center', gap: 12, height: 64, paddingHorizontal: 24, borderRadius: radius.lg, backgroundColor: colors.heroBg },
+  coinArt: { position: 'absolute', right: 49, top: 0, zIndex: 2 },
+  points: { marginTop: -1, flexDirection: 'row', alignItems: 'center', gap: 12, height: 64, paddingHorizontal: 24, borderRadius: radius.lg, backgroundColor: colors.heroBg },
   pointsV: { fontSize: 20, fontWeight: '800', color: colors.white, letterSpacing: -0.8 },
   pointsK: { flex: 1, fontSize: 13, color: '#DDDDDD', letterSpacing: -0.6 },
   periods: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -200,15 +202,16 @@ const s = StyleSheet.create({
   freeT: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5, marginTop: 8 },
   freeD: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.6, marginTop: 2 },
   bundle: { padding: 16, paddingBottom: 14 },
-  bundleArt: { position: 'absolute', right: -2, top: 8, opacity: 0.08 },
-  bundleMascot: { position: 'absolute', right: 6, top: 18, opacity: 0.9 },
   bundleT: { fontSize: 16, lineHeight: 18, fontWeight: '700', color: '#00A3FF', letterSpacing: -0.8 },
   bundleTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: colors.seal },
   bundleTagText: { fontSize: 12, lineHeight: 15, fontWeight: '600', color: colors.seal, letterSpacing: 0 },
-  bundleD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8, paddingRight: 110 },
+  bundleD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8, paddingRight: 80 },
   bundleOrig: { fontSize: 13, color: colors.inkMute, textDecorationLine: 'line-through', marginTop: 4 },
+  lico: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  lT: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  lD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 4 },
   lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
   line: { borderTopWidth: 1, borderTopColor: colors.line },
-  soon: { width: '47.5%', flexGrow: 1, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong, borderStyle: 'dashed' },
-  soonH: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: colors.inkMute },
+  soon: { width: '47.5%', flexGrow: 1, minHeight: 118, padding: 15, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
+  soonT: { fontSize: 13, letterSpacing: -0.8 },
 });

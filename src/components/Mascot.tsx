@@ -25,6 +25,24 @@ export const ART = {
   week: require('../../assets/images/period-week.png'),
   month: require('../../assets/images/period-month.png'),
   year: require('../../assets/images/period-year.png'),
+  compatHero: require('../../assets/images/compat-hero.webp'), // 궁합 결과 상단 밤하늘 카드
+  shareBanner: require('../../assets/images/share-card-banner.webp'), // 카드로 공유하기 배너 바탕
+  crush: require('../../assets/images/crush-mascot.webp'), // 잠긴 리포트 카드 오른쪽 아래
+  faceA: require('../../assets/images/compat-face-a.webp'), // 두 사람 비교표의 나
+  faceB: require('../../assets/images/compat-face-b.webp'), // 두 사람 비교표의 상대
+  // 콘텐츠 탭 "곧 오픈" 카드 그림
+  'soon-reunion': require('../../assets/images/soon-reunion.webp'),
+  'soon-loveTiming': require('../../assets/images/soon-lovetiming.webp'),
+  'soon-jobTiming': require('../../assets/images/soon-jobtiming.webp'),
+  'soon-friendRank': require('../../assets/images/soon-friendrank.webp'),
+  'soon-marryAge': require('../../assets/images/soon-marryage.webp'),
+  'soon-tarot': require('../../assets/images/soon-tarot.webp'),
+  'soon-dream': require('../../assets/images/soon-dream.webp'),
+  'soon-boss': require('../../assets/images/soon-boss.webp'),
+  'soon-exam': require('../../assets/images/soon-exam.webp'),
+  'soon-baby': require('../../assets/images/soon-baby.webp'),
+  'soon-pet': require('../../assets/images/soon-pet.webp'),
+  'soon-name': require('../../assets/images/soon-name.webp'),
 } as const;
 export type ArtName = keyof typeof ART;
 
@@ -34,7 +52,18 @@ const RATIO: Partial<Record<ArtName, number>> = {
   'pose-saju': 581 / 535, 'pose-thai': 573 / 501, 'pose-mbti': 550 / 535, 'pose-blood': 612 / 499,
   mbti: 718 / 683, pastLife: 718 / 683, friends: 1254 / 766,
   today: 519 / 508, week: 519 / 508, month: 519 / 508, year: 519 / 508,
+  compatHero: 984 / 679, shareBanner: 984 / 204, crush: 336 / 411,
+  'soon-loveTiming': 268 / 233, 'soon-jobTiming': 244 / 233, 'soon-friendRank': 269 / 232, 'soon-marryAge': 256 / 233, 'soon-tarot': 276 / 238, 'soon-dream': 268 / 233, 'soon-boss': 268 / 233, 'soon-exam': 277 / 264, 'soon-baby': 268 / 232, 'soon-pet': 277 / 264, 'soon-name': 268 / 232,
 };
+
+/**
+ * 어두운 카드 오른쪽 끝에서 안쪽을 바라보며 들여다보는 마스코트 (Figma의 마스코트 스크린샷 자리).
+ * 그림을 좌우로 뒤집어 잘린 쪽을 카드 오른쪽 끝에 붙이고, 아래는 카드 밖으로 잘린다 — 카드에 overflow: 'hidden' 필요.
+ * width·top은 Figma에서 그 그림 칸의 너비와 카드 위로부터의 거리 그대로. 높이가 내용 따라 달라지는 카드는 top 대신 bottom으로 아래에 붙인다.
+ */
+export function MascotPeek({ width, top, bottom, right = 0, opacity }: { width: number; top?: number; bottom?: number; right?: number; opacity: number }) {
+  return <Mascot name="shadow" size={width / RATIO.shadow!} style={{ position: 'absolute', right, top, bottom, opacity, transform: [{ scaleX: -1 }] }} />;
+}
 
 export default function Mascot({ name = 'mascot', size, style }: { name?: ArtName; size: number; style?: StyleProp<ImageStyle> }) {
   const r = RATIO[name] ?? 1;

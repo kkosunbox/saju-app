@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Mascot from './Mascot';
+import MascotPolish from './MascotPolish';
 import { AnimatedCircle } from './ScoreRing';
 import { colors, isDark } from '../theme/colors';
 import { useReducedMotion, motion } from '../utils/motion';
 import { haptic } from '../utils/haptic';
+import { useMascotPlay } from './useMascotPlay';
 
 const SIZE = 103;
 const RING = 136;
@@ -17,11 +19,14 @@ const HINT_H = 36; // 안내 알약 + 위 여백
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
  * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 튀어 올라 onDrawn.
- * busy 이면(풀이를 기다리는 중) 점선 링이 돌고 마스코트가 갸웃거린다.
+ * busy 이면(풀이를 기다리는 중) 천으로 닦고 광을 낸다.
+ * 풀이 완료 뒤엔 누를 때마다 네잎클로버가 떠오르고 후광이 차오른다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
 export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: boolean; busy?: boolean; onDrawn(): void }) {
   const reduced = useReducedMotion();
+  const playful = !sealed && !busy;
+  const play = useMascotPlay(playful, reduced);
   const [y] = useState(() => new Animated.Value(0));
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
@@ -32,27 +37,19 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
   useEffect(() => {
     Animated.timing(hintO, { toValue: showHint ? 1 : 0, duration: reduced ? 0 : 420, delay: showHint || reduced ? 0 : 350, easing: motion.easeInOut, useNativeDriver: false }).start();
   }, [showHint, reduced, hintO]);
-  // 풀이를 기다리는 동안: 점선 링이 돌고, 마스코트는 좌우로 갸웃
-  const [spin] = useState(() => new Animated.Value(0));
-  useEffect(() => {
-    if (!busy || reduced) return;
-    spin.setValue(0);
-    const a = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 2400, easing: t => t, useNativeDriver: true }));
-    a.start();
-    return () => a.stop();
-  }, [busy, reduced, spin]);
   const done = useRef(false);
   const ticks = useRef(0);
+  useEffect(() => { if (sealed) done.current = false; }, [sealed]); // 뽑은 기록을 지우면 다시 뽑을 수 있게
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || busy) { y.setValue(0); return; }
     const a = Animated.loop(Animated.sequence([
       Animated.timing(y, { toValue: -6, duration: 1400, useNativeDriver: true }),
       Animated.timing(y, { toValue: 0, duration: 1400, useNativeDriver: true }),
     ]));
     a.start();
     return () => a.stop();
-  }, [reduced, y]);
+  }, [reduced, busy, y]);
 
   // 차오르는 동안 네 번 똑딱
   useEffect(() => {
@@ -99,11 +96,13 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
   const lift = jump.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
   const dash = p.interpolate({ inputRange: [0, 1], outputRange: [C, 0] });
 
-  const ringTurn = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const tilt = spin.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['0deg', '-7deg', '0deg', '7deg', '0deg'] });
   const body = (
-    <Animated.View style={{ transform: [{ translateY: lift }, { scaleX }, { scaleY }, { rotate: busy ? tilt : '0deg' }] }}>
-      <Mascot size={SIZE} />
+    <Animated.View style={{ transform: [{ translateY: lift }, { scaleX }, { scaleY }] }}>
+      <Animated.View style={play.style}>
+        <MascotPolish busy={busy} reduced={reduced} size={SIZE}>
+          <Mascot size={SIZE} />
+        </MascotPolish>
+      </Animated.View>
     </Animated.View>
   );
 
@@ -116,20 +115,19 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
       <Pressable
         onPressIn={pressIn}
         onPressOut={pressOut}
-        onPress={reduced ? burst : undefined}
-        disabled={!sealed}
+        onPress={playful ? play.play : sealed && reduced ? burst : undefined}
+        disabled={busy}
         // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
         accessibilityRole="button"
-        accessibilityState={{ disabled: !sealed }}
-        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : undefined}
-        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : undefined}
+        accessibilityState={{ disabled: busy }}
+        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : '행운을 모으는 마스코트'}
+        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 네잎클로버가 떠오르고 연속으로 누르면 빛이 짙어져요' : undefined}
         accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
         onAccessibilityAction={sealed ? burst : undefined}
-        importantForAccessibility={sealed ? 'auto' : 'no-hide-descendants'}
         style={s.hit}
       >
-        {sealed || busy ? (
-          <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: busy ? ringTurn : '0deg' }] }]} pointerEvents="none">
+        {sealed ? (
+          <Animated.View style={StyleSheet.absoluteFill} pointerEvents="none">
           <Svg width={RING} height={RING} pointerEvents="none">
             <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={isDark ? colors.white : colors.accent} strokeOpacity={isDark ? 0.55 : 0.45} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
             <AnimatedCircle
@@ -141,11 +139,13 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
           </Svg>
           </Animated.View>
         ) : null}
+        {play.aura}
         {body}
+        {play.feedback}
       </Pressable>
       <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
         <Animated.View style={[s.hint, { opacity: hintO }]}>
-          <Text style={s.hintText}>{busy ? '풀어보는 중…' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+          <Text style={s.hintText}>{busy ? '행운을 반짝반짝 닦는 중…' : !sealed ? '반짝! 오늘의 운세 준비 완료' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
         </Animated.View>
       </Animated.View>
     </Animated.View>

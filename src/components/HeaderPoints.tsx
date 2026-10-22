@@ -35,6 +35,6 @@ export default function HeaderPoints({ onSave, saveLabel = '공유하기', color
 }
 
 const s = StyleSheet.create({
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingLeft: 4, paddingRight: 8, borderRadius: radius.pill, backgroundColor: colors.lavenderSoft },
-  text: { fontSize: 14, fontWeight: '800', color: colors.ink, letterSpacing: -0.5 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingLeft: 6, paddingRight: 6, borderRadius: radius.pill, backgroundColor: colors.heroBg },
+  text: { fontSize: 14, fontWeight: '800', color: colors.white, letterSpacing: -0.56 },
 });

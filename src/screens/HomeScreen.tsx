@@ -31,6 +31,7 @@ import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
 import { motion } from '../utils/motion';
+import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, shareInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
@@ -92,6 +93,12 @@ export default function HomeScreen() {
     Animated.spring(pop, { toValue: 1, speed: 12, bounciness: 12, useNativeDriver: true }).start();
     Animated.timing(count, { toValue: total, duration: 900, delay: 120, easing: motion.easeOut, useNativeDriver: false }).start();
   }, [drawn, reading, total, pop, count]);
+  // 테스트용(local·dev): 오늘 뽑은 기록을 지워 마스코트를 다시 봉인한다
+  const resetDraw = () => {
+    draw.reset();
+    setDrawn(false);
+    setMinWait(false);
+  };
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
   const opened = {
     tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
@@ -134,6 +141,11 @@ export default function HomeScreen() {
         <Logo height={33} />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
+        {DEV_TOOLS && draw.opened ? (
+          <PressableScale onPress={resetDraw} hitSlop={8} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">
+            <Text style={s.devResetText}>뽑기 초기화</Text>
+          </PressableScale>
+        ) : null}
         <PointPill />
         <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
           <Icon name="download" size={24} color={colors.ink} />
@@ -414,6 +426,8 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   sky: { position: 'absolute', top: -400, left: 0, right: 0 },
   overscrollTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%' },
+  devReset: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
+  devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
   hello: { ...txt.title, marginTop: 8 },
   date: { fontSize: 14, fontWeight: '500', color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.5, marginTop: 6 },

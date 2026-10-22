@@ -52,26 +52,28 @@ export function checkBirth(digits: string, calendar: CalendarType) {
 }
 
 /** 라벨 옆 양력/음력 토글 + 8자리 생년월일 칸 + 확인 문구 (+ 음력이면 윤달) */
-export function BirthDateField({ label, digits, onChange, calendar, onCalendar, leap, onLeap, autoFocus }: {
+export function BirthDateField({ label, digits, onChange, calendar, onCalendar, leap, onLeap, autoFocus, compact }: {
   label: React.ReactNode; digits: string; onChange(v: string): void;
   calendar: CalendarType; onCalendar(c: CalendarType): void; leap: boolean; onLeap(v: boolean): void; autoFocus?: boolean;
+  /** 회색 카드 안의 낮은 칸 · 작은 양력/음력 (궁합 상대 입력) */
+  compact?: boolean;
 }) {
   const b = checkBirth(digits, calendar);
   return (
     <>
       <View style={s.head}>
         <View style={{ flex: 1 }}>{label}</View>
-        <View style={s.seg} accessibilityRole="radiogroup">
+        <View style={[s.seg, compact && s.segCompact]} accessibilityRole="radiogroup">
           {(['solar', 'lunar'] as const).map(c => (
-            <PressableScale key={c} onPress={() => { onCalendar(c); if (c === 'solar') onLeap(false); }} scaleTo={0.96} style={[s.segItem, calendar === c && s.segOn]}
+            <PressableScale key={c} onPress={() => { onCalendar(c); if (c === 'solar') onLeap(false); }} scaleTo={0.96} style={[s.segItem, compact && s.segItemCompact, calendar === c && s.segOn]}
               accessibilityRole="radio" accessibilityState={{ selected: calendar === c }}>
-              <Text style={[s.segText, calendar === c && { color: colors.ink }]}>{c === 'solar' ? '양력' : '음력'}</Text>
+              <Text style={[s.segText, compact && s.segTextCompact, calendar === c && { color: colors.ink }]}>{c === 'solar' ? '양력' : '음력'}</Text>
             </PressableScale>
           ))}
         </View>
       </View>
       <TextField value={fmtDate(digits)} onChangeText={t => onChange(t.replace(/\D/g, '').slice(0, 8))} placeholder="1995. 03. 15" keyboardType="number-pad" maxLength={12}
-        autoFocus={autoFocus} style={s.bigInput} invalid={b.filled && !b.ok} accessibilityLabel={`생년월일 8자리${calendar === 'lunar' ? ', 음력' : ''}`} />
+        autoFocus={autoFocus} compact={compact} style={compact ? undefined : s.bigInput} invalid={b.filled && !b.ok} accessibilityLabel={`생년월일 8자리${calendar === 'lunar' ? ', 음력' : ''}`} />
       {b.filled && !b.ok ? <Text style={s.error}>1900년 이후의 실제 날짜를 입력해 주세요.</Text>
         : b.ok ? <Text style={s.ok}>✓ {calendar === 'solar' ? formatKoreanDate(b.iso) : `음력 ${b.y}년 ${b.m}월 ${b.d}일${leap ? ' (윤달)' : ''}`}</Text>
           : null}
@@ -117,5 +119,8 @@ const s = StyleSheet.create({
   seg: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.sm, padding: 3, gap: 2 },
   segItem: { paddingHorizontal: 14, height: 30, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong },
+  segCompact: { backgroundColor: 'transparent', padding: 0, gap: 4 },
+  segItemCompact: { height: 22, paddingHorizontal: 8 },
+  segTextCompact: { fontSize: 11, fontWeight: '400', letterSpacing: -0.55, color: '#999999' },
   segText: { fontSize: 13, fontWeight: '600', color: colors.inkMute },
 });

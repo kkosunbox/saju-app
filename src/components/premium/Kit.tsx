@@ -2,7 +2,7 @@
  * 프리미엄 콘텐츠 공용 UI 조각 — HTML 미리보기의 card/hero/tip/toc/lock 등과 1:1 대응.
  */
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../PressableScale';
 import Card from '../Card';
@@ -15,7 +15,8 @@ import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
 import { fonts, radius, SCREEN_PX, shadow, txt } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
-import Mascot from '../Mascot';
+import { ART, MascotPeek } from '../Mascot';
+import GradientBorder from '../GradientBorder';
 import { Coin } from '../Amount';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
@@ -170,8 +171,8 @@ export function Hero({ children, style }: { children: React.ReactNode; style?: S
   return (
     <View style={[{ borderRadius: radius.xl, backgroundColor: colors.heroBg, marginTop: 12 }, shadow.hero, { marginTop: flat.marginTop ?? 12 }]}>
       <View style={[{ borderRadius: radius.xl, padding: 20, overflow: 'hidden', backgroundColor: colors.heroBg }, style, { marginTop: 0 }]}>
-        {/* 오른쪽 아래 마스코트 실루엣 (장식, 터치 없음) */}
-        <Mascot name="shadow" size={120} style={s.heroArt} />
+        {/* 오른쪽 끝에서 들여다보는 마스코트 (장식, 터치 없음) — 카드 높이가 화면마다 달라 아래에 붙인다. 내 알(높이 114)에서 Figma 위치(위에서 23)와 같다 */}
+        <MascotPeek width={109} bottom={-40} opacity={0.2} />
         {children}
       </View>
     </View>
@@ -308,6 +309,25 @@ export function PriceCard({ item, onUnlocked }: { item: Item; onUnlocked?(): voi
   );
 }
 
+/** 잠긴 리포트 카드 (궁합 결과 아래) — 하늘색 테두리 · 마스코트 · 남색 "◎150으로 전부 열기" */
+export function LockedCard({ item, onUnlocked }: { item: Item; onUnlocked?(): void }) {
+  const { openUnlock } = usePremium();
+  return (
+    <GradientBorder width={1.5} outer={{ marginTop: 24 }} style={{ padding: 16 }}>
+      <Image source={ART.crush} style={s.lockedArt} resizeMode="contain" />
+      <View style={s.between}>
+        <Text style={s.lockedTitle}>{item.title}</Text>
+        <View style={s.lockedChip}><Icon name="lock" size={12} color={FREE_BLUE} strokeWidth={2} /><Text style={s.lockedChipText}>잠김</Text></View>
+      </View>
+      <Text style={s.lockedDesc}>{item.desc}</Text>
+      <PressableScale onPress={() => openUnlock(item, onUnlocked)} style={s.lockedBtn} scaleTo={0.98} accessibilityLabel={`${item.title} ${item.cost}알로 열기`}>
+        <Coin size={14} />
+        <Text style={s.lockedBtnText}>{item.cost.toLocaleString('ko-KR')}으로 전부 열기</Text>
+      </PressableScale>
+    </GradientBorder>
+  );
+}
+
 /* ---------- 차트 ---------- */
 export function MonthBars({ months, height = 170, onPress, max = 95 }: { months: { m: number; total: number }[]; height?: number; onPress?(m: number): void; max?: number }) {
   const mx = Math.max(...months.map(x => x.total)), mn = Math.min(...months.map(x => x.total));
@@ -365,7 +385,6 @@ export function FortuneCalendar({ days, first, today, sel, best, onSelect }: { d
 }
 
 const s = StyleSheet.create({
-  heroArt: { position: 'absolute', right: -6, bottom: -20, opacity: 0.18 },
   row4: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
@@ -408,6 +427,13 @@ const s = StyleSheet.create({
   ghostLine: { height: 11, borderRadius: 6, backgroundColor: colors.line },
   lockBlur: { maxHeight: 440, overflow: 'hidden', opacity: 0.5 },
   lockPanel: { position: 'absolute', left: 4, right: 4, top: 40, backgroundColor: colors.cream, borderRadius: radius.lg, paddingVertical: 24, paddingHorizontal: 20, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, shadowColor: '#28200A', shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
+  lockedArt: { position: 'absolute', right: 0, bottom: 0, width: 112, height: 137, opacity: 0.55 },
+  lockedTitle: { flexShrink: 1, fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8, color: FREE_BLUE },
+  lockedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
+  lockedChipText: { fontSize: 12, fontWeight: '600', color: FREE_BLUE, opacity: 0.8 },
+  lockedDesc: { marginTop: 8, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  lockedBtn: { marginTop: 12, marginHorizontal: -4, height: 40, borderRadius: radius.sm, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  lockedBtnText: { fontSize: 14, fontWeight: '500', color: colors.white },
   priceCard: { marginTop: 24, backgroundColor: colors.cream, borderRadius: radius.lg, padding: 18, borderWidth: 1, borderColor: colors.accent },
   barCol: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
   barScore: { fontSize: 10.5, fontWeight: '700', color: colors.inkMute },
