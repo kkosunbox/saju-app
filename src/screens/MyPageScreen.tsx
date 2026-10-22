@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
@@ -196,7 +196,7 @@ export default function MyPageScreen() {
       )}
       <SectionHeader title="정보" />
       <Card style={s.group}>
-        {([['이용약관', () => nav.navigate('Legal', { doc: 'terms' })], ['개인정보처리방침', () => nav.navigate('Legal', { doc: 'privacy' })], ['문의하기', () => Linking.openURL('mailto:help@woonpick.com?subject=' + encodeURIComponent('[운Pick] 문의'))]] as const).map(([t, go], i, a) => (
+        {([['이용약관', () => nav.navigate('Legal', { doc: 'terms' })], ['개인정보처리방침', () => nav.navigate('Legal', { doc: 'privacy' })], ['문의하기', () => nav.navigate('Inquiry')]] as const).map(([t, go], i, a) => (
           <PressableScale key={t} onPress={go} style={[s.row, i < a.length - 1 && s.border]} scaleTo={0.98}>
             <Text style={s.rowLabel}>{t}</Text>
             <Icon name="chevronRight" size={18} color={colors.inkMute} />

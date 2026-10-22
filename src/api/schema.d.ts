@@ -490,7 +490,7 @@ export interface paths {
         put?: never;
         /**
          * 문의 등록
-         * @description 1:1 문의를 등록합니다. 첨부 파일은 asset 모듈의 attachment/presigned-url을 통해 업로드 후 fileUrl을 전달해주세요.
+         * @description 카테고리와 내용으로 1:1 문의를 등록합니다. 제목은 선택입니다. 첨부 파일은 asset 모듈의 attachment/presigned-url을 통해 업로드 후 fileUrl을 전달해주세요.
          */
         post: operations["InquiryController_createInquiry_v1"];
         delete?: never;
@@ -1779,8 +1779,13 @@ export interface components {
         InquiryDto: {
             /** @description 문의 ID */
             id: number;
+            /**
+             * @description 문의 카테고리
+             * @enum {string}
+             */
+            category: "account" | "payment" | "content" | "bug" | "suggestion" | "etc";
             /** @description 문의 제목 */
-            title: string;
+            title?: string | null;
             /** @description 문의 내용 */
             content: string;
             /** @description 첨부 파일 URL 목록 (최대 2개) */
@@ -1815,9 +1820,14 @@ export interface components {
             inquiry: components["schemas"]["InquiryDto"];
         };
         CreateInquiryRequest: {
-            /** @description 문의 제목 (최대 50자) */
-            title: string;
-            /** @description 문의 내용 (최대 200자) */
+            /**
+             * @description 문의 카테고리
+             * @enum {string}
+             */
+            category: "account" | "payment" | "content" | "bug" | "suggestion" | "etc";
+            /** @description 문의 제목 (선택, 최대 50자) */
+            title?: string;
+            /** @description 문의 내용 (1~1000자) */
             content: string;
             /** @description 첨부 파일 URL 목록 (최대 2개, asset 모듈에서 발급받은 fileUrl). */
             attachmentUrls?: string[];
@@ -3703,6 +3713,24 @@ export interface operations {
                         /** @example true */
                         result?: boolean;
                         data?: components["schemas"]["CreateInquiryResponse"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
                     };
                 };
             };

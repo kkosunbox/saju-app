@@ -46,4 +46,6 @@ export type RootStackParamList = {
   ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;
   Legal: { doc: 'terms' | 'privacy' };
+  /** 1:1 문의 (카테고리 + 내용) */
+  Inquiry: undefined;
 };

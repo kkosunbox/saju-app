@@ -46,6 +46,7 @@ export const ROUTES: Record<string, string> = {
   Consult: '/consult',
   PastLife: '/past-life',
   Legal: '/legal/[doc]',
+  Inquiry: '/inquiry',
 };
 
 /** 숫자로 되돌릴 쿼리 파라미터 */
