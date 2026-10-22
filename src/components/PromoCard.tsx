@@ -49,8 +49,9 @@ const s = StyleSheet.create({
   art: { position: 'absolute', right: 0, bottom: -16, opacity: 0.18 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   title: { fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8 },
-  new: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 0.5, borderColor: '#FF7A3C' },
-  newText: { fontSize: 12, fontWeight: '600', color: '#FF7A3C', opacity: 0.85 },
+  // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 반투명 테두리와 줄높이를 정해 둔다
+  new: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,122,60,0.7)' },
+  newText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: '#FF7A3C', opacity: 0.85 },
   desc: { fontSize: 13, lineHeight: 18, color: colors.white, letterSpacing: -0.6, marginTop: 8, paddingRight: 80 },
   cta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: '#F5F6F8' },
   ctaText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: '#000', letterSpacing: -0.6 },

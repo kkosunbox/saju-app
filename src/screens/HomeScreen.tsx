@@ -307,13 +307,14 @@ export default function HomeScreen() {
             <View style={s.lucky}>
               <View style={s.luck}>
                 <Text style={s.luckK}>행운의 컬러</Text>
-                <View style={[s.swatch, { backgroundColor: f.luckyColorHex }]} accessibilityLabel={f.luckyColor} />
+                <View style={[s.swatch, { backgroundColor: f.luckyColorHex }]} />
+                <Text style={s.luckV} numberOfLines={1}>{f.luckyColor}</Text>
               </View>
-              <View style={[s.luck, { flex: 0.7 }]}>
+              <View style={s.luck}>
                 <Text style={s.luckK}>숫자</Text>
                 <Text style={s.luckV}>{f.luckyNumber}</Text>
               </View>
-              <View style={[s.luck, { flex: 1.7 }]}>
+              <View style={s.luck}>
                 <Text style={s.luckK}>시간</Text>
                 <Text style={s.luckV} numberOfLines={1}>{f.luckyTime.replace('~', ' - ')}</Text>
               </View>
@@ -433,8 +434,8 @@ const s = StyleSheet.create({
   todayMore: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   todayMoreText: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
   todayStory: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8 },
-  lucky: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
-  luck: { flex: 1.2, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lucky: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
+  luck: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   luckK: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
   luckV: { fontSize: 13, fontWeight: '500', color: colors.ink, letterSpacing: -0.5, flexShrink: 1 },
   swatch: { width: 16, height: 16, borderRadius: 8 },
