@@ -20,7 +20,7 @@ const HINT_H = 36; // 안내 알약 + 위 여백
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
  * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 튀어 올라 onDrawn.
  * busy 이면(풀이를 기다리는 중) 천으로 닦고 광을 낸다.
- * 풀이 완료 뒤엔 누를 때마다 네잎클로버가 떠오르고 후광이 차오른다.
+ * 풀이 완료 뒤엔 누를 때마다 네잎클로버가 떠오르고 은은한 후광이 퍼진다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
 export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: boolean; busy?: boolean; onDrawn(): void }) {
@@ -121,7 +121,7 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
         accessibilityRole="button"
         accessibilityState={{ disabled: busy }}
         accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : '행운을 모으는 마스코트'}
-        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 네잎클로버가 떠오르고 연속으로 누르면 빛이 짙어져요' : undefined}
+        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 네잎클로버가 떠오르고 은은한 빛이 퍼져요' : undefined}
         accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
         onAccessibilityAction={sealed ? burst : undefined}
         style={s.hit}
