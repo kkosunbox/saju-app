@@ -286,7 +286,7 @@ export default function HomeScreen() {
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} />
+            <DrawMascot sealed={sealed} busy={reading} luckyColor={f.luckyColorHex} onDrawn={onDrawn} />
           </Reveal>
 
           {/* 분야별 점수 */}

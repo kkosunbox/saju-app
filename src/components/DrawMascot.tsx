@@ -23,10 +23,10 @@ const HINT_H = 36; // 안내 알약 + 위 여백
  * 풀이 완료 뒤엔 누를 때마다 네잎클로버가 떠오르고 은은한 후광이 퍼진다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
-export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: boolean; busy?: boolean; onDrawn(): void }) {
+export default function DrawMascot({ sealed, busy = false, luckyColor = colors.success, onDrawn }: { sealed: boolean; busy?: boolean; luckyColor?: string; onDrawn(): void }) {
   const reduced = useReducedMotion();
   const playful = !sealed && !busy;
-  const play = useMascotPlay(playful, reduced);
+  const play = useMascotPlay(playful, reduced, luckyColor);
   const [y] = useState(() => new Animated.Value(0));
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
