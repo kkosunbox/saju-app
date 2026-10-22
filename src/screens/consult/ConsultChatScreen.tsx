@@ -62,10 +62,6 @@ function PendingChat({ askKey }: { askKey?: string }) {
         if (!live) return;
         dropAsk(key);
         if (v.status === 'crisis' || v.id == null) { setState({ kind: 'crisis', lines: v.helpLines ?? [] }); return; }
-        queryClient.setQueryData(consultKeys.one(v.id), v);
-        queryClient.invalidateQueries({ queryKey: consultKeys.list });
-        queryClient.invalidateQueries({ queryKey: consultKeys.status });
-        if (v.charged) refreshPoints();
         nav.replace('ConsultChat', { id: String(v.id) });
       },
       err => {
