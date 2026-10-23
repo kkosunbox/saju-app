@@ -658,9 +658,29 @@ export interface paths {
         get: operations["FortuneProfileController_getMyProfile_v1"];
         /**
          * 내 운세 프로필 저장 (생성·수정)
-         * @description 생년월일·시간·양음력·윤달·성별·MBTI·혈액형·야자시(사주 입력값) 수정은 하루 2회까지이며 version이 올라가 오늘 운세를 다시 만듭니다. 추정 MBTI를 실제 MBTI로 바꾸는 것은 횟수에 포함되지 않습니다. 이름·직업·관심사·고민은 자유롭게 바꿀 수 있고 다음 날 운세부터 반영됩니다. mbti를 비우면 사주로 추정합니다.
+         * @description 횟수 제한 없이 수정할 수 있습니다. 사주 입력값(생년월일·시간·양음력·윤달·출생지·성별·MBTI·혈액형·야자시)이 바뀌면 version이 올라갑니다. 이미 뽑은 것(오늘 운세·열어 본 유료/무료 콘텐츠)은 만들 때의 프로필 그대로 남고, 바뀐 프로필은 다음 날 운세와 새로 여는 콘텐츠부터 반영됩니다. mbti를 비우면 사주로 추정합니다.
          */
         put: operations["FortuneProfileController_upsertMyProfile_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/birth-places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 출생지 검색
+         * @description 국내 시·군, 북한, 해외 인구 1.5만 명 이상 도시를 한글·영어 이름으로 찾습니다. 정확히 같은 이름 → 이름이 검색어로 시작 → 검색어를 포함 순이고, 같은 순위에서는 국내가 먼저, 큰 곳이 먼저입니다. q를 비우면 자주 고르는 곳(국내 특별·광역시, 해외 주요 도시)을 줍니다. 로그인 없이 쓸 수 있습니다. 데이터 출처: GeoNames (CC BY 4.0).
+         */
+        get: operations["BirthPlaceController_search_v1"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2067,6 +2087,25 @@ export interface components {
         FreeContentDto: {
             data: Record<string, never>;
         };
+        BirthPlaceDto: {
+            /** @description 프로필·궁합 상대 저장 때 birthPlaceId로 보냅니다 */
+            id: number;
+            /**
+             * @description 한글 이름 (해외는 한글 이름이 없으면 영어)
+             * @example 포항시
+             */
+            name: string;
+            /**
+             * @description 해외 도시의 영어 이름 (name이 한글일 때만)
+             * @example Los Angeles
+             */
+            englishName: string | null;
+            /**
+             * @description 국내는 도(특별·광역시는 null), 북한은 "북한 함북", 해외는 나라 (시간대가 여러 개인 나라는 " · 미 태평양 시간"처럼 시간대까지)
+             * @example 경북
+             */
+            region: string | null;
+        };
         PillarDto: {
             /** @description 천간 0~9 (0=甲) */
             stem: number;
@@ -2107,6 +2146,8 @@ export interface components {
             birthDateSolar: string;
             birthTime: string | null;
             useYajasi: boolean;
+            /** @description 출생지. null이면 입력하지 않음 (서울로 계산) */
+            birthPlace: components["schemas"]["BirthPlaceDto"] | null;
             /** @enum {string} */
             gender: "female" | "male";
             mbti: string;
@@ -2119,8 +2160,6 @@ export interface components {
             occupation: string | null;
             /** @description 사주 입력값 버전 (바뀌면 오늘 운세를 다시 만듦) */
             version: number;
-            /** @description 오늘 남은 사주 입력값 수정 횟수 */
-            remainingSajuEditsToday: number;
             /** Format: date-time */
             updatedAt: string;
             natal: components["schemas"]["NatalDto"];
@@ -2153,6 +2192,8 @@ export interface components {
              * @default false
              */
             useYajasi: boolean;
+            /** @description 출생지 id (GET /birth-places). 모르면 null → 서울로 계산. 경도는 태어난 시간을 알 때만 쓰입니다 */
+            birthPlaceId?: number | null;
             /** @enum {string} */
             gender: "female" | "male";
             /**
@@ -2167,6 +2208,9 @@ export interface components {
             concern?: string | null;
             occupation?: string | null;
         };
+        BirthPlaceListResponse: {
+            places: components["schemas"]["BirthPlaceDto"][];
+        };
         CompatibilityPartnerDto: {
             /** @enum {string} */
             calendarType: "solar" | "lunar";
@@ -2175,6 +2219,8 @@ export interface components {
             isLeapMonth: boolean;
             birthDateSolar: string;
             birthTime: string | null;
+            /** @description 출생지. null이면 입력하지 않음 (서울로 계산) */
+            birthPlace: components["schemas"]["BirthPlaceDto"] | null;
             /** @enum {string} */
             gender: "female" | "male";
             /** @description 모르면 null */
@@ -2258,6 +2304,8 @@ export interface components {
              * @example 14:20
              */
             birthTime?: string | null;
+            /** @description 출생지 id (GET /birth-places). 모르면 null → 서울로 계산. 경도는 태어난 시간을 알 때만 쓰입니다 */
+            birthPlaceId?: number | null;
             /** @enum {string} */
             gender: "female" | "male";
             /**
@@ -4441,21 +4489,30 @@ export interface operations {
                     };
                 };
             };
-            /** @description Possible error codes: PROFILE_EDIT_LIMIT_EXCEEDED */
-            429: {
+        };
+    };
+    BirthPlaceController_search_v1: {
+        parameters: {
+            query?: {
+                /** @description 한글 또는 영어 지역명 (예: 포항, 로스앤젤레스, Seattle). 비우면 자주 고르는 곳 */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /** @example false */
+                        /** @example true */
                         result?: boolean;
-                        /** @example PROFILE_EDIT_LIMIT_EXCEEDED */
-                        code?: string;
-                        /** @example PROFILE_EDIT_LIMIT_EXCEEDED */
-                        message?: string;
-                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
-                        traceId?: string;
+                        data?: components["schemas"]["BirthPlaceListResponse"];
                     };
                 };
             };

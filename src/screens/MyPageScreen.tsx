@@ -23,6 +23,7 @@ import { fmtN } from '../services/premium/catalog';
 import { storage, NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
+import { placeLabel } from '../services/server/birthPlaceApi';
 import { colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
 import appJson from '../../app.json';
@@ -104,6 +105,7 @@ export default function MyPageScreen() {
         <Row icon="heart" label="혈액형" value={`${user.bloodType}형`} />
         <Row icon="palette" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
         <Row icon="clock" label="출생시간" value={user.birthTime ?? '모름'} />
+        <Row icon="mapPin" label="출생지" value={user.birthPlace ? placeLabel(user.birthPlace) : '모름'} />
         <Row icon="user" label="성별" value={user.gender === 'female' ? '여성' : '남성'} last={!user.occupation} />
         {user.occupation ? <Row icon="crown" label="직업" value={user.occupation} last /> : null}
       </Card>

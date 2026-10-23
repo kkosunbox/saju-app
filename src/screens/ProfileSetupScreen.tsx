@@ -9,25 +9,28 @@ import OptionChip from '../components/OptionChip';
 import TextField from '../components/TextField';
 import MoonLoader from '../components/MoonLoader';
 import Icon from '../components/Icon';
+import BirthPlaceSearch from '../components/BirthPlaceSearch';
 import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, fmtTime, sijinLabel, sijinOf, sijinTime } from '../components/BirthFields';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
-import { BloodType, Gender, MBTI } from '../types';
+import { BirthPlace, BloodType, Gender, MBTI } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { motion, useReducedMotion } from '../utils/motion';
 import { ApiError } from '../api/client';
 import { ProfileInput } from '../services/server/profileApi';
+import { placeLabel } from '../services/server/birthPlaceApi';
 import { getPendingInvite } from '../services/share/linkShare';
 
 /**
- * 한 화면에 질문이 차례로 쌓인다: 이름 → 생년월일 → 태어난 시간 → 성별 → 혈액형 → MBTI (직업·관심사는 마이에서 나중에).
+ * 한 화면에 질문이 차례로 쌓인다: 이름 → 생년월일 → 태어난 시간 → 태어난 곳 → 성별 → 혈액형 → MBTI (직업·관심사는 마이에서 나중에).
  * 새 질문이 맨 위에 나타나고, 앞에서 한 답은 아래에 남아 바로 고칠 수 있다.
- * 칸이 큰 질문(시간·MBTI)은 답하면 한 줄로 접히고, 누르면 다시 펼쳐진다.
+ * 칸이 큰 질문(시간·태어난 곳·MBTI)은 답하면 한 줄로 접히고, 누르면 다시 펼쳐진다.
  */
 const QUESTIONS = [
   { q: () => '어떻게 불러드릴까요?', hint: '운세에서 불러드릴 이름이에요.' },
   { q: (name: string) => `${name}님, 언제 태어났나요?`, hint: '8자리 숫자를 입력해 주세요.' },
   { q: () => '몇 시쯤 태어났나요?', hint: '2시간 단위로 골라요. 몰라도 괜찮아요.' },
+  { q: () => '어디서 태어났나요?', hint: '시·군이나 도시 이름으로 찾아요. 해외도 돼요.' },
   { q: () => '성별을 알려주세요', hint: '' },
   { q: () => '혈액형은요?', hint: '' },
   { q: () => 'MBTI를 골라주세요', hint: '몰라도 괜찮아요. 4문항으로 찾거나, 건너뛰어도 돼요.' },
@@ -128,7 +131,7 @@ export default function ProfileSetupScreen() {
   // 몇 번째 질문까지 열렸는지 (수정할 때는 처음부터 다 열린다)
   const [stage, setStage] = useState(editing ? LAST : 0);
   // 접힌 질문 중 다시 펼친 것
-  const [open, setOpen] = useState<'time' | 'mbti' | null>(null);
+  const [open, setOpen] = useState<'time' | 'place' | 'mbti' | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   // 궁합 초대 링크로 들어왔으면 왜 정보를 넣는지 계속 보여 준다 (다 넣으면 홈에서 바로 궁합)
@@ -143,6 +146,8 @@ export default function ProfileSetupScreen() {
   const [sijin, setSijin] = useState<number | null>(savedTime.sijin);
   const [jasi, setJasi] = useState<JasiSide | null>(savedTime.jasi);
   const [exact, setExact] = useState(savedTime.exact);
+  // undefined = 아직 안 고름, null = 몰라요 (서울로 계산)
+  const [place, setPlace] = useState<BirthPlace | null | undefined>(editing ? user!.birthPlace ?? null : undefined);
   const [gender, setGender] = useState<Gender | null>(editing ? user!.gender : null);
   const [blood, setBlood] = useState<BloodType | null>(editing ? user!.bloodType : null);
   const [mbti, setMbti] = useState<MBTI | null>(editing && !user!.mbtiUnknown ? user!.mbti : null);
@@ -158,7 +163,7 @@ export default function ProfileSetupScreen() {
   const birthTime = timeMode === 'sijin' && sijin !== null
     ? sijinTime(sijin, jasi)
     : timeMode === 'exact' ? fmtTime(exact) : null;
-  const answered = [nameOk, dateOk, timeOk, !!gender, !!blood, !!mbti || skipMbti];
+  const answered = [nameOk, dateOk, timeOk, place !== undefined, !!gender, !!blood, !!mbti || skipMbti];
   const allDone = stage === LAST && answered.every(Boolean);
   const curAnswered = answered[stage];
 
@@ -189,6 +194,7 @@ export default function ProfileSetupScreen() {
       birthDate: birthISO,
       isLeapMonth: calendar === 'lunar' && leap,
       birthTime,
+      birthPlaceId: place?.id ?? null,
       gender: gender!,
       bloodType: blood!,
       // 모르면 서버가 사주로 추정하고 "(추정)"으로 표시한다
@@ -202,6 +208,7 @@ export default function ProfileSetupScreen() {
       const code = e instanceof ApiError ? e.code : '';
       setSaveError(
         code === 'INVALID_BIRTH_DATE' ? '없는 날짜예요. 음력이면 윤달 여부도 확인해 주세요.'
+          : code === 'INVALID_BIRTH_PLACE' ? '태어난 곳을 다시 골라 주세요.'
           : '저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
       );
       setGenerating(false);
@@ -222,8 +229,9 @@ export default function ProfileSetupScreen() {
   const hint = allDone ? '바꿀 항목은 눌러서 고칠 수 있어요.' : QUESTIONS[stage].hint;
   const barW = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
 
-  // 시간·MBTI는 답했고 다시 펼치지 않았으면 한 줄로 접는다
+  // 시간·태어난 곳·MBTI는 답했고 다시 펼치지 않았으면 한 줄로 접는다
   const timeFolded = timeOk && open !== 'time';
+  const placeFolded = place !== undefined && open !== 'place';
   const mbtiFolded = (!!mbti || skipMbti) && open !== 'mbti';
   const timeValue = timeMode === 'unknown' ? '몰라요'
     : timeMode === 'exact' ? fmtTime(exact)
@@ -270,7 +278,19 @@ export default function ProfileSetupScreen() {
       )}
     </Reveal>,
 
-    // 3 성별
+    // 3 태어난 곳
+    <Reveal key="place" reduced={reduced}>
+      {placeFolded ? (
+        <Summary label="태어난 곳" value={place ? placeLabel(place) : '몰라요 · 서울로 볼게요'} onPress={() => setOpen('place')} />
+      ) : (
+        <>
+          <Text style={s.label}>태어난 곳</Text>
+          <BirthPlaceSearch selected={place} onPick={p => { Keyboard.dismiss(); setPlace(p); setOpen(null); }} />
+        </>
+      )}
+    </Reveal>,
+
+    // 4 성별
     <Reveal key="gender" reduced={reduced}>
       <Text style={s.label}>성별</Text>
       <View style={s.row}>
@@ -279,7 +299,7 @@ export default function ProfileSetupScreen() {
       </View>
     </Reveal>,
 
-    // 4 혈액형
+    // 5 혈액형
     <Reveal key="blood" reduced={reduced}>
       <Text style={s.label}>혈액형</Text>
       <View style={s.row}>
@@ -289,7 +309,7 @@ export default function ProfileSetupScreen() {
       </View>
     </Reveal>,
 
-    // 5 MBTI
+    // 6 MBTI
     <Reveal key="mbti" reduced={reduced}>
       {mbtiFolded ? (
         <Summary label="MBTI" value={skipMbti ? '모름 · 사주로 추정해요' : `${mbti} · ${MBTI_INFO[mbti!].nickname}`} onPress={() => setOpen('mbti')} />

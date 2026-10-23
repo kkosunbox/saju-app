@@ -27,11 +27,13 @@ import { usePremiumContent, useReading } from '../services/server/premiumApi';
 import { CompatReading, CrushReading } from '../types/reading';
 import { CrushReport, DeepCompatibility } from '../types/premium';
 import { compatApi, compatKeys } from '../services/server/compatApi';
+import { placeLabel } from '../services/server/birthPlaceApi';
+import BirthPlaceSearch from '../components/BirthPlaceSearch';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '../api/query';
 import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
-import { BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
+import { BirthPlace, BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
 import { colors, gradients, isDark } from '../theme/colors';
@@ -107,6 +109,9 @@ export default function CompatibilityScreen() {
   const [sijin, setSijin] = useState<number | null>(null);
   const [jasi, setJasi] = useState<JasiSide | null>(null);
   const [showTime, setShowTime] = useState(false);
+  // 모르면 null (서울로 계산)
+  const [place, setPlace] = useState<BirthPlace | null>(null);
+  const [showPlace, setShowPlace] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [mbti, setMbti] = useState<MBTI | null>(null);
   const [blood, setBlood] = useState<BloodType | null>(null);
@@ -151,7 +156,7 @@ export default function CompatibilityScreen() {
       setResult(await compatApi.create(user.id, partner));
       queryClient.invalidateQueries({ queryKey: compatKeys.list });
     } catch (e) {
-      toast(e instanceof ApiError && e.code === 'INVALID_BIRTH_DATE' ? '상대의 생년월일을 확인해 주세요' : '궁합을 보지 못했어요. 잠시 후 다시 시도해 주세요');
+      toast(e instanceof ApiError && e.code === 'INVALID_BIRTH_DATE' ? '상대의 생년월일을 확인해 주세요' : e instanceof ApiError && e.code === 'INVALID_BIRTH_PLACE' ? '상대가 태어난 곳을 다시 골라 주세요' : '궁합을 보지 못했어요. 잠시 후 다시 시도해 주세요');
     } finally {
       setBusy(false);
     }
@@ -165,6 +170,7 @@ export default function CompatibilityScreen() {
       birthDate: birthISO,
       isLeapMonth: calendar === 'lunar' && leap,
       birthTime: sijin === null ? null : sijinTime(sijin, jasi),
+      birthPlace: place,
       gender: gender!, mbti, bloodType: blood,
     });
   };
@@ -378,6 +384,19 @@ export default function CompatibilityScreen() {
                 onPick={b => { setSijin(b); if (b !== 0) { setJasi(null); setShowTime(false); } }}
                 onJasi={side => { setJasi(side); setShowTime(false); }} />
               <OptionChip compact label="몰라요" selected={sijin === null} onPress={() => { setSijin(null); setJasi(null); setShowTime(false); }} />
+            </View>
+          )}
+        </View>
+
+        <View>
+          <Label>태어난 곳 (선택)</Label>
+          <PressableScale onPress={() => setShowPlace(v => !v)} style={[s.select, showPlace && { borderColor: colors.accent }]} scaleTo={0.98} accessibilityLabel="태어난 곳 고르기">
+            <Text style={[s.selectText, !place && { color: colors.inkMute }]} numberOfLines={1}>{place ? placeLabel(place) : '모르면 비워 두세요 · 서울로 봐요'}</Text>
+            <View style={{ transform: [{ rotate: showPlace ? '180deg' : '0deg' }] }}><Icon name="chevronDown" size={20} color={colors.inkMute} strokeWidth={2} /></View>
+          </PressableScale>
+          {showPlace && (
+            <View style={{ marginTop: 8 }}>
+              <BirthPlaceSearch compact selected={place} onPick={p => { Keyboard.dismiss(); setPlace(p); setShowPlace(false); }} />
             </View>
           )}
         </View>

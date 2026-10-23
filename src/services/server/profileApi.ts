@@ -1,6 +1,6 @@
 /** My fortune profile on the server (GET/PUT /fortune-profile). */
 import { api, ApiError, call } from '../../api/client';
-import { Interest, MBTI, User } from '../../types';
+import { BirthPlace, Interest, MBTI, User } from '../../types';
 import { Natal } from '../../types/content';
 
 interface ProfileDto {
@@ -11,6 +11,7 @@ interface ProfileDto {
   birthDateSolar: string;
   birthTime: string | null;
   useYajasi: boolean;
+  birthPlace: BirthPlace | null;
   gender: User['gender'];
   mbti: MBTI;
   mbtiIsEstimated: boolean;
@@ -32,6 +33,7 @@ const toUser = (accountId: number, p: ProfileDto): User => ({
   isLeapMonth: p.isLeapMonth,
   birthTime: p.birthTime,
   useYajasi: p.useYajasi,
+  birthPlace: p.birthPlace,
   gender: p.gender,
   mbti: p.mbti,
   mbtiUnknown: p.mbtiIsEstimated,
@@ -53,6 +55,8 @@ export interface ProfileInput {
   isLeapMonth?: boolean;
   birthTime: string | null;
   useYajasi?: boolean;
+  /** null = 모름 → 서울로 계산 */
+  birthPlaceId?: number | null;
   gender: User['gender'];
   /** null = 모름 → the server estimates it from the chart. */
   mbti: MBTI | null;
@@ -70,6 +74,7 @@ export const inputOf = (u: User): ProfileInput => ({
   isLeapMonth: u.isLeapMonth ?? false,
   birthTime: u.birthTime,
   useYajasi: u.useYajasi ?? false,
+  birthPlaceId: u.birthPlace?.id ?? null,
   gender: u.gender,
   mbti: u.mbtiUnknown ? null : u.mbti,
   bloodType: u.bloodType,

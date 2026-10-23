@@ -6,6 +6,17 @@ export type MBTI =
   | 'ISTJ' | 'ISFJ' | 'ESTJ' | 'ESFJ'
   | 'ISTP' | 'ISFP' | 'ESTP' | 'ESFP';
 
+/** 출생지 (서버 GET /birth-places) — 태어난 시간을 해석하는 기준 (시간대·경도는 서버만 안다) */
+export interface BirthPlace {
+  id: number;
+  /** 포항시 · 로스앤젤레스 (해외는 한글 이름이 없으면 영어) */
+  name: string;
+  /** 해외 도시의 영어 이름 (name이 한글일 때만) */
+  englishName: string | null;
+  /** 경북 · 북한 함북 · 미국 · 미 태평양 시간 (특별·광역시는 null) */
+  region: string | null;
+}
+
 /** Firebase/Supabase users 테이블과 1:1 대응 */
 export interface User {
   id: string;
@@ -26,6 +37,8 @@ export interface User {
   calendarType?: 'solar' | 'lunar';
   isLeapMonth?: boolean;
   useYajasi?: boolean;
+  /** 출생지. null이면 모름 (서울로 계산) */
+  birthPlace?: BirthPlace | null;
   version?: number;
   /** 원국 · 오행 · 태어난 요일 (서버 계산). */
   natal?: import('./content').Natal;
@@ -106,6 +119,8 @@ export interface PartnerInput {
   nickname: string;
   birthDate: string;
   birthTime: string | null;
+  /** 모르면 null (서울로 계산) */
+  birthPlace?: BirthPlace | null;
   gender: Gender;
   /** 모르면 null (궁합에서 빠진다) */
   mbti: MBTI | null;

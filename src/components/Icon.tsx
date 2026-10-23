@@ -4,10 +4,11 @@ import { colors } from '../theme/colors';
 
 export type IconName =
   | 'home' | 'sparkle' | 'sheet' | 'heart' | 'user' | 'share' | 'chevronRight' | 'chevronLeft' | 'chevronDown' | 'bell' | 'crown'
-  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'lock' | 'calendar' | 'ticket';
+  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'lock' | 'calendar' | 'ticket' | 'mapPin';
 
 /** 디자인의 Icon/Outline 세트(heroicons 계열 선형 아이콘)와 같은 모양 */
 const PATHS: Record<IconName, string> = {
+  mapPin: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z',
   home: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
   sparkle: 'M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z',
   sheet: 'M5.5 6.5h13v13.5h-13z M5.5 10.5h13 M9 4v4 M15 4v4',

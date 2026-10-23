@@ -1,6 +1,6 @@
 /** Compatibility history and invites on the server. */
 import { ApiError, api, call } from '../../api/client';
-import { CompatibilityResult, PartnerInput, Relationship } from '../../types';
+import { BirthPlace, CompatibilityResult, PartnerInput, Relationship } from '../../types';
 
 interface CompatibilityDto {
   id: number;
@@ -9,7 +9,7 @@ interface CompatibilityDto {
   relationship?: Relationship;
   partner: null | {
     calendarType: 'solar' | 'lunar'; birthDate: string; isLeapMonth: boolean; birthDateSolar: string;
-    birthTime: string | null; gender: PartnerInput['gender']; mbti: PartnerInput['mbti'];
+    birthTime: string | null; birthPlace?: BirthPlace | null; gender: PartnerInput['gender']; mbti: PartnerInput['mbti'];
     bloodType: PartnerInput['bloodType'];
   };
   result: Omit<CompatibilityResult, 'userId' | 'target' | 'createdAt' | 'id' | 'source' | 'relationship' | 'inviteRole' | 'isNew'> & { relationship?: Relationship };
@@ -29,7 +29,7 @@ const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult =>
   userId,
   // invite records carry no partner details (only the inviter's nickname)
   target: dto.partner
-    ? { nickname: dto.partnerNickname, birthDate: dto.partner.birthDateSolar, birthTime: dto.partner.birthTime, gender: dto.partner.gender, mbti: dto.partner.mbti ?? null, bloodType: dto.partner.bloodType ?? null }
+    ? { nickname: dto.partnerNickname, birthDate: dto.partner.birthDateSolar, birthTime: dto.partner.birthTime, birthPlace: dto.partner.birthPlace ?? null, gender: dto.partner.gender, mbti: dto.partner.mbti ?? null, bloodType: dto.partner.bloodType ?? null }
     : { nickname: dto.partnerNickname, birthDate: '', birthTime: null, gender: 'female', mbti: null, bloodType: null },
   createdAt: dto.createdAt,
 });
@@ -47,6 +47,7 @@ export const compatApi = {
         birthDate: partner.birthDate,
         isLeapMonth: partner.isLeapMonth ?? false,
         birthTime: partner.birthTime,
+        birthPlaceId: partner.birthPlace?.id ?? null,
         gender: partner.gender,
         mbti: partner.mbti,
         bloodType: partner.bloodType,
