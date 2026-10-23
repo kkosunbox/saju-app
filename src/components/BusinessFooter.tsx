@@ -17,7 +17,7 @@ export default function BusinessFooter({ style }: { style?: object }) {
         <PressableScale onPress={() => router.push('/legal/privacy')} hitSlop={8} accessibilityRole="link"><Text style={[s.link, s.strong]}>개인정보처리방침</Text></PressableScale>
       </View>
       <View style={s.info}>
-        {BUSINESS.map(([k, v]) => <Text key={k} style={txt.caption}>{k} {v}</Text>)}
+        {BUSINESS.map(([k, v]) => <Text key={k} style={txt.caption}>{k}: {v}</Text>)}
       </View>
       <Text style={[txt.caption, { marginTop: 8 }]}>© {BRAND.name}. All rights reserved.</Text>
     </View>
