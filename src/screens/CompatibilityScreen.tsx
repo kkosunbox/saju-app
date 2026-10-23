@@ -16,7 +16,7 @@ import ScoreBar from '../components/ScoreBar';
 import SectionHeader from '../components/SectionHeader';
 import Icon from '../components/Icon';
 import Mascot, { ART, Logo } from '../components/Mascot';
-import SolidIcon, { SolidIconName } from '../components/SolidIcon';
+import SolidIcon, { RelationIcon, SolidIconName } from '../components/SolidIcon';
 import Disclaimer from '../components/Disclaimer';
 import { useApp } from '../context/AppContext';
 import { usePremium } from '../context/PremiumContext';
@@ -46,10 +46,6 @@ const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; i
   { k: 'conversation', c: colors.purpleSoft, icon: 'chat' },
   { k: 'money', c: '#5FB884', icon: 'coins' },
 ];
-/** 두 사람 사이 아이콘 — 궁합 시작 화면의 '어떤 사이' 그림과 같다 */
-const REL_ICON: Record<Relationship, SolidIconName> = { lover: 'heart', friend: 'friend', family: 'family', work: 'work' };
-/** 결과 히어로(밤하늘 위)의 관계 아이콘 색 — 분야별 궁합 막대와 같은 팔레트 */
-const REL_COLOR: Record<Relationship, string> = { lover: colors.love, friend: '#FCBD51', family: '#5FB884', work: colors.accent };
 /** 두 사람 카드 바탕 — 옅은 하늘이 가운데서 밝아진다 */
 const PAIR_SKY = isDark ? [colors.accentSoft, colors.card, colors.accentSoft] as const : ['#D0EEFE', '#EFF9FF', '#CBECFE'] as const;
 const BLOOD_TYPES: BloodType[] = ['A', 'B', 'O', 'AB'];
@@ -210,7 +206,7 @@ export default function CompatibilityScreen() {
           <View style={s.heroLogo}><Logo height={19} /></View>
           <View style={s.pair}>
             <Avatar name={user.nickname} me />
-            <SolidIcon name={REL_ICON[result.relationship]} size={13} color={REL_COLOR[result.relationship]} />
+            <RelationIcon relationship={result.relationship} />
             <Avatar name={result.target.nickname} />
           </View>
           <Text style={s.pairNames}>{user.nickname} · {result.target.nickname} · {rel.label}</Text>
@@ -349,7 +345,7 @@ export default function CompatibilityScreen() {
               const on = relationship === x.k;
               return (
                 <PressableScale key={x.k} onPress={() => setRelationship(x.k)} haptic scaleTo={0.96} style={[s.relCell, on && s.relOn]} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`${x.l} · ${x.hint}`}>
-                  <View style={[s.relIco, on && { backgroundColor: '#3B3E48' }]}><SolidIcon name={REL_ICON[x.k]} size={13} color={colors.accent} /></View>
+                  <View style={[s.relIco, on && { backgroundColor: '#3B3E48' }]}><RelationIcon relationship={x.k} color={colors.accent} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={[s.relLabel, on && { color: colors.white }]} numberOfLines={1}>{x.l}</Text>
                     <Text style={[s.relHint, on && { color: colors.white }]} numberOfLines={1}>{x.hint}</Text>

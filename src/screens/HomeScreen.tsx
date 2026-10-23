@@ -7,7 +7,6 @@ import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
 import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
-import { useHasTabHistory, useTabBack } from '../navigation/tabBack';
 import AnalysisTile from '../components/AnalysisTile';
 import ActionTabs from '../components/ActionTabs';
 import SectionHeader from '../components/SectionHeader';
@@ -119,8 +118,6 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => { if (user) refetchCompat(); }, [user, refetchCompat]));
   const arrived = compat.data?.filter(r => r.isNew) ?? [];
 
-  const tabBack = useTabBack();
-  const hasHistory = useHasTabHistory();
   const insets = useSafeAreaInsets();
   // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바).
   // 상단 바(상태바 + 로고 줄)까지는 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 한다
@@ -132,14 +129,7 @@ export default function HomeScreen() {
   ]);
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        {hasHistory ? (
-          <PressableScale onPress={tabBack} hitSlop={10} scaleTo={0.9} accessibilityLabel="뒤로 가기">
-            <Icon name="chevronLeft" size={24} strokeWidth={2} />
-          </PressableScale>
-        ) : null}
-        <Logo height={33} />
-      </View>
+      <Logo height={33} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
         {DEV_TOOLS && draw.opened ? (
           <PressableScale onPress={resetDraw} hitSlop={8} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">

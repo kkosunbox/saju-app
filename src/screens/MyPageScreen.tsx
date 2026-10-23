@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,11 +47,9 @@ export default function MyPageScreen() {
   const [theme, setTheme] = useState<ThemePref>(readThemePrefSync());
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
-  const [resetArm, setResetArm] = useState(false);
   const [deleteArm, setDeleteArm] = useState(false);
-  const armTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => { storage.getNotificationSettings().then(setNoti); return () => clearTimeout(armTimer.current); }, []);
+  useEffect(() => { storage.getNotificationSettings().then(setNoti); }, []);
   if (!user) return null;
 
   const updateNoti = async (next: NotificationSettings) => {
@@ -59,22 +57,15 @@ export default function MyPageScreen() {
     await notificationService.schedule(next, user.nickname);
   };
 
-  // 웹에서는 Alert 버튼이 동작하지 않아 두 번 눌러 확인한다
+  // 웹에서는 Alert 버튼이 동작하지 않아 바로 수정 화면으로 간다(기록은 그대로 남는다)
   const confirmReset = () => {
     if (Platform.OS !== 'web') {
-      Alert.alert('프로필을 다시 입력할까요?', '운세·궁합 기록은 그대로 남아요. 생년월일·시간 같은 정보는 하루 2번까지 바꿀 수 있어요.', [
+      Alert.alert('프로필을 다시 입력할까요?', '이미 뽑은 운세·콘텐츠·궁합 기록은 그대로 남고, 바꾼 정보는 내일 운세부터 반영돼요.', [
         { text: '취소', style: 'cancel' },
         { text: '다시 입력하기', style: 'destructive', onPress: resetProfile },
       ]);
       return;
     }
-    if (!resetArm) {
-      setResetArm(true);
-      armTimer.current = setTimeout(() => setResetArm(false), 4000);
-      return;
-    }
-    clearTimeout(armTimer.current);
-    setResetArm(false);
     resetProfile();
   };
 
@@ -105,7 +96,7 @@ export default function MyPageScreen() {
         </LinearGradient>
       </View>
 
-      <SectionHeader title="내 프로필" caption={resetArm ? '기록은 그대로 남아요' : undefined} action={resetArm ? '한 번 더 누르면 수정' : '다시 입력'} onAction={confirmReset} />
+      <SectionHeader title="내 프로필" action="다시 입력" onAction={confirmReset} />
       <Card style={s.group}>
         <PressableScale onPress={() => setMbtiSheet(true)} scaleTo={0.99} accessibilityLabel="MBTI 바꾸기">
           <Row icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''} ›`} />
@@ -228,7 +219,7 @@ export default function MyPageScreen() {
       <Disclaimer />
       <BottomSheet visible={mbtiSheet} onClose={() => setMbtiSheet(false)}>
         <Text style={txt.h2}>MBTI를 골라 주세요</Text>
-        <Text style={[txt.small, { marginTop: 4 }]}>{user.mbtiUnknown ? '지금은 사주로 추정한 값이에요. 내 MBTI를 고르면 운세가 더 정확해져요.' : '바꾸면 오늘의 운세가 다시 계산돼요.'}</Text>
+        <Text style={[txt.small, { marginTop: 4 }]}>{user.mbtiUnknown ? '지금은 사주로 추정한 값이에요. 내 MBTI를 고르면 운세가 더 정확해져요.' : '바꾸면 내일 운세부터 반영돼요. 이미 뽑은 결과는 그대로예요.'}</Text>
         <View style={s.mbtiGrid}>
           {MBTI_LIST.map(t => (
             <OptionChip key={t} style={{ width: '23%' }} label={t} sub={MBTI_INFO[t].nickname} selected={!user.mbtiUnknown && user.mbti === t}

@@ -1,5 +1,7 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
+import { Relationship } from '../types';
+import { colors } from '../theme/colors';
 
 /** 꽉 찬 아이콘 (Figma Icon/Solid). 좌표는 각 원본 크기 그대로 — size 는 긴 변 기준 */
 const ICONS = {
@@ -59,4 +61,13 @@ export default function SolidIcon({ name, size = 16, color }: { name: SolidIconN
       {d.map(p => <Path key={p.slice(0, 16)} d={p} fill={color} fillRule="evenodd" clipRule="evenodd" />)}
     </Svg>
   );
+}
+
+/** 어떤 사이인지 — 궁합 시작 화면의 관계 칸과 같은 그림 */
+const REL_ICON: Record<Relationship, SolidIconName> = { lover: 'heart', friend: 'friend', family: 'family', work: 'work' };
+/** 결과 화면의 관계 색 — 분야별 궁합 막대와 같은 팔레트 (하트만 빨강) */
+const REL_COLOR: Record<Relationship, string> = { lover: colors.love, friend: '#FCBD51', family: '#5FB884', work: colors.accent };
+
+export function RelationIcon({ relationship, size = 13, color }: { relationship: Relationship; size?: number; color?: string }) {
+  return <SolidIcon name={REL_ICON[relationship]} size={size} color={color ?? REL_COLOR[relationship]} />;
 }

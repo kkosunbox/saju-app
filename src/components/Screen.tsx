@@ -3,7 +3,6 @@ import { Animated, StyleSheet, Text, View, ViewStyle, RefreshControlProps } from
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
-import { useTabBack } from '../navigation/tabBack';
 import PressableScale from './PressableScale';
 import Icon from './Icon';
 import { colors, gradients } from '../theme/colors';
@@ -36,10 +35,9 @@ export default function Screen({ children, title, largeTitle, back, scroll = tru
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const floating = floatingBar && scroll;
-  const tabBack = useTabBack();
-  // 탭 화면(큰 제목)에도 뒤로 가기: 화면 안 단계 → 이전에 보던 탭 → 홈
-  const showBack = back || !!largeTitle || !!onBack;
-  const goBack = onBack ?? (largeTitle && !back ? tabBack : () => nav.goBack());
+  // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다
+  const showBack = back || !!onBack;
+  const goBack = onBack ?? (() => nav.goBack());
   const heading = title ?? largeTitle;
   const bar = (heading || showBack || right) && (
     <View style={[s.bar, floating && [s.floatBar, { top: insets.top }]]}>

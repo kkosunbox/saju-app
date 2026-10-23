@@ -4,7 +4,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import ScoreBar from '../ScoreBar';
 import Segmented from '../Segmented';
-import SolidIcon from '../SolidIcon';
+import { RelationIcon } from '../SolidIcon';
 import { ART } from '../Mascot';
 import { Bullet, Para, SoftCard, SubHead, Tip } from './Kit';
 import { PartPending, ReadingBanner } from './Reading';
@@ -64,8 +64,8 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         <View style={s.tRow}>
           <View style={s.tL} />
           <View style={s.tHead}><Image source={ART.faceA} style={s.face} /><Text style={s.tV}>{nmA}</Text></View>
-          {/* 두 이름 사이 하트 — 폭 0인 칸에 겹쳐 둔다 */}
-          <View style={s.tMid}><SolidIcon name="heart" size={13} color={colors.love} /></View>
+          {/* 두 이름 사이 관계 아이콘 — 폭 0인 칸에 겹쳐 둔다 */}
+          <View style={s.tMid}><RelationIcon relationship={r.relationship} /></View>
           <View style={s.tHead}><Image source={ART.faceB} style={s.face} /><Text style={s.tV}>{nmB}</Text></View>
         </View>
         {table.map(([l, a, b, unknown]) => (

@@ -19,7 +19,6 @@ interface ProfileDto {
   concern: string | null;
   occupation: string | null;
   version: number;
-  remainingSajuEditsToday: number;
   updatedAt: string;
   natal: Natal;
 }
@@ -41,7 +40,6 @@ const toUser = (accountId: number, p: ProfileDto): User => ({
   concern: p.concern ?? undefined,
   occupation: p.occupation ?? undefined,
   version: p.version,
-  remainingSajuEditsToday: p.remainingSajuEditsToday,
   createdAt: p.updatedAt,
   natal: p.natal,
 });
@@ -91,7 +89,7 @@ export const profileApi = {
     }
   },
 
-  /** Creates or updates. Birth detail edits are limited to 2 a day (PROFILE_EDIT_LIMIT_EXCEEDED). */
+  /** Creates or updates (no edit limit; what was already drawn keeps the old details). */
   async save(accountId: number, input: ProfileInput): Promise<User> {
     const body = {
       ...input,

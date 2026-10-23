@@ -202,8 +202,7 @@ export default function ProfileSetupScreen() {
       const code = e instanceof ApiError ? e.code : '';
       setSaveError(
         code === 'INVALID_BIRTH_DATE' ? '없는 날짜예요. 음력이면 윤달 여부도 확인해 주세요.'
-          : code === 'PROFILE_EDIT_LIMIT_EXCEEDED' ? '생년월일·시간 같은 정보는 하루 2번까지 바꿀 수 있어요. 내일 다시 시도해 주세요.'
-            : '저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
+          : '저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.',
       );
       setGenerating(false);
     }

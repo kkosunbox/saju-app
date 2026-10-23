@@ -27,7 +27,6 @@ export interface User {
   isLeapMonth?: boolean;
   useYajasi?: boolean;
   version?: number;
-  remainingSajuEditsToday?: number;
   /** 원국 · 오행 · 태어난 요일 (서버 계산). */
   natal?: import('./content').Natal;
 }

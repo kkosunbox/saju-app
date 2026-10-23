@@ -1,6 +1,7 @@
 /**
  * 뽑았는지(열어 봤는지) — 결과를 들어가자마자 보여주지 않고, 한 번 뽑게 한 다음부터 바로 보여준다.
- * 오늘의 운세·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 프로필이 바뀔 때만 다시 뽑는다.
+ * 오늘의 운세·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
+ * 뽑은 결과는 서버가 그때의 프로필로 고정해 두므로 프로필을 바꿔도 다시 뽑지 않는다.
  * 이 기기에만 저장한다 (기기를 바꾸면 한 번 더 뽑는 정도는 괜찮다).
  */
 import { useCallback, useEffect, useState } from 'react';
@@ -11,7 +12,7 @@ import { useApp } from '../../context/AppContext';
 export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
 const DAILY: OpenKind[] = ['fortune', 'talisman'];
 
-/** 사용자별 { 종류: 마지막으로 뽑은 도장(날짜 또는 프로필 버전) } — 종류마다 한 칸이라 쌓이지 않는다 */
+/** 사용자별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } — 종류마다 한 칸이라 쌓이지 않는다 */
 type Stamps = Partial<Record<OpenKind, string>>;
 let mem: { uid: string; stamps: Stamps } | null = null;
 let loading: Promise<Stamps> | null = null;
@@ -39,13 +40,14 @@ function save(uid: string, kind: OpenKind, stamp: string | undefined) {
 
 /**
  * ready: 저장된 값을 읽었는지 (읽기 전엔 봉인도 결과도 그리지 않는다 — 깜빡임 방지)
- * opened: 이번 날짜·프로필로 이미 뽑았는지 · open(): 뽑았다고 기록 (홈 타일도 같이 바뀐다)
+ * opened: 이미 뽑았는지 (운세·부적은 오늘 날짜로) · open(): 뽑았다고 기록 (홈 타일도 같이 바뀐다)
  * reset(): 뽑은 기록을 지워 다시 뽑기 전으로 (테스트용)
  */
 export function useOpened(kind: OpenKind) {
   const { user, today } = useApp();
   const uid = user?.id ?? '';
-  const stamp = DAILY.includes(kind) ? today : `v${user?.version ?? 0}`;
+  const daily = DAILY.includes(kind);
+  const stamp = daily ? today : `v${user?.version ?? 0}`;
   const [stamps, setStamps] = useState<Stamps | null>(mem?.uid === uid ? mem.stamps : null);
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export function useOpened(kind: OpenKind) {
 
   const open = useCallback(() => { if (uid) save(uid, kind, stamp); }, [uid, kind, stamp]);
   const reset = useCallback(() => { if (uid) save(uid, kind, undefined); }, [uid, kind]);
-  return { ready: !!stamps, opened: stamps?.[kind] === stamp, open, reset };
+  return { ready: !!stamps, opened: daily ? stamps?.[kind] === stamp : !!stamps?.[kind], open, reset };
 }
 
 /** 결과 화면에 다른 길(알림·링크·기간별 운세)로 먼저 들어왔으면 그걸로 뽑은 셈 */
