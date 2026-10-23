@@ -5,23 +5,24 @@ import Animated, {
   cancelAnimation, Easing, SharedValue, useAnimatedProps,
   useAnimatedStyle, useDerivedValue, useSharedValue, withRepeat, withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const TOWELS = [
-  { pose: 'lowerRight', source: require('../../assets/images/mascot-cloth-contour-lower-right.png') },
-  { pose: 'lowerLeft', source: require('../../assets/images/mascot-cloth-contour-lower-left.png') },
-  { pose: 'upperLeft', source: require('../../assets/images/mascot-cloth-contour-upper-left.png') },
+const CLOTHS = [
+  require('../../assets/images/mascot-cloth-arc-right.png'),
+  require('../../assets/images/mascot-cloth-arc-left.png'),
+  require('../../assets/images/mascot-cloth-arc-top.png'),
 ] as const;
-type ClothPose = typeof TOWELS[number]['pose'];
-const CYCLE_MS = 3300;
+const CLOTH_SIZE = 0.38;
+const CYCLE_MS = 4800;
 const FINISH_MS = 2600;
-// 사각 천의 좌상단 좌표. 우하단 → 좌하단 → 좌상단에서 각각 한 이미지를 고정한다.
+// 접촉면 중심의 2차 베지어 곡선: 오른쪽 볼·왼쪽 볼·머리선을 따라 왕복한다.
+// 구역 사이에서는 완전히 숨겨서 이동 경로가 보이지 않게 한다.
 const SPOTS = [
-  { x: 0.56, y: 0.53, dx: 0.045, dy: -0.03, pose: 'lowerRight' },
-  { x: 0.08, y: 0.54, dx: 0.035, dy: -0.035, pose: 'lowerLeft' },
-  // 홈의 103px 마스코트 기준: 기준 위치에서 오른쪽 16px, 위로 4px 이동.
-  { x: 0.16 + 16 / 103, y: 0.02 - 4 / 103, dx: 0.045, dy: -0.006, pose: 'upperLeft' },
+  { x0: 0.65, y0: 0.85, cx: 0.89, cy: 0.79, x1: 0.91, y1: 0.59 },
+  { x0: 0.39, y0: 0.85, cx: 0.19, cy: 0.76, x1: 0.20, y1: 0.58 },
+  { x0: 0.35, y0: 0.25, cx: 0.55, cy: 0.06, x1: 0.71, y1: 0.19 },
 ] as const;
 // 원본 마스코트의 비대칭 실루엣 안으로 반사광을 제한한다 (108 × 100).
 const SILHOUETTE = 'M65 7C78 2 80 14 77 30C75 42 78 45 89 50C104 56 105 75 93 85C81 97 51 99 31 93C11 87 5 75 11 56C17 34 36 14 65 7Z';
@@ -31,30 +32,35 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
-/** 각 1.1초: 착지 → 같은 자리에서 슥삭 두 번 → 잠깐 쉼 → 다음 구역으로 톡 이동. */
+/** 각 1.6초: 등장 → 둥근 윤곽을 따라 두 번 왕복 → 사라짐 → 다음 구역. */
 function polishPose(time: number) {
   'worklet';
   const beat = Math.min(clamp01(time), 0.999999) * SPOTS.length;
   const index = Math.floor(beat);
   const local = beat - index;
   const here = SPOTS[index];
-  const next = SPOTS[(index + 1) % SPOTS.length];
-  const travel = clamp01((local - 0.8) / 0.2);
-  const eased = travel * travel * (3 - 2 * travel);
-  const hop = Math.sin(travel * Math.PI);
-  const scrub = clamp01((local - 0.12) / 0.6);
-  const envelope = Math.min(1, scrub * 12, (1 - scrub) * 12);
+  const fade = Math.min(clamp01((local - 0.04) / 0.12), clamp01((0.9 - local) / 0.14));
+  const visibility = fade * fade * (3 - 2 * fade);
+  const scrub = clamp01((local - 0.16) / 0.56);
+  const envelope = Math.pow(Math.sin(scrub * Math.PI), 2);
   const rub = Math.sin(scrub * Math.PI * 4) * envelope;
-  const landing = local < 0.12 ? Math.sin(local / 0.12 * Math.PI) : 0;
-  const pressure = local >= 0.12 && local <= 0.72 ? 1 : 0;
+  const pressure = envelope * visibility;
+  // 코사인 왕복은 양 끝에서 멈췄다가 부드럽게 반대 방향으로 돌아온다.
+  // 곡선의 가운데 40%만 사용해, 윤곽을 크게 훑기보다 한 부위를 작게 닦는다.
+  const t = 0.3 + (1 - Math.cos(scrub * Math.PI * 4)) / 2 * 0.4;
+  const u = 1 - t;
+  const x = u * u * here.x0 + 2 * u * t * here.cx + t * t * here.x1;
+  const y = u * u * here.y0 + 2 * u * t * here.cy + t * t * here.y1;
+  const tangentX = u * (here.cx - here.x0) + t * (here.x1 - here.cx);
+  const tangentY = u * (here.cy - here.y0) + t * (here.y1 - here.cy);
+  const centerAngle = Math.atan2(here.y1 - here.y0, here.x1 - here.x0);
+  const angle = (Math.atan2(tangentY, tangentX) - centerAngle) * 180 / Math.PI;
   return {
-    x: here.x + (next.x - here.x) * eased + rub * here.dx,
-    y: here.y + (next.y - here.y) * eased - hop * 0.1 + rub * here.dy,
-    // 구역별 굴곡은 이미지에 반영되어 있다. 문지를 때만 접촉면을 중심으로 작게 흔든다.
-    angle: rub * 3,
-    // 공중 이동의 중간에만 교체. 닦는 도중에는 이미지가 바뀌지 않는다.
-    frame: travel >= 0.5 ? next.pose : here.pose,
-    rub, pressure, landing, hop,
+    x: x - CLOTH_SIZE / 2,
+    y: y - CLOTH_SIZE / 2,
+    angle: angle * 0.35,
+    frame: index,
+    rub, pressure, visibility,
   };
 }
 
@@ -78,8 +84,8 @@ function revealGlint(progress: number, delay: number) {
 }
 
 /** 기존 이미지와 버튼을 유지하고, 천과 반사광만 별도 레이어로 합성한다. */
-export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, children }: PropsWithChildren<{
-  busy: boolean; reduced: boolean; size: number; sparkleTrigger?: number;
+export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, onCycleComplete, children }: PropsWithChildren<{
+  busy: boolean; reduced: boolean; size: number; sparkleTrigger?: number; onCycleComplete?(): void;
 }>) {
   const id = useId().replace(/:/g, '');
   const wasBusy = useRef(false);
@@ -89,6 +95,13 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
   const finish = useSharedValue(1);
 
   useEffect(() => {
+    let active = true;
+    let notified = false;
+    const completeCycle = () => {
+      if (!active || notified) return;
+      notified = true;
+      onCycleComplete?.();
+    };
     const tapped = sparkleTrigger !== lastSparkleTrigger.current;
     lastSparkleTrigger.current = sparkleTrigger;
     cancelAnimation(phase);
@@ -98,7 +111,9 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
       phase.value = 0;
       finish.value = 1;
       cloth.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
-      phase.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }), -1, false);
+      phase.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }, finished => {
+        if (finished) scheduleOnRN(completeCycle);
+      }), -1, false);
     } else {
       cloth.value = withTiming(0, { duration: reduced ? 0 : 280, easing: Easing.out(Easing.cubic) });
       if ((wasBusy.current || tapped) && !busy && !reduced) {
@@ -109,8 +124,11 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
         finish.value = 1;
       }
     }
+    // 동작 줄이기에서는 생략된 연출 때문에 결과 공개가 막히지 않게 한다.
+    if (busy && reduced) completeCycle();
     wasBusy.current = busy;
-  }, [busy, reduced, sparkleTrigger, phase, cloth, finish]);
+    return () => { active = false; };
+  }, [busy, reduced, sparkleTrigger, onCycleComplete, phase, cloth, finish]);
 
   useEffect(() => () => {
     cancelAnimation(phase);
@@ -121,26 +139,26 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
   const pose = useDerivedValue(() => polishPose(phase.value));
   const bodyStyle = useAnimatedStyle(() => {
     const pressure = pose.value.pressure * cloth.value;
-    const pop = glint(finish.value * FINISH_MS / 1000, 0.02, 0.45);
     return {
       transform: [
         { translateX: -pose.value.rub * size * 0.008 * cloth.value },
         { rotate: `${-pose.value.rub * 1.5 * cloth.value}deg` },
-        { scaleX: 1 + pressure * 0.018 + pop * 0.025 },
-        { scaleY: 1 - pressure * 0.022 + pop * 0.025 },
+        { scaleX: 1 + pressure * 0.018 },
+        { scaleY: 1 - pressure * 0.022 },
       ],
     };
   });
   const clothStyle = useAnimatedStyle(() => {
     const pressure = pose.value.pressure;
     return {
-      opacity: cloth.value * (1 - pose.value.hop * 0.2),
+      opacity: cloth.value * pose.value.visibility,
       transform: [
-        { translateX: pose.value.x * size + (1 - cloth.value) * size * 0.18 },
-        { translateY: pose.value.y * size + (1 - cloth.value) * size * 0.08 },
+        { translateX: pose.value.x * size },
+        { translateY: pose.value.y * size },
         { rotate: `${pose.value.angle}deg` },
-        { scaleX: 1 + pose.value.landing * 0.035 + pressure * Math.abs(pose.value.rub) * 0.015 },
-        { scaleY: 1 - pose.value.landing * 0.025 - pressure * Math.abs(pose.value.rub) * 0.015 + pose.value.hop * 0.025 },
+        { scale: 0.94 + pose.value.visibility * 0.06 },
+        { scaleX: 1 + pressure * 0.025 },
+        { scaleY: 1 - pressure * 0.04 },
       ],
     };
   });
@@ -214,9 +232,9 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
         </View>
       </Animated.View>
       <View pointerEvents="none" style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Animated.View style={[s.cloth, { width: size * 0.42, height: size * 0.42 }, clothStyle]}>
-          {TOWELS.map(towel => (
-            <ClothFrame key={towel.pose} source={towel.source} pose={towel.pose} motion={pose} />
+        <Animated.View style={[s.cloth, { width: size * CLOTH_SIZE, height: size * CLOTH_SIZE }, clothStyle]}>
+          {CLOTHS.map((source, index) => (
+            <ClothFrame key={index} source={source} index={index} motion={pose} />
           ))}
         </Animated.View>
         <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0} size={size * 0.3} left={size * 0.88} top={size * 0.02} />
@@ -227,10 +245,10 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
   );
 }
 
-function ClothFrame({ source, pose, motion }: {
-  source: number; pose: ClothPose; motion: SharedValue<ReturnType<typeof polishPose>>;
+function ClothFrame({ source, index, motion }: {
+  source: number; index: number; motion: SharedValue<ReturnType<typeof polishPose>>;
 }) {
-  const style = useAnimatedStyle(() => ({ opacity: motion.value.frame === pose ? 1 : 0 }));
+  const style = useAnimatedStyle(() => ({ opacity: motion.value.frame === index ? 1 : 0 }));
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
       <Image source={source} contentFit="contain" transition={0} style={StyleSheet.absoluteFill} />

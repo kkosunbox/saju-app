@@ -15,9 +15,9 @@ const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜: 'pose-thai', 性: 'pose-mbti', 血: 'pose-blood' };
 
-export function AlmanacHero({ tone, kicker, seal, eyebrow, title, today, tags, children }: {
+export function AlmanacHero({ tone, kicker, seal, eyebrow, title, today, tags, children, illustration }: {
   tone: { color: string; bg: string }; kicker: string; seal: string; eyebrow?: string; title: string; today: string;
-  tags?: string[]; children?: React.ReactNode;
+  tags?: string[]; children?: React.ReactNode; illustration?: React.ReactNode;
 }) {
   const { m, d } = parseISO(today);
   // "四柱 · 사주" 처럼 한자 제호가 앞에 붙어 오면 한글만 쓴다
@@ -29,7 +29,7 @@ export function AlmanacHero({ tone, kicker, seal, eyebrow, title, today, tags, c
         <Text style={s.date}>{m}.{String(d).padStart(2, '0')} ({WEEK[weekdayOf(today)]})</Text>
       </View>
       <View style={s.body}>
-        <Mascot name={POSE[seal] ?? 'mascot'} size={64} style={s.art} />
+        <View style={s.art}>{illustration ?? <Mascot name={POSE[seal] ?? 'mascot'} size={64} />}</View>
         {eyebrow ? <Text style={s.eyebrow}>{eyebrow}</Text> : null}
         <Text style={[s.title, KEEP]}>{title}</Text>
         {tags?.length ? (

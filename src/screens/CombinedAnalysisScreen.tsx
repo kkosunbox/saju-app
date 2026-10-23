@@ -14,6 +14,7 @@ import { KEYWORDS } from '../data/keywords';
 import { AlmanacHero, Figure } from '../components/Almanac';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 import LoadingScreen from '../components/LoadingScreen';
+import ResultMascot from '../components/ResultMascot';
 
 export default function CombinedAnalysisScreen() {
   const { fortune, today, fortuneWriting } = useApp();
@@ -31,6 +32,7 @@ export default function CombinedAnalysisScreen() {
     <Screen title="종합 분석" back>
       <AlmanacHero
         tone={{ color: colors.purple, bg: colors.lavenderSoft }} kicker="綜合 · 종합 분석" seal="合" eyebrow="네 가지 관점이 겹친 오늘"
+        illustration={<ResultMascot dayStem={fortune.dayPillar?.stem} scores={f} size={64} />}
         title={f.summary} today={today} tags={f.commonKeywords.length ? f.commonKeywords : f.keywords.slice(0, 1)}
       />
 

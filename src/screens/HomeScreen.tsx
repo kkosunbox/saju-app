@@ -45,8 +45,6 @@ import InvitePicker from '../components/InvitePicker';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
-/** 뽑은 뒤 '풀어보는 중'을 보여주는 최소 시간 — 풀이가 이미 있거나(AI 꺼짐) 빨리 와도 의식은 같게 */
-const READ_MIN_MS = 3200;
 const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '혈액형 한마디까지 엮는 중…', '오늘의 이야기를 쓰는 중…'];
 
 /** 말풍선 안에서 차례로 바뀌는 '풀어보는 중' 문구 (마지막 문구에서 멈춘다) */
@@ -77,9 +75,11 @@ export default function HomeScreen() {
   // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤, 풀이가 다 써지면 한 번에 펼친다
   const draw = useFortuneDraw();
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
-  const [minWait, setMinWait] = useState(false); // 풀이가 빨리 와도 '풀어보는 중'은 잠깐 보여준다
+  const [waitingForPolish, setWaitingForPolish] = useState(false);
+  // 타이머 대신 실제 세 구역 연출의 완료 신호를 기다린다.
+  const completePolish = useCallback(() => setWaitingForPolish(false), []);
   const sealed = draw.ready && !draw.opened;
-  const reading = draw.ready && draw.opened && (fortuneWriting || minWait);
+  const reading = draw.ready && draw.opened && (fortuneWriting || waitingForPolish);
   const hidden = sealed || reading; // 결과를 가리는 동안 (뽑기 전 · 풀이를 기다리는 중)
   const [pop] = useState(() => new Animated.Value(1));
   const [count] = useState(() => new Animated.Value(0));
@@ -96,7 +96,7 @@ export default function HomeScreen() {
   const resetDraw = () => {
     draw.reset();
     setDrawn(false);
-    setMinWait(false);
+    setWaitingForPolish(false);
   };
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
   const opened = {
@@ -189,8 +189,7 @@ export default function HomeScreen() {
   const onDrawn = () => {
     draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
     setDrawn(true);
-    setMinWait(true);
-    setTimeout(() => setMinWait(false), READ_MIN_MS);
+    setWaitingForPolish(true);
   };
   /** 방금 뽑았을 때만 차례로 나타나게 (Reveal은 처음 그려질 때 한 번 움직인다) */
   // 종합 풀이는 오늘의 운세를 뽑고 풀이가 나온 뒤에만 연다
@@ -276,7 +275,7 @@ export default function HomeScreen() {
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} />
+            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} dayStem={fortune.dayPillar?.stem} scores={hidden ? undefined : f} />
           </Reveal>
 
           {/* 분야별 점수 */}

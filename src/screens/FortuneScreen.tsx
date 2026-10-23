@@ -6,7 +6,7 @@ import Screen from '../components/Screen';
 import Segmented from '../components/Segmented';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScoreRing from '../components/ScoreRing';
-import Mascot from '../components/Mascot';
+import ResultMascot from '../components/ResultMascot';
 import PromoCard, { PROMO_TONE } from '../components/PromoCard';
 import { usePremium } from '../context/PremiumContext';
 import CategoryRow from '../components/CategoryRow';
@@ -100,7 +100,7 @@ export default function FortuneScreen() {
       <Segmented<Period> options={TABS} value={tab} onChange={t => { setTab(t); setOpen(null); }} />
 
       <LinearGradient colors={gradients.skyCard} style={s.hero}>
-        <Mascot name="cloud" size={88} style={{ alignSelf: 'center' }} />
+        <View style={{ alignSelf: 'center' }}><ResultMascot dayStem={fortune.dayPillar?.stem} scores={tab === 'daily' ? f : period ? { totalScore: period.score, love: period.cats.love.score, money: period.cats.money.score, work: period.cats.work.score, relationship: period.cats.relationship.score } : undefined} size={88} /></View>
         <View style={s.heroRow}>
           <ScoreRing key={tab} score={score} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
           <View style={{ flex: 1 }}>

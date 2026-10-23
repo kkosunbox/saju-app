@@ -1,0 +1,33 @@
+Generated with the built-in image_gen tool. Three standalone transparent sprites, resized to 256 × 256 with alpha preserved.
+Animation follows the user's three curved back-and-forth strokes. Each sprite stays fixed within its own region and switches only while invisible.
+
+assets/images/mascot-cloth-arc-right.png
+
+Use case: stylized-concept. Create ONE standalone transparent sprite for a mobile app animation: a SMALL SOFT HANDKERCHIEF gently polishing the rounded surface of a jelly mascot. This is one of a consistent three-pose asset set.
+Reference image 1 is the MASCOT STYLE reference only. Reference image 2 is an OLD CLOTH reference for powder-blue color only; improve its rigid silhouette. Do NOT draw the mascot or a scene.
+Material/style: simple soft airbrushed cartoon illustration in the same world as the pastel mascot. Pale powder blue, quiet lavender-blue underside, a broad soft milky highlight. Thin fabric, flexible and lightweight. No realistic fibers, stitching, granular texture, high-detail textile weave or strong photorealism.
+Shape: compact approximately square handkerchief gently gathered for wiping, visibly uneven soft curved edges with rounded corners; TWO SIMPLE SHALLOW folds, one loose corner subtly turned up. Show pliable fabric conforming to a local rounded surface, not a rigid square, tile, puffy pillow, thick sponge, inflated jelly blob, tent, long dangling drape or flower. It stays compact. No perfect straight four-sided geometry. Thin fine edge, NOT a thick white rim. Broad readable face so it reads as a handkerchief at 32px.
+Composition: one isolated cloth centered at the same scale on a square transparent canvas, occupying 78% of width and height with full equal padding. Front camera, gentle three-quarter perspective. Fixed soft upper-left light in every pose. TRUE transparent alpha. NO hand, character, eyes, face, floor, cast shadow, text, particles, extra objects or contact surface.
+LOCAL POSE: wiping a convex LOWER-RIGHT CHEEK in a curving upward-right / downward-left stroke. The thin cloth is bent diagonally, left/front edge slightly nearer and right outer edge gently curling away around the invisible right cheek. Two loose lower corners and a shallow fold radiating from contact center. Overall cloth orientation about 15 degrees clockwise.
+
+---
+
+assets/images/mascot-cloth-arc-left.png
+
+Use case: stylized-concept. Create ONE standalone transparent sprite for a mobile app animation: a SMALL SOFT HANDKERCHIEF gently polishing the rounded surface of a jelly mascot. This is one of a consistent three-pose asset set.
+Reference image 1 is the MASCOT STYLE reference only. Reference image 2 is an OLD CLOTH reference for powder-blue color only; improve its rigid silhouette. Do NOT draw the mascot or a scene.
+Material/style: simple soft airbrushed cartoon illustration in the same world as the pastel mascot. Pale powder blue, quiet lavender-blue underside, a broad soft milky highlight. Thin fabric, flexible and lightweight. No realistic fibers, stitching, granular texture, high-detail textile weave or strong photorealism.
+Shape: compact approximately square handkerchief gently gathered for wiping, visibly uneven soft curved edges with rounded corners; TWO SIMPLE SHALLOW folds, one loose corner subtly turned up. Show pliable fabric conforming to a local rounded surface, not a rigid square, tile, puffy pillow, thick sponge, inflated jelly blob, tent, long dangling drape or flower. It stays compact. No perfect straight four-sided geometry. Thin fine edge, NOT a thick white rim. Broad readable face so it reads as a handkerchief at 32px.
+Composition: one isolated cloth centered at the same scale on a square transparent canvas, occupying 78% of width and height with full equal padding. Front camera, gentle three-quarter perspective. Fixed soft upper-left light in every pose. TRUE transparent alpha. NO hand, character, eyes, face, floor, cast shadow, text, particles, extra objects or contact surface.
+LOCAL POSE: wiping a convex LOWER-LEFT CHEEK in a curving upward-left / downward-right stroke. The thin cloth is bent diagonally in the opposite direction, right/front edge slightly nearer and left outer edge gently curling away around the invisible left cheek. Two loose lower corners and a shallow fold radiating from contact center. Overall cloth orientation about 15 degrees counterclockwise. Keep light upper-left; do not mirror the lighting.
+
+---
+
+assets/images/mascot-cloth-arc-top.png
+
+Use case: stylized-concept. Create ONE standalone transparent sprite for a mobile app animation: a SMALL SOFT HANDKERCHIEF gently polishing the rounded surface of a jelly mascot. This is one of a consistent three-pose asset set.
+Reference image 1 is the MASCOT STYLE reference only. Reference image 2 is an OLD CLOTH reference for powder-blue color only; improve its rigid silhouette. Do NOT draw the mascot or a scene.
+Material/style: simple soft airbrushed cartoon illustration in the same world as the pastel mascot. Pale powder blue, quiet lavender-blue underside, a broad soft milky highlight. Thin fabric, flexible and lightweight. No realistic fibers, stitching, granular texture, high-detail textile weave or strong photorealism.
+Shape: compact approximately square handkerchief gently gathered for wiping, visibly uneven soft curved edges with rounded corners; TWO SIMPLE SHALLOW folds, one loose corner subtly turned up. Show pliable fabric conforming to a local rounded surface, not a rigid square, tile, puffy pillow, thick sponge, inflated jelly blob, tent, long dangling drape or flower. It stays compact. No perfect straight four-sided geometry. Thin fine edge, NOT a thick white rim. Broad readable face so it reads as a handkerchief at 32px.
+Composition: one isolated cloth centered at the same scale on a square transparent canvas, occupying 78% of width and height with full equal padding. Front camera, gentle three-quarter perspective. Fixed soft upper-left light in every pose. TRUE transparent alpha. NO hand, character, eyes, face, floor, cast shadow, text, particles, extra objects or contact surface.
+LOCAL POSE: wiping a rounded TOP OF HEAD in a left-right arcing stroke. A compact handkerchief gently bent like a shallow saddle across an invisible curved forehead: gently arched top silhouette, two side corners lightly curling down, a shallow curved fold along its width. Broad face remains visible, centered. Overall orientation close to horizontal. Not a blanket covering a head, no head rendered.

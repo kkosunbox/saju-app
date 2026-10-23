@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Mascot from './Mascot';
+import ResultMascot from './ResultMascot';
+import { getResultMascot, type MascotScores } from '../utils/resultMascot';
 import MascotPolish from './MascotPolish';
 import { AnimatedCircle } from './ScoreRing';
 import { colors, isDark } from '../theme/colors';
@@ -18,18 +19,17 @@ const HINT_H = 36; // 안내 알약 + 위 여백
 
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
- * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 튀어 올라 onDrawn.
+ * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 부드럽게 펴지며 onDrawn.
  * busy 이면(풀이를 기다리는 중) 천으로 닦고 광을 낸다.
  * 풀이 완료 뒤엔 누를 때마다 마스코트가 튕기고 운세 공개 때의 반짝임을 다시 재생한다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
-export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: boolean; busy?: boolean; onDrawn(): void }) {
+export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, dayStem, scores }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; dayStem?: number; scores?: MascotScores }) {
   const reduced = useReducedMotion();
   const playful = !sealed && !busy;
   const play = useMascotPlay(playful, reduced);
   const [y] = useState(() => new Animated.Value(0));
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
-  const [jump] = useState(() => new Animated.Value(0)); // 튀어 오름 0..1..0
   const [holding, setHolding] = useState(false);
   // 안내 자리: 뽑고 나면 서서히 접혀 아래 화면이 살짝 올라온다 (이미 뽑은 날엔 처음부터 접힌 채)
   const showHint = sealed || busy;
@@ -42,7 +42,12 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
   useEffect(() => { if (sealed) done.current = false; }, [sealed]); // 뽑은 기록을 지우면 다시 뽑을 수 있게
 
   useEffect(() => {
-    if (reduced || busy) { y.setValue(0); return; }
+    if (reduced) { y.setValue(0); return; }
+    if (busy) {
+      const settle = Animated.timing(y, { toValue: 0, duration: 280, easing: motion.easeOut, useNativeDriver: true });
+      settle.start();
+      return () => settle.stop();
+    }
     const a = Animated.loop(Animated.sequence([
       Animated.timing(y, { toValue: -6, duration: 1400, useNativeDriver: true }),
       Animated.timing(y, { toValue: 0, duration: 1400, useNativeDriver: true }),
@@ -68,12 +73,8 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
     haptic.pop();
     onDrawn();
     if (reduced) return;
-    jump.setValue(0);
-    Animated.sequence([
-      Animated.timing(jump, { toValue: 1, duration: 180, easing: motion.easeOut, useNativeDriver: false }),
-      Animated.spring(jump, { toValue: 0, speed: 14, bounciness: 14, useNativeDriver: false }),
-    ]).start();
-    Animated.timing(p, { toValue: 0, duration: 200, useNativeDriver: false }).start();
+    // 눌린 모양을 한 번에 천천히 풀고, 공개 시에는 별도 점프를 겹치지 않는다.
+    Animated.timing(p, { toValue: 0, duration: 320, easing: motion.easeOut, useNativeDriver: false }).start();
   };
 
   const pressIn = () => {
@@ -90,17 +91,16 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
     Animated.timing(p, { toValue: 0, duration: 260, easing: motion.easeOut, useNativeDriver: false }).start();
   };
 
-  // 눌리는 동안 납작해지고, 튀어 오를 땐 길쭉해졌다 돌아온다
-  const scaleX = Animated.add(p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }), jump.interpolate({ inputRange: [0, 1], outputRange: [0, -0.08] }));
-  const scaleY = Animated.add(p.interpolate({ inputRange: [0, 1], outputRange: [1, 0.84] }), jump.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] }));
-  const lift = jump.interpolate({ inputRange: [0, 1], outputRange: [0, -34] });
+  // 꾹 누르는 손맛은 남기되, 반동 없이 원래 모양으로 돌아온다.
+  const scaleX = p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
+  const scaleY = p.interpolate({ inputRange: [0, 1], outputRange: [1, 0.9] });
   const dash = p.interpolate({ inputRange: [0, 1], outputRange: [C, 0] });
 
   const body = (
-    <Animated.View style={{ transform: [{ translateY: lift }, { scaleX }, { scaleY }] }}>
+    <Animated.View style={{ transform: [{ scaleX }, { scaleY }] }}>
       <Animated.View style={play.style}>
-        <MascotPolish busy={busy} reduced={reduced} size={SIZE} sparkleTrigger={play.sparkleTrigger}>
-          <Mascot size={SIZE} />
+        <MascotPolish busy={busy} reduced={reduced} size={SIZE} sparkleTrigger={play.sparkleTrigger} onCycleComplete={onPolishComplete}>
+          <ResultMascot dayStem={dayStem} scores={scores} size={SIZE} accessible={false} revealed={playful} animateReveal={!reduced} />
         </MascotPolish>
       </Animated.View>
     </Animated.View>
@@ -120,7 +120,7 @@ export default function DrawMascot({ sealed, busy = false, onDrawn }: { sealed: 
         // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
         accessibilityRole="button"
         accessibilityState={{ disabled: busy }}
-        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : '행운을 모으는 마스코트'}
+        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : getResultMascot(dayStem, scores).label}
         accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
         accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
         onAccessibilityAction={sealed ? burst : undefined}
