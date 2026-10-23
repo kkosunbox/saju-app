@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Amount } from '../../components/premium/Kit';
 import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
+import BusinessFooter from '../../components/BusinessFooter';
 import { usePremium, refreshPoints } from '../../context/PremiumContext';
 import { PACKS, fmtP, packProductId } from '../../services/premium/catalog';
 import { TossOrder, pointsApi } from '../../services/server/pointsApi';
@@ -147,6 +148,7 @@ export default function ChargeScreen() {
           <View nativeID="toss-agreement" />
         </View>
       ) : null}
+      <BusinessFooter style={{ marginTop: 32 }} />
     </Screen>
   );
 }

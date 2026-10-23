@@ -9,6 +9,7 @@ import SectionHeader from '../components/SectionHeader';
 import Icon, { IconName } from '../components/Icon';
 import { BRAND, LogoMark } from '../components/BrandMark';
 import Disclaimer from '../components/Disclaimer';
+import BusinessFooter from '../components/BusinessFooter';
 import BottomSheet from '../components/BottomSheet';
 import OptionChip from '../components/OptionChip';
 import Segmented from '../components/Segmented';
@@ -219,6 +220,7 @@ export default function MyPageScreen() {
       {deleteArm ? <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>프로필 · 운세 기록 · 알이 모두 지워지고 되돌릴 수 없어요.</Text> : null}
 
       <Disclaimer />
+      <BusinessFooter style={{ marginTop: 28 }} />
       <BottomSheet visible={mbtiSheet} onClose={() => setMbtiSheet(false)}>
         <Text style={txt.h2}>MBTI를 골라 주세요</Text>
         <Text style={[txt.small, { marginTop: 4 }]}>{user.mbtiUnknown ? '지금은 사주로 추정한 값이에요. 내 MBTI를 고르면 운세가 더 정확해져요.' : '바꾸면 내일 운세부터 반영돼요. 이미 뽑은 결과는 그대로예요.'}</Text>

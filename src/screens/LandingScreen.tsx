@@ -8,6 +8,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import Card from '../components/Card';
 import BrandMark from '../components/BrandMark';
+import BusinessFooter from '../components/BusinessFooter';
 import Mascot, { ArtName } from '../components/Mascot';
 import MascotCarousel from '../components/MascotCarousel';
 import { CategoryGlyph } from '../components/CategoryIcon';
@@ -168,13 +169,8 @@ export default function LandingScreen() {
           <View onLayout={e => setLastCtaY(e.nativeEvent.layout.y)}>
             <PrimaryButton label={CTA} onPress={start} style={{ marginTop: 32 }} />
           </View>
-          <View style={s.footer}>
-            <Text style={txt.caption}>운세는 재미와 참고를 위한 콘텐츠예요. 중요한 결정은 전문가와 상의하세요.</Text>
-            <View style={{ flexDirection: 'row', gap: 16, marginTop: 10 }}>
-              <PressableScale onPress={() => router.push('/legal/terms')} hitSlop={8} accessibilityRole="link"><Text style={s.footLink}>이용약관</Text></PressableScale>
-              <PressableScale onPress={() => router.push('/legal/privacy')} hitSlop={8} accessibilityRole="link"><Text style={s.footLink}>개인정보처리방침</Text></PressableScale>
-            </View>
-          </View>
+          <Text style={[txt.caption, { marginTop: 32 }]}>운세는 재미와 참고를 위한 콘텐츠예요. 중요한 결정은 전문가와 상의하세요.</Text>
+          <BusinessFooter style={{ marginTop: 16 }} />
         </View>
       </ScrollView>
 
@@ -216,7 +212,5 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
-  footer: { marginTop: 32, paddingTop: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  footLink: { fontSize: 13, fontWeight: '600', color: colors.inkSub, textDecorationLine: 'underline' },
   floatBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 24, paddingTop: 12, backgroundColor: colors.cream, ...shadow.float },
 });

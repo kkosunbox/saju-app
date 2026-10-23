@@ -15,6 +15,7 @@ import Icon from '../components/Icon';
 import Reveal from '../components/Reveal';
 import HomeSkeleton from '../components/Skeleton';
 import Disclaimer from '../components/Disclaimer';
+import BusinessFooter from '../components/BusinessFooter';
 import ScoreRing from '../components/ScoreRing';
 import Mascot, { ArtName, Logo } from '../components/Mascot';
 import DrawMascot from '../components/DrawMascot';
@@ -406,6 +407,7 @@ export default function HomeScreen() {
 
           <Text style={s.tomorrow}>{COPY.tomorrow}</Text>
           <Disclaimer compact />
+          <BusinessFooter style={{ marginTop: 28 }} />
         </View>
       </ScrollView>
     </View>
