@@ -9,6 +9,8 @@ import { AppProvider, useApp } from '@/context/AppContext';
 import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { LogoMark } from '@/components/BrandMark';
+import SiteHead from '@/components/SiteHead';
+import LandingScreen from '@/screens/LandingScreen';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
 import { useWebSideScroll } from '@/utils/webSideScroll';
@@ -40,7 +42,17 @@ function RootStack() {
   const { setGoWallet } = usePremium();
   useEffect(() => setGoWallet(() => router.push('/wallet')), [setGoWallet]);
   useCloseAuthFlowOnSignIn();
+  const pathname = usePathname();
   if (booting) {
+    // 웹 첫 화면은 부팅(세션 확인)을 기다리지 않고 랜딩을 그린다 — 정적 HTML에 본문이 들어가 검색엔진·공유 미리보기가 읽는다.
+    // 온보딩을 마친 사람에겐 +html.tsx 가 가리고, 부팅이 끝나면 아래 Stack이 대신한다.
+    if (Platform.OS === 'web' && (pathname === '/' || pathname === '/onboarding')) {
+      return (
+        <View nativeID="boot-landing" pointerEvents="none" style={{ flex: 1 }}>
+          <LandingScreen />
+        </View>
+      );
+    }
     return (
       <View style={s.boot}>
         <LogoMark size={52} />
@@ -59,6 +71,7 @@ function RootStack() {
       {/* 프로필이 있어야 쓰는 화면 */}
       <Stack.Protected guard={onboarded && hasProfile}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="profile-edit" />
         <Stack.Screen name="category/[category]" />
         <Stack.Screen name="analysis/[source]" />
         <Stack.Screen name="combined" />
@@ -113,6 +126,7 @@ export default function RootLayout() {
         <AppProvider>
           <PremiumProvider>
             <StatusBar style={isDark ? 'light' : 'dark'} />
+            {Platform.OS === 'web' ? <SiteHead /> : null}
             <RootStack />
           </PremiumProvider>
         </AppProvider>

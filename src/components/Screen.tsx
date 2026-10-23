@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Animated, StyleSheet, Text, View, ViewStyle, RefreshControlProps } from 'react-native';
+import { Animated, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
@@ -7,9 +7,11 @@ import PressableScale from './PressableScale';
 import Icon from './Icon';
 import { colors, gradients } from '../theme/colors';
 import { SCREEN_PX, txt } from '../theme/typography';
+import { useWebTopBar } from '../utils/webThemeColor';
 
 interface Props {
   children: React.ReactNode;
+  titleStyle?: StyleProp<TextStyle>;
   title?: string;        // 상단 바 제목 (뒤로 가기 옆, 왼쪽 정렬)
   largeTitle?: string;   // 탭 화면 제목 — 디자인이 바뀌어 상단 바 제목과 같은 자리에 같은 크기로 쓴다
   subtitle?: string;     // 예전 큰 제목 아래 한 줄. 지금 디자인에는 자리가 없어 보여주지 않는다
@@ -30,11 +32,13 @@ interface Props {
   floatingBar?: boolean;
 }
 
-export default function Screen({ children, title, largeTitle, back, scroll = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
+export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const floating = floatingBar && scroll;
+  // 웹: 상단 바 색을 화면 맨 위 그라디언트에 맞춘다. 그라디언트는 스크롤해도 제자리라 한 번만 맞추면 된다
+  useWebTopBar(sky ? [[0, gradients.skySoft[0]], [SKY_H * SKY_FADE, gradients.skySoft[1]]] : null);
   // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다
   const showBack = back || !!onBack;
   const goBack = onBack ?? (() => nav.goBack());
@@ -46,14 +50,14 @@ export default function Screen({ children, title, largeTitle, back, scroll = tru
           <Icon name="chevronLeft" size={24} strokeWidth={2} />
         </PressableScale>
       ) : null}
-      <Text style={s.title} numberOfLines={1} accessibilityRole="header">{heading}</Text>
+      <Text style={[s.title, titleStyle]} numberOfLines={1} accessibilityRole="header">{heading}</Text>
       {right ? <View style={s.right}>{right}</View> : null}
     </View>
   );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
-      {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, 0.64]} style={s.sky} /> : null}
+      {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : null}
       {floating ? null : bar}
       {scroll ? (
         <Animated.ScrollView
@@ -68,7 +72,7 @@ export default function Screen({ children, title, largeTitle, back, scroll = tru
       {floating ? (
         // 바 배경: 화면 맨 위 그라디언트와 같은 그림을 바 높이만큼 잘라, 스크롤을 내리면 나타나게 한다
         <Animated.View pointerEvents="none" style={[s.barBg, { height: insets.top + BAR_H, opacity: scrollY.interpolate({ inputRange: [0, 16], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
-          {sky ? <LinearGradient colors={gradients.skySoft} locations={[0, 0.64]} style={s.sky} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: bg }]} />}
+          {sky ? <LinearGradient colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: bg }]} />}
         </Animated.View>
       ) : null}
       {floating ? bar : null}
@@ -78,9 +82,11 @@ export default function Screen({ children, title, largeTitle, back, scroll = tru
 }
 
 const BAR_H = 56;
+const SKY_H = 150;
+const SKY_FADE = 0.64;
 
 const s = StyleSheet.create({
-  sky: { position: 'absolute', top: 0, left: 0, right: 0, height: 150 },
+  sky: { position: 'absolute', top: 0, left: 0, right: 0, height: SKY_H },
   bar: { height: BAR_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SCREEN_PX },
   floatBar: { position: 'absolute', left: 0, right: 0 },
   barBg: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },

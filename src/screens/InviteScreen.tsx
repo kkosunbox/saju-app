@@ -10,21 +10,19 @@ import { savePendingInvite } from '../services/share/linkShare';
 import { ApiError } from '../api/client';
 import { colors } from '../theme/colors';
 import { fonts, txt } from '../theme/typography';
+import { Relationship } from '../types';
 
 type State = 'loading' | 'ready' | 'mine' | 'gone' | 'error';
 
 /** 초대한 사람 이름과 이 링크를 어떻게 보여 줄지. 쓸 수 있는 초대면 대기 중인 초대로 저장한다. */
-async function readInvite(token: string, hasProfile: boolean): Promise<{ who: string; state: State }> {
+async function readInvite(token: string, hasProfile: boolean): Promise<{ who: string; state: State; relationship?: Relationship }> {
   try {
-    const [preview, mine] = await Promise.all([
-      compatApi.previewInvite(token),
-      // 내 링크인지는 프로필(=계정)이 있을 때만 알 수 있다
-      hasProfile ? compatApi.myInviteToken().catch(() => null) : null,
-    ]);
+    const preview = await compatApi.previewInvite(token);
+    const mine = hasProfile ? await compatApi.myInviteToken(preview.relationship).catch(() => null) : null;
     const who = preview.inviterNickname;
     if (mine === token) return { who, state: 'mine' };
-    await savePendingInvite({ token, inviterNickname: who, auto: !hasProfile });
-    return { who, state: 'ready' };
+    await savePendingInvite({ token, inviterNickname: who, relationship: preview.relationship, auto: !hasProfile });
+    return { who, state: 'ready', relationship: preview.relationship };
   } catch (e) {
     const gone = e instanceof ApiError && ['INVITATION_NOT_FOUND', 'INVITATION_TOKEN_EXPIRED'].includes(e.code);
     return { who: '', state: gone ? 'gone' : 'error' };
@@ -32,9 +30,9 @@ async function readInvite(token: string, hasProfile: boolean): Promise<{ who: st
 }
 
 /**
- * 친구 궁합 초대 링크 (/invite/{token}). 서버에서 초대한 사람의 이름만 받는다.
- * - 프로필이 있으면 여기서 관계를 고르고 바로 결과로 간다.
- * - 없으면 대기 중인 초대로 저장하고 프로필 입력으로 간다 — 다 넣고 홈에 오면 관계 고르기가 바로 열린다.
+ * 친구 궁합 초대 링크 (/invite/{token}). 서버에서 초대한 사람의 이름과 선택한 관계를 받는다.
+ * - 프로필이 있으면 여기서 궁합 보기 버튼으로 결과로 간다.
+ * - 없으면 대기 중인 초대로 저장하고 프로필 입력으로 간다 — 다 넣고 홈에 오면 궁합 보기 안내가 열린다.
  * - 내가 보낸 링크면 결과가 내 궁합 탭에 들어온다고 알려 준다.
  */
 export default function InviteScreen() {
@@ -43,10 +41,11 @@ export default function InviteScreen() {
   const hasProfile = !!user && !editingProfile;
   const [state, setState] = useState<State>(token ? 'loading' : 'gone');
   const [who, setWho] = useState('');
+  const [relationship, setRelationship] = useState<Relationship>();
 
   const load = useCallback(() => {
     if (!token) return;
-    readInvite(token, hasProfile).then(r => { setWho(r.who); setState(r.state); });
+    readInvite(token, hasProfile).then(r => { setWho(r.who); setRelationship(r.relationship); setState(r.state); });
   }, [token, hasProfile]);
   useEffect(load, [load]);
   const retry = () => { setState('loading'); load(); };
@@ -68,7 +67,7 @@ export default function InviteScreen() {
           <>
             <Text style={[txt.title, s.center]}>{who}님이{'\n'}궁합을 신청했어요</Text>
             <View style={s.picker}>
-              <InvitePicker invite={{ token: token!, inviterNickname: who }} onDone={() => {}} replace />
+              <InvitePicker invite={{ token: token!, inviterNickname: who, relationship }} onDone={() => {}} replace />
             </View>
             <PrimaryButton label="나중에 볼게요" variant="text" onPress={() => router.replace('/')} style={{ marginTop: 12 }} />
           </>

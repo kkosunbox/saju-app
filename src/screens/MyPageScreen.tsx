@@ -1,48 +1,68 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Appearance, Platform, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
-import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { Image } from 'expo-image';
+import MbtiArt from '../components/MbtiArt';
+import FigmaAsset, { ProfileAssetName } from '../components/profile/FigmaAsset';
+import { profileLine, profileType } from '../theme/profileDesign';
 import Screen from '../components/Screen';
 import Card from '../components/Card';
 import PressableScale from '../components/PressableScale';
-import SectionHeader from '../components/SectionHeader';
-import Icon, { IconName } from '../components/Icon';
-import { BRAND, LogoMark } from '../components/BrandMark';
+import { BRAND } from '../components/BrandMark';
+import { SOCIAL_LABEL } from '../components/auth/socialLabels';
 import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
 import BottomSheet from '../components/BottomSheet';
 import OptionChip from '../components/OptionChip';
 import Segmented from '../components/Segmented';
-import { Appearance } from 'react-native';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
 import { inputOf } from '../services/server/profileApi';
 import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
-import { Coin } from '../components/premium/Kit';
 import { fmtN } from '../services/premium/catalog';
 import { storage, NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { placeLabel } from '../services/server/birthPlaceApi';
-import { colors, gradients } from '../theme/colors';
-import { fonts, radius, shadow, txt } from '../theme/typography';
+import { colors } from '../theme/colors';
+import { shadow, txt } from '../theme/typography';
 import appJson from '../../app.json';
 
 const HOURS = [7, 8, 9];
 
-function Row({ icon, label, value, last, right }: { icon: IconName; label: string; value?: string; last?: boolean; right?: React.ReactNode }) {
+function Row({ icon, label, value, last, right }: { icon: 'user' | 'mail'; label: string; value?: string; last?: boolean; right?: React.ReactNode }) {
   return (
     <View style={[s.row, !last && s.border]}>
-      <View style={s.rowIcon}><Icon name={icon} size={18} color={colors.purpleSoft} /></View>
+      <View style={s.rowIcon}><FigmaAsset name={icon} /></View>
       <Text style={s.rowLabel}>{label}</Text>
       {right ?? <Text style={s.rowValue}>{value}</Text>}
     </View>
   );
 }
 
+function ProfileHeading({ title, action, onAction }: { title: string; action?: string; onAction?(): void }) {
+  return <View style={s.sectionHeading}>
+    <Text style={[s.sectionTitle, title === '내 프로필' && { letterSpacing: 0 }]} accessibilityRole="header">{title}</Text>
+    {action && <PressableScale onPress={onAction} accessibilityLabel={action} hitSlop={10} style={s.sectionAction}><FigmaAsset name="chevron" /></PressableScale>}
+  </View>;
+}
+
+function ProfileRow({ icon, label, value, last, onPress }: { icon: ProfileAssetName; label: string; value: string; last?: boolean; onPress?(): void }) {
+  const content = <View style={s.profileRow}>
+    <FigmaAsset name={icon} /><Text style={s.profileLabel}>{label}</Text>
+    <Text style={s.profileValue}>{value}</Text>
+    {onPress && <FigmaAsset name="smallChevron" />}
+  </View>;
+  return <>
+    {onPress ? <PressableScale onPress={onPress} scaleTo={0.99} accessibilityLabel={`${label} 바꾸기`}>{content}</PressableScale> : content}
+    {!last && <View style={s.profileDivider} />}
+  </>;
+}
+
 export default function MyPageScreen() {
-  const { user, fortune, resetProfile, account, signOut, deleteAccount, saveUser } = useApp();
+  const { user, fortune, account, signOut, deleteAccount, saveUser } = useApp();
   const { points, ownedCount, toast } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [mbtiSheet, setMbtiSheet] = useState(false);
@@ -58,31 +78,18 @@ export default function MyPageScreen() {
     setNoti(next);
     await notificationService.schedule(next, user.nickname);
   };
-
-  // 웹에서는 Alert 버튼이 동작하지 않아 바로 수정 화면으로 간다(기록은 그대로 남는다)
-  const confirmReset = () => {
-    if (Platform.OS !== 'web') {
-      Alert.alert('프로필을 다시 입력할까요?', '이미 뽑은 운세·콘텐츠·궁합 기록은 그대로 남고, 바꾼 정보는 내일 운세부터 반영돼요.', [
-        { text: '취소', style: 'cancel' },
-        { text: '다시 입력하기', style: 'destructive', onPress: resetProfile },
-      ]);
-      return;
-    }
-    resetProfile();
-  };
-
   return (
-    <Screen largeTitle="마이">
-      {/* 브랜드 카드: 홈 히어로와 같은 그라디언트로 앱 전체 톤을 묶는다 */}
+    <Screen largeTitle="마이" contentStyle={{ paddingTop: 7 }}>
+      {/* 프로필 카드 */}
       <View style={[s.cardWrap, shadow.hero]}>
-        <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={s.card}>
+        <View style={s.card}>
           <View style={s.cardTop}>
             <View style={s.avatar}><Text style={s.avatarText}>{user.nickname.slice(0, 1)}</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={s.name}>{user.nickname}</Text>
               <Text style={s.meta}>{MBTI_INFO[user.mbti].nickname} {user.mbti} · {user.bloodType}형</Text>
             </View>
-            <LogoMark size={26} fg={'#F4EDDF'} />
+            <View style={s.heroMascot}><MbtiArt type={user.mbti} size={46} /></View>
           </View>
           {fortune && fortuneOpened ? (
             <View style={s.todayRow}>
@@ -95,25 +102,24 @@ export default function MyPageScreen() {
               <Text style={s.todayDraw}>뽑으러 가기 ›</Text>
             </PressableScale>
           ) : null}
-        </LinearGradient>
+        </View>
       </View>
 
-      <SectionHeader title="내 프로필" action="다시 입력" onAction={confirmReset} />
-      <Card style={s.group}>
-        <PressableScale onPress={() => setMbtiSheet(true)} scaleTo={0.99} accessibilityLabel="MBTI 바꾸기">
-          <Row icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''} ›`} />
-        </PressableScale>
-        <Row icon="heart" label="혈액형" value={`${user.bloodType}형`} />
-        <Row icon="palette" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
-        <Row icon="clock" label="출생시간" value={user.birthTime ?? '모름'} />
-        <Row icon="mapPin" label="출생지" value={user.birthPlace ? placeLabel(user.birthPlace) : '모름'} />
-        <Row icon="user" label="성별" value={user.gender === 'female' ? '여성' : '남성'} last={!user.occupation} />
-        {user.occupation ? <Row icon="crown" label="직업" value={user.occupation} last /> : null}
-      </Card>
+      <ProfileHeading title="내 프로필" action="프로필 수정" onAction={() => router.push('/profile-edit')} />
+      <View style={s.profileGroup}>
+        <ProfileRow icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''}`} onPress={() => setMbtiSheet(true)} />
+        <ProfileRow icon="blood" label="혈액형" value={`${user.bloodType}형`} />
+        <ProfileRow icon="calendar" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
+        <ProfileRow icon="time" label="출생시간" value={user.birthTime ?? '모름'} />
+        <ProfileRow icon="pin" label="태어난 지역" value={user.birthPlace ? placeLabel(user.birthPlace) : '모름'} />
+        <ProfileRow icon="user" label="성별" value={user.gender === 'female' ? '여성' : '남성'} last />
+        <View pointerEvents="none" style={s.profileOutline} />
+      </View>
 
-      <SectionHeader title="화면 모드" caption={Platform.OS === 'web' ? undefined : '바꾸면 앱을 다시 열 때 모든 화면에 적용돼요'} />
+      <ProfileHeading title="화면 모드" />
       <Segmented<ThemePref>
-        options={[{ key: 'system', label: '시스템' }, { key: 'light', label: '라이트' }, { key: 'dark', label: '다크' }]}
+        variant="figma"
+        options={[{ key: 'system', label: '시스템', renderIcon: () => <FigmaAsset name="system" /> }, { key: 'light', label: '라이트', renderIcon: on => <FigmaAsset name="sun" tint={on ? colors.ink : '#808080'} /> }, { key: 'dark', label: '다크', renderIcon: on => <FigmaAsset name="moon" tint={on ? colors.ink : '#808080'} /> }]}
         value={theme}
         onChange={async t => {
           setTheme(t);
@@ -124,76 +130,68 @@ export default function MyPageScreen() {
         }}
       />
 
-      <SectionHeader title="알림" />
+      <ProfileHeading title="알림" />
       {noti && (
-        <Card style={s.group}>
-          <Row
-            icon="bell"
-            label="아침 운세 알림"
-            last={!noti.enabled}
-            right={<Switch value={noti.enabled} onValueChange={v => updateNoti({ ...noti, enabled: v })} trackColor={{ true: colors.purpleSoft, false: colors.lineStrong }} thumbColor={colors.white} ios_backgroundColor={colors.lineStrong} />}
-          />
-          {noti.enabled && (
-            <View style={s.hours}>
-              {HOURS.map(h => {
-                const on = noti.hour === h;
-                return (
-                  <PressableScale key={h} onPress={() => updateNoti({ ...noti, hour: h })} style={[s.hour, on && s.hourOn]} scaleTo={0.94} haptic accessibilityState={{ selected: on }}>
-                    <Text style={[s.hourText, on && { color: colors.white }]}>오전 {h}시</Text>
-                  </PressableScale>
-                );
-              })}
+        <Card variant="flat" style={s.notificationCard}>
+          <View style={s.notificationTop}>
+            <View style={s.notificationIcon}><FigmaAsset name="bell" /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.notificationTitle}>아침 운세 알림</Text>
+              <Text style={s.notificationCaption}>새로운 운세와 소식을 놓치지 마세요.</Text>
             </View>
+            <PressableScale accessibilityRole="switch" accessibilityLabel="아침 운세 알림" accessibilityState={{ checked: noti.enabled }} onPress={() => updateNoti({ ...noti, enabled: !noti.enabled })} hitSlop={10} style={s.notificationToggle}><FigmaAsset name={noti.enabled ? 'toggleOn' : 'toggleOff'} /></PressableScale>
+          </View>
+          {noti.enabled && (
+            <Segmented variant="figma" options={HOURS.map(h => ({ key: String(h), label: `오전 ${h}시` }))} value={String(noti.hour)} onChange={hour => updateNoti({ ...noti, hour: Number(hour) })} />
           )}
-          {noti.enabled && <Text style={s.preview}>“{notificationService.buildMessage(user.nickname)}”</Text>}
         </Card>
       )}
 
-      <SectionHeader title="알" />
-      <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
-        <View style={[s.row, { paddingVertical: 12 }]}>
-          <View style={[s.rowIcon, { width: 42, height: 42, borderRadius: 21 }]}><Coin size={22} /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={txt.caption}>보유 알</Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: colors.purple }}>{fmtN(points)}</Text>
+      <ProfileHeading title="알" />
+      <Card style={s.wallet}>
+        <View style={s.walletTop}>
+          <Image source={require('../../assets/figma/my-page/wallet-mascot.png')} style={{ width: 35, height: 32 }} contentFit="cover" />
+          <View style={{ flex: 1, height: 40 }}>
+            <Text style={s.walletCaption}>보유 알</Text>
+            <Text style={s.walletCount}>{fmtN(points)}</Text>
           </View>
           <PressableScale onPress={() => nav.navigate('Wallet')} style={s.charge} scaleTo={0.95}>
-            <Text style={{ color: colors.white, fontSize: 14, fontWeight: '700' }}>충전</Text>
+            <Text style={s.chargeLabel}>충전</Text>
           </PressableScale>
         </View>
-        {([['記', '이용 내역 · 요금 안내', () => nav.navigate('Wallet')], ['圖', `프리미엄 콘텐츠 · 보유 ${ownedCount}개`, () => nav.navigate('Tabs', { screen: 'Content' })]] as const).map(([e, t, go]) => (
-          <PressableScale key={e} onPress={go} style={[s.row, s.topBorder]} scaleTo={0.98}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.purpleSoft, width: 32, textAlign: 'center' }}>{e}</Text>
-            <Text style={[s.rowLabel, { fontWeight: '600' }]}>{t}</Text>
-            <Icon name="chevronRight" size={18} color={colors.inkMute} />
+        {([['coins', '이용 내역 · 요금 안내', () => nav.navigate('Wallet')], ['premium', `프리미엄 콘텐츠 · 보유 ${ownedCount}개`, () => nav.navigate('Tabs', { screen: 'Content' })]] as const).map(([icon, title, go]) => (
+          <PressableScale key={icon} onPress={go} style={s.walletRow} scaleTo={0.98}>
+            <FigmaAsset name={icon} />
+            <Text style={s.menuLabel}>{title}</Text>
+            <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
           </PressableScale>
         ))}
       </Card>
 
-      <SectionHeader title="계정" />
+      <ProfileHeading title="계정" />
       {account ? (
         <Card style={s.group}>
-          <Row icon="user" label="로그인 방법" value={account.email && !account.email.endsWith('.invalid') ? '이메일' : '소셜 계정'} />
+          <Row icon="user" label="로그인 방법" value={account.loginMethods.map((m) => (m === 'email' ? '이메일' : SOCIAL_LABEL[m])).join(' · ') || '소셜 계정'} />
           <Row icon="mail" label="이메일" value={account.email ?? '제공 안 함'} last />
         </Card>
       ) : (
-        <Card style={s.group}>
+        <Card style={[s.group, { paddingVertical: 0 }]}>
           <PressableScale onPress={() => nav.navigate('Login')} style={[s.row, s.loginRow]} scaleTo={0.98} accessibilityLabel="로그인하기">
-            <View style={s.rowIcon}><Icon name="user" size={18} color={colors.purpleSoft} /></View>
+            <View style={s.loginIcon}><FigmaAsset name="login" /></View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.rowLabel, { fontWeight: '600' }]}>로그인하기</Text>
-              <Text style={[txt.small, { marginTop: 4 }]}>로그인하면 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
+              <Text style={s.notificationTitle}>로그인하기</Text>
+              <Text style={[s.notificationCaption, { marginTop: 4 }]}>로그인하면 유료 콘텐츠를 열고, 다른 기기에서도 이어 볼 수 있어요.</Text>
             </View>
-            <Icon name="chevronRight" size={18} color={colors.inkMute} />
+            <View style={[s.menuArrow, { marginLeft: -7 }]}><FigmaAsset name="chevron" /></View>
           </PressableScale>
         </Card>
       )}
-      <SectionHeader title="정보" />
+      <ProfileHeading title="정보" />
       <Card style={s.group}>
         {([['이용약관', () => nav.navigate('Legal', { doc: 'terms' })], ['개인정보처리방침', () => nav.navigate('Legal', { doc: 'privacy' })], ['문의하기', () => nav.navigate('Inquiry')]] as const).map(([t, go], i, a) => (
           <PressableScale key={t} onPress={go} style={[s.row, i < a.length - 1 && s.border]} scaleTo={0.98}>
-            <Text style={s.rowLabel}>{t}</Text>
-            <Icon name="chevronRight" size={18} color={colors.inkMute} />
+            <Text style={s.menuLabel}>{t}</Text>
+            <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
           </PressableScale>
         ))}
       </Card>
@@ -236,33 +234,52 @@ export default function MyPageScreen() {
 }
 
 const s = StyleSheet.create({
-  cardWrap: { borderRadius: radius.xl, backgroundColor: colors.heroBg },
-  card: { borderRadius: radius.xl, padding: 20 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatar: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.moon, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 22, fontWeight: '800', color: colors.purpleDeep },
-  name: { fontSize: 20, fontWeight: '800', color: colors.white, letterSpacing: -0.5 },
-  meta: { fontSize: 13, color: 'rgba(255,255,255,0.72)', marginTop: 2 },
-  todayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.22)' },
-  todayLabel: { fontSize: 13, color: 'rgba(255,255,255,0.72)', fontWeight: '600' },
-  todayScore: { fontFamily: fonts.serif, fontSize: 18, color: colors.moon, fontWeight: '700' },
-  todayDraw: { fontSize: 14, color: colors.moon, fontWeight: '700' },
+  cardWrap: { borderRadius: 12, backgroundColor: colors.heroBg },
+  card: { borderRadius: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, minHeight: 120 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFF386', borderWidth: 1, borderColor: colors.white, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: 1 }] },
+  avatarText: profileType(14, '700', 18, -0.7, '#000000'),
+  name: profileType(20, '800', 24, -0.8, colors.white),
+  meta: { ...profileType(12, '500', 18, -0.6, '#DDDDDD'), marginTop: 4 },
+  heroMascot: { width: 46, height: 46, alignItems: 'center' },
+  todayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#333333' },
+  todayLabel: profileType(12, '500', 17, -0.6, '#DDDDDD'),
+  todayScore: profileType(16, '700', 17, -0.8, colors.white),
+  todayDraw: profileType(14, '700', 17, -0.7, colors.moon),
+  sectionHeading: { marginTop: 32, marginBottom: 16, minHeight: 21, justifyContent: 'center' },
+  sectionTitle: profileType(18, '600', 21, -0.72),
+  sectionAction: { position: 'absolute', right: 0, top: -3.5, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  profileGroup: { borderRadius: 12, overflow: 'hidden', backgroundColor: colors.cream },
+  profileOutline: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: profileLine, borderRadius: 12 },
+  profileRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 16 },
+  profileLabel: { ...profileType(13, '600', 18, -0.65), flex: 1 },
+  profileValue: profileType(13, '600', 18, -0.65),
+  profileDivider: { height: 1, backgroundColor: profileLine },
   group: { paddingVertical: 2, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54 },
-  loginRow: { paddingVertical: 16 },
+  loginRow: { paddingVertical: 12, minHeight: 81 },
+  loginIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   border: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.lineStrong },
-  rowIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 16, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, color: colors.ink, fontWeight: '500' },
   rowValue: { fontSize: 15, color: colors.inkSub, fontWeight: '600' },
   mbtiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
-  hours: { flexDirection: 'row', gap: 8, paddingTop: 14 },
-  hour: { flex: 1, height: 40, borderRadius: radius.sm, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
-  hourOn: { backgroundColor: colors.navy },
-  hourText: { fontSize: 13, fontWeight: '700', color: colors.purple },
-  preview: { fontSize: 12, color: colors.inkMute, paddingVertical: 14 },
-  topBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
+  notificationCard: { padding: 7, borderColor: profileLine },
+  notificationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 8, paddingTop: 4, minHeight: 55 },
+  notificationIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  notificationToggle: { marginTop: 8 },
+  notificationTitle: profileType(14, '700', 17, -0.56, colors.ink),
+  notificationCaption: { ...profileType(13, '400', 18, -0.65), marginTop: 4 },
+  wallet: { padding: 0, overflow: 'hidden' },
+  walletTop: { minHeight: 64, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  walletCaption: profileType(13, '400', 18, -0.65),
+  walletCount: { ...profileType(24, '700', 17, -1.2), marginTop: 4 },
+  walletRow: { height: 55, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: profileLine },
+  menuLabel: { ...profileType(14, '600', 18, -0.7), flex: 1 },
+  menuArrow: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   accountActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 16 },
   accountLink: { fontSize: 14, color: colors.inkMute, fontWeight: '500' },
   sep: { width: 1, height: 12, backgroundColor: colors.lineStrong },
-  charge: { height: 40, paddingHorizontal: 16, borderRadius: radius.md, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
+  charge: { height: 40, paddingHorizontal: 20, borderRadius: 5, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
+  chargeLabel: profileType(14, '600', 17, -0.28, '#EDEDED'),
 });

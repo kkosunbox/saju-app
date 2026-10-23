@@ -7,13 +7,17 @@ import { next, rewrite } from '@vercel/functions';
  *   The web calls its own /api (EXPO_PUBLIC_API_URL=/api) so the httpOnly refresh cookie stays first-party.
  *   With API_PROXY_SECRET set (the same value as the API's), the visitor's IP goes along in x-woonpick-client-ip:
  *   the API otherwise sees Vercel's address for every web user and their per-IP limits would be shared.
- * - Every deployment but Production answers with X-Robots-Tag: noindex, so the 개발 site (even on its own domain)
- *   stays out of search engines.
+ * - Every deployment but Production answers with X-Robots-Tag: noindex and a robots.txt that disallows everything,
+ *   so the 개발 site (even on its own domain) stays out of search engines and bots.
+ *   Production serves public/robots.txt (open to every crawler but /api/ and the login callbacks).
  */
 export default function middleware(request: Request): Response {
-  const headers: HeadersInit =
-    process.env.VERCEL_ENV === 'production' ? {} : { 'X-Robots-Tag': 'noindex, nofollow' };
+  const production = process.env.VERCEL_ENV === 'production';
+  const headers: HeadersInit = production ? {} : { 'X-Robots-Tag': 'noindex, nofollow' };
   const url = new URL(request.url);
+  if (!production && url.pathname === '/robots.txt') {
+    return new Response('User-agent: *\nDisallow: /\n', { headers: { ...headers, 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
   if (!url.pathname.startsWith('/api/')) {
     return next({ headers });
   }

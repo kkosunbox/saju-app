@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import ResultMascot from './ResultMascot';
+import MascotShadow from './MascotShadow';
 import type { MascotScores } from '../utils/resultMascot';
 import { useReducedMotion } from '../utils/motion';
 
@@ -59,15 +60,16 @@ export default function MascotCarousel({ size }: { size: number }) {
             transform: [
               { translateX: pos[i].interpolate({ inputRange: [-1, 1], outputRange: [-shift, shift] }) },
               { scale: pos[i].interpolate({ inputRange: [-1, 0, 1], outputRange: [0.7, 1, 0.7], extrapolate: 'clamp' }) },
-              // 미는 쪽은 앞으로, 밀리는 쪽은 뒤로 살짝 기운다
-              { rotate: pos[i].interpolate({ inputRange: [-1, -0.5, 0, 0.5, 1], outputRange: ['-10deg', '-7deg', '0deg', '-7deg', '-10deg'], extrapolate: 'clamp' }) },
             ],
           }]}
         >
-          {/* 바닥을 기준으로 눌렸다 펴진다 */}
+          {/* 기울어도 그림자는 바닥에 붙어 있고, 눌리면 옆으로 퍼진다 */}
+          <MascotShadow size={size} style={{ transform: [{ scaleX: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.92, 1, 1.14] }) }] }} />
+          {/* 바닥을 기준으로 기울고, 눌렸다 펴진다. 미는 쪽은 앞으로, 밀리는 쪽은 뒤로 살짝 기운다 */}
           <Animated.View style={[StyleSheet.absoluteFill, {
             transformOrigin: 'bottom',
             transform: [
+              { rotate: pos[i].interpolate({ inputRange: [-1, -0.5, 0, 0.5, 1], outputRange: ['-10deg', '-7deg', '0deg', '-7deg', '-10deg'], extrapolate: 'clamp' }) },
               { scaleX: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.94, 1, 1.09] }) },
               { scaleY: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [1.06, 1, 0.9] }) },
             ],

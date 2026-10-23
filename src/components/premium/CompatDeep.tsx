@@ -28,7 +28,8 @@ const CARE_INK = isDark ? colors.thai : '#C07F10';
 export default function CompatDeep({ u, r, D, reading, onRetry }: {
   u: User; r: CompatibilityResult; D: DeepCompatibility; reading: ReadingView<CompatReading> | null; onRetry(): void;
 }) {
-  const p = r.target; const A = toSajuFull(D.me), B = toSajuFull(D.partner);
+  const p = r.target; const A = toSajuFull(D.me), B = D.partner ? toSajuFull(D.partner) : null;
+  const privatePartner = r.source === 'invite';
   const nmA = u.nickname, nmB = p.nickname;
   const [adviceFor, setAdviceFor] = useState<'me' | 'partner'>('me');
   const writing = reading?.status === 'writing';
@@ -49,9 +50,9 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   const theirMbti = p.mbti;
   const advice = adviceFor === 'me' ? { who: nmA, text: together?.forMe } : { who: nmB, text: together?.forPartner };
   const table: [string, string, string, boolean?][] = [
-    ...rows.map(([l, f]): [string, string, string] => [l, f(A), f(B)]),
-    ['MBTI', u.mbti, p.mbti ?? '모름', !p.mbti],
-    ['혈액형', `${u.bloodType}형`, p.bloodType ? `${p.bloodType}형` : '모름', !p.bloodType],
+    ...rows.map(([l, f]): [string, string, string] => [l, f(A), B ? f(B) : '비공개']),
+    ['MBTI', u.mbti, privatePartner ? '비공개' : p.mbti ?? '모름', !p.mbti],
+    ['혈액형', `${u.bloodType}형`, privatePartner ? '비공개' : p.bloodType ? `${p.bloodType}형` : '모름', !p.bloodType],
   ];
 
   return (
@@ -59,7 +60,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
       <ReadingBanner reading={reading} onRetry={onRetry} />
       <Card style={{ marginTop: 16 }}>{bond ? <><Text style={txt.h3}>{bond.headline}</Text><Para>{bond.summary}</Para></> : pending(4)}</Card>
 
-      <SubHead title="두 사람 한눈에" />
+      <SubHead title="두 사람 한눈에" caption={privatePartner ? '상대 프로필은 비공개로 보호해요' : undefined} />
       <View style={s.table}>
         <View style={s.tRow}>
           <View style={s.tL} />
@@ -111,7 +112,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
             })}
           </View>
         )
-        : <Text style={txt.caption}>{nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.</Text>}
+        : <Text style={txt.caption}>{privatePartner ? '상대의 개인 성향 정보는 공개하지 않고, 두 사람의 궁합을 풀이해요.' : `${nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.`}</Text>}
       {bond || writing ? <Card style={{ marginTop: 16, padding: 16 }}>{bond ? <Text style={s.body}>{bond.views}</Text> : pending(3)}</Card> : null}
 
       <SubHead title="분야별 궁합 풀이" />

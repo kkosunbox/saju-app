@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import ResultMascot from './ResultMascot';
 import { getResultMascot, type MascotScores } from '../utils/resultMascot';
 import MascotPolish from './MascotPolish';
+import MascotShadow from './MascotShadow';
 import { AnimatedCircle } from './ScoreRing';
 import { colors, isDark } from '../theme/colors';
 import { useReducedMotion, motion } from '../utils/motion';
@@ -139,6 +140,17 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
           </Svg>
           </Animated.View>
         ) : null}
+        {/* 그림자는 바닥에 남는다 — 둥실 뜨면 작고 옅어지고, 꾹 누르면 옆으로 퍼진다 */}
+        {/* p(JS)와 y(네이티브)는 한 노드에 섞을 수 없어 칸을 나눈다 */}
+        <Animated.View style={[s.shadowBox, { transform: [{ scaleX: p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }]} pointerEvents="none">
+          <MascotShadow size={SIZE} style={{
+            opacity: y.interpolate({ inputRange: [-6, 0], outputRange: [0.7, 1] }),
+            transform: [
+              { translateY: Animated.multiply(y, -1) },
+              { scaleX: y.interpolate({ inputRange: [-6, 0], outputRange: [0.86, 1] }) },
+            ],
+          }} />
+        </Animated.View>
         {body}
       </Pressable>
       <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
@@ -154,6 +166,8 @@ const s = StyleSheet.create({
   // 뽑은 뒤(안내 접힘) 말풍선 ↔ 마스코트 ↔ 점수 링 여백이 같게
   wrap: { alignSelf: 'center', alignItems: 'center', marginTop: 10, marginBottom: 20 },
   hit: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
+  // ResultMascot과 같은 칸을 링 가운데에 둔다
+  shadowBox: { position: 'absolute', left: (RING - SIZE * 1.08) / 2, top: (RING - SIZE) / 2, width: SIZE * 1.08, height: SIZE },
   hintSlot: { overflow: 'hidden', alignItems: 'center' },
   hint: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.navy },
   hintText: { fontSize: 12, fontWeight: '700', color: colors.white, letterSpacing: -0.3 },

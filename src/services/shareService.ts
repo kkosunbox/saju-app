@@ -32,7 +32,7 @@ export async function renderCardWeb(ref: RefObject<View | null>, file = 'woonpic
  */
 export async function shareCardImage(
   ref: RefObject<View | null>,
-  opts: { file?: string; text?: string; url?: string; mode?: 'share' | 'save'; prepared?: WebCard | null } = {},
+  opts: { file?: string; text?: string; url?: string; mode?: 'share' | 'save'; prepared?: WebCard | null; aspectRatio?: number } = {},
 ): Promise<ShareResult> {
   const { file = 'woonpick', text, url, mode = 'save', prepared } = opts;
   try {
@@ -58,7 +58,7 @@ export async function shareCardImage(
       a.click();
       return 'saved';
     }
-    const uri = await captureRef(ref, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1920 });
+    const uri = await captureRef(ref, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: opts.aspectRatio ? Math.round(1080 / opts.aspectRatio) : 1920 });
     if (!(await Sharing.isAvailableAsync())) {
       Alert.alert('공유할 수 없어요', '이 기기에서는 공유 기능을 사용할 수 없어요.');
       return 'failed';

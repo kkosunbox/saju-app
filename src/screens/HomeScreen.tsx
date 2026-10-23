@@ -33,7 +33,7 @@ import { useFortuneDraw, useOpened } from '../services/content/opened';
 import { motion } from '../utils/motion';
 import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
-import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, shareInvite } from '../services/share/linkShare';
+import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
@@ -42,6 +42,7 @@ import { useWebTopBar } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import BottomSheet from '../components/BottomSheet';
 import InvitePicker from '../components/InvitePicker';
+import { useInviteShare } from '../services/share/useInviteShare';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,8 +68,9 @@ export default function HomeScreen() {
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const consultCost = consultStatus?.cost ?? 100;
   const { owned, toast } = usePremium();
+  const { sendInvite, inviteShareSheet } = useInviteShare();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
-  const [askRelationship, setAskRelationship] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const tal = useFreeContent('talisman').data;
   const match = useFreeContent('mbti-match').data?.best[0];
   const ch = useFreeContent('character').data;
@@ -106,11 +108,11 @@ export default function HomeScreen() {
   const [friend, setFriend] = useState<FriendResult | null>(null);
   useEffect(() => { getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
   // 초대 링크는 홈이 이미 떠 있을 때도 들어오니 홈에 올 때마다 다시 읽는다.
-  // 프로필을 넣으러 갔다 온 초대(auto)는 관계 고르기를 바로 한 번 연다
+  // 프로필을 넣으러 갔다 온 초대(auto)는 궁합 보기 안내를 바로 한 번 연다
   useFocusEffect(useCallback(() => {
     getPendingInvite().then(inv => {
       setInvite(inv);
-      if (inv?.auto) { setAskRelationship(true); savePendingInvite({ ...inv, auto: false }); }
+      if (inv?.auto) { setShowInvite(true); savePendingInvite({ ...inv, auto: false }); }
     });
   }, []));
   // 내 초대 링크로 상대가 본 궁합 중 아직 안 연 것 — 궁합 탭과 같은 캐시
@@ -153,23 +155,25 @@ export default function HomeScreen() {
     />
   );
 
+  const invitePrompt = invite && user ? (
+    <BottomSheet visible={showInvite} onClose={() => setShowInvite(false)}>
+      <InvitePicker invite={invite} onDone={() => { setShowInvite(false); setInvite(null); }} />
+    </BottomSheet>
+  ) : null;
+
   if (!fortune || !user) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.cream, overflow: 'hidden' }}>
         {sky}
         {top}
         <HomeSkeleton />
+        {invitePrompt}
       </View>
     );
   }
   const f = fortune.combined;
   const a = fortune.analyses;
 
-  const sendInvite = async () => {
-    const r = await shareInvite(user.nickname);
-    if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
-    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
-  };
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
   type Free = { k: string; art?: ArtName; pillar?: string; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
   const FREE = ([
@@ -222,7 +226,7 @@ export default function HomeScreen() {
           </Reveal>
 
           {invite ? (
-            <PressableScale onPress={() => setAskRelationship(true)} style={[s.notice, { marginTop: 16 }]} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
+            <PressableScale onPress={() => setShowInvite(true)} style={[s.notice, { marginTop: 16 }]} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
               <Mascot name="friends" size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={s.noticeTitle}>{invite.inviterNickname}님이 궁합을 신청했어요</Text>
@@ -231,12 +235,6 @@ export default function HomeScreen() {
               <Icon name="chevronRight" size={18} color={colors.inkMute} />
             </PressableScale>
           ) : null}
-          {invite ? (
-            <BottomSheet visible={askRelationship} onClose={() => setAskRelationship(false)}>
-              <InvitePicker invite={invite} onDone={() => { setAskRelationship(false); setInvite(null); }} />
-            </BottomSheet>
-          ) : null}
-
           {/* 내 링크로 상대가 궁합을 봤다 — 누르면 결과로 (열면 궁합 탭이 '봤음'으로 바꾼다) */}
           {arrived.length ? (
             <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility', params: { result: arrived[0] } })} style={[s.notice, { marginTop: invite ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${arrived[0].target.nickname}님과의 궁합 결과 보기`}>
@@ -410,6 +408,8 @@ export default function HomeScreen() {
           <BusinessFooter style={{ marginTop: 28 }} />
         </View>
       </ScrollView>
+      {invitePrompt}
+      {inviteShareSheet}
     </View>
   );
 }

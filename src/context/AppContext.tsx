@@ -32,6 +32,8 @@ interface AppState {
   /** 뽑았을 때 한 번: 서버에 AI 문장을 요청한다 (이미 썼거나 AI가 꺼져 있으면 아무것도 안 함) */
   drawFortune(): Promise<void>;
   completeOnboarding(): Promise<void>;
+  /** Web profile setup: opens the landing again without changing the session. */
+  returnToLanding(): Promise<void>;
   /** Creates (as a guest if needed) or updates the profile. */
   saveUser(input: ProfileInput): Promise<void>;
   refreshFortune(): Promise<void>;
@@ -140,6 +142,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: AppState = {
     booting, onboarded, account, user, editingProfile, today, fortune, fortuneLoading, fortuneError, refreshFortune, fortuneWriting, drawFortune,
     completeOnboarding: async () => { await storage.setOnboarded(true); setOnboarded(true); },
+    returnToLanding: async () => {
+      if (!IS_WEB || user) return;
+      await storage.setOnboarded(false);
+      setOnboarded(false);
+    },
     saveUser: async input => {
       if (!(await getTokens())) await authApi.startGuest();
       const me = await authApi.me();

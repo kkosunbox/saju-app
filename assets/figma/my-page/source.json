@@ -1,0 +1,211 @@
+{
+  "fileKey": "UysuMZUuHQV8ZHcec0R4X0",
+  "screens": {
+    "my": "166:4950",
+    "edit": "180:1142"
+  },
+  "assets": {
+    "account-mail.svg": {
+      "origin": "Local extension for the undesigned signed-in account section",
+      "slot": [16, 16],
+      "color": "#28B2FE",
+      "style": "Solid silhouette matching the profile icons"
+    },
+    "profile-mascot.png": {
+      "referenceOnly": true,
+      "runtimeComponent": "MbtiArt",
+      "runtimeKey": "user.mbti",
+      "node": "174:323",
+      "slot": [
+        46,
+        46
+      ],
+      "image": [
+        42.8,
+        46
+      ]
+    },
+    "wallet-mascot.png": {
+      "node": "180:989",
+      "slot": [
+        35,
+        32
+      ]
+    },
+    "profile-sparkles.svg": {
+      "node": "174:847",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "blood.svg": {
+      "node": "186:2809",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "calendar.svg": {
+      "node": "174:888",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "time.svg": {
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "pin.svg": {
+      "node": "186:2386",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "profile-user.svg": {
+      "node": "174:917",
+      "slot": [
+        16,
+        16
+      ],
+      "image": [
+        11.2,
+        12
+      ]
+    },
+    "system.svg": {
+      "slot": [
+        16,
+        16
+      ],
+      "transform": "scaleY(-1)"
+    },
+    "sun.svg": {
+      "node": "176:365",
+      "slot": [
+        16,
+        16
+      ],
+      "repair": "Added missing top ray symmetric to existing bottom ray; no other paths changed."
+    },
+    "moon.svg": {
+      "node": "176:385",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "bell.svg": {
+      "node": "176:870",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "coins.svg": {
+      "node": "180:1002",
+      "slot": [
+        16,
+        16
+      ],
+      "image": [
+        9,
+        12.0001
+      ]
+    },
+    "wallet-sparkles.svg": {
+      "node": "180:999",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "login-user.svg": {
+      "node": "180:1029",
+      "slot": [
+        20,
+        20
+      ]
+    },
+    "chevron-left-20.svg": {
+      "slot": [
+        20,
+        20
+      ],
+      "transform": "scaleX(-1)"
+    },
+    "chevron-left-16.svg": {
+      "slot": [
+        16,
+        16
+      ],
+      "transform": "scaleX(-1)"
+    },
+    "close.svg": {
+      "node": "180:1478",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "toggle-on.svg": {
+      "node": "180:911",
+      "slot": [
+        40,
+        24
+      ]
+    },
+    "toggle-off.png": {
+      "node": "180:909",
+      "slot": [
+        40,
+        24
+      ],
+      "track": "#D0D0D0"
+    }
+  },
+  "measurements": {
+    "profile": {
+      "cardHeight": 120,
+      "rowHeight": 50,
+      "divider": 1,
+      "rowFont": [
+        13,
+        600,
+        18,
+        -0.65
+      ],
+      "headingGap": 32,
+      "headingHeight": 21,
+      "headingBottomGap": 16
+    },
+    "edit": {
+      "horizontalPadding": 24,
+      "fieldGap": 24,
+      "inputHeight": 40,
+      "labelFont": [
+        14,
+        600,
+        17,
+        -0.56
+      ],
+      "inputFont": [
+        13,
+        500,
+        18.2,
+        0
+      ],
+      "saveHeight": 48
+    }
+  },
+  "exceptions": [
+    "Keep current My screen top header and footer.",
+    "No screen-mode explanatory text.",
+    "Keep current Change buttons and existing selection interactions rather than dropdowns.",
+    "Keep four supported blood types; the fortune-profile API accepts A/B/O/AB only."
+  ]
+}

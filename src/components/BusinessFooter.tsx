@@ -1,7 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
-import PressableScale from './PressableScale';
+import { Link } from 'expo-router';
 import { BRAND } from './BrandMark';
 import { BUSINESS } from '../content/business';
 import { colors } from '../theme/colors';
@@ -13,8 +12,9 @@ export default function BusinessFooter({ style }: { style?: object }) {
   return (
     <View style={[s.wrap, style]}>
       <View style={s.links}>
-        <PressableScale onPress={() => router.push('/legal/terms')} hitSlop={8} accessibilityRole="link"><Text style={s.link}>이용약관</Text></PressableScale>
-        <PressableScale onPress={() => router.push('/legal/privacy')} hitSlop={8} accessibilityRole="link"><Text style={[s.link, s.strong]}>개인정보처리방침</Text></PressableScale>
+        {/* <a href> 로 그려 검색엔진도 따라간다 */}
+        <Link href="/legal/terms" style={s.link}>이용약관</Link>
+        <Link href="/legal/privacy" style={[s.link, s.strong]}>개인정보처리방침</Link>
       </View>
       <View style={s.info}>
         {BUSINESS.map(([k, v]) => <Text key={k} style={txt.caption}>{k}: {v}</Text>)}

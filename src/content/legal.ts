@@ -1,16 +1,16 @@
 /**
  * 이용약관 · 개인정보처리방침 — public/terms.html · public/privacy.html 과 같은 원본에서 만든다.
- * [대괄호] 항목(운영자명·연락처 등)은 출시 전에 실제 정보로 채워야 한다.
+ * 운영자·연락처는 src/content/business.ts 와 같게.
  */
 export type LegalDoc = 'terms' | 'privacy';
-export const LEGAL_UPDATED = "[시행일]";
+export const LEGAL_UPDATED = "2026년 10월 23일";
 export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string][] }> = {
   "terms": {
     "title": "서비스 이용약관",
     "sections": [
       [
         "제1조 (목적)",
-        "이 약관은 [운영자명](이하 \"회사\")가 제공하는 모바일 앱 \"운Pick\"(이하 \"서비스\")의 이용 조건과 절차, 회사와 이용자의 권리·의무를 정하는 것을 목적으로 합니다."
+        "이 약관은 PetBridge Core Co. Ltd.(이하 \"회사\")가 제공하는 모바일 앱 \"운Pick\"(이하 \"서비스\")의 이용 조건과 절차, 회사와 이용자의 권리·의무를 정하는 것을 목적으로 합니다."
       ],
       [
         "제2조 (서비스의 성격)",
@@ -42,7 +42,7 @@ export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string]
       ],
       [
         "제9조 (분쟁 해결)",
-        "서비스 이용과 관련한 문의·불만은 [문의 이메일]로 접수하며, 분쟁은 대한민국 법을 따르고 민사소송법상 관할 법원에서 해결합니다."
+        "서비스 이용과 관련한 문의·불만은 support@petbridgecore.com로 접수하며, 분쟁은 대한민국 법을 따르고 민사소송법상 관할 법원에서 해결합니다."
       ],
       [
         "제10조 (데이터 출처)",
@@ -67,7 +67,7 @@ export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string]
       ],
       [
         "3. 보관 위치와 기간",
-        "위 정보는 회사 서버([서버 위치: Amazon Web Services 서울 리전])에 보관합니다.\n• 프로필·운세·궁합 기록: 회원 탈퇴 시 즉시 삭제\n• 유료 콘텐츠 풀이: 다시 볼 수 있도록 보관하고 회원 탈퇴 시 즉시 삭제\n• 고민 상담 글과 답변: 암호화해 보관하고 작성 후 1년이 지나면 자동 삭제합니다. 그 전에도 이용자가 상담 화면에서 언제든 직접 지울 수 있습니다.\n• 결제·알 기록: 전자상거래법에 따라 5년 보관 후 삭제\n• 로그인 없이(비회원) 이용한 정보는 회원가입 시 계정으로 이어지고, 90일 동안 이용하지 않으면 자동으로 삭제됩니다."
+        "위 정보는 회사 서버(Amazon Web Services 서울 리전)에 보관합니다.\n• 프로필·운세·궁합 기록: 회원 탈퇴 시 즉시 삭제\n• 유료 콘텐츠 풀이: 다시 볼 수 있도록 보관하고 회원 탈퇴 시 즉시 삭제\n• 고민 상담 글과 답변: 암호화해 보관하고 작성 후 1년이 지나면 자동 삭제합니다. 그 전에도 이용자가 상담 화면에서 언제든 직접 지울 수 있습니다.\n• 결제·알 기록: 전자상거래법에 따라 5년 보관 후 삭제\n• 로그인 없이(비회원) 이용한 정보는 회원가입 시 계정으로 이어지고, 90일 동안 이용하지 않으면 자동으로 삭제됩니다."
       ],
       [
         "4. 공유 링크",
@@ -75,7 +75,7 @@ export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string]
       ],
       [
         "5. 제3자 제공과 처리 위탁",
-        "법령에 따른 경우를 제외하고 제3자에게 제공하지 않습니다. 서비스 제공을 위해 다음 업무를 맡깁니다.\n• 고민 상담 답변·유료 콘텐츠 풀이 작성: Anthropic, PBC (미국) — 아래 6항\n• 결제: 토스페이먼츠(웹), Apple App Store·Google Play(앱)\n• 인증 메일 발송: [메일 발송 업체]\n• 서버 운영: Amazon Web Services\n• 소셜 로그인: 카카오·네이버·Apple·Google의 인증을 이용합니다."
+        "법령에 따른 경우를 제외하고 제3자에게 제공하지 않습니다. 서비스 제공을 위해 다음 업무를 맡깁니다.\n• 고민 상담 답변·유료 콘텐츠 풀이 작성: Anthropic, PBC (미국) — 아래 6항\n• 결제: 토스페이먼츠(웹), Apple App Store·Google Play(앱)\n• 인증 메일 발송: Amazon Web Services(Amazon SES, 서울 리전)\n• 서버 운영: Amazon Web Services\n• 소셜 로그인: 카카오·네이버·Apple·Google의 인증을 이용합니다."
       ],
       [
         "6. 개인정보의 국외 이전",
@@ -91,11 +91,11 @@ export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string]
       ],
       [
         "9. 개인정보 보호책임자",
-        "• 책임자: [이름]\n• 연락처: [문의 이메일]\n개인정보 침해 신고·상담은 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118)에도 할 수 있습니다."
+        "• 책임자: Jin-young Oh (대표)\n• 연락처: support@petbridgecore.com, 050-6665-2416\n개인정보 침해 신고·상담은 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118)에도 할 수 있습니다."
       ],
       [
         "10. 개정",
-        "이 방침은 [시행일]부터 적용합니다. 내용이 바뀌면 시행 7일 전부터 앱 안에서 알립니다."
+        "이 방침은 2026년 10월 23일부터 적용합니다. 내용이 바뀌면 시행 7일 전부터 앱 안에서 알립니다."
       ]
     ]
   }

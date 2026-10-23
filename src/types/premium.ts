@@ -102,7 +102,7 @@ export interface CrushReport {
 
 /** 심층 궁합의 근거 데이터 (서버 DeepCompatibility). */
 export interface DeepCompatibility {
-  me: SajuProfile; partner: SajuProfile;
+  me: SajuProfile; partner: SajuProfile | null;
   stemHap: boolean; dayHap: boolean; daySamhap: boolean; dayClash: boolean;
   zodiac: 'same' | 'clash' | 'harmony' | 'normal'; zodiacWonjin: boolean;
   tenGodMeToPartner: number; tenGodPartnerToMe: number;

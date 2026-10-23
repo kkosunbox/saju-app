@@ -71,9 +71,9 @@ export const compatApi = {
   },
 
   /** My live invite token, or null when I have none. */
-  async myInviteToken(): Promise<string | null> {
+  async myInviteToken(relationship?: Relationship): Promise<string | null> {
     try {
-      return (await call<{ token: string }>(api.GET('/v1/compatibility-invites/me'))).token;
+      return (await call<{ token: string }>(api.GET('/v1/compatibility-invites/me', { params: { query: { relationship } } }))).token;
     } catch (e) {
       if (e instanceof ApiError && e.code === 'INVITATION_NOT_FOUND') return null;
       throw e;
@@ -81,13 +81,13 @@ export const compatApi = {
   },
 
   /** Public: who invited (no login). */
-  async previewInvite(token: string): Promise<{ inviterNickname: string; expiresAt: string }> {
+  async previewInvite(token: string): Promise<{ inviterNickname: string; relationship: Relationship; expiresAt: string }> {
     return call(api.GET('/v1/compatibility-invites/{token}', { params: { path: { token } } }));
   },
 
   /** My compatibility with the inviter, saved in my history. */
-  async acceptInvite(userId: string, token: string, relationship: Relationship): Promise<CompatibilityResult> {
-    const dto = await call<CompatibilityDto>(api.POST('/v1/compatibility-invites/{token}/compatibilities', { params: { path: { token } }, body: { relationship } } as never));
+  async acceptInvite(userId: string, token: string): Promise<CompatibilityResult> {
+    const dto = await call<CompatibilityDto>(api.POST('/v1/compatibility-invites/{token}/compatibilities', { params: { path: { token } } }));
     return toResult(userId, dto);
   },
 };

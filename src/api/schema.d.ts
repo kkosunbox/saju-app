@@ -764,7 +764,7 @@ export interface paths {
         put?: never;
         /**
          * 친구 궁합 초대 링크 만들기
-         * @description 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 운세 프로필이 있어야 합니다.
+         * @description 선택한 관계의 유효한 초대 링크를 재사용하거나 새로 만듭니다(30일 유효). 관계가 다르면 별도 링크를 만들며 기존 링크의 관계는 바꾸지 않습니다.
          */
         post: operations["CompatibilityInviteController_createOrGet_v1"];
         delete?: never;
@@ -803,7 +803,7 @@ export interface paths {
         };
         /**
          * 초대 링크 미리보기 (로그인 불필요)
-         * @description 링크를 연 친구에게 초대한 사람의 이름만 보여 줍니다. IP당 시간당 60회로 제한합니다.
+         * @description 초대한 사람의 이름과 선택한 관계를 보여 줍니다. IP당 시간당 60회로 제한합니다.
          */
         get: operations["CompatibilityInviteController_preview_v1"];
         put?: never;
@@ -825,7 +825,7 @@ export interface paths {
         put?: never;
         /**
          * 초대 링크로 궁합 보기
-         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(내 생년월일 등은 없음, isNew = true). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계(relationship)를 보내지 않으면 연인으로 봅니다. 내 링크를 내가 열면 INVITATION_OWN.
+         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(내 생년월일 등은 없음, isNew = true). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계는 초대한 사람이 링크 생성 시 선택한 값을 사용합니다. 내 링크를 내가 열면 INVITATION_OWN.
          */
         post: operations["CompatibilityInviteController_accept_v1"];
         delete?: never;
@@ -2331,19 +2331,15 @@ export interface components {
             acceptCount: number;
             /** Format: date-time */
             createdAt: string;
+            /** @enum {string} */
+            relationship: "lover" | "friend" | "family" | "work";
         };
         InvitePreviewDto: {
             /** @description 초대한 사람의 운세 프로필 이름 */
             inviterNickname: string;
             /** Format: date-time */
             expiresAt: string;
-        };
-        AcceptCompatibilityInviteRequest: {
-            /**
-             * @description lover: 연인·썸·부부 · friend: 친구 · family: 가족 · work: 직장·비즈니스. 관계에 맞는 풀이가 나오고, 속마음은 연인일 때만 열 수 있어요
-             * @default lover
-             * @enum {string}
-             */
+            /** @enum {string} */
             relationship: "lover" | "friend" | "family" | "work";
         };
         WalletDto: {
@@ -2645,6 +2641,13 @@ export interface components {
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
+        };
+        CreateCompatibilityInviteRequest: {
+            /**
+             * @default lover
+             * @enum {string}
+             */
+            relationship: "lover" | "friend" | "family" | "work";
         };
     };
     responses: never;
@@ -4810,7 +4813,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCompatibilityInviteRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4864,7 +4871,9 @@ export interface operations {
     };
     CompatibilityInviteController_getMine_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                relationship?: "lover" | "friend" | "family" | "work";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5038,11 +5047,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AcceptCompatibilityInviteRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

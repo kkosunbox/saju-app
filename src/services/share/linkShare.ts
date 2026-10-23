@@ -7,6 +7,8 @@
 import { Platform, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, call } from '../../api/client';
+import { Relationship } from '../../types';
+import { RELATIONSHIP_INFO } from '../../data/relationships';
 
 /** 앱(네이티브)에서 만든 링크가 여는 웹 주소 — 배포마다 EXPO_PUBLIC_WEB_URL (없으면 프로토타입 주소) */
 const APP_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://onulna-prototype.vercel.app';
@@ -14,14 +16,16 @@ export const appUrl = () => (Platform.OS === 'web' && typeof window !== 'undefin
 
 /** 공유 결과: 'shared' | 'copied' | 'cancelled' */
 export async function shareLink(text: string, url = appUrl()): Promise<'shared' | 'copied' | 'cancelled'> {
+  // 한 메시지로 보내야 공유받는 앱이 URL과 문구를 구분자 없이 붙이지 않는다.
+  const message = `${url.trim()}\n\n${text.trim()}`;
   if (Platform.OS === 'web') {
     const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
     if (nav?.share) {
-      try { await nav.share({ text, url }); return 'shared'; } catch { return 'cancelled'; }
+      try { await nav.share({ text: message }); return 'shared'; } catch { return 'cancelled'; }
     }
-    try { await nav?.clipboard?.writeText(`${text}\n${url}`); return 'copied'; } catch { return 'cancelled'; }
+    try { await nav?.clipboard?.writeText(message); return 'copied'; } catch { return 'cancelled'; }
   }
-  const r = await Share.share({ message: `${text}\n${url}` });
+  const r = await Share.share({ message });
   return r.action === Share.dismissedAction ? 'cancelled' : 'shared';
 }
 
@@ -30,24 +34,24 @@ const PENDING = 'onulna:invite';
 const enc = (o: object) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 const dec = (s: string) => JSON.parse(decodeURIComponent(escape(atob(s))));
 
-/** 내 초대 링크 (서버 토큰, 30일 유효). 살아 있는 링크가 있으면 그것을 쓴다. */
-export async function createInviteUrl(): Promise<string> {
-  const invite = await call<{ token: string }>(api.POST('/v1/compatibility-invites'));
+/** 내 초대 링크 (서버 토큰, 30일 유효). 같은 관계의 살아 있는 링크가 있으면 그것을 쓴다. */
+export async function createInviteUrl(relationship: Relationship): Promise<string> {
+  const invite = await call<{ token: string }>(api.POST('/v1/compatibility-invites', { body: { relationship } }));
   return `${appUrl()}/invite/${invite.token}`;
 }
 
 /** 친구 궁합 초대를 공유한다. 링크를 못 만들면 'failed'. */
-export async function shareInvite(nickname: string): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
-  const url = await createInviteUrl().catch(() => null);
+export async function shareInvite(nickname: string, relationship: Relationship): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
+  const url = await createInviteUrl(relationship).catch(() => null);
   if (!url) return 'failed';
-  return shareLink(`${nickname}님이 궁합 보자고 보냈어요. 내 생일만 넣으면 둘의 궁합이 바로 나와요.`, url);
+  return shareLink(`${nickname}님이 ${RELATIONSHIP_INFO[relationship].label} 궁합 초대를 보냈어요.\n내 생일만 넣으면 둘의 궁합이 바로 나와요.`, url);
 }
 
 /**
- * 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름만).
- * auto: 프로필을 넣으러 갔다 — 홈에 오면 관계 고르기를 바로 연다 (한 번만)
+ * 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름과 관계).
+ * auto: 프로필을 넣으러 갔다 — 홈에 오면 궁합 보기 안내를 바로 연다 (한 번만)
  */
-export interface PendingInvite { token: string; inviterNickname: string; auto?: boolean }
+export interface PendingInvite { token: string; inviterNickname: string; relationship?: Relationship; auto?: boolean }
 
 export async function savePendingInvite(invite: PendingInvite) {
   await AsyncStorage.setItem(PENDING, JSON.stringify(invite));

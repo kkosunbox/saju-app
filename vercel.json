@@ -7,6 +7,6 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/invite/:token", "destination": "/invite/[token]" },
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/consult/:id", "destination": "/consult/[id]" }
   ]
 }

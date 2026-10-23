@@ -1,0 +1,14 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Sun_fill">
+<circle id="Ellipse 108" cx="8" cy="8" r="2.66667" fill="#222222"/>
+<!-- Restore the missing top ray, matching the bottom ray in the Figma original. -->
+<path id="Top ray repair" d="M8 2V3.33333" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 169" d="M8 14V12.6667" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 170" d="M11.2999 4.69997L12.2427 3.75716" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 171" d="M3.75739 12.2429L4.7002 11.3001" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 172" d="M12.6667 8L14 8" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 173" d="M2 8L3.33333 8" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 166" d="M11.2999 11.3L12.2427 12.2428" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+<path id="Vector 167" d="M3.75739 3.75706L4.7002 4.69987" stroke-width="1.5" stroke-linecap="round" stroke="#222222"/>
+</g>
+</svg>

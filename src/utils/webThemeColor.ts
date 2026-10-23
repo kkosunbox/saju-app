@@ -29,18 +29,19 @@ function colorAt(y: number, stops: TopBarStops): string {
   return stops[stops.length - 1][1];
 }
 
-function setTint(color: string | null) {
+// 지금 상단 바 색을 정하는 화면. 화면이 바뀔 때 새 화면이 먼저 잡으면 이전 화면은 되돌리지 않는다
+let owner: object | null = null;
+
+function setTint(color: string) {
   // Safari 26부터는 theme-color를 무시하고 페이지 바탕색으로 상단·하단 바를 함께 칠한다.
   // 바탕은 기본색으로 두고, 화면 위 가장자리에 붙은 고정 요소가 있으면 그 색으로 상단 바를 칠하는 점을 이용한다
   // (viewport 메타에 viewport-fit=cover 가 있어야 한다, +html.tsx)
   document.documentElement.style.backgroundColor = colors.cream;
-  let tint = document.getElementById(TOP_TINT_ID);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
   // 띠는 iOS Safari에서만 상단 바 밑에 가려진다. PC·안드로이드에서는 화면 맨 위에 줄로 보이므로 theme-color만 바꾼다
-  if (!color || !IS_IOS) {
-    tint?.remove();
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color ?? colors.cream);
-    return;
-  }
+  if (!IS_IOS) return;
+  // 한 번 깐 띠는 없애지 않고 색만 바꾼다. 없애면 Safari가 마지막 색을 상태바에 남기고 바를 따로 다시 그린다
+  let tint = document.getElementById(TOP_TINT_ID);
   if (!tint) {
     tint = document.createElement('div');
     tint.id = TOP_TINT_ID;
@@ -49,27 +50,32 @@ function setTint(color: string | null) {
     document.body.appendChild(tint);
   }
   tint.style.backgroundColor = color;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
 }
 
 /**
- * 웹(아이폰 Safari)에서 이 화면이 보이는 동안 상단 바 색을 바로 아래 보이는 내용 색에 맞춘다. 떠나면 기본으로 돌린다.
- * Safari 상단 바는 단색이라 그라디언트가 그 아래로 지나가면 경계가 생기고, 띠를 없애면 바가 따로 흰 띠로 그려진다.
- * 그래서 띠는 화면이 보이는 내내 두고, 스크롤할 때마다 띠 바로 아래 내용 색으로 바꾼다. 돌려준 함수를 onScroll에서 부른다.
+ * 웹(아이폰 Safari)에서 이 화면이 보이는 동안 상단 바 색을 바로 아래 보이는 내용 색에 맞춘다. 떠나면 기본 바탕색으로 돌린다.
+ * Safari 상단 바는 단색이라 그라디언트가 그 아래로 지나가면 경계가 생긴다. 그래서 스크롤할 때마다
+ * 띠 바로 아래 내용 색으로 바꾼다 — 돌려준 함수를 onScroll에서 부른다 (그라디언트가 고정이면 부르지 않아도 된다).
+ * stops가 없으면 아무것도 하지 않는다.
  */
-export function useWebTopBar(stops: TopBarStops) {
+export function useWebTopBar(stops: TopBarStops | null) {
+  const me = useRef({}).current;
   const y = useRef(0);
-  const focused = useRef(false);
   const stopsRef = useRef(stops);
   const update = useCallback(() => {
-    if (focused.current) setTint(colorAt(y.current + TOP_TINT_H, stopsRef.current));
-  }, []);
+    if (owner === me && stopsRef.current) setTint(colorAt(y.current + TOP_TINT_H, stopsRef.current));
+  }, [me]);
+  const active = !!stops;
   useFocusEffect(useCallback(() => {
-    if (Platform.OS !== 'web') return;
-    focused.current = true;
+    if (Platform.OS !== 'web' || !active) return;
+    owner = me;
     update();
-    return () => { focused.current = false; setTint(null); };
-  }, [update]));
+    return () => {
+      if (owner !== me) return;
+      owner = null;
+      setTint(colors.cream);
+    };
+  }, [me, active, update]));
   // 높이를 재고 나서 그라디언트 위치가 바뀌면 다시 맞춘다
   useEffect(() => {
     stopsRef.current = stops;

@@ -40,7 +40,7 @@ import { colors, gradients, isDark } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 import ShareCta from '../components/ShareCta';
 import { compatSpec, crushSpec } from '../services/share/shareSpecs';
-import { shareInvite } from '../services/share/linkShare';
+import { useInviteShare } from '../services/share/useInviteShare';
 
 const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; icon: SolidIconName }[] = [
   { k: 'love', c: colors.love, icon: 'heart' },
@@ -98,6 +98,7 @@ function ScoreHalo({ score }: { score: number }) {
 }
 
 export default function CompatibilityScreen() {
+  const { sendInvite, inviteShareSheet } = useInviteShare();
   const { user } = useApp();
   const { toast, owned } = usePremium();
   const [relationship, setRelationship] = useState<Relationship | null>(null);
@@ -124,12 +125,6 @@ export default function CompatibilityScreen() {
   const { refetch } = saved;
   useFocusEffect(useCallback(() => { if (user) refetch(); }, [user, refetch]));
 
-  const sendInvite = async () => {
-    if (!user) return;
-    const r = await shareInvite(user.nickname);
-    if (r === 'copied') toast('초대 링크를 복사했어요. 상대에게 보내 보세요');
-    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
-  };
   const { ok: dateOk, iso: birthISO } = checkBirth(birth, calendar);
   const timeOk = sijin !== 0 || !!jasi;
   // MBTI·혈액형은 모르면 비워 둔다 (궁합에서 빠진다)
@@ -253,14 +248,14 @@ export default function CompatibilityScreen() {
         </View>
 
         {result.source === 'invite' ? (
-          <Text style={[txt.small, { marginTop: 20 }]}>{result.inviteRole === 'inviter' ? '내 링크로 상대가 본 궁합이라' : '초대 링크로 본 궁합이라'} 상대의 생년월일을 몰라요. {result.relationship === 'lover' ? '심층 궁합·속마음은' : '심층 궁합은'} 상대 정보를 직접 넣어 볼 수 있어요.</Text>
+          <Text style={[txt.small, { marginTop: 20 }]}>상대의 생년월일은 공개하지 않고, 두 사람의 프로필로 심층 궁합을 볼 수 있어요.</Text>
         ) : null}
 
-        {result.source !== 'invite' && result.id != null ? (
+        {result.id != null ? (
           <>
             <DeepSection u={user} r={result} id={result.id} />
             {/* 속마음은 연애 리포트라 연인일 때만 */}
-            {result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
+            {result.source !== 'invite' && result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
           </>
         ) : null}
 
@@ -435,6 +430,7 @@ export default function CompatibilityScreen() {
         {!mbti || !blood ? <Text style={[txt.small, { marginTop: -4 }]}>모르는 정보는 빼고 사주로 봐요.</Text> : null}
       </Card>
       <Disclaimer compact />
+      {inviteShareSheet}
     </Screen>
   );
 }

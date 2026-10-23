@@ -14,7 +14,7 @@ import { Amount, Coin, CostPill, LineTag, PriceTag, SubHead } from '../../compon
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP, ro } from '../../services/premium/catalog';
-import { shareInvite } from '../../services/share/linkShare';
+import { useInviteShare } from '../../services/share/useInviteShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, shadow, txt } from '../../theme/typography';
@@ -40,6 +40,7 @@ const ICON_SIZE: Partial<Record<SolidIconName, number>> = { book: 20, coins: 17 
 
 /** 콘텐츠 탭 — 무료로 즐기고(공유) → 궁금한 건 프리미엄으로 */
 export default function ContentScreen() {
+  const { sendInvite: invite, inviteShareSheet } = useInviteShare();
   const nav = useNavigation();
   const { user, today } = useApp();
   const { points, owned, openUnlock, toast } = usePremium();
@@ -50,11 +51,6 @@ export default function ContentScreen() {
   const bOwned = owned(BUNDLE.key);
   const bundle = bOwned ? BUNDLE : bundleFor(owned);
 
-  const invite = async () => {
-    const r = await shareInvite(user.nickname);
-    if (r === 'copied') toast('초대 링크를 복사했어요. 친구에게 보내 보세요');
-    else if (r === 'failed') toast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
-  };
 
   const FREE: [ArtName, string, string, () => void][] = [
     ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
@@ -183,6 +179,7 @@ export default function ContentScreen() {
           </>
         ) : null}
       </BottomSheet>
+      {inviteShareSheet}
     </Screen>
   );
 }

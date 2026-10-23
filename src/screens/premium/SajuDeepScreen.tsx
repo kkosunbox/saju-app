@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, Divider, HeadRow, LockGate, Hero, InfoRows, Para, Pill, Seal, SubHead, Tip, ViewRow, heroTxt } from '../../components/premium/Kit';
+import { BodyState, HeadRow, LockGate, Hero, Pill, heroTxt } from '../../components/premium/Kit';
+import { Bullet, Closing, InfoRows, Para, SajuHeading, SourceMark, SubHead, Tip, ViewRow } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
@@ -14,27 +15,30 @@ import { Period, ReadingView, SajuReading, Titled } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { User } from '../../types';
 import {
-  EL_HEX, EL_LUCK, GROUP_DESC, GROUP_KO, HIDDEN, SINSAL, STAGE12, STEM_PERSONA, TG,
+  EL_LUCK, GROUP_DESC, GROUP_KO, HIDDEN, SINSAL, STAGE12, STEM_PERSONA, TG,
 } from '../../services/premium/data';
 import { BRANCHES, ELEMENT_INFO, STEMS, TenGodGroup } from '../../data/sajuData';
 import { THAI_DAYS } from '../../data/thaiData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { BLOOD_INFO } from '../../data/bloodData';
 import { analysisTheme, colors } from '../../theme/colors';
-import { fonts, txt } from '../../theme/typography';
+import { fonts, sansW, txt } from '../../theme/typography';
 import { Pillar } from '../../types/content';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { sajuDeepSpec } from '../../services/share/shareSpecs';
 
+// Separate tile and chart palettes, as in the design; calculations still use element keys.
+const TILE_HEX = { wood: '#5FB8A8', fire: '#E54D4D', earth: '#FCBD51', metal: '#91CBE9', water: '#3D79D4' };
+const EL_HEX = { wood: '#5FB884', fire: '#E54D4D', earth: '#FE8828', metal: '#2885FE', water: '#1E53A2' };
 const EK = (e: keyof typeof ELEMENT_INFO) => ELEMENT_INFO[e].ko;
 
 interface SajuData { profile: unknown; axes: CrossAxis[]; daeun: DaeunTable }
 
 function Cell({ p, stem }: { p: Pillar | null; stem: boolean }) {
-  if (!p) return <View style={[s.pc, { backgroundColor: colors.line }]}><Text style={{ fontSize: 20, fontWeight: '700', color: colors.inkMute }}>?</Text></View>;
+  if (!p) return <View style={[s.pc, { backgroundColor: colors.line }]}><Text style={{ fontSize: 18, fontWeight: '700', color: colors.inkMute }}>?</Text></View>;
   const o = stem ? STEMS[p.stem] : BRANCHES[p.branch];
   return (
-    <View style={[s.pc, { backgroundColor: EL_HEX[o.element] }]}>
+    <View style={[s.pc, { backgroundColor: TILE_HEX[o.element] }]}>
       <Text style={s.pcBig}>{o.hanja}</Text>
       <Text style={s.pcSmall}>{o.ko}{stem ? '' : ' · ' + (o as typeof BRANCHES[number]).animal}</Text>
     </View>
@@ -42,12 +46,12 @@ function Cell({ p, stem }: { p: Pillar | null; stem: boolean }) {
 }
 
 /** 오행 · 십성 막대 */
-function Meter({ label, color, value, max, labelW = 46, h = 10 }: { label: string; color: string; value: number; max: number; labelW?: number; h?: number }) {
+function Meter({ label, color, value, max, labelW = 34, h = 9 }: { label: string; color: string; value: number; max: number; labelW?: number; h?: number }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <Text style={{ width: labelW, fontSize: 14, fontWeight: '700', color }}>{label}</Text>
+      <Text style={{ width: labelW, fontSize: 13, fontWeight: '700', color }}>{label}</Text>
       <View style={{ flex: 1, height: h, borderRadius: h / 2, backgroundColor: colors.line, overflow: 'hidden' }}>
-        <View style={{ width: `${(value / max) * 100}%`, height: h, borderRadius: h / 2, backgroundColor: color }} />
+        <View style={{ width: `${Math.min(100, Math.max(0, value / Math.max(max, 1) * 100))}%`, height: h, borderRadius: h / 2, backgroundColor: color }} />
       </View>
       <Text style={{ width: 18, textAlign: 'right', fontWeight: '700', color: colors.ink }}>{value}</Text>
     </View>
@@ -71,11 +75,11 @@ export default function SajuDeepScreen() {
   const spec = F ? sajuDeepSpec(u, F) : null;
 
   return (
-    <Screen title="상세 사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} download />}>
       <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
-      <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
-      <Text style={[txt.body, { marginTop: 6 }]}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
-      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 10 }}>
+      <Text style={s.profileTitle}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
+      <Text style={s.profileMeta}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
+      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 8 }}>
         <View style={s.pgrid}>
           {pillars.map(([l, p]) => {
             const isMe = l === '일주';
@@ -98,7 +102,7 @@ export default function SajuDeepScreen() {
         : F && content.data ? (
           <SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} />
         ) : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
+      <ShareCta item={item} spec={spec} banner />
       <Disclaimer compact />
     </Screen>
   );
@@ -126,16 +130,16 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
     <>
       <ReadingBanner reading={reading} onRetry={onRetry} />
 
-      <Hero>
+      <Hero style={{ padding: 18 }}>
         <Text style={heroTxt.eyebrow}>{dayName} · {per.img}</Text>
         {core ? (
           <>
-            <Text style={[heroTxt.summ, { fontSize: 20 }]}>{core.headline}</Text>
+            <Text style={[heroTxt.summ, { fontSize: 18 }]}>{core.headline}</Text>
             <Text style={[heroTxt.body, s.heroBody]}>{core.summary}</Text>
           </>
         ) : (
           <>
-            <Text style={[heroTxt.summ, { fontSize: 20 }]}>{per.core}</Text>
+            <Text style={[heroTxt.summ, { fontSize: 18 }]}>{per.core}</Text>
             {writing ? <View style={{ marginTop: 10, opacity: 0.6 }}><PartPending writing lines={3} /></View> : null}
           </>
         )}
@@ -145,17 +149,18 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
       {core ? (
         <>
           <Card>
-            <Text style={s.label}>겉모습</Text>
-            <Para mt={4}>{core.outer}</Para>
-            <Divider my={14} />
-            <Text style={s.label}>속마음</Text>
-            <Para mt={4}>{core.inner}</Para>
+            <SajuHeading title="겉모습" icon="user" />
+            <Para mt={8}>{core.outer}</Para>
           </Card>
-          <Card style={{ marginTop: 12 }}>
-            <Text style={txt.h3}>{dayName} ({me.hanja}{BRANCHES[ch.day.branch].hanja}) · {STAGE12[F.dayStage]}</Text>
-            <Para>{core.dayPillar}</Para>
+          <Card style={{ marginTop: 16 }}>
+            <SajuHeading title="속마음" icon="heart" />
+            <Para mt={8}>{core.inner}</Para>
           </Card>
-          <Card style={{ marginTop: 12 }}>
+          <Card style={{ marginTop: 16 }}>
+            <SajuHeading title={`${dayName} (${me.hanja}${BRANCHES[ch.day.branch].hanja}) · ${STAGE12[F.dayStage]}`} icon="puzzle" />
+            <Para mt={8}>{core.dayPillar}</Para>
+          </Card>
+          <Card style={{ marginTop: 16 }}>
             <Text style={[s.label, { color: colors.success }]}>강점</Text>
             {core.strengths.map((t, i) => <TitledRow key={i} t={t} color={colors.success} />)}
             <Text style={[s.label, { color: colors.thai, marginTop: 16 }]}>보완하면 좋은 점</Text>
@@ -170,7 +175,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         {structure ? (
           <>
             <Para mt={14}>{structure.elements.text}</Para>
-            <Text style={[s.label, { marginTop: 14 }]}>기운을 채우는 생활 습관</Text>
+            <Text style={[s.label, { marginTop: 20 }]}>기운을 채우는 생활습관</Text>
             {structure.elements.balance.map((t, i) => <Bullet key={i}>{t}</Bullet>)}
           </>
         ) : <PartPending writing={writing} />}
@@ -178,9 +183,9 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
 
       <SubHead title="03 · 신강·신약과 용신" caption="나를 돕는 기운과 가장 필요한 기운" />
       <Card>
-        <LinearGradient colors={['#9FB0CF', '#D8CFBF', '#D3A08E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.gauge}><View style={[s.gaugeDot, { left: `${Math.round(F.ratio * 100)}%` }]} /></LinearGradient>
+        <LinearGradient colors={['#9FB0CF', '#D8CFBF', '#D3A08E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.gauge}><View style={[s.gaugeDot, { left: `${Math.min(97, Math.max(3, Math.round(F.ratio * 100)))}%` }]} /></LinearGradient>
         <View style={[s.between, { marginTop: 6 }]}><Text style={txt.caption}>신약</Text><Text style={txt.caption}>중화</Text><Text style={txt.caption}>신강</Text></View>
-        <Text style={[txt.h3, { marginTop: 12 }]}>{F.strength} · 나를 돕는 힘 {Math.round(F.ratio * 100)}%</Text>
+        <Text style={[s.cardTitle, { marginTop: 12 }]}>{F.strength} · 나를 돕는 힘 {Math.round(F.ratio * 100)}%</Text>
         <View style={[s.grid3, { marginTop: 14 }]}>
           {([['용신', '가장 필요한 기운', F.yong], ['희신', '용신을 돕는 기운', F.hee], ['기신', '조심할 기운', F.gi]] as const).map(([l, d, e]) => (
             <View key={l} style={s.cell3}>
@@ -200,8 +205,8 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
           {gk.map(k => (
             <View key={k}>
               <View style={s.between}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink, flex: 1 }}>{GROUP_KO[k]} <Text style={[txt.caption, { fontWeight: '500' }]}>{GROUP_DESC[k]}</Text></Text>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.purple }}>{g[k]}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink, flex: 1 }}>{GROUP_KO[k]} <Text style={[s.smallCaption, { fontWeight: '500' }]}>{GROUP_DESC[k]}</Text></Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.purple }}>{g[k]}</Text>
               </View>
               <View style={s.track}><View style={[s.fill, { width: `${(g[k] / gmx) * 100}%` }]} /></View>
             </View>
@@ -213,7 +218,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         <View style={{ gap: 10, marginTop: 12 }}>
           {structure.tenGods.talents.map((t, i) => (
             <Card key={i}>
-              <Text style={txt.h3}>{t.title}</Text>
+              <Text style={s.cardTitle}>{t.title}</Text>
               <Para>{t.text}</Para>
             </Card>
           ))}
@@ -241,11 +246,11 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
 
       <SubHead title="06 · 분야별 타고난 운" caption="연애 · 재물 · 일 · 관계 · 건강" />
       {fields ? (
-        <View style={{ gap: 10 }}>
-          {FIELD_ORDER.map(([k, label, h]) => (
+        <View style={{ gap: 16 }}>
+          {FIELD_ORDER.map(([k, label, icon]) => (
             <Card key={k}>
-              <View style={s.fieldHead}><Seal ch={h} size={30} /><Text style={s.label}>{label}</Text></View>
-              <Text style={[txt.h3, { marginTop: 8 }]}>{fields[k].headline}</Text>
+              <View style={s.fieldHead}><SajuHeading title={label} icon={icon} small /></View>
+              <Text style={[s.cardTitle, { marginTop: 8 }]}>{fields[k].headline}</Text>
               <Para>{fields[k].text}</Para>
               <Tip title="이렇게 해 보세요" style={{ marginTop: 12 }}>{fields[k].tip}</Tip>
             </Card>
@@ -264,7 +269,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
             </View>
             {text ? (
               <>
-                <Text style={[txt.h3, { marginTop: 8 }]}>{text.title}</Text>
+                <Text style={[s.cardTitle, { marginTop: 8 }]}>{text.title}</Text>
                 <Para>{text.text}</Para>
               </>
             ) : <PartPending writing={writing} lines={3} />}
@@ -273,7 +278,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
       </View>
 
       <SubHead title="08 · 개운법" caption={`용신 ${elName(F.yong)}의 기운을 생활 속으로`} />
-      <InfoRows rows={[['色', '행운의 색', L.color], ['數', '행운의 숫자', L.num], ['方', '좋은 방향', L.dir], ['季', '기운이 오르는 계절', L.season], ['食', '추천 음식', L.food], ['物', '곁에 두면 좋은 물건', L.items], ['行', '추천 활동', L.act]]} />
+      <InfoRows rows={[['luck-color', '행운의 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-direction', '좋은 방향', L.dir], ['luck-season', '기운이 오르는 계절', L.season], ['luck-food', '추천 음식', L.food], ['luck-items', '곁에 두면 좋은 물건', L.items], ['luck-activity', '추천 활동', L.act]]} />
       {flow ? (
         <Card style={{ marginTop: 12 }}>
           <Para mt={0}>{flow.luck.text}</Para>
@@ -291,16 +296,16 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
           return (
             <View key={a.name}>
               <View style={s.between}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.ink }}>{a.name}</Text>
-                <Pill>{verdict + (verdict !== '균형' ? ' · ' + Math.max(pos, neg) + '/4' : '')}</Pill>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>{a.name}</Text>
+                <Text style={s.verdict}>{verdict + (verdict !== '균형' ? ' · ' + Math.max(pos, neg) + '/4' : '')}</Text>
               </View>
               <View style={s.axrow}>
                 <Text style={txt.caption}>{a.neg}</Text>
                 <View style={s.axline}>
                   <View style={s.axmid} />
                   {(['saju', 'thai', 'mbti', 'blood'] as SrcKey[]).map((k, ki) => (
-                    <View key={k} style={[s.axdot, { left: `${50 + a.v[k] * 34 + (ki - 1.5) * 7}%`, borderColor: analysisTheme[k].color }]} accessibilityLabel={analysisTheme[k].label}>
-                      <Text style={{ fontFamily: fonts.serif, fontSize: 11, fontWeight: '600', color: analysisTheme[k].color }}>{analysisTheme[k].emoji}</Text>
+                    <View key={k} style={[s.axdot, { left: `${Math.min(88, Math.max(12, 50 + a.v[k] * 34 + (ki - 1.5) * 7))}%` }]} accessibilityLabel={analysisTheme[k].label}>
+                      <SourceMark source={k} />
                     </View>
                   ))}
                 </View>
@@ -309,20 +314,20 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
             </View>
           );
         })}
-        {structure ? <Para mt={0}>{structure.crossView}</Para> : <PartPending writing={writing} lines={3} />}
       </Card>
+      {structure ? <Para mt={16} style={{ lineHeight: 20 }}>{structure.crossView}</Para> : <PartPending writing={writing} lines={3} />}
       <Card style={{ marginTop: 12, paddingVertical: 4, paddingHorizontal: 16 }}>
         {([['saju', `${per.core} (${me.ko}${EK(me.element)})`], ['thai', THAI_DAYS[thaiDay(u)].trait], ['mbti', `${MBTI_INFO[u.mbti].nickname} · ${MBTI_INFO[u.mbti].strength}`], ['blood', BLOOD_INFO[u.bloodType].trait]] as [SrcKey, string][]).map(([k, t], i) => (
           <View key={k} style={i ? s.topLine : null}><ViewRow k={k}>{t}</ViewRow></View>
         ))}
       </Card>
-      {core ? <Tip title="평생 기억할 한마디">{core.closing}</Tip> : null}
+      {core ? <Closing>{core.closing}</Closing> : null}
     </>
   );
 }
 
-const FIELD_ORDER: [keyof SajuReading['fields'], string, string][] = [
-  ['love', '연애 · 결혼', '緣'], ['money', '재물', '財'], ['work', '일 · 적성', '業'], ['people', '인간관계', '人'], ['health', '건강', '康'],
+const FIELD_ORDER: [keyof SajuReading['fields'], string, 'heart' | 'database' | 'work' | 'people' | 'health'][] = [
+  ['love', '연애 · 결혼', 'heart'], ['money', '재물', 'database'], ['work', '일 · 적성', 'work'], ['people', '인간관계', 'people'], ['health', '건강', 'health'],
 ];
 
 function TitledRow({ t, color }: { t: Titled; color: string }) {
@@ -330,8 +335,8 @@ function TitledRow({ t, color }: { t: Titled; color: string }) {
     <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
       <View style={[s.dot, { backgroundColor: color }]} />
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{t.title}</Text>
-        <Text style={[txt.body, { marginTop: 2 }]}>{t.text}</Text>
+        <Text style={s.rowTitle}>{t.title}</Text>
+        <Para mt={2} style={{ color: colors.inkSub }}>{t.text}</Para>
       </View>
     </View>
   );
@@ -345,34 +350,40 @@ function ageOn(birthDate: string, today: string): number {
 }
 
 const s = StyleSheet.create({
+  profileTitle: { ...sansW('800'), fontSize: 22, lineHeight: 28, letterSpacing: -1.1, color: colors.ink, marginTop: 10 },
+  profileMeta: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkSub, marginTop: 6 },
+  cardTitle: { ...sansW('600'), fontSize: 16, lineHeight: 22, letterSpacing: -0.8, color: colors.ink },
+  rowTitle: { ...sansW('700'), fontSize: 14, lineHeight: 20, letterSpacing: -0.7, color: colors.ink },
+  smallCaption: { ...sansW('400'), fontSize: 11, color: colors.inkMute, letterSpacing: -0.55 },
+  verdict: { ...sansW('600'), fontSize: 12, color: colors.ink, letterSpacing: -0.6 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   pgrid: { flexDirection: 'row', gap: 8 },
-  pcol: { flex: 1, gap: 6, padding: 6, borderRadius: 14 },
-  pcolMe: { backgroundColor: colors.lavenderSoft, borderWidth: 1.5, borderColor: colors.lavender },
+  pcol: { flex: 1, gap: 6, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 14 },
+  pcolMe: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lavender },
   pl: { fontSize: 11, fontWeight: '700', color: colors.inkMute, textAlign: 'center' },
   tgl: { fontSize: 11, fontWeight: '700', color: colors.inkSub, textAlign: 'center' },
   hid: { fontSize: 11, color: colors.inkMute, textAlign: 'center', letterSpacing: 1 },
   st12: { fontSize: 11, fontWeight: '700', color: colors.purpleSoft, textAlign: 'center' },
-  pc: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, minHeight: 68 },
+  pc: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, minHeight: 60 },
   pcBig: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '600', lineHeight: 28, color: colors.white },
   pcSmall: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginTop: 2 },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 12, rowGap: 4, marginTop: 10 },
   legendT: { fontSize: 11.5, color: colors.inkMute },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden', marginTop: 6 },
-  fill: { height: 6, borderRadius: 3, backgroundColor: colors.purpleSoft },
+  fill: { height: 6, borderRadius: 3, backgroundColor: '#4392F7' },
   gauge: { height: 10, borderRadius: 5, marginTop: 6 },
   gaugeDot: { position: 'absolute', top: -5, width: 20, height: 20, marginLeft: -10, borderRadius: 10, backgroundColor: colors.card, borderWidth: 3, borderColor: colors.navy },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   eld: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginVertical: 8 },
-  label: { fontSize: 12, fontWeight: '700' },
+  label: { ...sansW('600'), fontSize: 16, lineHeight: 22, letterSpacing: -0.8, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   axrow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
-  axline: { flex: 1, height: 30, borderRadius: 15, backgroundColor: colors.cream },
+  axline: { flex: 1, height: 34, borderRadius: 17, backgroundColor: colors.cream },
   axmid: { position: 'absolute', left: '50%', top: 6, bottom: 6, width: 1, backgroundColor: colors.lineStrong },
-  axdot: { position: 'absolute', top: 3, width: 24, height: 24, marginLeft: -12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  axdot: { position: 'absolute', top: 0, width: 34, height: 34, marginLeft: -17, alignItems: 'center', justifyContent: 'center' },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  heroBody: { fontSize: 14.5, lineHeight: 23, marginTop: 10 },
+  heroBody: { fontSize: 13, lineHeight: 20, marginTop: 10 },
   fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
 });

@@ -5,11 +5,16 @@
  */
 import { api, call } from '../../api/client';
 import { IS_WEB, setTokens } from '../../api/tokens';
+import type { SocialProvider } from '../../components/auth/socialLabels';
+
+/** How the account signs in: email · password, or a linked social account. */
+export type LoginMethod = 'email' | SocialProvider;
 
 export interface Account {
   id: number;
   email: string | null;
   status: string;
+  loginMethods: LoginMethod[];
 }
 
 /** refreshToken is absent on the web (the server puts it in an httpOnly cookie). */
@@ -26,8 +31,8 @@ export const authApi = {
   },
 
   async me(): Promise<Account> {
-    const user = await call<{ id: number; email: string | null; status: string }>(api.GET('/v1/auth/user'));
-    return { id: user.id, email: user.email, status: user.status };
+    const user = await call<{ id: number; email: string | null; status: string; loginMethods?: LoginMethod[] }>(api.GET('/v1/auth/user'));
+    return { id: user.id, email: user.email, status: user.status, loginMethods: user.loginMethods ?? [] };
   },
 
   async login(email: string, password: string): Promise<void> {

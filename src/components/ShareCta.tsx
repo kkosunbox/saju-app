@@ -58,13 +58,13 @@ const s = StyleSheet.create({
 });
 
 /** 유료 화면 상단 오른쪽 공유 아이콘 — 열람한 사람에게만 보인다 */
-export function ShareIconButton({ item, spec }: { item?: Item; spec?: ShareSpec | null }) {
+export function ShareIconButton({ item, spec, download = false }: { item?: Item; spec?: ShareSpec | null; download?: boolean }) {
   const nav = useNavigation();
   const { owned } = usePremium();
   if (!spec || (item && !owned(item.key))) return null;
   return (
     <PressableScale onPress={() => nav.navigate('Share', { spec })} scaleTo={0.9} accessibilityLabel="결과를 카드로 공유하기" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name="share" size={20} color={colors.purple} />
+      <Icon name={download ? "download" : "share"} size={download ? 24 : 20} color={colors.purple} />
     </PressableScale>
   );
 }

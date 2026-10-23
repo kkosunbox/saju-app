@@ -1,5 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { BRAND } from '@/components/BrandMark';
+import { SITE_URL } from '@/content/seo';
 
 const SANS = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
 // react-native-web 기본 글꼴보다 우선하되, 글꼴을 지정한 요소와 중첩 텍스트는 건드리지 않는다.
@@ -9,24 +11,54 @@ const GLOBAL_CSS =
   '[class*="css-text-"]{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}' +
   // iOS 사파리에서 꾹 누르면(마스코트 뽑기 등) 이미지 미리보기·저장 메뉴가 뜨거나 글자가 선택되지 않게
   'img{-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none}' +
-  '[role="button"]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}';
+  '[role="button"]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}' +
+  // 부팅 중 미리 그린 랜딩(_layout.tsx)은 검색엔진·처음 온 사람용 — 온보딩을 마친 사람에겐 가린다
+  'html[data-returning] #boot-landing{visibility:hidden}';
 
-/** 웹 정적 렌더링(SEO)용 HTML 셸. 화면별 메타는 expo-router/head 의 <Head>로 추가한다. */
+// 그리기 전에 읽어야 랜딩이 번쩍이지 않는다 (storageService 의 onulna:onboarded)
+const RETURNING_JS = "try{if(localStorage.getItem('onulna:onboarded')==='1')document.documentElement.setAttribute('data-returning','')}catch(e){}";
+
+const JSON_LD = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: BRAND.name,
+  alternateName: [BRAND.ko, 'woonpick'],
+  url: `${SITE_URL}/`,
+  inLanguage: 'ko-KR',
+});
+
+/**
+ * 웹 정적 렌더링(SEO)용 HTML 셸 — 모든 경로에 같은 태그만 둔다.
+ * 경로별 제목 · 설명 · canonical · noindex 는 SiteHead(expo-router/head).
+ */
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="ko">
       <head>
         <meta charSet="utf-8" />
-        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         {/* maximum-scale=1: iOS 사파리가 16px보다 작은 입력창(상담 14px)에 포커스할 때 화면을 확대하지 않게. 손가락 확대는 iOS가 그대로 허용한다 */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover" />
-        <title>운Pick · 오늘의 운, 하나만 Pick!</title>
-        <meta name="description" content="사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽는 오늘의 운세. 오늘의 운, 하나만 Pick!" />
-        <meta name="theme-color" content="#FFFFFF" />
-        <meta property="og:title" content="운Pick · 오늘의 운, 하나만 Pick!" />
-        <meta property="og:description" content="사주부터 MBTI까지, 오늘의 나를 PICK하다." />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+        <script dangerouslySetInnerHTML={{ __html: RETURNING_JS }} />
+        <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#121418" media="(prefers-color-scheme: dark)" />
+        <meta name="application-name" content={BRAND.name} />
+        <meta name="apple-mobile-web-app-title" content={BRAND.name} />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content={BRAND.name} />
+        <meta property="og:locale" content="ko_KR" />
+        <meta property="og:image" content={`${SITE_URL}/og-v3.png`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`${BRAND.name} — ${BRAND.slogan}`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={`${SITE_URL}/og-v3.png`} />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        {/* 화면에 쓰인 글자 범위만 받는 dynamic subset */}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
         <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

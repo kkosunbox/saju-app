@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import OptionChip from './OptionChip';
+import { Text, View } from 'react-native';
+import PrimaryButton from './PrimaryButton';
 import { useApp } from '../context/AppContext';
 import { usePremium } from '../context/PremiumContext';
 import { useNavigation } from '@/navigation/compat';
@@ -8,12 +8,11 @@ import { compatApi, compatKeys } from '../services/server/compatApi';
 import { PendingInvite, clearPendingInvite } from '../services/share/linkShare';
 import { queryClient } from '../api/query';
 import { ApiError } from '../api/client';
-import { RELATIONSHIPS } from '../data/relationships';
-import { Relationship } from '../types';
+import { RELATIONSHIP_INFO } from '../data/relationships';
 import { txt } from '../theme/typography';
 
 /**
- * 초대 링크로 들어온 친구가 관계를 고르면 서버가 궁합을 계산하고 결과 화면으로 간다.
+ * 초대 링크에 저장된 관계로 궁합을 계산하고 결과 화면으로 간다.
  * 같은 결과가 초대한 사람의 궁합 탭에도 들어간다 (서로의 생년월일은 보이지 않는다).
  * onDone: 끝났거나(결과로 감) 더 쓸 수 없는 초대라 지웠을 때 · replace: 이 화면을 결과 화면으로 바꾼다 (초대 화면)
  */
@@ -21,13 +20,13 @@ export default function InvitePicker({ invite, onDone, replace }: { invite: Pend
   const nav = useNavigation();
   const { user } = useApp();
   const { toast } = usePremium();
-  const [busy, setBusy] = useState<Relationship | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const pick = async (relationship: Relationship) => {
+  const pick = async () => {
     if (!user || busy) return;
-    setBusy(relationship);
+    setBusy(true);
     try {
-      const result = await compatApi.acceptInvite(user.id, invite.token, relationship);
+      const result = await compatApi.acceptInvite(user.id, invite.token);
       await clearPendingInvite();
       queryClient.invalidateQueries({ queryKey: compatKeys.list });
       onDone();
@@ -40,27 +39,18 @@ export default function InvitePicker({ invite, onDone, replace }: { invite: Pend
         : gone ? '초대 링크가 만료됐거나 꺼졌어요'
           : '궁합을 불러오지 못했어요. 잠시 후 다시 시도해 주세요');
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
   return (
     <View>
-      <Text style={[txt.h2, { textAlign: 'center' }]}>{invite.inviterNickname}님과 어떤 사이인가요?</Text>
-      <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>고르면 관계에 맞는 궁합이 바로 나와요</Text>
-      <View style={s.grid}>
-        {RELATIONSHIPS.map(x => (
-          <OptionChip key={x.k} compact style={s.cell} label={busy === x.k ? '궁합 보는 중…' : x.l} sub={x.hint} selected={busy === x.k} onPress={() => pick(x.k)} />
-        ))}
-      </View>
+      <Text style={[txt.h2, { textAlign: 'center' }]}>{invite.inviterNickname}님과의 궁합을 볼까요?</Text>
+      <Text style={[txt.small, { textAlign: 'center', marginTop: 6 }]}>{RELATIONSHIP_INFO[invite.relationship ?? 'lover'].label} 관계로 초대했어요. 둘의 궁합을 확인해 보세요.</Text>
+      <PrimaryButton label={busy ? '궁합 보는 중…' : '궁합 보기'} onPress={pick} disabled={busy} style={{ marginTop: 24 }} />
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>
         {invite.inviterNickname}님에게도 내 이름과 둘의 궁합 결과가 보여요.{'\n'}서로의 생년월일은 보이지 않아요.
       </Text>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 18 },
-  cell: { width: '48.9%' },
-});
