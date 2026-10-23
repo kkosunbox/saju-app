@@ -21,7 +21,7 @@ import { BRANCHES, ELEMENT_INFO, STEMS, TenGodGroup } from '../../data/sajuData'
 import { THAI_DAYS } from '../../data/thaiData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { BLOOD_INFO } from '../../data/bloodData';
-import { analysisTheme, colors } from '../../theme/colors';
+import { analysisTheme, colors, isDark } from '../../theme/colors';
 import { fonts, sansW, txt } from '../../theme/typography';
 import { Pillar } from '../../types/content';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
@@ -31,6 +31,9 @@ import { sajuDeepSpec } from '../../services/share/shareSpecs';
 const TILE_HEX = { wood: '#5FB8A8', fire: '#E54D4D', earth: '#FCBD51', metal: '#91CBE9', water: '#3D79D4' };
 const EL_HEX = { wood: '#5FB884', fire: '#E54D4D', earth: '#FE8828', metal: '#2885FE', water: '#1E53A2' };
 const EK = (e: keyof typeof ELEMENT_INFO) => ELEMENT_INFO[e].ko;
+// 강점 · 보완 제목 색 (디자인 값, 다크 모드는 테마 색)
+const STRENGTH_HEX = isDark ? colors.success : '#35A05F';
+const CAUTION_HEX = isDark ? colors.thai : '#BA6F28';
 
 interface SajuData { profile: unknown; axes: CrossAxis[]; daeun: DaeunTable }
 
@@ -79,7 +82,7 @@ export default function SajuDeepScreen() {
       <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
       <Text style={s.profileTitle}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
       <Text style={s.profileMeta}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
-      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 8 }}>
+      <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 6 }}>
         <View style={s.pgrid}>
           {pillars.map(([l, p]) => {
             const isMe = l === '일주';
@@ -87,8 +90,10 @@ export default function SajuDeepScreen() {
               <View key={l} style={[s.pcol, isMe && s.pcolMe]}>
                 <Text style={[s.pl, isMe && { color: colors.purple }]}>{l}{isMe ? ' · 나' : ''}</Text>
                 <Text style={s.tgl}>{p ? (isMe ? '일간' : TG[tenGod(ds, p.stem)]) : '-'}</Text>
-                <Cell p={p} stem />
-                <Cell p={p} stem={false} />
+                <View style={{ gap: 4 }}>
+                  <Cell p={p} stem />
+                  <Cell p={p} stem={false} />
+                </View>
                 <Text style={s.tgl}>{p ? TG[tenGod(ds, mainStem(p.branch))] : '-'}</Text>
                 <Text style={s.hid}>{p ? HIDDEN[p.branch].map(x => STEMS[x].hanja).join(' ') : ''}</Text>
                 <Text style={s.st12}>{p ? STAGE12[stage12(ds, p.branch)] : ''}</Text>
@@ -102,8 +107,8 @@ export default function SajuDeepScreen() {
         : F && content.data ? (
           <SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} />
         ) : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} banner />
-      <Disclaimer compact />
+      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <Disclaimer compact mt={24} />
     </Screen>
   );
 }
@@ -150,20 +155,20 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         <>
           <Card>
             <SajuHeading title="겉모습" icon="user" />
-            <Para mt={8}>{core.outer}</Para>
+            <Para mt={7}>{core.outer}</Para>
           </Card>
           <Card style={{ marginTop: 16 }}>
             <SajuHeading title="속마음" icon="heart" />
-            <Para mt={8}>{core.inner}</Para>
+            <Para mt={7}>{core.inner}</Para>
           </Card>
           <Card style={{ marginTop: 16 }}>
             <SajuHeading title={`${dayName} (${me.hanja}${BRANCHES[ch.day.branch].hanja}) · ${STAGE12[F.dayStage]}`} icon="puzzle" />
-            <Para mt={8}>{core.dayPillar}</Para>
+            <Para mt={7}>{core.dayPillar}</Para>
           </Card>
           <Card style={{ marginTop: 16 }}>
-            <Text style={[s.label, { color: colors.success }]}>강점</Text>
+            <Text style={[s.label, { color: STRENGTH_HEX }]}>강점</Text>
             {core.strengths.map((t, i) => <TitledRow key={i} t={t} color={colors.success} />)}
-            <Text style={[s.label, { color: colors.thai, marginTop: 16 }]}>보완하면 좋은 점</Text>
+            <Text style={[s.label, { color: CAUTION_HEX, marginTop: 16 }]}>보완하면 좋은 점</Text>
             {core.cautions.map((t, i) => <TitledRow key={i} t={t} color="#C27A2C" />)}
           </Card>
         </>
@@ -250,8 +255,8 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
           {FIELD_ORDER.map(([k, label, icon]) => (
             <Card key={k}>
               <View style={s.fieldHead}><SajuHeading title={label} icon={icon} small /></View>
-              <Text style={[s.cardTitle, { marginTop: 8 }]}>{fields[k].headline}</Text>
-              <Para>{fields[k].text}</Para>
+              <Text style={[s.cardTitle, { marginTop: 8, lineHeight: 19 }]}>{fields[k].headline}</Text>
+              <Para mt={12}>{fields[k].text}</Para>
               <Tip title="이렇게 해 보세요" style={{ marginTop: 12 }}>{fields[k].tip}</Tip>
             </Card>
           ))}
@@ -290,33 +295,32 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
       ) : writing ? <Card style={{ marginTop: 12 }}><PartPending writing /></Card> : null}
 
       <SubHead title="09 · 네 관점 교차 분석" caption="사주 · 점성술 · MBTI · 혈액형이 같은 말을 할 때" />
-      <Card style={{ gap: 18 }}>
+      <Card style={{ gap: 16 }}>
         {data.axes.map(a => {
           const { pos, neg, verdict } = axisVerdict(a);
           return (
             <View key={a.name}>
               <View style={s.between}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>{a.name}</Text>
+                <Text style={s.axName}>{a.name}</Text>
                 <Text style={s.verdict}>{verdict + (verdict !== '균형' ? ' · ' + Math.max(pos, neg) + '/4' : '')}</Text>
               </View>
               <View style={s.axrow}>
-                <Text style={txt.caption}>{a.neg}</Text>
+                <Text style={s.axEnd}>{a.neg}</Text>
                 <View style={s.axline}>
-                  <View style={s.axmid} />
                   {(['saju', 'thai', 'mbti', 'blood'] as SrcKey[]).map((k, ki) => (
                     <View key={k} style={[s.axdot, { left: `${Math.min(88, Math.max(12, 50 + a.v[k] * 34 + (ki - 1.5) * 7))}%` }]} accessibilityLabel={analysisTheme[k].label}>
                       <SourceMark source={k} />
                     </View>
                   ))}
                 </View>
-                <Text style={txt.caption}>{a.pos}</Text>
+                <Text style={s.axEnd}>{a.pos}</Text>
               </View>
             </View>
           );
         })}
       </Card>
       {structure ? <Para mt={16} style={{ lineHeight: 20 }}>{structure.crossView}</Para> : <PartPending writing={writing} lines={3} />}
-      <Card style={{ marginTop: 12, paddingVertical: 4, paddingHorizontal: 16 }}>
+      <Card style={{ marginTop: 16, paddingVertical: 0, paddingHorizontal: 10 }}>
         {([['saju', `${per.core} (${me.ko}${EK(me.element)})`], ['thai', THAI_DAYS[thaiDay(u)].trait], ['mbti', `${MBTI_INFO[u.mbti].nickname} · ${MBTI_INFO[u.mbti].strength}`], ['blood', BLOOD_INFO[u.bloodType].trait]] as [SrcKey, string][]).map(([k, t], i) => (
           <View key={k} style={i ? s.topLine : null}><ViewRow k={k}>{t}</ViewRow></View>
         ))}
@@ -357,16 +361,16 @@ const s = StyleSheet.create({
   smallCaption: { ...sansW('400'), fontSize: 11, color: colors.inkMute, letterSpacing: -0.55 },
   verdict: { ...sansW('600'), fontSize: 12, color: colors.ink, letterSpacing: -0.6 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  pgrid: { flexDirection: 'row', gap: 8 },
+  pgrid: { flexDirection: 'row', gap: 9 },
   pcol: { flex: 1, gap: 6, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 14 },
-  pcolMe: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lavender },
+  pcolMe: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lavender, paddingHorizontal: 3, paddingVertical: 5 },
   pl: { fontSize: 11, fontWeight: '700', color: colors.inkMute, textAlign: 'center' },
   tgl: { fontSize: 11, fontWeight: '700', color: colors.inkSub, textAlign: 'center' },
   hid: { fontSize: 11, color: colors.inkMute, textAlign: 'center', letterSpacing: 1 },
   st12: { fontSize: 11, fontWeight: '700', color: colors.purpleSoft, textAlign: 'center' },
-  pc: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 8, minHeight: 60 },
-  pcBig: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '600', lineHeight: 28, color: colors.white },
-  pcSmall: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  pc: { borderRadius: 12, alignItems: 'center', justifyContent: 'center', height: 60 },
+  pcBig: { ...sansW('700'), fontSize: 24, lineHeight: 26, letterSpacing: -0.96, color: colors.white },
+  pcSmall: { ...sansW('500'), fontSize: 12, lineHeight: 17, letterSpacing: -0.48, color: colors.white },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 12, rowGap: 4, marginTop: 10 },
   legendT: { fontSize: 11.5, color: colors.inkMute },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden', marginTop: 6 },
@@ -378,11 +382,13 @@ const s = StyleSheet.create({
   eld: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginVertical: 8 },
   label: { ...sansW('600'), fontSize: 16, lineHeight: 22, letterSpacing: -0.8, color: colors.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  axrow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
-  axline: { flex: 1, height: 34, borderRadius: 17, backgroundColor: colors.cream },
-  axmid: { position: 'absolute', left: '50%', top: 6, bottom: 6, width: 1, backgroundColor: colors.lineStrong },
-  axdot: { position: 'absolute', top: 0, width: 34, height: 34, marginLeft: -17, alignItems: 'center', justifyContent: 'center' },
-  topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
+  axName: { ...sansW('600'), fontSize: 14, letterSpacing: -0.7, color: colors.ink },
+  axEnd: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  axrow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
+  axline: { flex: 1, height: 30, borderRadius: 15, backgroundColor: colors.cream },
+  // 34 ring on the 30 track, as in the design
+  axdot: { position: 'absolute', top: -2, width: 34, height: 34, marginLeft: -17, alignItems: 'center', justifyContent: 'center' },
+  topLine: { borderTopWidth: 1, borderTopColor: isDark ? colors.lineStrong : '#E8E8E8' },
   heroBody: { fontSize: 13, lineHeight: 20, marginTop: 10 },
   fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },

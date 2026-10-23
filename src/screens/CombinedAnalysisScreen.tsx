@@ -67,12 +67,12 @@ export default function CombinedAnalysisScreen() {
               <View style={s.itemCopy}>
                 <Text style={s.itemTitle}>{analysisTheme[a.source].label}</Text>
                 <Text style={s.itemHeadline}>{a.headline}</Text>
-                <View style={s.tags}>
-                  {a.tags.map(tag => {
+                <Text style={s.tagText}>
+                  {a.tags.map((tag, j) => {
                     const label = KEYWORDS[tag].label;
-                    return <Text key={tag} style={[s.tagText, common.has(label) && { ...sansW('600'), color: source.color }]}>#{label}</Text>;
+                    return <Text key={tag} style={common.has(label) && { color: source.color }}>{j > 0 ? '  ' : ''}#{label}</Text>;
                   })}
-                </View>
+                </Text>
               </View>
             </View>
           );
@@ -117,13 +117,12 @@ const s = StyleSheet.create({
   heroTag: { includeFontPadding: false, ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#FFFFFF', opacity: 0.8 },
   list: { backgroundColor: isDark ? colors.card : '#F5F6F8', borderRadius: 12, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, minHeight: 85 },
-  border: { borderTopWidth: 1, borderTopColor: isDark ? colors.lineStrong : '#ECEEF2' },
+  border: { borderTopWidth: 1, borderTopColor: isDark ? colors.lineStrong : '#E8E8E8' },
   iconSlot: { marginTop: 12, width: 38, height: 38, borderRadius: 6, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   icon: { width: 20, height: 20 },
   itemCopy: { flex: 1, gap: 4 },
   itemTitle: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK },
   itemHeadline: { includeFontPadding: false, ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagText: { includeFontPadding: false, ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
   stories: { gap: 16 },
   section: { borderRadius: 12, padding: 16 },

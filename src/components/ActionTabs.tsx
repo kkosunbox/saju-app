@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import Segmented from './Segmented';
 import Icon from './Icon';
 import { colors, isDark } from '../theme/colors';
@@ -17,9 +18,16 @@ export default function ActionTabs({ good, avoid, variant = 'default' }: { good:
       <View style={[s.list, variant === 'figma' && s.figmaList]}>
         {list.map(item => (
           <View key={item} style={[s.row, variant === 'figma' && s.figmaRow]}>
-            <View style={[s.mark, variant === 'figma' && s.figmaMark, { backgroundColor: isGood ? colors.accentSoft : colors.loveBg }]}>
-              <Icon name={isGood ? 'check' : 'close'} size={12} color={isGood ? colors.accent : colors.love} strokeWidth={3} />
-            </View>
+            {variant === 'figma' && isGood ? (
+              <Svg width={18} height={18} viewBox="0 0 18 18" style={s.figmaMark}>
+                <Circle cx={9} cy={9} r={9} fill={isDark ? colors.accentSoft : '#E7F0FF'} />
+                <Path d="M5.15385 8.95897L7.44309 11.2012C7.83621 11.5863 8.46658 11.5814 8.85364 11.1902L13 7" stroke={isDark ? colors.accent : '#1DADFE'} strokeWidth={2} strokeLinecap="round" fill="none" />
+              </Svg>
+            ) : (
+              <View style={[s.mark, variant === 'figma' && s.figmaMark, { backgroundColor: isGood ? colors.accentSoft : colors.loveBg }]}>
+                <Icon name={isGood ? 'check' : 'close'} size={12} color={isGood ? colors.accent : colors.love} strokeWidth={3} />
+              </View>
+            )}
             <Text style={[s.item, variant === 'figma' && s.figmaItem]}>
               {item}
               {ACTION_NOTE[item] ? <Text style={variant === 'figma' ? undefined : s.note}> — {ACTION_NOTE[item]}</Text> : null}

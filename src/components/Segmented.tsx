@@ -34,7 +34,7 @@ export default function Segmented<T extends string>({ options, value, onChange, 
           >
             <View style={[s.content, variant === 'figma' && { gap: 4 }]}>
               {o.renderIcon?.(on)}
-              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? colors.ink : '#808080')]}>{o.label}</Text>
+              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? (isDark ? colors.ink : '#252525') : '#808080')]}>{o.label}</Text>
             </View>
           </Pressable>
         );

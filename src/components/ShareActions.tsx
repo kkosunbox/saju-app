@@ -7,7 +7,7 @@ import { SHARE_P, usePremium } from '../context/PremiumContext';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { useShare } from '../services/share/useShare';
 import { colors } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
+import { radius, sansW, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
 
 /**
@@ -24,7 +24,7 @@ export default function ShareActions({ spec, title = COPY.friend, outlined = fal
         <Text style={[s.title, outlined && s.outlinedTitle]}>{title}</Text>
         {shareRewardsLeft > 0 ? <View style={s.badge}><Text style={s.badgeText}>공유 +{SHARE_P}알</Text></View> : null}
       </View>
-      <Text style={[txt.small, { marginTop: outlined ? 2 : 6 }]}>보내면 친구 결과와 내 결과가 나란히 비교돼요.</Text>
+      <Text style={[s.sub, outlined && s.outlinedSub]}>보내면 친구 결과와 내 결과가 나란히 비교돼요.</Text>
       <View style={s.row}>
         <PressableScale onPress={() => sendLink(spec)} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="친구에게 링크 보내기">
           <Text style={[s.text, { color: colors.white }]}>친구에게 보내기</Text>
@@ -35,23 +35,25 @@ export default function ShareActions({ spec, title = COPY.friend, outlined = fal
       </View>
     </>
   );
-  return outlined
-    ? <View style={[s.box, s.outlined]}>{content}</View>
-    : <GradientBorder outer={{ marginTop: 20 }} style={s.box}>{content}</GradientBorder>;
+  return <GradientBorder outer={{ marginTop: outlined ? 24 : 20 }} style={[s.box, outlined && s.outlined]}>{content}</GradientBorder>;
 }
 
 const s = StyleSheet.create({
   box: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 16 },
-  outlined: { marginTop: 24, borderWidth: 1, borderColor: colors.accent, borderRadius: radius.lg, backgroundColor: colors.cream },
+  // 테두리 1px이 안쪽을 차지하므로 Figma(가운데 정렬 선) 기준 14·16에서 1씩 뺀다
+  outlined: { paddingTop: 13, paddingHorizontal: 15, paddingBottom: 15 },
+  outlinedSub: { marginTop: 3, letterSpacing: -0.65 },
+  // 스타일시트에 둬야 웹에서 글꼴이 클래스로 붙어 자간이 전역 -0.2px에 덮이지 않는다
+  sub: { ...txt.small, marginTop: 6 },
   outlinedHead: { gap: 8 },
   outlinedTitle: { flexShrink: 1 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 16, fontWeight: '700', color: colors.ink, letterSpacing: -0.8 },
+  title: { ...sansW('700'), fontSize: 16, color: colors.ink, letterSpacing: -0.8 },
   badge: { height: 24, justifyContent: 'center', paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.accent },
-  badgeText: { fontSize: 12, fontWeight: '700', color: colors.white },
+  badgeText: { ...sansW('600'), fontSize: 12, letterSpacing: -0.24, color: colors.white },
   row: { flexDirection: 'row', gap: 12, marginTop: 12 },
   btn: { flex: 1, height: 40, borderRadius: radius.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   soft: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong },
   solid: { backgroundColor: colors.navy },
-  text: { fontSize: 14, fontWeight: '600', letterSpacing: -0.4 },
+  text: { ...sansW('600'), fontSize: 14, letterSpacing: -0.28 },
 });

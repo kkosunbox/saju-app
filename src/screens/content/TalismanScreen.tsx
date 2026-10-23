@@ -60,7 +60,7 @@ export default function TalismanScreen() {
 
   return (
     <Screen
-      title="오늘의 부적" back scroll={!sealed}
+      title="오늘의 부적" titleStyle={s.screenTitle} back scroll={!sealed}
       contentStyle={sealed ? SEALED_PAD : s.content}
       right={sealed ? undefined : (
         <PressableScale onPress={save} disabled={saving || !paperReady} style={s.save} accessibilityLabel="부적 이미지 저장" accessibilityState={{ disabled: saving || !paperReady, busy: saving }}>
@@ -115,19 +115,20 @@ export default function TalismanScreen() {
 const SEALED_PAD = { paddingHorizontal: SCREEN_PX, paddingTop: 3 };
 const s = StyleSheet.create({
   content: { paddingTop: 3 },
+  screenTitle: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0 },
   save: { width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
   downloadIcon: { width: 24, height: 24 },
   paperWrap: { width: W, height: H, borderRadius: 12, backgroundColor: '#FFF3B8', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 6 },
   paper: { flex: 1, borderRadius: 12, alignItems: 'center', overflow: 'hidden' },
   paperImage: { position: 'absolute', top: 0, left: 0, width: W, height: H },
   top: { ...sansW('500'), position: 'absolute', top: 16, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#5D0000' },
-  charm: { position: 'absolute', top: 48, left: 57, width: 134, height: 158, alignItems: 'center', justifyContent: 'center' },
-  hanja: { ...sansW('700'), fontSize: 86, lineHeight: 112, letterSpacing: -4.3, color: INK, textAlign: 'center' },
+  charm: { position: 'absolute', top: 51.5, left: 57, width: 134, height: 158, alignItems: 'center', justifyContent: 'center' },
+  hanja: { ...sansW('700'), fontSize: 86, lineHeight: 103, letterSpacing: -4.3, color: INK, textAlign: 'center' },
   multipleHanja: { fontSize: 52, letterSpacing: -2.6 },
-  message: { position: 'absolute', top: 230, left: 12, right: 12, alignItems: 'center' },
+  message: { position: 'absolute', top: 231, left: 12, right: 12, alignItems: 'center' },
   mantra: { ...sansW('700'), fontSize: 16, lineHeight: 18, color: '#000000', textAlign: 'center', letterSpacing: -0.8 },
   keyword: { marginTop: 12, maxWidth: W - 32, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 24, borderWidth: 0.5, borderColor: INK },
-  keywordText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: -0.6, color: INK, opacity: 0.8 },
+  keywordText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: INK, opacity: 0.8 },
   sealedCaption: { textAlign: 'center', marginTop: 16 },
   reveal: { marginTop: 4, alignSelf: 'center' },
   sectionHead: { marginTop: 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', columnGap: 12, rowGap: 4, flexWrap: 'wrap' },
@@ -136,7 +137,7 @@ const s = StyleSheet.create({
   divider: { width: 1, height: 14, backgroundColor: '#999999' },
   captionText: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, flexShrink: 1 },
   luck: { borderRadius: 12, backgroundColor: colors.card, overflow: 'hidden' },
-  luckRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  luckRow: { paddingLeft: 16, paddingRight: 20, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowBorder: { borderTopWidth: 1, borderColor: colors.lineStrong },
   luckIcon: { width: 16, height: 16 },
   luckLabel: { ...sansW('600'), fontSize: 14, lineHeight: 18, letterSpacing: -0.7, color: colors.ink },

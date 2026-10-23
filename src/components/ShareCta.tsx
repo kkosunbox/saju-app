@@ -1,5 +1,5 @@
 import React from 'react';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { ART } from './Mascot';
 import { useNavigation } from '@/navigation/compat';
 import PressableScale from './PressableScale';
@@ -14,13 +14,13 @@ import { fonts, radius, txt } from '../theme/typography';
  * 유료 결과 끝의 공유 배너 — 열람한 사람에게만 (결과를 받기 전에는 숨김).
  * banner: 카드 그림 바탕 + 하늘색 점선 (궁합 결과 디자인)
  */
-export default function ShareCta({ item, spec, banner }: { item?: Item; spec?: ShareSpec | null; banner?: boolean }) {
+export default function ShareCta({ item, spec, banner, style }: { item?: Item; spec?: ShareSpec | null; banner?: boolean; style?: StyleProp<ViewStyle> }) {
   const nav = useNavigation();
   const { owned } = usePremium();
   if (!spec || (item && !owned(item.key))) return null;
   if (banner) {
     return (
-      <PressableScale onPress={() => nav.navigate('Share', { spec })} style={s.bannerBox} scaleTo={0.98} accessibilityLabel="결과를 카드로 공유하기">
+      <PressableScale onPress={() => nav.navigate('Share', { spec })} style={[s.bannerBox, style]} scaleTo={0.98} accessibilityLabel="결과를 카드로 공유하기">
         <ImageBackground source={ART.shareBanner} style={s.banner} imageStyle={s.fill} resizeMode="cover">
           <View style={{ flex: 1 }}>
             <Text style={s.bannerTitle}>결과를 카드로 공유하기</Text>
@@ -32,7 +32,7 @@ export default function ShareCta({ item, spec, banner }: { item?: Item; spec?: S
     );
   }
   return (
-    <PressableScale onPress={() => nav.navigate('Share', { spec })} style={s.box} scaleTo={0.98} accessibilityLabel="결과를 카드로 공유하기">
+    <PressableScale onPress={() => nav.navigate('Share', { spec })} style={[s.box, style]} scaleTo={0.98} accessibilityLabel="결과를 카드로 공유하기">
       <View style={s.seal}><Text style={s.sealText}>{spec.seal}</Text></View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>결과를 카드로 공유하기</Text>
