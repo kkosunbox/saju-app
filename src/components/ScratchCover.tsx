@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, GestureResponderEvent, StyleSheet, Text, View } from 'react-native';
+import { Animated, GestureResponderEvent, Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Mask, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { haptic } from '../utils/haptic';
 
@@ -19,6 +19,21 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
   const [fade] = useState(() => new Animated.Value(1));
   const finished = useRef(false);
   const [touched, setTouched] = useState(false);
+  const plate = useRef<View>(null);
+
+  // 웹에서 마우스로 긁으면 끌기가 글자 선택으로 번져 화면 글자가 칠해진다 — 누르는 순간 선택을 막는다
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = plate.current as unknown as HTMLElement | null;
+    if (!el) return;
+    const noSelect = (e: Event) => e.preventDefault();
+    el.addEventListener('mousedown', noSelect);
+    el.addEventListener('dragstart', noSelect);
+    return () => {
+      el.removeEventListener('mousedown', noSelect);
+      el.removeEventListener('dragstart', noSelect);
+    };
+  }, []);
 
   const finish = () => {
     if (finished.current) return;
@@ -84,7 +99,7 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
         <View pointerEvents="none" style={s.hint}><Text style={s.hintText}>{hint}</Text></View>
       )}
       {/* 손가락 위치를 덮개 기준으로 받으려고 맨 위에 빈 판 하나 */}
-      <View style={StyleSheet.absoluteFill} {...touch} accessible accessibilityRole="button" accessibilityLabel={`${title}. ${hint}`} accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={finish} />
+      <View ref={plate} style={StyleSheet.absoluteFill} {...touch} accessible accessibilityRole="button" accessibilityLabel={`${title}. ${hint}`} accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={finish} />
     </Animated.View>
   );
 }
