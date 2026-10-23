@@ -8,7 +8,9 @@ import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import Card from '../components/Card';
 import BrandMark from '../components/BrandMark';
-import Mascot from '../components/Mascot';
+import Mascot, { ArtName } from '../components/Mascot';
+import MascotCarousel from '../components/MascotCarousel';
+import { CategoryGlyph } from '../components/CategoryIcon';
 import ScoreRing from '../components/ScoreRing';
 import { COPY } from '../content/copy';
 import { analysisTheme, CategoryKey, categoryTheme, colors, gradients } from '../theme/colors';
@@ -16,6 +18,7 @@ import { fonts, radius, shadow, txt } from '../theme/typography';
 import { useWebTopBar } from '../utils/webThemeColor';
 
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
+const POSE = { saju: 'pose-saju', thai: 'pose-thai', mbti: 'pose-mbti', blood: 'pose-blood' } as const;
 const SOURCE_LINE: Record<(typeof SOURCES)[number], string> = {
   saju: '태어난 날의 네 기둥과 오늘의 일진이 만나는 자리',
   thai: '서양 · 인도 · 태국, 세 갈래 별점이 오늘 건네는 힌트',
@@ -31,14 +34,15 @@ const SAMPLE: { k: CategoryKey; score: number; ring: string }[] = [
 ];
 const STEPS: [string, string][] = [
   ['몇 가지만 답해요', '생년월일 · 태어난 시간 · 성별 · 혈액형 · MBTI. 모르는 건 건너뛰어도 돼요.'],
-  ['마스코트를 꾹 눌러 뽑아요', '네 가지 관점이 읽은 오늘의 운이 한 번에 펼쳐져요.'],
+  ['마스코트를 꾹 눌러 뽑아요', '그날의 기운을 닮은 젤리가 찾아오고, 네 가지 관점이 읽은 오늘의 운이 한 번에 펼쳐져요.'],
   ['친구와 나눠요', '결과를 스토리 카드로 만들고, 친구 결과와 나란히 비교해요.'],
 ];
-const FREE: [string, string, string][] = [
-  ['日', '오늘의 운세', '종합 점수와 연애·재물·일·관계, 오늘 할 일과 피할 일'],
-  ['週', '주간 · 월간 · 연간 흐름', '분야별로 좋은 날과 조심할 날'],
-  ['和', '궁합', '상대 정보를 넣거나, 링크 하나로 친구에게 신청받기'],
-  ['遊', '찰떡 MBTI · 사주 캐릭터 · 오늘의 부적 · 전생', '가볍게 보고 친구와 나누는 콘텐츠'],
+/** 앱 홈 · 콘텐츠 탭과 같은 그림 (그림 높이는 40칸 안에 맞춘 값) */
+const FREE: [ArtName, number, string, string][] = [
+  ['today', 30, '오늘의 운세', '종합 점수와 연애·재물·일·관계, 오늘 할 일과 피할 일'],
+  ['month', 30, '주간 · 월간 · 연간 흐름', '분야별로 좋은 날과 조심할 날'],
+  ['friends', 22, '궁합', '상대 정보를 넣거나, 링크 하나로 친구에게 신청받기'],
+  ['talisman', 32, '찰떡 MBTI · 사주 캐릭터 · 오늘의 부적 · 전생', '가볍게 보고 친구와 나누는 콘텐츠'],
 ];
 const PAID = ['상세 사주 해석', '평생운 · 10년 대운', '신년 · 월별 운세', '연애 · 재물 · 직업 운세', '길일 찾기', '미래 배우자', '그 사람의 속마음', '말 못 할 고민 상담'];
 const CTA = '내 운세 보기 · 무료';
@@ -86,7 +90,7 @@ export default function LandingScreen() {
             <BrandMark light />
             <PressableScale onPress={login} hitSlop={12} scaleTo={0.94} accessibilityRole="link"><Text style={s.topLink}>로그인</Text></PressableScale>
           </View>
-          <Mascot size={150} style={{ alignSelf: 'center', marginTop: 12 }} />
+          <View style={{ marginTop: 12 }}><MascotCarousel size={150} /></View>
           <Text style={[txt.title, s.headline]} accessibilityRole="header">{COPY.ask.replace('어떤 운을 ', '어떤 운을\n')}</Text>
           <Text style={[txt.body, s.lead]}>사주 · 별자리 · MBTI · 혈액형, 네 가지로 읽는 오늘.{'\n'}1분이면 나오고, 가입하지 않아도 돼요.</Text>
           <PrimaryButton label={CTA} onPress={start} style={{ marginTop: 20 }} />
@@ -108,7 +112,10 @@ export default function LandingScreen() {
               {SAMPLE.map((c, i) => (
                 <View key={c.k} style={{ alignItems: 'center', gap: 6 }}>
                   <ScoreRing score={c.score} size={52} stroke={3} color={c.ring} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={19} delay={450 + i * 120} />
-                  <Text style={s.ringLabel}>{categoryTheme[c.k].short}</Text>
+                  <View style={s.ringLabel}>
+                    <CategoryGlyph category={c.k} size={12} />
+                    <Text style={s.ringText}>{categoryTheme[c.k].short}</Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -131,9 +138,9 @@ export default function LandingScreen() {
           <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
             {SOURCES.map((k, i) => (
               <View key={k} style={[s.row, i > 0 && s.line]}>
-                <View style={[s.seal, { backgroundColor: analysisTheme[k].bg }]}><Text style={[s.sealText, { color: analysisTheme[k].color }]}>{analysisTheme[k].emoji}</Text></View>
+                <LinearGradient colors={analysisTheme[k].tile} style={s.seal}><Mascot name={POSE[k]} size={30} /></LinearGradient>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.rowTitle}>{analysisTheme[k].label}</Text>
+                  <Text style={s.rowTitle}>{analysisTheme[k].label} <Text style={s.rowSub}>· {analysisTheme[k].sub}</Text></Text>
                   <Text style={txt.small}>{SOURCE_LINE[k]}</Text>
                 </View>
               </View>
@@ -143,9 +150,9 @@ export default function LandingScreen() {
 
           <Text style={s.h}>무료로 즐기기</Text>
           <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
-            {FREE.map(([h, t, d], i) => (
+            {FREE.map(([art, h, t, d], i) => (
               <View key={t} style={[s.row, i > 0 && s.line]}>
-                <View style={[s.seal, { backgroundColor: colors.lavenderSoft }]}><Text style={[s.sealText, { color: colors.purple }]}>{h}</Text></View>
+                <View style={[s.seal, { backgroundColor: colors.cream }]}><Mascot name={art} size={h} /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.rowTitle}>{t}</Text>
                   <Text style={txt.small}>{d}</Text>
@@ -195,16 +202,17 @@ const s = StyleSheet.create({
   sampleText: { fontSize: 11, fontWeight: '700', color: colors.purpleSoft },
   previewMain: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   rings: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
-  ringLabel: { fontSize: 12, fontWeight: '600', color: colors.inkSub },
+  ringLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ringText: { fontSize: 12, fontWeight: '600', color: colors.inkSub },
   h: { fontFamily: fonts.display, fontSize: 19, fontWeight: '700', color: colors.ink, marginTop: 36, marginBottom: 12 },
   step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   stepNumText: { fontSize: 14, fontWeight: '700', color: colors.white },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
   line: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  seal: { width: 40, height: 40, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  sealText: { fontFamily: fonts.serif, fontSize: 19, fontWeight: '700' },
+  seal: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   rowTitle: { fontSize: 15, fontWeight: '700', color: colors.ink },
+  rowSub: { fontSize: 13, fontWeight: '500', color: colors.inkMute },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
