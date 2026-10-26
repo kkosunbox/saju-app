@@ -41,6 +41,9 @@ interface PremiumState {
   toast(msg: string): void;
   goWallet?: () => void;
   setGoWallet(fn: () => void): void;
+  /** 아직 알려 주지 않은 가입 축하 알 (0이면 없음). 메인 화면이 한 번 보여 주고 지운다 */
+  welcomeBonus: number;
+  dismissWelcomeBonus(): void;
 }
 
 const Ctx = createContext<PremiumState | null>(null);
@@ -57,7 +60,23 @@ export const refreshPoints = () => queryClient.invalidateQueries({ queryKey: ['p
 export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const { account } = useApp();
   const member = !!account;
-  const wallet = useQuery({ queryKey: [...pointsKeys.wallet, account?.id], queryFn: pointsApi.wallet, enabled: member });
+  // 가입 축하 알은 지갑을 처음 만든 응답에만 실려 온다. 가입 직후엔 캐시를 비우고 다시 읽느라 그 응답이 화면까지 못 올 수 있어서,
+  // 받는 즉시 기기에 적어 두고 메인이 보여 준 뒤 지운다
+  const welcomeKey = account ? `onulna:welcomeBonus:${account.id}` : null;
+  const [stored, setStored] = useState<{ key: string | null; value: number }>({ key: null, value: 0 });
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
+  const wallet = useQuery({
+    queryKey: [...pointsKeys.wallet, account?.id],
+    queryFn: async () => {
+      const w = await pointsApi.wallet();
+      if (welcomeKey && w.signupBonus > 0) {
+        setStored({ key: welcomeKey, value: w.signupBonus });
+        AsyncStorage.setItem(welcomeKey, String(w.signupBonus)).catch(() => {});
+      }
+      return w;
+    },
+    enabled: member,
+  });
   const unlocks = useQuery({ queryKey: [...pointsKeys.unlocks, account?.id], queryFn: pointsApi.unlocks, enabled: member });
   // AI 풀이는 서버가 백그라운드로 쓴다. 쓰는 중인 게 있으면 지켜보다가 다 쓰면 어디에 있든 알려 준다
   const readings = useQuery({
@@ -77,6 +96,14 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   // 이달의 미션 체크는 기기에만 저장한다 (계정별)
   const missionKey = account ? `onulna:missions:${account.id}` : null;
   const missions = missionState.key === missionKey ? missionState.value : {};
+
+  useEffect(() => {
+    if (!welcomeKey) return;
+    AsyncStorage.getItem(welcomeKey)
+      .then(v => { if (v) setStored(w => (w.key === welcomeKey ? w : { key: welcomeKey, value: Number(v) || 0 })); })
+      .catch(() => {});
+  }, [welcomeKey]);
+  const welcomeBonus = welcomeKey && dismissedKey !== welcomeKey && stored.key === welcomeKey ? stored.value : 0;
   useEffect(() => {
     if (!missionKey) return;
     AsyncStorage.getItem(missionKey)
@@ -180,6 +207,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     toast,
     goWallet: () => goWalletRef.current?.(),
     setGoWallet: fn => { goWalletRef.current = fn; },
+    welcomeBonus,
+    dismissWelcomeBonus: () => {
+      setDismissedKey(welcomeKey);
+      if (welcomeKey) AsyncStorage.removeItem(welcomeKey).catch(() => {});
+    },
   };
 
   return (

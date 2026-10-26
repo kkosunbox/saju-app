@@ -6,6 +6,8 @@ export interface Wallet {
   expiringSoon: number;
   attendedToday: boolean;
   shareRewardsLeft: number;
+  /** 이번 호출로 준 가입 축하 알 (지갑을 처음 만든 호출만, 그 밖엔 0) */
+  signupBonus: number;
 }
 
 export type TransactionType = 'charge' | 'grant' | 'use' | 'expire' | 'refund' | 'revoke' | 'adjust';
