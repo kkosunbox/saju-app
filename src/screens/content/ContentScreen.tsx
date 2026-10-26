@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
-import Card from '../../components/Card';
 import Icon from '../../components/Icon';
-import SolidIcon, { SolidIconName } from '../../components/SolidIcon';
 import PressableScale from '../../components/PressableScale';
 import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
@@ -17,7 +15,7 @@ import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP, ro } from '../../services/premium
 import { useInviteShare } from '../../services/share/useInviteShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors, isDark } from '../../theme/colors';
-import { fonts, radius, shadow, txt } from '../../theme/typography';
+import { fonts, radius, sansW, shadow, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
 import PromoCard from '../../components/PromoCard';
@@ -25,18 +23,25 @@ import GradientBorder from '../../components/GradientBorder';
 import { COPY } from '../../content/copy';
 import { Period } from '../../types';
 
-type Entry = [PremiumKey, SolidIconName, string, string];
+/** [화면, 그림, 제목, 설명, 그림 높이(Figma에서 보이는 크기)] */
+type Entry = [PremiumKey, ArtName, string, string, number];
 const PERIODS: [Period, ArtName, string, string][] = isDark
   ? [['daily', 'today', '오늘', '#3A3418'], ['weekly', 'week', '주간', '#2E3A18'], ['monthly', 'month', '월간', '#3A1E24'], ['yearly', 'year', '연간', '#2A2140']]
   : [['daily', 'today', '오늘', '#FFFADD'], ['weekly', 'week', '주간', '#F3FFC6'], ['monthly', 'month', '월간', '#FFE4E8'], ['yearly', 'year', '연간', '#F1EAFF']];
 const LIST: [string, Entry[]][] = [
-  ['나의 인생 지도', [['life', 'book', '평생운', '초년 · 중년 · 말년 · 10년대운'], ['sajuDeep', 'clipboard', '상세 사주 해석', '원국 · 오행 · 나의 본성']]],
-  ['올해와 이달', [['newyear', 'calendar', '신년운세', '올해 · 새해 미리보기 · 분기 전략'], ['monthly', 'calendarMoon', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션']]],
-  ['테마 운세', [['theme-love', 'heart', '연애 · 결혼', '연애 스타일 · 인연의 해'], ['theme-money', 'coins', '재물', '돈 성향 · 재물 흐름'], ['theme-career', 'work', '직업 · 적성', '맞는 일 · 커리어 상승기']]],
-  ['도구', [['lucky', 'calendarStar', '길일 찾기', '이사 · 계약 · 고백 · 면접']]],
+  ['나의 인생 지도', [['life', 'premium-life', '평생운', '초년 · 중년 · 말년 · 10년대운', 29], ['sajuDeep', 'premium-sajuDeep', '상세 사주 해석', '원국 · 오행 · 나의 본성', 39]]],
+  ['올해와 이달', [['newyear', 'premium-newyear', '신년운세', '올해 · 새해 미리보기 · 분기 전략', 37], ['monthly', 'premium-monthly', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션', 37]]],
+  ['테마 운세', [
+    ['theme-love', 'premium-love', '연애 · 결혼', '연애 스타일 · 인연의 해', 35], ['theme-money', 'premium-money', '재물', '돈 성향 · 재물 흐름', 37],
+    ['theme-career', 'premium-career', '직업 · 적성', '맞는 일 · 커리어 상승기', 38], ['lucky', 'premium-lucky', '길일 찾기', '이사 · 계약 · 고백 · 면접', 35],
+  ]],
 ];
-/** 아이콘마다 원본 여백이 달라 Figma에서 보이는 크기에 맞춘 값 (book 은 20칸 안에 여백이 있다) */
-const ICON_SIZE: Partial<Record<SolidIconName, number>> = { book: 20, coins: 17 };
+/** 설명이 긴 카드는 Figma에서 자간을 더 좁혔다 (신년운세 -0.1em) */
+const TIGHT_D: Partial<Record<PremiumKey, number>> = { newyear: -1.3 };
+/** Coming Soon 은 4줄(8개)까지만 보여주고, 마지막 줄을 흐리게 덮은 뒤 "더보기"로 펼친다 */
+const SOON_PREVIEW = 8;
+const CARD_H = 118;
+const SOON_CLIP = (SOON_PREVIEW / 2) * CARD_H + (SOON_PREVIEW / 2 - 1) * 16 - 16; // 마지막 줄은 설명 아래쪽까지만 보인다
 
 /** 콘텐츠 탭 — 무료로 즐기고(공유) → 궁금한 건 프리미엄으로 */
 export default function ContentScreen() {
@@ -46,6 +51,7 @@ export default function ContentScreen() {
   const { points, owned, openUnlock, toast } = usePremium();
   const [notify, setNotify] = useState<string[]>([]);
   const [peek, setPeek] = useState<ContentEntry | null>(null);
+  const [soonAll, setSoonAll] = useState(false);
   useEffect(() => { loadNotify().then(setNotify); }, []);
   if (!user) return null;
   const bOwned = owned(BUNDLE.key);
@@ -60,6 +66,8 @@ export default function ContentScreen() {
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);
+  const soon = UPCOMING.filter(c => c.status === 'soon');
+  const soonFolded = !soonAll && soon.length > SOON_PREVIEW;
 
   return (
     // 동전 마스코트가 상단 바 자리까지 올라가 있어 바를 본문 위에 띄운다 (스크롤하면 바 배경 아래로 지나간다)
@@ -129,33 +137,42 @@ export default function ContentScreen() {
       {LIST.map(([g, items]) => (
         <View key={g}>
           <SubHead title={g} />
-          <Card style={{ paddingVertical: 2, paddingHorizontal: 16 }}>
-            {items.map(([k, e, t, d], i) => (
-              <PressableScale key={k} onPress={() => openPremium(nav, k)} style={[s.lrow, i > 0 && s.line]} scaleTo={0.98} accessibilityLabel={t}>
-                <View style={s.lico}><SolidIcon name={e} size={ICON_SIZE[e] ?? 16} color={colors.accent} /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.lT}>{t}</Text>
-                  <Text style={s.lD}>{d}</Text>
+          <View style={s.grid}>
+            {items.map(([k, art, t, d, h]) => (
+              <PressableScale key={k} onPress={() => openPremium(nav, k)} style={s.soon} scaleTo={0.97} accessibilityLabel={t}>
+                <View style={s.freeHead}>
+                  <View style={s.artBox}><Mascot name={art} size={h} /></View>
+                  <PriceTag item={defaultItem(k as Exclude<PremiumKey, 'lounge'>, today)} small />
                 </View>
-                <PriceTag item={defaultItem(k as Exclude<PremiumKey, 'lounge'>, today)} />
+                <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>
+                <View style={s.bleed}><Text style={[s.freeD, s.premiumD, TIGHT_D[k] != null && { letterSpacing: TIGHT_D[k] }]} numberOfLines={1}>{d}</Text></View>
               </PressableScale>
             ))}
-          </Card>
+          </View>
         </View>
       ))}
-      <SubHead title="곧 오픈" caption="먼저 알림 받고 가장 먼저 보세요" />
-      <View style={s.grid}>
-        {UPCOMING.filter(c => c.status === 'soon').map(c => (
-          <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
-            <View style={s.freeHead}>
-              <Mascot name={c.art} size={39} />
-              {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <LineTag label="무료" /> : <CostPill cost={c.cost ?? 0} small />}
-            </View>
-            <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{c.title}</Text>
-            <Text style={s.freeD} numberOfLines={1}>{c.hook}</Text>
-          </PressableScale>
-        ))}
+      <SubHead title="Coming Soon" caption="먼저 알림 받고 가장 먼저 보세요" />
+      <View style={soonFolded && s.soonClip}>
+        <View style={s.grid}>
+          {(soonFolded ? soon.slice(0, SOON_PREVIEW) : soon).map(c => (
+            <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
+              <View style={s.freeHead}>
+                <Mascot name={c.art} size={39} />
+                {notify.includes(c.key) ? <Icon name="bell" size={14} color={colors.seal} /> : c.tier === 'free' ? <LineTag label="무료" /> : <View style={{ opacity: 0.5 }}><CostPill cost={c.cost ?? 0} small /></View>}
+              </View>
+              <View style={s.bleed}><Text style={[s.freeT, s.soonT]} numberOfLines={1}>{c.title}</Text></View>
+              <View style={s.bleed}><Text style={[s.freeD, s.soonD]} numberOfLines={1}>{c.hook}</Text></View>
+            </PressableScale>
+          ))}
+        </View>
+        {soonFolded ? <LinearGradient colors={[colors.cream + '00', colors.cream]} locations={[0, 0.85]} style={s.soonFade} pointerEvents="none" /> : null}
       </View>
+      {soonFolded ? (
+        <PressableScale onPress={() => setSoonAll(true)} style={s.more} scaleTo={0.95} accessibilityLabel="Coming Soon 더보기">
+          <Text style={s.moreT}>더보기</Text>
+          <Icon name="chevronDown" size={12} color={colors.inkMute} />
+        </PressableScale>
+      ) : null}
       <Disclaimer compact />
       <BottomSheet visible={!!peek} onClose={() => setPeek(null)}>
         {peek ? (
@@ -204,11 +221,16 @@ const s = StyleSheet.create({
   bundleTagText: { fontSize: 12, lineHeight: 15, fontWeight: '600', color: colors.seal, letterSpacing: 0 },
   bundleD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8, paddingRight: 80 },
   bundleOrig: { fontSize: 13, color: colors.inkMute, textDecorationLine: 'line-through', marginTop: 4 },
-  lico: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  lT: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
-  lD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 4 },
-  lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-  line: { borderTopWidth: 1, borderTopColor: colors.line },
-  soon: { width: '47.5%', flexGrow: 1, minHeight: 118, padding: 15, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
-  soonT: { fontSize: 13, letterSpacing: -0.8 },
+  artBox: { height: 40, justifyContent: 'center' },
+  // 긴 제목·설명은 Figma처럼 오른쪽 여백까지 써서 156칸 카드에 한 줄로 넣는다 (웹 Text는 max-width 100%라 감싼 View에서 넓힌다)
+  bleed: { marginRight: -12 },
+  // 글꼴을 스타일시트에 둬야 웹에서 전역 자간 -0.2px에 덮이지 않는다
+  premiumD: { ...sansW('500'), letterSpacing: -1.1 },
+  soonClip: { height: SOON_CLIP, overflow: 'hidden' },
+  soonFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 63 },
+  more: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -16, paddingVertical: 4, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  moreT: { fontSize: 12, lineHeight: 17, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
+  soon: { width: '47.5%', flexGrow: 1, minHeight: CARD_H, padding: 15, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.lineStrong },
+  soonD: { ...sansW('500'), letterSpacing: -0.65 },
+  soonT: { ...sansW('700'), fontSize: 13, letterSpacing: -0.8 }, // 글꼴을 스타일시트에 둬야 웹에서 자간이 전역 -0.2px에 덮이지 않는다
 });

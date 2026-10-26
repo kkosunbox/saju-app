@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { RouteProp, useFocusEffect, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
-import { ImageBackground, Keyboard, StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, ImageSourcePropType, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Screen from '../components/Screen';
@@ -203,7 +203,7 @@ export default function CompatibilityScreen() {
     const rel = RELATIONSHIP_INFO[result.relationship];
     return (
       <Screen largeTitle="우리 둘의 궁합" onBack={() => setResult(null)}>
-        <ImageBackground source={ART.compatHero} style={s.hero} imageStyle={s.fill} resizeMode="cover">
+        <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={19} /></View>
           <View style={s.pair}>
             <Avatar name={user.nickname} me />
@@ -463,6 +463,11 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
     </>
   );
 }
+
+/** 궁합 결과 상단 카드 배경 — 관계마다 다른 그림 */
+const HERO: Record<Relationship, ImageSourcePropType> = {
+  lover: ART.compatHero, friend: ART.compatHeroFriend, family: ART.compatHeroFamily, work: ART.compatHeroWork,
+};
 
 const s = StyleSheet.create({
   // 시작 화면

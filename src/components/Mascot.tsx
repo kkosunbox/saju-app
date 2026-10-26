@@ -25,7 +25,10 @@ export const ART = {
   week: require('../../assets/images/period-week.png'),
   month: require('../../assets/images/period-month.png'),
   year: require('../../assets/images/period-year.png'),
-  compatHero: require('../../assets/images/compat-hero.webp'), // 궁합 결과 상단 밤하늘 카드
+  compatHero: require('../../assets/images/compat-hero.webp'), // 궁합 결과 상단 밤하늘 카드 (연인)
+  compatHeroFriend: require('../../assets/images/compat-hero-friend.webp'),
+  compatHeroFamily: require('../../assets/images/compat-hero-family.webp'),
+  compatHeroWork: require('../../assets/images/compat-hero-work.webp'),
   shareBanner: require('../../assets/images/share-card-banner.webp'), // 카드로 공유하기 배너 바탕
   crush: require('../../assets/images/crush-mascot.webp'), // 잠긴 리포트 카드 오른쪽 아래
   faceA: require('../../assets/images/compat-face-a.webp'), // 두 사람 비교표의 나
@@ -43,6 +46,15 @@ export const ART = {
   'soon-baby': require('../../assets/images/soon-baby.webp'),
   'soon-pet': require('../../assets/images/soon-pet.webp'),
   'soon-name': require('../../assets/images/soon-name.webp'),
+  // 콘텐츠 탭 프리미엄 카드 그림 (나의 인생 지도 · 올해와 이달 · 테마 운세)
+  'premium-life': require('../../assets/images/premium-life.webp'),
+  'premium-sajuDeep': require('../../assets/images/premium-sajudeep.webp'),
+  'premium-newyear': require('../../assets/images/premium-newyear.webp'),
+  'premium-monthly': require('../../assets/images/premium-monthly.webp'),
+  'premium-love': require('../../assets/images/premium-love.webp'),
+  'premium-money': require('../../assets/images/premium-money.webp'),
+  'premium-career': require('../../assets/images/premium-career.webp'),
+  'premium-lucky': require('../../assets/images/premium-lucky.webp'),
 } as const;
 export type ArtName = keyof typeof ART;
 
@@ -54,6 +66,8 @@ const RATIO: Partial<Record<ArtName, number>> = {
   today: 519 / 508, week: 519 / 508, month: 519 / 508, year: 519 / 508,
   compatHero: 984 / 679, shareBanner: 984 / 204, crush: 336 / 411,
   'soon-loveTiming': 268 / 233, 'soon-jobTiming': 244 / 233, 'soon-friendRank': 269 / 232, 'soon-marryAge': 256 / 233, 'soon-tarot': 276 / 238, 'soon-dream': 268 / 233, 'soon-boss': 268 / 233, 'soon-exam': 277 / 264, 'soon-baby': 268 / 232, 'soon-pet': 277 / 264, 'soon-name': 268 / 232,
+  'premium-life': 362 / 265, 'premium-sajuDeep': 350 / 333, 'premium-newyear': 384 / 307, 'premium-monthly': 384 / 307,
+  'premium-love': 371 / 297, 'premium-money': 375 / 307, 'premium-career': 358 / 307, 'premium-lucky': 359 / 307,
 };
 
 /**

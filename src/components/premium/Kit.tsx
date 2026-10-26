@@ -53,10 +53,10 @@ export function LineTag({ label, color = FREE_BLUE }: { label: string; color?: s
 }
 
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
-export function PriceTag({ item }: { item: Item }) {
+export function PriceTag({ item, small }: { item: Item; small?: boolean }) {
   const { owned } = usePremium();
   if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} />;
-  return <CostPill cost={item.cost} />;
+  return <CostPill cost={item.cost} small={small} />;
 }
 
 /** 화면 상단: 열람 중 / 미리보기 */
