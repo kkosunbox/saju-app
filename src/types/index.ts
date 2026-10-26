@@ -98,6 +98,8 @@ export interface CombinedFortune {
   luckyColorHex: string;
   luckyNumber: number;
   luckyTime: string;
+  /** 행운 색 · 숫자 · 시간을 고른 근거 (한 문장씩). 예전에 저장된 운세에는 없음 */
+  luckyReasons?: { color: string; number: string; time: string };
 }
 
 export interface DailyFortune {

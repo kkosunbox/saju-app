@@ -77,6 +77,7 @@ export default function HomeScreen() {
   const pl = useFreeContent('past-life').data;
   // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤, 풀이가 다 써지면 한 번에 펼친다
   const draw = useFortuneDraw();
+  const [luckOpen, setLuckOpen] = useState(false);
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
   const [waitingForPolish, setWaitingForPolish] = useState(false);
   // 타이머 대신 실제 세 구역 연출의 완료 신호를 기다린다.
@@ -313,21 +314,44 @@ export default function HomeScreen() {
               </PressableScale>
             </View>
             <Text style={s.todayStory}>{f.storyBrief || f.summary}</Text>
-            <View style={s.lucky}>
-              <View style={s.luck}>
-                <Text style={s.luckK}>행운의 컬러</Text>
-                <View style={[s.swatch, { backgroundColor: f.luckyColorHex }]} />
-                <Text style={s.luckV} numberOfLines={1}>{f.luckyColor}</Text>
+            <PressableScale
+              onPress={() => setLuckOpen((v) => !v)}
+              disabled={!f.luckyReasons}
+              scaleTo={0.98}
+              style={s.luckyBox}
+              accessibilityLabel={luckOpen ? '행운 근거 접기' : '행운 근거 보기'}
+            >
+              <View style={s.lucky}>
+                <View style={s.luck}>
+                  <Text style={s.luckK}>컬러</Text>
+                  <View style={[s.swatch, { backgroundColor: f.luckyColorHex }]} />
+                  <Text style={s.luckV} numberOfLines={1}>{f.luckyColor}</Text>
+                </View>
+                <View style={s.luck}>
+                  <Text style={s.luckK}>숫자</Text>
+                  <Text style={s.luckV}>{f.luckyNumber}</Text>
+                </View>
+                <View style={s.luck}>
+                  <Text style={s.luckK}>시간</Text>
+                  <Text style={s.luckV} numberOfLines={1}>{f.luckyTime.replace('~', ' - ')}</Text>
+                </View>
+                {f.luckyReasons ? (
+                  <View style={luckOpen ? s.luckChevronOpen : undefined}>
+                    <Icon name="chevronDown" size={14} color={colors.inkMute} />
+                  </View>
+                ) : null}
               </View>
-              <View style={s.luck}>
-                <Text style={s.luckK}>숫자</Text>
-                <Text style={s.luckV}>{f.luckyNumber}</Text>
-              </View>
-              <View style={s.luck}>
-                <Text style={s.luckK}>시간</Text>
-                <Text style={s.luckV} numberOfLines={1}>{f.luckyTime.replace('~', ' - ')}</Text>
-              </View>
-            </View>
+              {luckOpen && f.luckyReasons ? (
+                <View style={s.luckWhy}>
+                  {([['컬러', f.luckyReasons.color], ['숫자', f.luckyReasons.number], ['시간', f.luckyReasons.time]] as const).map(([k, why]) => (
+                    <View key={k} style={s.luckWhyRow}>
+                      <Text style={s.luckWhyK}>{k}</Text>
+                      <Text style={s.luckWhyV}>{why}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </PressableScale>
           </View>
           ))}
           </View>
@@ -446,7 +470,13 @@ const s = StyleSheet.create({
   todayMore: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   todayMoreText: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
   todayStory: { fontSize: 14, lineHeight: 21, color: colors.ink, letterSpacing: -0.5, marginTop: 8 },
-  lucky: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
+  luckyBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
+  lucky: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  luckChevronOpen: { transform: [{ rotate: '180deg' }] },
+  luckWhy: { gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  luckWhyRow: { flexDirection: 'row', gap: 8 },
+  luckWhyK: { width: 28, fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.5 },
+  luckWhyV: { flex: 1, fontSize: 12, lineHeight: 18, color: colors.inkSub, letterSpacing: -0.5 },
   luck: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   luckK: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
   luckV: { fontSize: 13, fontWeight: '500', color: colors.ink, letterSpacing: -0.5, flexShrink: 1 },
