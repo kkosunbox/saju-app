@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, AppState, Pressable, StyleSheet, Text } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ResultMascot from './ResultMascot';
-import { getResultMascot, type MascotScores } from '../utils/resultMascot';
+import { getResultMascot, MASCOT_LABELS, type MascotPose, type MascotScores } from '../utils/resultMascot';
 import MascotPolish from './MascotPolish';
 import MascotShadow from './MascotShadow';
 import { AnimatedCircle } from './ScoreRing';
@@ -17,18 +17,41 @@ const R = RING / 2 - 4;
 const C = 2 * Math.PI * R;
 const HOLD_MS = 900;
 const HINT_H = 36; // 안내 알약 + 위 여백
+/** 화면을 열거나 앱으로 돌아왔을 때 이 확률로 졸고 있다 */
+const DOZE_CHANCE = 0.15;
 
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
  * sealed 이면 꾹 누르는 동안 둘레 링이 차오르며 젤리처럼 눌리고, 다 차면 부드럽게 펴지며 onDrawn.
  * busy 이면(풀이를 기다리는 중) 천으로 닦고 광을 낸다.
  * 풀이 완료 뒤엔 누를 때마다 마스코트가 튕기고 운세 공개 때의 반짝임을 다시 재생한다.
+ * 화면을 열었을 때 가끔 꾸벅꾸벅 졸고 있고, 누르면 깨어나 오늘의 포즈로 돌아온다. 보는 도중엔 잠들지 않는다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
-export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, dayStem, scores }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; dayStem?: number; scores?: MascotScores }) {
+export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, pose, scores }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; pose?: MascotPose | null; scores?: MascotScores }) {
   const reduced = useReducedMotion();
   const playful = !sealed && !busy;
   const play = useMascotPlay(playful, reduced);
+  // 이미 뽑은 날 화면이 열릴 때만 굴린다 — 방금 뽑은 직후엔 졸지 않는다
+  const [dozing, setDozing] = useState(() => playful && Math.random() < DOZE_CHANCE);
+  useEffect(() => { if (!playful) setDozing(false); }, [playful]);
+  const playfulRef = useRef(playful);
+  playfulRef.current = playful;
+  useEffect(() => {
+    let last = AppState.currentState;
+    const sub = AppState.addEventListener('change', next => {
+      if (last !== 'active' && next === 'active' && playfulRef.current && Math.random() < DOZE_CHANCE) setDozing(true);
+      last = next;
+    });
+    return () => sub.remove();
+  }, []);
+  // 광택을 지금 보이는 그림의 몸통에 맞춘다
+  const shownPose = pose !== undefined ? pose : getResultMascot(scores).pose;
+  const variant = !playful ? 'original' : dozing ? 'sleepy' : shownPose ?? 'original';
+  const poke = () => {
+    setDozing(false);
+    play.play();
+  };
   const [y] = useState(() => new Animated.Value(0));
   const [p] = useState(() => new Animated.Value(0)); // 누른 정도 0..1
   const [holding, setHolding] = useState(false);
@@ -100,8 +123,8 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
   const body = (
     <Animated.View style={{ transform: [{ scaleX }, { scaleY }] }}>
       <Animated.View style={play.style}>
-        <MascotPolish busy={busy} reduced={reduced} size={SIZE} sparkleTrigger={play.sparkleTrigger} onCycleComplete={onPolishComplete}>
-          <ResultMascot dayStem={dayStem} scores={scores} size={SIZE} accessible={false} revealed={playful} animateReveal={!reduced} />
+        <MascotPolish busy={busy} reduced={reduced} size={SIZE} variant={variant} sparkleTrigger={play.sparkleTrigger} onCycleComplete={onPolishComplete}>
+          <ResultMascot pose={pose} scores={scores} dozing={dozing} size={SIZE} accessible={false} revealed={playful} animateReveal={!reduced} />
         </MascotPolish>
       </Animated.View>
     </Animated.View>
@@ -116,12 +139,12 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
       <Pressable
         onPressIn={pressIn}
         onPressOut={pressOut}
-        onPress={playful ? play.play : sealed && reduced ? burst : undefined}
+        onPress={playful ? poke : sealed && reduced ? burst : undefined}
         disabled={busy}
         // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
         accessibilityRole="button"
         accessibilityState={{ disabled: busy }}
-        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : getResultMascot(dayStem, scores).label}
+        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : pose ? MASCOT_LABELS[pose] : getResultMascot(scores).label}
         accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
         accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
         onAccessibilityAction={sealed ? burst : undefined}

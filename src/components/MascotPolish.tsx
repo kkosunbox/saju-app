@@ -7,6 +7,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { MASCOT_GLOSS } from '../utils/mascotLayout';
+import type { MascotPose } from '../utils/resultMascot';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const CLOTHS = [
@@ -84,8 +86,8 @@ function revealGlint(progress: number, delay: number) {
 }
 
 /** 기존 이미지와 버튼을 유지하고, 천과 반사광만 별도 레이어로 합성한다. */
-export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, onCycleComplete, children }: PropsWithChildren<{
-  busy: boolean; reduced: boolean; size: number; sparkleTrigger?: number; onCycleComplete?(): void;
+export default function MascotPolish({ busy, reduced, size, variant = 'original', sparkleTrigger = 0, onCycleComplete, children }: PropsWithChildren<{
+  busy: boolean; reduced: boolean; size: number; variant?: MascotPose | 'original'; sparkleTrigger?: number; onCycleComplete?(): void;
 }>) {
   const id = useId().replace(/:/g, '');
   const wasBusy = useRef(false);
@@ -188,6 +190,8 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
     };
   });
 
+  const gloss = MASCOT_GLOSS[variant];
+
   return (
     <View>
       <Animated.View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[s.aura, { left: -size * 0.18, top: -size * 0.18, width: size * 1.45, height: size * 1.45 }, auraStyle]}>
@@ -231,9 +235,9 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, glossStyle]}>
             <Svg width={size * 1305 / 1205} height={size} viewBox="0 0 108 100">
-              <Path d="M67 12C72 13 72 20 70 27" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" />
-              <Path d="M23 65C20 74 26 80 34 83" fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
-              <Circle cx="66" cy="33" r="1.4" fill="#FFFFFF" />
+              <Path d={gloss.top} fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" />
+              <Path d={gloss.rim} fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+              <Circle cx={gloss.dot[0]} cy={gloss.dot[1]} r="1.4" fill="#FFFFFF" />
             </Svg>
           </Animated.View>
         </View>

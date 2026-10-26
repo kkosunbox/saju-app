@@ -2,17 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import ResultMascot from './ResultMascot';
 import MascotShadow from './MascotShadow';
-import type { MascotScores } from '../utils/resultMascot';
+import type { MascotPose } from '../utils/resultMascot';
 import { useReducedMotion } from '../utils/motion';
 
-/** 무지개 젤리 → 오행 젤리 5종. 소품도 하나씩 들려 홈에서 만나는 모습을 미리 보여준다 */
-const CAST: { key: string; dayStem?: number; scores?: MascotScores }[] = [
-  { key: 'rainbow' },
-  { key: 'wood', dayStem: 0, scores: { totalScore: 86, love: 92, money: 60, work: 60, relationship: 60 } },
-  { key: 'fire', dayStem: 2, scores: { totalScore: 82, love: 60, money: 90, work: 60, relationship: 60 } },
-  { key: 'earth', dayStem: 4, scores: { totalScore: 74, love: 60, money: 60, work: 88, relationship: 60 } },
-  { key: 'metal', dayStem: 6, scores: { totalScore: 84, love: 60, money: 60, work: 60, relationship: 90 } },
-  { key: 'water', dayStem: 8, scores: { totalScore: 72, love: 64, money: 66, work: 62, relationship: 64 } },
+/** 기본 무지개 젤리 → 오늘의 포즈들. 홈에서 만나는 모습을 미리 보여준다 */
+const CAST: { key: string; pose: MascotPose | null }[] = [
+  { key: 'rainbow', pose: null },
+  { key: 'crown', pose: 'crown' },
+  { key: 'hearts', pose: 'hearts' },
+  { key: 'clover', pose: 'clover' },
+  { key: 'checklist', pose: 'checklist' },
+  { key: 'breeze', pose: 'breeze' },
 ];
 const HOLD = 2000;
 const PUSH = 720;
@@ -21,7 +21,7 @@ const PUSH_EASING = Easing.bezier(0.65, 0, 0.35, 1);
 /**
  * 웹 랜딩 첫 화면의 마스코트 — 다음 젤리가 오른쪽에서 들어오며 지금 젤리를 왼쪽으로 밀어내고,
  * 가운데에 닿으면 젤리처럼 말랑하게 눌렸다 펴진다. 둘은 같은 곡선으로 함께 움직여 맞닿은 채 밀린다.
- * 다섯 젤리를 모두 띄워 두고 위치만 바꿔서, 바뀔 때 기본 젤리가 깜빡이지 않는다.
+ * 젤리를 모두 띄워 두고 위치만 바꿔서, 바뀔 때 기본 젤리가 깜빡이지 않는다.
  * 동작 줄이기 설정에서는 밀지 않고 바로 바꾼다.
  */
 export default function MascotCarousel({ size }: { size: number }) {
@@ -74,7 +74,7 @@ export default function MascotCarousel({ size }: { size: number }) {
               { scaleY: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [1.06, 1, 0.9] }) },
             ],
           }]}>
-            <ResultMascot dayStem={c.dayStem} scores={c.scores} size={size} accessible={false} />
+            <ResultMascot pose={c.pose} size={size} accessible={false} />
           </Animated.View>
         </Animated.View>
       ))}

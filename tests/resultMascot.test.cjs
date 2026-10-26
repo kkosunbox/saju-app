@@ -8,33 +8,28 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const moduleExports = {};
 new Function('exports', compiled)(moduleExports);
 const { getResultMascot } = moduleExports;
-const scores = { totalScore: 78, love: 70, money: 70, work: 70, relationship: 70 };
+const scores = { totalScore: 75, love: 70, money: 70, work: 70, relationship: 70 };
+const pose = s => getResultMascot(s).pose;
 
-test('the fortune date’s ten day stems map to the five elemental mascots', () => {
-  const expected = ['wood', 'wood', 'fire', 'fire', 'earth', 'earth', 'metal', 'metal', 'water', 'water'];
-  expected.forEach((element, stem) => assert.equal(getResultMascot(stem).element, element));
+test('unrevealed and malformed scores keep the original mascot', () => {
+  assert.deepEqual(getResultMascot(), { pose: null, label: '무지개 젤리' });
+  [NaN, Infinity, -1, 101].forEach(totalScore => assert.equal(pose({ ...scores, totalScore }), null));
 });
-test('missing or invalid fortune day stems retain the original mascot', () => {
-  [undefined, -1, 10, 1.5, NaN].forEach(stem => assert.equal(getResultMascot(stem).element, null));
+test('the total chooses crown, question and rain at their exact thresholds', () => {
+  assert.equal(pose({ ...scores, totalScore: 85 }), 'crown');
+  assert.equal(pose({ ...scores, totalScore: 84 }), 'breeze');
+  assert.equal(pose({ ...scores, totalScore: 66 }), 'breeze');
+  assert.equal(pose({ ...scores, totalScore: 65, love: 100 }), 'question');
+  assert.equal(pose({ ...scores, totalScore: 60 }), 'question');
+  assert.equal(pose({ ...scores, totalScore: 59, love: 100 }), 'rain');
 });
-test('unrevealed and malformed scores never imply a daily theme', () => {
-  assert.equal(getResultMascot(0).accessory, null);
-  [NaN, Infinity, -1, 101].forEach(totalScore => assert.equal(getResultMascot(0, { ...scores, totalScore }).accessory, null));
-});
-test('rest takes precedence below 60 without changing the date’s element', () => {
-  assert.deepEqual(getResultMascot(4, { ...scores, totalScore: 59, love: 100 }), {
-    element: 'earth', mood: 'gentle', accessory: 'cloud', label: '포근 젤리, 구름에 기대어 쉬어가요',
-  });
-  assert.equal(getResultMascot(4, { ...scores, totalScore: 60 }).accessory, 'star');
-});
-test('the strongest category chooses the prop, including exact threshold', () => {
-  for (const [key, accessory] of [['love', 'heart'], ['money', 'coin'], ['work', 'pencil'], ['relationship', 'ribbon']]) {
-    assert.equal(getResultMascot(2, { ...scores, [key]: 75 }).accessory, accessory);
+test('a standout category chooses its pose, including exact threshold', () => {
+  for (const [key, expected] of [['love', 'hearts'], ['money', 'clover'], ['work', 'checklist'], ['relationship', 'hearts']]) {
+    assert.equal(pose({ ...scores, [key]: 80 }), expected);
   }
-  assert.equal(getResultMascot(2, { ...scores, love: 74 }).accessory, 'star');
+  assert.equal(pose({ ...scores, love: 79 }), 'breeze');
 });
-test('ties are stable and a bright expression starts at 80', () => {
-  assert.equal(getResultMascot(8, { ...scores, love: 90, money: 90 }).accessory, 'heart');
-  assert.equal(getResultMascot(8, { ...scores, totalScore: 79 }).mood, 'calm');
-  assert.equal(getResultMascot(8, { ...scores, totalScore: 80 }).mood, 'bright');
+test('ties are stable and sleepy is never chosen by score', () => {
+  assert.equal(pose({ ...scores, money: 90, work: 90 }), 'clover');
+  for (let total = 0; total <= 100; total++) assert.notEqual(pose({ ...scores, totalScore: total, love: total }), 'sleepy');
 });

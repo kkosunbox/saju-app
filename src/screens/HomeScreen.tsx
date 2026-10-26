@@ -51,8 +51,9 @@ import ScoreDelta, { ScoreDeltaText, scoreDeltaLabel } from '../components/Score
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const MASCOT_PREVIEWS = [
-  { stem: 0, label: '목' }, { stem: 2, label: '화' }, { stem: 4, label: '토' },
-  { stem: 6, label: '금' }, { stem: 8, label: '수' },
+  { pose: 'crown', label: '왕관' }, { pose: 'hearts', label: '하트' }, { pose: 'clover', label: '클로버' },
+  { pose: 'checklist', label: '체크' }, { pose: 'breeze', label: '바람' }, { pose: 'question', label: '물음표' },
+  { pose: 'rain', label: '비' }, { pose: 'sleepy', label: '졸음' },
 ] as const;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
@@ -102,7 +103,6 @@ export default function HomeScreen() {
   const [waitingForPolish, setWaitingForPolish] = useState(false);
   const [mascotPreview, setMascotPreview] = useState<{ date: string; index: number } | null>(null);
   const mascotOverride = DEV_TOOLS && mascotPreview?.date === today ? MASCOT_PREVIEWS[mascotPreview.index] : null;
-  const mascotDayStem = mascotOverride?.stem ?? fortune?.dayPillar?.stem;
   // 타이머 대신 실제 세 구역 연출의 완료 신호를 기다린다.
   const completePolish = useCallback(() => setWaitingForPolish(false), []);
   const sealed = draw.ready && !draw.opened;
@@ -129,11 +129,9 @@ export default function HomeScreen() {
   // 날짜·점수는 건드리지 않고 홈 마스코트 종류만 임시로 순환한다. 날짜가 바뀌면 자동 해제.
   const cycleMascot = () => {
     if (!DEV_TOOLS || hidden || !fortune) return;
-    const dayStem = fortune.dayPillar?.stem;
-    const dailyIndex = dayStem !== undefined && Number.isInteger(dayStem) && dayStem >= 0 && dayStem < 10 ? Math.floor(dayStem / 2) : -1;
     setMascotPreview(current => ({
       date: today,
-      index: ((current?.date === today ? current.index : dailyIndex) + 1) % MASCOT_PREVIEWS.length,
+      index: ((current?.date === today ? current.index : -1) + 1) % MASCOT_PREVIEWS.length,
     }));
   };
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
@@ -174,7 +172,7 @@ export default function HomeScreen() {
             <PressableScale onPress={resetDraw} hitSlop={4} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">
               <Text style={s.devResetText}>뽑기 초기화</Text>
             </PressableScale>
-            <PressableScale onPress={cycleMascot} onLongPress={() => setMascotPreview(null)} disabled={hidden} hitSlop={4} scaleTo={0.9} style={[s.devReset, hidden && { opacity: 0.35 }]} accessibilityLabel={`다음 마스코트로 변경 (테스트용)${mascotOverride ? ` · 현재 ${mascotOverride.label}` : ''}`} accessibilityHint="목·화·토·금·수 순서로 바뀌어요. 길게 누르면 오늘의 마스코트로 돌아가요">
+            <PressableScale onPress={cycleMascot} onLongPress={() => setMascotPreview(null)} disabled={hidden} hitSlop={4} scaleTo={0.9} style={[s.devReset, hidden && { opacity: 0.35 }]} accessibilityLabel={`다음 마스코트로 변경 (테스트용)${mascotOverride ? ` · 현재 ${mascotOverride.label}` : ''}`} accessibilityHint="왕관·하트·클로버·체크·바람·물음표·비·졸음 순서로 바뀌어요. 길게 누르면 오늘의 마스코트로 돌아가요">
               <Text style={s.devResetText}>{mascotOverride ? `${mascotOverride.label} ↻` : '↻'}</Text>
             </PressableScale>
           </View>
@@ -320,7 +318,7 @@ export default function HomeScreen() {
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} dayStem={mascotDayStem} scores={hidden ? undefined : f} />
+            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} pose={mascotOverride?.pose} scores={hidden ? undefined : f} />
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
                 {tags.map(tag => (
