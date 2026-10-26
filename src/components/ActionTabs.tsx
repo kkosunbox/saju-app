@@ -35,15 +35,8 @@ export default function ActionTabs({ good, avoid, variant = 'default' }: { good:
 
   return (
     <View>
-      <Segmented<'good' | 'avoid'> options={[{ key: 'good', label: '하면 좋은 것' }, { key: 'avoid', label: '피하면 좋은 것' }]} value={tab} onChange={setTab} variant={variant} />
-      {isGood && good.length > 0 ? (
-        <View style={s.hint}>
-          <Icon name="check" size={12} color={variant === 'figma' ? FIGMA_ACCENT : colors.accent} strokeWidth={3} />
-          <Text style={s.hintText}>{allDone ? '오늘 할 일을 모두 체크했어요' : '해낸 일은 눌러서 체크해 보세요'}</Text>
-          <Text style={[s.hintCount, { color: variant === 'figma' ? FIGMA_ACCENT : colors.accent }]}>{good.filter(x => done.includes(x)).length}/{good.length}</Text>
-        </View>
-      ) : null}
-      <View style={[s.list, variant === 'figma' && s.figmaList, isGood && good.length > 0 && s.listAfterHint]}>
+      <Segmented<'good' | 'avoid'> options={[{ key: 'good', label: '하면 좋은 것', sub: good.length > 0 ? `${good.filter(x => done.includes(x)).length}/${good.length}` : undefined }, { key: 'avoid', label: '피하면 좋은 것' }]} value={tab} onChange={setTab} variant={variant} />
+      <View style={[s.list, variant === 'figma' && s.figmaList]}>
         {list.map(item => {
           const text = (
             <Text style={[s.item, variant === 'figma' && s.figmaItem]}>
@@ -117,10 +110,6 @@ function Praise({ text }: { text: string }) {
 const s = StyleSheet.create({
   list: { gap: 12, marginTop: 16, paddingHorizontal: 4 },
   figmaList: { gap: 0 },
-  listAfterHint: { marginTop: 10 },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingHorizontal: 4 },
-  hintText: { ...sansW('500'), flex: 1, fontSize: 12, lineHeight: 18, letterSpacing: -0.4, color: colors.inkSub },
-  hintCount: { ...sansW('700'), fontSize: 12, lineHeight: 18, letterSpacing: -0.2 },
   figmaRow: { gap: 8 },
   figmaMark: { marginTop: 6 },
   svgMark: { marginTop: 1 },

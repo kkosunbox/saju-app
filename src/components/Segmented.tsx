@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View, Pressable, LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, isDark } from '../theme/colors';
-import { radius } from '../theme/typography';
+import { radius, sansW } from '../theme/typography';
 import { profileType } from '../theme/profileDesign';
 
-interface Props<T extends string> { options: { key: T; label: string; renderIcon?(selected: boolean): React.ReactNode }[]; value: T; onChange(v: T): void; variant?: 'default' | 'figma' }
+interface Props<T extends string> { options: { key: T; label: string; sub?: string; renderIcon?(selected: boolean): React.ReactNode }[]; value: T; onChange(v: T): void; variant?: 'default' | 'figma' }
 
-/** 선택 표시가 미끄러지듯 이동하는 세그먼트 컨트롤 */
+/** 선택 표시가 미끄러지듯 이동하는 세그먼트 컨트롤 — sub는 이름 옆에 작고 연하게 붙는 덧말 (진행도 등) */
 export default function Segmented<T extends string>({ options, value, onChange, variant = 'default' }: Props<T>) {
   const gap = variant === 'figma' ? 4 : 0;
   const [w, setW] = useState(0);
@@ -34,7 +34,7 @@ export default function Segmented<T extends string>({ options, value, onChange, 
           >
             <View style={[s.content, variant === 'figma' && { gap: 4 }]}>
               {o.renderIcon?.(on)}
-              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? (isDark ? colors.ink : '#252525') : '#808080')]}>{o.label}</Text>
+              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? (isDark ? colors.ink : '#252525') : '#808080')]}>{o.label}{o.sub ? <Text style={s.sub}> {o.sub}</Text> : null}</Text>
             </View>
           </Pressable>
         );
@@ -50,4 +50,5 @@ const s = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '500', color: '#808080', letterSpacing: -0.4 },
   content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   labelOn: { color: colors.ink, fontWeight: '700' },
+  sub: { ...sansW('500'), fontSize: 11, color: colors.inkMute, letterSpacing: 0 },
 });
