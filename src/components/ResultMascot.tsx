@@ -1,13 +1,13 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { ClipPath, Defs, Ellipse, G, Image as SvgImage, Path } from 'react-native-svg';
+import Svg, { ClipPath, Defs, Ellipse, Image as SvgImage } from 'react-native-svg';
 import { ART } from './Mascot';
 import MascotAccessory from './MascotAccessory';
 import { getMascotFrame } from '../utils/mascotLayout';
 import { motion } from '../utils/motion';
 import type { Element } from '../types/content';
-import { getResultMascot, type MascotMood, type MascotScores } from '../utils/resultMascot';
+import { getResultMascot, type MascotScores } from '../utils/resultMascot';
 
 const BODIES: Record<Element, number> = {
   wood: require('../../assets/images/mascots/wood.webp'),
@@ -30,16 +30,6 @@ function OriginalEyes() {
       </Defs>
       <SvgImage href={ART.mascot} width={360} height={332} clipPath={`url(#${clipId})`} />
     </>
-  );
-}
-
-function Face({ mood }: { mood: MascotMood }) {
-  return (
-    <G>
-      <Ellipse cx={33} cy={61} rx={4} ry={2.1} fill="#F39B9D" opacity={0.4} />
-      <Ellipse cx={67} cy={58} rx={4} ry={2.1} fill="#F39B9D" opacity={0.4} />
-      <Path d={mood === 'bright' ? 'M47 64 Q52 72 57 63 Q52 65 47 64Z' : 'M48 65 Q52 68 56 64'} fill={mood === 'bright' ? '#985C68' : 'none'} stroke="#985C68" strokeWidth={1.2} strokeLinecap="round" />
-    </G>
   );
 }
 
@@ -76,9 +66,15 @@ export default function ResultMascot({ dayStem, scores, size, accessible = true,
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: ready ? reveal : 0 }]}>
         <View style={[s.artwork, resultFrame]}>
           <Image source={state.element ? BODIES[state.element] : ART.mascot} style={StyleSheet.absoluteFill} contentFit="contain" loading="eager" onDisplay={() => setDisplayedVariant(variant)} />
-          {state.element ? <Svg width="100%" height="100%" viewBox="0 0 100 100" style={StyleSheet.absoluteFill}><Face mood={state.mood} /></Svg> : null}
         </View>
-        {state.element ? <Svg width={originalFrame.width} height={originalFrame.height} viewBox="0 0 360 332" style={[s.artwork, originalFrame]}><OriginalEyes /></Svg> : null}
+        {state.element ? (
+          <Svg width={originalFrame.width} height={originalFrame.height} viewBox="0 0 360 332" style={[s.artwork, originalFrame]}>
+            <OriginalEyes />
+            {/* 눈과 같은 좌표계를 써서 모든 몸통에서 볼이 눈 바깥 아래에 놓이게 한다. */}
+            <Ellipse cx={110} cy={217} rx={12} ry={6} fill="#F39B9D" opacity={0.4} />
+            <Ellipse cx={239} cy={198} rx={12} ry={6} fill="#F39B9D" opacity={0.4} />
+          </Svg>
+        ) : null}
         {state.accessory ? <Svg width="100%" height="100%" viewBox="0 0 108 100" style={StyleSheet.absoluteFill}><MascotAccessory kind={state.accessory} /></Svg> : null}
       </Animated.View>
     </View>

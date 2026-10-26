@@ -209,6 +209,11 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
             <Svg width={size * 1305 / 1205} height={size} viewBox="0 0 108 100">
               <Defs>
                 <ClipPath id={`${id}clip`}><Path d={SILHOUETTE} /></ClipPath>
+                {/* 오른쪽 아래 소품 영역에는 몸통 반사광이 겹치지 않게 한다. */}
+                <ClipPath id={`${id}propSafe`}>
+                  <Rect width={108} height={64} />
+                  <Rect y={64} width={50} height={36} />
+                </ClipPath>
                 <LinearGradient id={`${id}shine`} x1="0" y1="0" x2="1" y2="0">
                   <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0" />
                   <Stop offset="0.34" stopColor="#EEFBFF" stopOpacity="0.12" />
@@ -218,14 +223,16 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
                 </LinearGradient>
               </Defs>
               <G clipPath={`url(#${id}clip)`}>
-                <AnimatedRect animatedProps={shineProps} y={-40} width={32} height={180} fill={`url(#${id}shine)`} transform="rotate(24 54 50)" />
+                <G clipPath={`url(#${id}propSafe)`}>
+                  <AnimatedRect animatedProps={shineProps} y={-40} width={32} height={180} fill={`url(#${id}shine)`} transform="rotate(24 54 50)" />
+                </G>
               </G>
             </Svg>
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, glossStyle]}>
             <Svg width={size * 1305 / 1205} height={size} viewBox="0 0 108 100">
               <Path d="M67 12C72 13 72 20 70 27" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" />
-              <Path d="M94 64C97 76 84 86 73 89" fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+              <Path d="M23 65C20 74 26 80 34 83" fill="none" stroke="#FFFFFF" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
               <Circle cx="66" cy="33" r="1.4" fill="#FFFFFF" />
             </Svg>
           </Animated.View>
@@ -239,7 +246,7 @@ export default function MascotPolish({ busy, reduced, size, sparkleTrigger = 0, 
         </Animated.View>
         <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0} size={size * 0.3} left={size * 0.88} top={size * 0.02} />
         <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.07} size={size * 0.19} left={-size * 0.06} top={size * 0.77} />
-        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.13} size={size * 0.12} left={size * 0.72} top={size} />
+        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.13} size={size * 0.12} left={size * 0.12} top={size * 0.28} />
       </View>
     </View>
   );

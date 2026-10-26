@@ -40,11 +40,20 @@ import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
 import { useWebTopBar } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
+import { KEYWORDS } from '../data/keywords';
+import { KeywordTag } from '../types';
 import BottomSheet from '../components/BottomSheet';
 import InvitePicker from '../components/InvitePicker';
+import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
 import { useInviteShare } from '../services/share/useInviteShare';
+import ScoreDelta, { scoreDeltaLabel } from '../components/ScoreDelta';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const MASCOT_PREVIEWS = [
+  { stem: 0, label: '목' }, { stem: 2, label: '화' }, { stem: 4, label: '토' },
+  { stem: 6, label: '금' }, { stem: 8, label: '수' },
+] as const;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '혈액형 한마디까지 엮는 중…', '오늘의 이야기를 쓰는 중…'];
@@ -60,6 +69,14 @@ function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {
 }
 /** 점수 링 색 — 디자인의 분야별 링 그라디언트 시작색 */
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
+/** 마스코트 밑 해시태그 — 관점별 한 줄의 태그 중 여러 관점에 겹친 것부터, 3개(길면 2개)까지 */
+const TAG_MAX_CHARS = 12;
+function mascotTags(lists: KeywordTag[][]): string[] {
+  const count = new Map<KeywordTag, number>();
+  lists.flat().forEach(t => count.set(t, (count.get(t) ?? 0) + 1));
+  const top = [...count.keys()].sort((x, y) => count.get(y)! - count.get(x)!).slice(0, 3).map(t => KEYWORDS[t].label);
+  return top.join('').length > TAG_MAX_CHARS ? top.slice(0, 2) : top;
+}
 
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
@@ -80,6 +97,9 @@ export default function HomeScreen() {
   const [luckOpen, setLuckOpen] = useState(false);
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
   const [waitingForPolish, setWaitingForPolish] = useState(false);
+  const [mascotPreview, setMascotPreview] = useState<{ date: string; index: number } | null>(null);
+  const mascotOverride = DEV_TOOLS && mascotPreview?.date === today ? MASCOT_PREVIEWS[mascotPreview.index] : null;
+  const mascotDayStem = mascotOverride?.stem ?? fortune?.dayPillar?.stem;
   // 타이머 대신 실제 세 구역 연출의 완료 신호를 기다린다.
   const completePolish = useCallback(() => setWaitingForPolish(false), []);
   const sealed = draw.ready && !draw.opened;
@@ -89,6 +109,7 @@ export default function HomeScreen() {
   const [count] = useState(() => new Animated.Value(0));
   // 풀이가 도착하면: 말풍선이 팡 뜨며 점수가 올라간다 (나머지는 later()로 차례로)
   const total = fortune?.combined.totalScore;
+  const yesterday = fortune?.yesterdayScores; // 어제 대비 ▲▼
   useEffect(() => {
     if (!drawn || reading || total === undefined) return;
     pop.setValue(0.8);
@@ -101,6 +122,16 @@ export default function HomeScreen() {
     draw.reset();
     setDrawn(false);
     setWaitingForPolish(false);
+  };
+  // 날짜·점수는 건드리지 않고 홈 마스코트 종류만 임시로 순환한다. 날짜가 바뀌면 자동 해제.
+  const cycleMascot = () => {
+    if (!DEV_TOOLS || hidden || !fortune) return;
+    const dayStem = fortune.dayPillar?.stem;
+    const dailyIndex = dayStem !== undefined && Number.isInteger(dayStem) && dayStem >= 0 && dayStem < 10 ? Math.floor(dayStem / 2) : -1;
+    setMascotPreview(current => ({
+      date: today,
+      index: ((current?.date === today ? current.index : dailyIndex) + 1) % MASCOT_PREVIEWS.length,
+    }));
   };
   // 뽑기 전엔 결과를 타일에 미리 보여주지 않는다
   const opened = {
@@ -134,11 +165,16 @@ export default function HomeScreen() {
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
       <Logo height={33} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, flexShrink: 1, marginLeft: 12 }}>
         {DEV_TOOLS && draw.opened ? (
-          <PressableScale onPress={resetDraw} hitSlop={8} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">
-            <Text style={s.devResetText}>뽑기 초기화</Text>
-          </PressableScale>
+          <View style={s.devControls}>
+            <PressableScale onPress={resetDraw} hitSlop={4} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">
+              <Text style={s.devResetText}>뽑기 초기화</Text>
+            </PressableScale>
+            <PressableScale onPress={cycleMascot} onLongPress={() => setMascotPreview(null)} disabled={hidden} hitSlop={4} scaleTo={0.9} style={[s.devReset, hidden && { opacity: 0.35 }]} accessibilityLabel={`다음 마스코트로 변경 (테스트용)${mascotOverride ? ` · 현재 ${mascotOverride.label}` : ''}`} accessibilityHint="목·화·토·금·수 순서로 바뀌어요. 길게 누르면 오늘의 마스코트로 돌아가요">
+              <Text style={s.devResetText}>{mascotOverride ? `${mascotOverride.label} ↻` : '↻'}</Text>
+            </PressableScale>
+          </View>
         ) : null}
         <PointPill />
         <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
@@ -174,6 +210,7 @@ export default function HomeScreen() {
   }
   const f = fortune.combined;
   const a = fortune.analyses;
+  const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.blood.tags]);
 
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
   type Free = { k: string; art?: ArtName; pillar?: string; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
@@ -264,18 +301,26 @@ export default function HomeScreen() {
           {/* 오늘의 점수 말풍선 + 마스코트 — 뽑기 전엔 '?'와 안내, 저장값을 읽기 전엔 비워 둔다 */}
           <View style={!draw.ready && { opacity: 0 }}>
           <Reveal delay={90}>
-            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={hidden} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : reading ? '오늘의 운세를 풀어보는 중이에요' : `오늘의 종합운 ${f.totalScore}점. ${f.summary} 종합 풀이 보기`}>
+            <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={hidden} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : reading ? '오늘의 운세를 풀어보는 중이에요' : `오늘의 종합운 ${f.totalScore}점.${scoreDeltaLabel(f.totalScore, yesterday?.totalScore)} ${f.summary} 종합 풀이 보기`}>
               <Animated.View style={[s.bubble, shadow.hero, { transform: [{ scale: pop }] }]}>
-                {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
-                  : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
-                  : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
+                {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text> : (
+                  <View style={s.bubbleScoreCol}>
+                    {drawn ? <AnimatedNumber value={count} style={s.bubbleScore} /> : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
+                    <ScoreDelta now={f.totalScore} before={yesterday?.totalScore} />
+                  </View>
+                )}
                 {sealed ? <Text style={s.bubbleText} numberOfLines={3}>{'오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!'}</Text>
                   : reading ? <ReadingSteps style={s.bubbleText} />
                   : <Text style={s.bubbleText} numberOfLines={3}>{f.summary}</Text>}
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
-            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} dayStem={fortune.dayPillar?.stem} scores={hidden ? undefined : f} />
+            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} dayStem={mascotDayStem} scores={hidden ? undefined : f} />
+            {!hidden && later(300, (
+              <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
+                {tags.map(tag => <Text key={tag} style={s.mascotTag}>#{tag}</Text>)}
+              </View>
+            ))}
           </Reveal>
 
           {/* 분야별 점수 */}
@@ -283,7 +328,7 @@ export default function HomeScreen() {
             {CATS.map((c, i) => {
               const t = categoryTheme[c];
               return (
-                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} disabled={hidden} style={s.ringCell} scaleTo={0.94} accessibilityLabel={hidden ? `${t.label}, 아직 안 나옴` : `${t.label} ${f[c]}점`}>
+                <PressableScale key={c} onPress={() => nav.navigate('CategoryDetail', { category: c })} disabled={hidden} style={s.ringCell} scaleTo={0.94} accessibilityLabel={hidden ? `${t.label}, 아직 안 나옴` : `${t.label} ${f[c]}점${scoreDeltaLabel(f[c], yesterday?.[c])}`}>
                   {hidden ? (
                     <View style={s.ringSealed}><Text style={s.ringQ}>?</Text></View>
                   ) : (
@@ -292,6 +337,7 @@ export default function HomeScreen() {
                   <View style={s.ringLabel}>
                     <CategoryGlyph category={c} size={13} />
                     <Text style={s.ringText}>{t.short}</Text>
+                    {hidden ? null : <ScoreDelta now={f[c]} before={yesterday?.[c]} style={s.ringDelta} />}
                   </View>
                 </PressableScale>
               );
@@ -434,6 +480,7 @@ export default function HomeScreen() {
       </ScrollView>
       {invitePrompt}
       {inviteShareSheet}
+      <WelcomeBonusSheet hidden={showInvite} />
     </View>
   );
 }
@@ -441,6 +488,7 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   sky: { position: 'absolute', top: -400, left: 0, right: 0 },
   overscrollTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%' },
+  devControls: { flexDirection: 'row', flexWrap: 'wrap', flexShrink: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   devReset: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
@@ -451,8 +499,11 @@ const s = StyleSheet.create({
 
   bubbleWrap: { marginTop: 20, marginHorizontal: 19 },
   bubble: { flexDirection: 'row', alignItems: 'center', gap: 24, minHeight: 72, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 14, backgroundColor: colors.cream },
+  bubbleScoreCol: { alignItems: 'center', gap: 2 },
   bubbleScore: { fontSize: 32, fontWeight: '600', color: colors.ink, letterSpacing: -1.3, fontVariant: ['tabular-nums'] },
   bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
+  mascotTags: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: -12, marginBottom: 16 },
+  mascotTag: { fontSize: 14, fontWeight: '600', color: colors.inkSub, letterSpacing: -0.5 },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },
 
   ringSealed: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
@@ -463,6 +514,7 @@ const s = StyleSheet.create({
   ringCell: { alignItems: 'center', gap: 4 },
   ringLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ringText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5 },
+  ringDelta: { fontSize: 11, marginLeft: -2 },
 
   today: { marginTop: 24, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   todayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
