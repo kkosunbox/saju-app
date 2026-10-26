@@ -13,18 +13,15 @@ import { BRAND } from '../components/BrandMark';
 import { SOCIAL_LABEL } from '../components/auth/socialLabels';
 import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
-import BottomSheet from '../components/BottomSheet';
-import OptionChip from '../components/OptionChip';
 import Segmented from '../components/Segmented';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
-import { inputOf } from '../services/server/profileApi';
 import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
 import { fmtN } from '../services/premium/catalog';
 import { storage, NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
-import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
+import { MBTI_INFO } from '../data/mbtiData';
 import { placeLabel } from '../services/server/birthPlaceApi';
 import { colors } from '../theme/colors';
 import { shadow, txt } from '../theme/typography';
@@ -49,23 +46,20 @@ function ProfileHeading({ title, action, onAction }: { title: string; action?: s
   </View>;
 }
 
-function ProfileRow({ icon, label, value, last, onPress }: { icon: ProfileAssetName; label: string; value: string; last?: boolean; onPress?(): void }) {
-  const content = <View style={s.profileRow}>
-    <FigmaAsset name={icon} /><Text style={s.profileLabel}>{label}</Text>
-    <Text style={s.profileValue}>{value}</Text>
-    {onPress && <FigmaAsset name="smallChevron" />}
-  </View>;
+function ProfileRow({ icon, label, value, last }: { icon: ProfileAssetName; label: string; value: string; last?: boolean }) {
   return <>
-    {onPress ? <PressableScale onPress={onPress} scaleTo={0.99} accessibilityLabel={`${label} 바꾸기`}>{content}</PressableScale> : content}
+    <View style={s.profileRow}>
+      <FigmaAsset name={icon} /><Text style={s.profileLabel}>{label}</Text>
+      <Text style={s.profileValue}>{value}</Text>
+    </View>
     {!last && <View style={s.profileDivider} />}
   </>;
 }
 
 export default function MyPageScreen() {
-  const { user, fortune, account, signOut, deleteAccount, saveUser } = useApp();
+  const { user, fortune, account, signOut, deleteAccount } = useApp();
   const { points, ownedCount, toast } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
-  const [mbtiSheet, setMbtiSheet] = useState(false);
   const [theme, setTheme] = useState<ThemePref>(readThemePrefSync());
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
@@ -107,7 +101,7 @@ export default function MyPageScreen() {
 
       <ProfileHeading title="내 프로필" action="프로필 수정" onAction={() => router.push('/profile-edit')} />
       <View style={s.profileGroup}>
-        <ProfileRow icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''}`} onPress={() => setMbtiSheet(true)} />
+        <ProfileRow icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''}`} />
         <ProfileRow icon="blood" label="혈액형" value={`${user.bloodType}형`} />
         <ProfileRow icon="calendar" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
         <ProfileRow icon="time" label="출생시간" value={user.birthTime ?? '모름'} />
@@ -219,16 +213,6 @@ export default function MyPageScreen() {
 
       <Disclaimer />
       <BusinessFooter style={{ marginTop: 28 }} />
-      <BottomSheet visible={mbtiSheet} onClose={() => setMbtiSheet(false)}>
-        <Text style={txt.h2}>MBTI를 골라 주세요</Text>
-        <Text style={[txt.small, { marginTop: 4 }]}>{user.mbtiUnknown ? '지금은 사주로 추정한 값이에요. 내 MBTI를 고르면 운세가 더 정확해져요.' : '바꾸면 내일 운세부터 반영돼요. 이미 뽑은 결과는 그대로예요.'}</Text>
-        <View style={s.mbtiGrid}>
-          {MBTI_LIST.map(t => (
-            <OptionChip key={t} style={{ width: '23%' }} label={t} sub={MBTI_INFO[t].nickname} selected={!user.mbtiUnknown && user.mbti === t}
-              onPress={async () => { setMbtiSheet(false); await saveUser({ ...inputOf(user), mbti: t }); toast(`MBTI를 ${t}로 바꿨어요`); }} />
-          ))}
-        </View>
-      </BottomSheet>
     </Screen>
   );
 }
@@ -263,7 +247,6 @@ const s = StyleSheet.create({
   rowIcon: { width: 16, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, color: colors.ink, fontWeight: '500' },
   rowValue: { fontSize: 15, color: colors.inkSub, fontWeight: '600' },
-  mbtiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   notificationCard: { padding: 7, borderColor: profileLine },
   notificationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 8, paddingTop: 4, minHeight: 55 },
   notificationIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
