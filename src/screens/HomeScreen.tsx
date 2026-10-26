@@ -71,6 +71,9 @@ function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
 /** 마스코트 밑 해시태그 — 관점별 한 줄의 태그 중 여러 관점에 겹친 것부터, 3개(길면 2개)까지 */
 const TAG_MAX_CHARS = 12;
+/** 유리 칩 위쪽에 맺히는 빛 — 아래로 갈수록 사라진다 */
+const GLASS_SHINE = isDark ? (['rgba(255,255,255,0.14)', 'rgba(255,255,255,0)'] as const) : (['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.15)'] as const);
+
 function mascotTags(lists: KeywordTag[][]): string[] {
   const count = new Map<KeywordTag, number>();
   lists.flat().forEach(t => count.set(t, (count.get(t) ?? 0) + 1));
@@ -320,7 +323,12 @@ export default function HomeScreen() {
             <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} dayStem={mascotDayStem} scores={hidden ? undefined : f} />
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
-                {tags.map(tag => <Text key={tag} style={s.mascotTag}>#{tag}</Text>)}
+                {tags.map(tag => (
+                  <View key={tag} style={s.glassChip}>
+                    <LinearGradient colors={GLASS_SHINE} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                    <Text style={s.mascotTag}><Text style={s.mascotTagHash}>#</Text>{tag}</Text>
+                  </View>
+                ))}
               </View>
             ))}
           </Reveal>
@@ -506,8 +514,16 @@ const s = StyleSheet.create({
   bubbleBody: { flex: 1, gap: 4 },
   bubbleScore: { fontSize: 32, fontWeight: '600', color: colors.ink, letterSpacing: -1.3, fontVariant: ['tabular-nums'] },
   bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
-  mascotTags: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: -12, marginBottom: 16 },
-  mascotTag: { fontSize: 14, fontWeight: '600', color: colors.inkSub, letterSpacing: -0.5 },
+  mascotTags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: -12, marginBottom: 16, paddingHorizontal: SCREEN_PX },
+  // 리퀴드 글래스 칩: 비치는 바탕 + 위쪽 빛 반사 + 얇은 빛 테두리
+  glassChip: {
+    overflow: 'hidden', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)',
+    borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.95)',
+    shadowColor: isDark ? '#000000' : '#1E8FD6', shadowOpacity: isDark ? 0.3 : 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
+  },
+  mascotTag: { fontSize: 13, fontWeight: '600', color: colors.inkSub, letterSpacing: -0.5 },
+  mascotTagHash: { color: colors.accent, fontWeight: '700' },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },
 
   ringSealed: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
