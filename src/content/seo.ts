@@ -41,6 +41,7 @@ const EXACT: Record<string, PageMeta> = {
   '/spouse': { title: '미래 배우자' },
   '/wallet': { title: '내 알' },
   '/charge': { title: '알 충전' },
+  '/subscribe': { title: '정기 구독' },
   '/inquiry': { title: '문의하기' },
   '/share': { title: '스토리 카드' },
   '/profile-setup': { title: '내 정보 입력' },

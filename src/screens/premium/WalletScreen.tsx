@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
@@ -8,7 +9,7 @@ import Icon from '../../components/Icon';
 import PressableScale from '../../components/PressableScale';
 import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
-import { PACKS, PRICE_TABLE, fmtN, fmtP } from '../../services/premium/catalog';
+import { PACKS, PRICE_TABLE, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
 import { PointTransaction, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { colors, gradients } from '../../theme/colors';
@@ -107,6 +108,16 @@ export default function WalletScreen() {
         {att ? <View style={s.coinPill}><Text style={s.coinPillText}>완료</Text></View> : <CoinPill label="10 받기" />}
       </Card>
 
+      <SubHead title="정기 구독" />
+      <Card onPress={() => router.push('/subscribe')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 월 ${SUBSCRIPTION.won}원`}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={s.attendTitle}>{SUBSCRIPTION.name}</Text>
+          <Text style={s.attendSub}>{SUBSCRIPTION.benefits[0]}</Text>
+        </View>
+        <Text style={s.won}>월 {SUBSCRIPTION.won.toLocaleString('ko-KR')}원</Text>
+        <Icon name="chevronRight" size={16} color={colors.inkMute} strokeWidth={2} />
+      </Card>
+
       <SubHead title="알 충전하기" />
       <View style={{ gap: 12 }}>
         {PACKS.map(([w, p, b], i) => {
@@ -165,6 +176,7 @@ const s = StyleSheet.create({
   attendIcon: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   attendTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: colors.ink },
   attendSub: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  sub: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, minHeight: 64 },
   coinPill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 22, paddingHorizontal: 8, borderRadius: radius.pill, backgroundColor: colors.heroBg },
   coinPillText: { ...sansW('700'), fontSize: 12, color: colors.white },
   coinBox: { width: 24, height: 24, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },

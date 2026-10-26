@@ -72,6 +72,15 @@ export const PRICE_TABLE: [string, string][] = [
 export const PACKS: [number, number, number][] = [[1000, 100, 0], [3000, 300, 0], [5000, 500, 50], [10000, 1000, 150], [30000, 3000, 600]];
 export const packProductId = (won: number) => `points_${won}`;
 
+/**
+ * 정기 구독 — 서버 상품 premium_monthly 와 같은 ID. 서버는 가격이 비어 있어 아직 판매하지 않는다 (docs/payment-design.md 4.6).
+ * 화면에는 상품으로 보여 주고, 구독하기는 준비 중 안내로 끝난다.
+ */
+export const SUBSCRIPTION = {
+  productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',
+  benefits: ['매달 1,200알 적립 (9,900원 충전보다 20% 더)', '월별 상세운세 매달 무료', '출석 체크 알 2배'],
+};
+
 /** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */
 export const fmtP = (n: number) => n.toLocaleString('ko-KR') + '알';
 export const fmtN = (n: number) => n.toLocaleString('ko-KR');
