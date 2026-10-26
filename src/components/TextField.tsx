@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, TextInputProps, View, StyleProp, ViewStyle } from 'react-native';
-import { colors } from '../theme/colors';
+import { colors, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
 import { profileLine, profileType } from '../theme/profileDesign';
 
@@ -13,10 +13,10 @@ export default function TextField({ suffix, containerStyle, invalid, compact, va
     <View style={[s.box, compact && s.compactBox, variant === 'profile' && s.profileBox, focused && s.focus, invalid && s.invalid, containerStyle]}>
       <TextInput
         {...rest}
-        placeholderTextColor={colors.inkMute}
+        placeholderTextColor={variant === 'profile' && !isDark ? '#999999' : colors.inkMute}
         onFocus={e => { setFocused(true); onFocus?.(e); }}
         onBlur={e => { setFocused(false); onBlur?.(e); }}
-        style={[s.input, compact && s.compactInput, variant === 'profile' && s.profileInput, Platform.OS === 'web' && webInput, rest.multiline && { height: 96, paddingTop: 14, textAlignVertical: 'top' }, style]}
+        style={[s.input, compact && s.compactInput, variant === 'profile' && s.profileInput, variant === 'profile' && !!rest.value && s.profileFilled, Platform.OS === 'web' && webInput, rest.multiline && { height: 96, paddingTop: 14, textAlignVertical: 'top' }, style]}
       />
       {suffix ? <Text style={s.suffix}>{suffix}</Text> : null}
     </View>
@@ -29,6 +29,8 @@ const webInput = { outlineStyle: 'none', minWidth: 0, width: '100%' } as object;
 const s = StyleSheet.create({
   profileBox: { borderRadius: 6, borderColor: profileLine, paddingRight: 0 },
   profileInput: { ...profileType(13, '500', 18.2), minHeight: 38, height: 38, paddingHorizontal: 12, paddingVertical: 0 },
+  // 채운 값은 굵게 (Figma 운픽_12)
+  profileFilled: profileType(13, '700', 18.2),
   box: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cream, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.lineStrong, paddingRight: 14 },
   compactBox: { borderRadius: 6, borderColor: colors.surface, backgroundColor: colors.surface, paddingRight: 12 },
   compactInput: { minHeight: 36, paddingHorizontal: 12, fontSize: 13, letterSpacing: -0.3 },

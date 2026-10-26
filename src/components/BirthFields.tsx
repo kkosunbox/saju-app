@@ -6,7 +6,7 @@ import TextField from './TextField';
 import { CheckRow } from './auth/AuthKit';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
-import { profileType } from '../theme/profileDesign';
+import { profileInk, profileLine, profileType } from '../theme/profileDesign';
 import { formatKoreanDate, isValidDate } from '../utils/date';
 
 /** 생년월일·태어난 시간 입력 — 프로필과 궁합 상대 입력이 함께 쓴다 */
@@ -67,9 +67,9 @@ export function BirthDateField({ label, digits, onChange, calendar, onCalendar, 
         <View style={[{ flex: 1 }, variant === 'profile' && { marginTop: 4 }]}>{label}</View>
         <View style={[s.seg, (compact || variant === 'profile') && s.segCompact]} accessibilityRole="radiogroup">
           {(['solar', 'lunar'] as const).map(c => (
-            <PressableScale key={c} onPress={() => { onCalendar(c); if (c === 'solar') onLeap(false); }} scaleTo={0.96} style={[s.segItem, (compact || variant === 'profile') && s.segItemCompact, variant === 'profile' && { height: 21 }, calendar === c && s.segOn]}
+            <PressableScale key={c} onPress={() => { onCalendar(c); if (c === 'solar') onLeap(false); }} scaleTo={0.96} style={[s.segItem, (compact || variant === 'profile') && s.segItemCompact, variant === 'profile' && { height: 21 }, calendar === c && s.segOn, calendar === c && variant === 'profile' && { borderColor: profileLine }]}
               accessibilityRole="radio" accessibilityState={{ selected: calendar === c }}>
-              <Text style={[s.segText, (compact || variant === 'profile') && s.segTextCompact, variant === 'profile' && profileType(11, '400', 13, -0.55, '#999999'), calendar === c && { color: colors.ink }]}>{c === 'solar' ? '양력' : '음력'}</Text>
+              <Text style={[s.segText, (compact || variant === 'profile') && s.segTextCompact, variant === 'profile' && profileType(11, '400', 13, -0.55, '#999999'), calendar === c && { color: variant === 'profile' ? profileInk : colors.ink }]}>{c === 'solar' ? '양력' : '음력'}</Text>
             </PressableScale>
           ))}
         </View>

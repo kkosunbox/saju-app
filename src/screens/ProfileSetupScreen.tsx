@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import MbtiQuiz from '../components/MbtiQuiz';
 import BrandMark from '../components/BrandMark';
 import { useApp } from '../context/AppContext';
@@ -12,8 +13,9 @@ import TextField from '../components/TextField';
 import MoonLoader from '../components/MoonLoader';
 import BirthPlaceSearch from '../components/BirthPlaceSearch';
 import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, fmtTime, sijinLabel, sijinOf, sijinTime } from '../components/BirthFields';
-import { colors } from '../theme/colors';
+import { colors, gradients } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
+import { profileLine, profileType } from '../theme/profileDesign';
 import { BirthPlace, BloodType, Gender, MBTI } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { motion, useReducedMotion } from '../utils/motion';
@@ -29,11 +31,11 @@ import { getPendingInvite } from '../services/share/linkShare';
  */
 const QUESTIONS = [
   { q: () => '어떻게 불러드릴까요?', hint: '운세에서 불러드릴 이름이에요.' },
-  { q: (name: string) => `${name}님, 언제 태어났나요?`, hint: '8자리 숫자를 입력해 주세요.' },
+  { q: (name: string) => `${name}님, 언제 태어났나요?`, hint: '빈칸의 내용을 채워주세요.' },
   { q: () => '몇 시쯤 태어났나요?', hint: '2시간 단위로 골라요. 몰라도 괜찮아요.' },
   { q: () => '어디서 태어났나요?', hint: '시·군이나 도시 이름으로 찾아요. 해외도 돼요.' },
-  { q: () => '성별을 알려주세요', hint: '' },
-  { q: () => '혈액형은요?', hint: '' },
+  { q: () => '성별을 알려주세요', hint: '빈칸의 내용을 채워주세요.' },
+  { q: () => '혈액형은요?', hint: '빈칸의 내용을 채워주세요.' },
   { q: () => 'MBTI를 골라주세요', hint: '몰라도 괜찮아요. 4문항으로 찾거나, 건너뛰어도 돼요.' },
 ];
 const LAST = QUESTIONS.length - 1;
@@ -65,7 +67,7 @@ function Reveal({ children, reduced, style }: { children: React.ReactNode; reduc
 function Summary({ label, value, onPress }: { label: string; value: string; onPress(): void }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.98} style={s.summary} accessibilityLabel={`${label} ${value}, 바꾸기`}>
-      <Text style={s.summaryLabel}>{label}</Text>
+      <Text style={s.summaryLabel} numberOfLines={1}>{label}</Text>
       <Text style={s.summaryValue} numberOfLines={1}>{value}</Text>
       <Text style={s.change}>변경</Text>
     </PressableScale>
@@ -78,6 +80,7 @@ export default function ProfileSetupScreen() {
   const editing = editingProfile && !!user;
   const savedTime = restoreTime(editing ? user!.birthTime ?? null : undefined);
   const reduced = useReducedMotion();
+  const insets = useSafeAreaInsets();
   // 몇 번째 질문까지 열렸는지 (수정할 때는 처음부터 다 열린다)
   const [stage, setStage] = useState(editing ? LAST : 0);
   // 접힌 질문 중 다시 펼친 것
@@ -192,13 +195,13 @@ export default function ProfileSetupScreen() {
     // 0 이름
     <View key="name">
       {stage >= 1 ? <Text style={s.label}>이름</Text> : null}
-      <TextField value={nickname} onChangeText={setNickname} placeholder="이름 또는 닉네임" maxLength={12} autoFocus={!editing} returnKeyType="next"
+      <TextField variant="profile" value={nickname} onChangeText={setNickname} placeholder="이름을 입력해주세요" maxLength={12} autoFocus={!editing} returnKeyType="next"
         onSubmitEditing={() => stage === 0 && nameOk && next()} />
     </View>,
 
     // 1 생년월일
     <Reveal key="birth" reduced={reduced}>
-      <BirthDateField label={<Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth}
+      <BirthDateField variant="profile" label={<Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth}
         calendar={calendar} onCalendar={setCalendar} leap={leap} onLeap={setLeap} autoFocus={!editing} />
     </Reveal>,
 
@@ -244,8 +247,8 @@ export default function ProfileSetupScreen() {
     <Reveal key="gender" reduced={reduced}>
       <Text style={s.label}>성별</Text>
       <View style={s.row}>
-        <OptionChip style={{ flex: 1 }} label="여성" selected={gender === 'female'} onPress={() => setGender('female')} />
-        <OptionChip style={{ flex: 1 }} label="남성" selected={gender === 'male'} onPress={() => setGender('male')} />
+        <OptionChip variant="profile" style={{ flex: 1 }} label="여성" selected={gender === 'female'} onPress={() => setGender('female')} />
+        <OptionChip variant="profile" style={{ flex: 1 }} label="남성" selected={gender === 'male'} onPress={() => setGender('male')} />
       </View>
     </Reveal>,
 
@@ -254,7 +257,7 @@ export default function ProfileSetupScreen() {
       <Text style={s.label}>혈액형</Text>
       <View style={s.row}>
         {(['A', 'B', 'O', 'AB'] as BloodType[]).map(b => (
-          <OptionChip key={b} style={{ flex: 1 }} label={`${b}형`} selected={blood === b} onPress={() => setBlood(b)} />
+          <OptionChip key={b} variant="profile" style={{ flex: 1 }} label={`${b}형`} selected={blood === b} onPress={() => setBlood(b)} />
         ))}
       </View>
     </Reveal>,
@@ -285,14 +288,14 @@ export default function ProfileSetupScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.top}>
             {Platform.OS === 'web' && !editing ? (
               <PressableScale onPress={returnToLanding} style={s.brand} scaleTo={0.94} accessibilityRole="link" accessibilityLabel="운픽 랜딩페이지로 돌아가기">
                 <BrandMark />
               </PressableScale>
-            ) : <View style={{ width: 44 }} />}
+            ) : <View style={s.brand}><BrandMark /></View>}
             {editing ? (
               <PressableScale onPress={cancelProfileEdit} hitSlop={10} scaleTo={0.94} accessibilityLabel="수정 그만두기"><Text style={s.skip}>닫기</Text></PressableScale>
             ) : account ? (
@@ -303,26 +306,29 @@ export default function ProfileSetupScreen() {
               <PressableScale onPress={() => router.push('/login')} hitSlop={10} scaleTo={0.94} accessibilityLabel="이미 계정이 있어요, 로그인"><Text style={s.skip}>로그인</Text></PressableScale>
             )}
           </View>
-          <View style={s.progress}><Animated.View style={[s.progressBar, { width: barW }]} /></View>
-
-          <ScrollView ref={scroll} contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scroll} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
             {inviter ? (
               <View style={s.invite}>
                 <Text style={s.inviteText}>{inviter}님과의 궁합을 보려면 내 정보를 넣어 주세요. 다 넣으면 바로 결과가 나와요.</Text>
               </View>
             ) : null}
-            <Text style={txt.title}>{title}</Text>
-            {hint ? <Text style={[txt.small, { marginTop: 6 }]}>{hint}</Text> : null}
+            <Text style={s.title} accessibilityRole="header">{title}</Text>
+            {hint ? <Text style={s.hint}>{hint}</Text> : null}
+            <View style={s.progress}>
+              <Animated.View style={[s.progressBar, { width: barW }]}>
+                <LinearGradient colors={gradients.border} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              </Animated.View>
+            </View>
 
             {/* 새 질문이 위에 쌓이도록 열린 것만 거꾸로 */}
-            <View style={{ marginTop: 28, gap: 28 }}>
+            <View style={{ gap: 24 }}>
               {sections.slice(0, stage + 1).reverse()}
             </View>
           </ScrollView>
 
-          <View style={{ paddingHorizontal: 24, paddingBottom: 12 }}>
+          <View style={{ paddingHorizontal: 24, paddingBottom: Math.max(24, insets.bottom) }}>
             {saveError ? <Text style={[s.error, { marginBottom: 10, textAlign: 'center' }]}>{saveError}</Text> : null}
-            <PrimaryButton label={allDone ? (editing ? '저장하기' : inviter ? '궁합 보기' : '내 운세 보러 가기') : '다음'} onPress={next} disabled={!allDone && !curAnswered} />
+            <PrimaryButton size="medium" label={allDone ? (editing ? '저장하기' : inviter ? '궁합 보기' : '내 운세 보러 가기') : '다음'} onPress={next} disabled={!allDone && !curAnswered} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -337,22 +343,24 @@ export default function ProfileSetupScreen() {
 }
 
 const s = StyleSheet.create({
-  top: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
-  brand: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  top: { height: 41, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 },
+  brand: { height: 41, justifyContent: 'center' },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  skip: { fontSize: 14, color: colors.inkMute, fontWeight: '600', paddingHorizontal: 8 },
+  skip: profileType(13, '400', 16, -0.65, colors.inkMute),
+  title: profileType(18, '800', 21, -0.72),
+  hint: { ...profileType(13, '400', 16, -0.65), marginTop: 12 },
   invite: { marginBottom: 20, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.card },
   inviteText: { fontSize: 13, fontWeight: '600', color: colors.ink, lineHeight: 19 },
-  progress: { height: 3, backgroundColor: colors.line, marginHorizontal: 24, borderRadius: 2, overflow: 'hidden' },
-  progressBar: { height: 3, backgroundColor: colors.navy, borderRadius: 2 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.inkSub, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  progress: { height: 6, borderRadius: 30, backgroundColor: profileLine, marginVertical: 24, overflow: 'hidden' },
+  progressBar: { height: 6, borderRadius: 30, overflow: 'hidden' },
+  label: { ...profileType(14, '600', 17, -0.56, colors.ink), marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   mbtiCell: { width: '23%' },
-  summary: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 14, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.lineStrong, gap: 10 },
-  summaryLabel: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
-  summaryValue: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.ink, textAlign: 'right' },
-  change: { fontSize: 13, fontWeight: '600', color: colors.purpleSoft },
+  summary: { flexDirection: 'row', alignItems: 'center', minHeight: 40, paddingHorizontal: 12, borderRadius: 6, borderWidth: 1, borderColor: profileLine, gap: 12 },
+  summaryLabel: { ...profileType(13, '500', 18.2), flexShrink: 0 },
+  summaryValue: { ...profileType(13, '700', 18.2), flex: 1, textAlign: 'right' },
+  change: profileType(13, '700', 18.2, 0, colors.accent),
   error: { color: colors.danger, fontSize: 12, marginTop: 8 },
   mbtiSkip: { marginTop: 10, height: 48, borderRadius: radius.md, borderWidth: 1, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
   skipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
