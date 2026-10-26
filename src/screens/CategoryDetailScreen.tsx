@@ -7,6 +7,7 @@ import Card from '../components/Card';
 import Seal from '../components/Seal';
 import SectionHeader from '../components/SectionHeader';
 import Stars from '../components/Stars';
+import ScoreDelta, { scoreDeltaLabel } from '../components/ScoreDelta';
 import Disclaimer from '../components/Disclaimer';
 import Icon from '../components/Icon';
 import { useApp } from '../context/AppContext';
@@ -31,6 +32,7 @@ export default function CategoryDetailScreen() {
   if (fortuneWriting) return <LoadingScreen title={`오늘의 ${t.label}`} message="오늘의 풀이를 쓰고 있어요" />;
   const f = fortune.combined;
   const score = f[params.category];
+  const yesterday = fortune.yesterdayScores?.[params.category];
   const a = fortune.analyses;
   const contributions = [a.saju, a.thai, a.mbti, a.blood].map(x => ({ key: x.source, v: x.scoreBias[params.category] }));
   const maxAbs = Math.max(8, ...contributions.map(c => Math.abs(c.v)));
@@ -39,9 +41,13 @@ export default function CategoryDetailScreen() {
     <Screen title={t.label} back>
       <AlmanacHero tone={t} kicker={KICKER[params.category]} seal={t.emoji} eyebrow={`오늘의 ${t.label}`} title={f.categoryTexts[params.category]} today={today}>
         <View style={s.scoreRow}>
-          <ScoreRing score={score} size={76} stroke={6} color={t.color} track="rgba(0,0,0,0.06)" textColor={t.color} label="점" />
+          <ScoreRing score={score} accessibilityLabel={`${score}점${scoreDeltaLabel(score, yesterday)}`} size={76} stroke={6} color={t.color} track="rgba(0,0,0,0.06)" textColor={t.color} label="점" />
           <View style={{ flex: 1, gap: 6 }}>
-            <Stars score={score} color={t.color} size={13} />
+            <View style={s.starsRow}>
+              <Stars score={score} color={t.color} size={13} />
+              {/* 어제 대비: 링이 다 차오른 뒤 톡 */}
+              <ScoreDelta now={score} before={yesterday} prefix="어제보다" delay={1250} />
+            </View>
             <Text style={s.scoreNote}>{score >= 83 ? '힘이 실리는 날이에요. 미뤄 둔 일을 꺼내 보세요.' : score >= 66 ? '무난하게 흘러가는 날이에요. 평소 리듬을 지켜요.' : '한 박자 쉬어 가면 좋은 날이에요. 무리하지 마세요.'}</Text>
           </View>
         </View>
@@ -80,6 +86,7 @@ export default function CategoryDetailScreen() {
 
 const s = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', borderStyle: 'dashed' },
+  starsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scoreNote: { fontSize: 13.5, lineHeight: 20, color: colors.inkSub },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowLabel: { width: 104, fontSize: 13, fontWeight: '600', color: colors.inkSub },

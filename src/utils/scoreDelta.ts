@@ -5,8 +5,14 @@ export function scoreDelta(now: number, before?: number | null): number | null {
   return d === 0 ? null : d;
 }
 
-/** 스크린리더용: ' 어제보다 3점 올랐어요'. 표시할 차이가 없으면 빈 문자열. */
-export function scoreDeltaLabel(now: number, before?: number | null): string {
+/** '어제보다 3점 올랐어요'. 표시할 차이가 없으면 빈 문자열. */
+export function scoreDeltaText(now: number, before?: number | null): string {
   const d = scoreDelta(now, before);
-  return d == null ? '' : ` 어제보다 ${Math.abs(d)}점 ${d > 0 ? '올랐어요' : '내렸어요'}`;
+  return d == null ? '' : `어제보다 ${Math.abs(d)}점 ${d > 0 ? '올랐어요' : '내렸어요'}`;
+}
+
+/** 스크린리더 문구 뒤에 붙이는 용: ' 어제보다 3점 올랐어요'. 표시할 차이가 없으면 빈 문자열. */
+export function scoreDeltaLabel(now: number, before?: number | null): string {
+  const text = scoreDeltaText(now, before);
+  return text ? ` ${text}` : '';
 }

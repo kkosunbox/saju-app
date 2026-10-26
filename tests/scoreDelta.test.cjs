@@ -6,7 +6,7 @@ const source = fs.readFileSync('src/utils/scoreDelta.ts', 'utf8');
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const moduleExports = {};
 new Function('exports', compiled)(moduleExports);
-const { scoreDelta, scoreDeltaLabel } = moduleExports;
+const { scoreDelta, scoreDeltaLabel, scoreDeltaText } = moduleExports;
 
 test('any difference is shown with its sign, even one point', () => {
   assert.equal(scoreDelta(80, 77), 3);
@@ -22,6 +22,11 @@ test('fortunes without yesterday scores show nothing', () => {
     assert.equal(scoreDelta(80, before), null);
     assert.equal(scoreDeltaLabel(80, before), '');
   });
+});
+test('the total shows how far it moved in words', () => {
+  assert.equal(scoreDeltaText(76, 72), '어제보다 4점 올랐어요');
+  assert.equal(scoreDeltaText(70, 71), '어제보다 1점 내렸어요');
+  assert.equal(scoreDeltaText(70, 70), '');
 });
 test('the screen reader label says how far it moved', () => {
   assert.equal(scoreDeltaLabel(80, 75), ' 어제보다 5점 올랐어요');

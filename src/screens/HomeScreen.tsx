@@ -46,7 +46,7 @@ import BottomSheet from '../components/BottomSheet';
 import InvitePicker from '../components/InvitePicker';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
 import { useInviteShare } from '../services/share/useInviteShare';
-import ScoreDelta, { scoreDeltaLabel } from '../components/ScoreDelta';
+import ScoreDelta, { ScoreDeltaText, scoreDeltaLabel } from '../components/ScoreDelta';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -303,15 +303,17 @@ export default function HomeScreen() {
           <Reveal delay={90}>
             <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={hidden} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : reading ? '오늘의 운세를 풀어보는 중이에요' : `오늘의 종합운 ${f.totalScore}점.${scoreDeltaLabel(f.totalScore, yesterday?.totalScore)} ${f.summary} 종합 풀이 보기`}>
               <Animated.View style={[s.bubble, shadow.hero, { transform: [{ scale: pop }] }]}>
-                {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text> : (
-                  <View style={s.bubbleScoreCol}>
-                    {drawn ? <AnimatedNumber value={count} style={s.bubbleScore} /> : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
-                    <ScoreDelta now={f.totalScore} before={yesterday?.totalScore} />
-                  </View>
-                )}
+                {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
+                  : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
+                  : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
                 {sealed ? <Text style={s.bubbleText} numberOfLines={3}>{'오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!'}</Text>
                   : reading ? <ReadingSteps style={s.bubbleText} />
-                  : <Text style={s.bubbleText} numberOfLines={3}>{f.summary}</Text>}
+                  : (
+                    <View style={s.bubbleBody}>
+                      <Text style={[s.bubbleText, { flex: 0 }]} numberOfLines={3}>{f.summary}</Text>
+                      <ScoreDeltaText now={f.totalScore} before={yesterday?.totalScore} />
+                    </View>
+                  )}
               </Animated.View>
               <View style={s.tail} />
             </PressableScale>
@@ -332,12 +334,14 @@ export default function HomeScreen() {
                   {hidden ? (
                     <View style={s.ringSealed}><Text style={s.ringQ}>?</Text></View>
                   ) : (
-                    <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={24} delay={drawn ? 450 + i * 140 : 250 + i * 80} />
+                    <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={20} delay={drawn ? 450 + i * 140 : 250 + i * 80}>
+                      {/* 어제 대비 칩: 숫자 밑에 작게, 링이 다 차오른 뒤 톡 */}
+                      <ScoreDelta now={f[c]} before={yesterday?.[c]} delay={(drawn ? 450 + i * 140 : 250 + i * 80) + 1100} small />
+                    </ScoreRing>
                   )}
                   <View style={s.ringLabel}>
                     <CategoryGlyph category={c} size={13} />
                     <Text style={s.ringText}>{t.short}</Text>
-                    {hidden ? null : <ScoreDelta now={f[c]} before={yesterday?.[c]} style={s.ringDelta} />}
                   </View>
                 </PressableScale>
               );
@@ -499,7 +503,7 @@ const s = StyleSheet.create({
 
   bubbleWrap: { marginTop: 20, marginHorizontal: 19 },
   bubble: { flexDirection: 'row', alignItems: 'center', gap: 24, minHeight: 72, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 14, backgroundColor: colors.cream },
-  bubbleScoreCol: { alignItems: 'center', gap: 2 },
+  bubbleBody: { flex: 1, gap: 4 },
   bubbleScore: { fontSize: 32, fontWeight: '600', color: colors.ink, letterSpacing: -1.3, fontVariant: ['tabular-nums'] },
   bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
   mascotTags: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: -12, marginBottom: 16 },
@@ -514,7 +518,6 @@ const s = StyleSheet.create({
   ringCell: { alignItems: 'center', gap: 4 },
   ringLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ringText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5 },
-  ringDelta: { fontSize: 11, marginLeft: -2 },
 
   today: { marginTop: 24, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   todayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

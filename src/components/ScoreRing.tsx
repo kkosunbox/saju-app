@@ -25,12 +25,16 @@ interface Props {
   /** 링 안쪽을 채우는 원 색 (디자인의 점수 동그라미) */
   inner?: string;
   fontSize?: number;
+  /** 스크린리더 문구 (기본 'N점') */
+  accessibilityLabel?: string;
+  /** 숫자 아래에 작게 붙이는 것 (어제 대비 칩 등) */
+  children?: React.ReactNode;
 }
 
 /** 위에서부터 차오르는 점수 링(진한 색 → 옅은 회색 그라디언트) + 숫자 카운트업 */
 export default function ScoreRing({
   score, size = 132, stroke = 9, color = '#D9B872', track = 'rgba(255,255,255,0.14)',
-  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize,
+  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize, accessibilityLabel, children,
 }: Props) {
   const reduced = useReducedMotion();
   // React 19.1의 useId는 «r0» 형식 → SVG url(#id)에 쓸 수 없는 문자를 모두 제거
@@ -52,7 +56,7 @@ export default function ScoreRing({
   const offset = progress.interpolate({ inputRange: [0, 100], outputRange: [c, 0] });
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={`${score}점`}>
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={accessibilityLabel ?? `${score}점`}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
         <Defs>
           <LinearGradient id={`ring${gid}`} x1="0" y1="0" x2="0" y2="1">
@@ -74,6 +78,7 @@ export default function ScoreRing({
       </Svg>
       <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={{ fontFamily: fonts.serif, fontSize: fontSize ?? size * 0.32, fontWeight: '700', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }} />
       {label ? <Text style={{ fontSize: 12, fontWeight: '600', color: textColor, opacity: 0.75, marginTop: -2 }}>{label}</Text> : null}
+      {children}
     </View>
   );
 }
