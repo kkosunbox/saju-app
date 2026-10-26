@@ -7,7 +7,7 @@ import { scoreDelta, scoreDeltaLabel, scoreDeltaText } from '../utils/scoreDelta
 export { scoreDeltaLabel };
 
 /**
- * 어제 대비 칩: 오르면 연한 빨강 바탕 +4, 내리면 연한 파랑 바탕 −4 (하이픈 대신 +와 폭이 같은 빼기 기호). prefix는 칩 안 앞쪽 글자 ('어제보다').
+ * 어제 대비 표시: 바탕 없이 오르면 빨강 +4, 내리면 파랑 −4 (하이픈 대신 +와 폭이 같은 빼기 기호). prefix는 칩 안 앞쪽 글자 ('어제보다').
  * delay를 주면 그만큼 기다렸다가 톡 튀어나온다 (점수 카운트업이 끝난 뒤).
  */
 export default function ScoreDelta({ now, before, delay, prefix, small, style }: { now: number; before?: number | null; delay?: number; prefix?: string; small?: boolean; style?: StyleProp<ViewStyle> }) {
@@ -23,7 +23,7 @@ export default function ScoreDelta({ now, before, delay, prefix, small, style }:
   const up = d > 0;
   return (
     <Animated.View
-      style={[s.chip, small && s.chipSmall, { backgroundColor: up ? colors.loveBg : colors.workBg, opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }, style]}
+      style={[s.chip, small && s.chipSmall, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }, style]}
       importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
     >
       <Animated.Text style={[s.text, small && s.textSmall, { color: up ? colors.danger : colors.work }]}>{prefix ? <Animated.Text style={s.prefix}>{prefix} </Animated.Text> : null}{up ? '+' : '\u2212'}{Math.abs(d)}</Animated.Text>
@@ -44,8 +44,8 @@ export function ScoreDeltaText({ now, before, style }: { now: number; before?: n
 
 const s = StyleSheet.create({
   line: { fontSize: 12, fontWeight: '600', letterSpacing: -0.4 },
-  chip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999 },
-  chipSmall: { paddingHorizontal: 4, paddingVertical: 0, marginTop: 1 },
+  chip: {},
+  chipSmall: { marginTop: 1 },
   text: { fontSize: 11, fontWeight: '700', letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
   textSmall: { fontSize: 10, lineHeight: 13 },
   prefix: { fontWeight: '600' },
