@@ -6,7 +6,7 @@ import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import BusinessFooter from '../../components/BusinessFooter';
 import { usePremium, refreshPoints } from '../../context/PremiumContext';
-import { PACKS, fmtP, packProductId } from '../../services/premium/catalog';
+import { PACKS, fmtP } from '../../services/premium/catalog';
 import { TossOrder, pointsApi } from '../../services/server/pointsApi';
 import { ApiError } from '../../api/client';
 import { colors } from '../../theme/colors';
@@ -51,7 +51,7 @@ type Phase = 'loading' | 'ready' | 'paying' | 'confirming' | 'error';
 export default function ChargeScreen() {
   const q = useLocalSearchParams<{ productId?: string; result?: string; paymentKey?: string; orderId?: string; amount?: string; code?: string; message?: string }>();
   const { toast } = usePremium();
-  const pack = PACKS.find(([won]) => packProductId(won) === q.productId);
+  const pack = PACKS.find(([, , , id]) => id === q.productId);
   // 처음 상태: 앱(준비 중) · 결제창에서 돌아옴(승인 중 / 실패) · 처음 열림(결제창 준비)
   const initial = ((): { phase: Phase; error: string | null } => {
     if (Platform.OS !== 'web') return { phase: 'error', error: '앱 결제는 준비 중이에요. 지금은 웹에서 충전할 수 있어요.' };

@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, fmtP, packProductId, ro, titleOfKey } from '../services/premium/catalog';
+import { Item, PACKS, fmtP, ro, titleOfKey } from '../services/premium/catalog';
 import { Amount, Coin } from '../components/Amount';
 import { pointsApi, pointsKeys } from '../services/server/pointsApi';
 import { listReadings, readingsKey } from '../services/server/premiumApi';
@@ -141,7 +141,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   /** 웹은 토스 결제창으로, 앱은 스토어 결제 준비 중 */
   function doCharge(i: number) {
     setSheet(null);
-    router.push({ pathname: '/charge', params: { productId: packProductId(PACKS[i][0]) } });
+    router.push({ pathname: '/charge', params: { productId: PACKS[i][3] } });
   }
 
   /** 게스트가 포인트 기능을 쓰려 하면 로그인으로 보낸다. 로그인했으면 false */
