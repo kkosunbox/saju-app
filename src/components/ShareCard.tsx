@@ -5,6 +5,7 @@ import Mascot, { ArtName, Logo } from './Mascot';
 import Icon from './Icon';
 import CharacterArt from './CharacterArt';
 import TalismanPaper from './TalismanPaper';
+import TodayShareCard from './TodayShareCard';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { parseISO } from '../utils/date';
 
@@ -29,6 +30,7 @@ const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜:
 export const CARD_W = 320;
 
 const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, today }, ref) => {
+  if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} width={CARD_W} />;
   const { y, m, d } = parseISO(today);
   const longHead = spec.headline.length > 18;
   return (

@@ -13,16 +13,23 @@ import { todaySpec } from '../services/share/shareSpecs';
 import { useShare } from '../services/share/useShare';
 import { colors } from '../theme/colors';
 import { shadow, txt } from '../theme/typography';
+import { dayNumber, parseISO } from '../utils/date';
 
-/** 공유 카드 미리보기 · 이미지 저장 / 공유 / 링크 복사 */
+/** 그해의 날 수 (365 · 366) */
+const daysInYear = (iso: string) => {
+  const { y } = parseISO(iso);
+  return dayNumber(`${y + 1}-01-01`) - dayNumber(`${y}-01-01`);
+};
+
+/** 공유 카드 미리보기 · 이미지 저장 / 공유 */
 export default function ShareScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Share'>>();
   const { fortune, user, today } = useApp();
   const { toast } = usePremium();
-  const { sendLink, urlOf, reward } = useShare();
+  const { sendImage, urlOf, reward } = useShare();
   const ref = useRef<View>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
-  const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined) : null);
+  const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
   // 웹은 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유를 막는다 (아직 못 그렸으면 누를 때 그린다)
   const prepared = useRef<WebCard | null>(null);
   useEffect(() => {
@@ -37,14 +44,19 @@ export default function ShareScreen() {
   }, [spec?.file, spec?.text]);
   if (!spec) return null;
 
-  const run = async (mode: 'share' | 'save') => {
-    setBusy(mode);
-    const r = await shareCardImage(ref, { file: spec.file, text: spec.text, url: urlOf(spec), mode, prepared: prepared.current });
+  const save = async () => {
+    setBusy('save');
+    const r = await shareCardImage(ref, { file: spec.file, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
     setBusy(null);
-    if (r === 'saved') toast(mode === 'share' ? '이미지를 저장했어요. 인스타 스토리에 올려 보세요' : '이미지를 저장했어요');
+    if (r === 'saved') toast('이미지를 저장했어요');
     if (r === 'saved' || r === 'shared') reward(spec);
   };
-  const copy = () => sendLink(spec);
+  // 이미지 공유가 안 되는 브라우저(데스크톱 · 일부 인앱)는 다운로드 대신 문구·링크로 공유한다
+  const share = async () => {
+    setBusy('share');
+    await sendImage(spec, { ref, prepared: () => prepared.current });
+    setBusy(null);
+  };
 
   return (
     <Screen
@@ -52,19 +64,18 @@ export default function ShareScreen() {
       back
       contentStyle={{ alignItems: 'center', justifyContent: 'center', flexGrow: 1, paddingTop: 12 }}
       footer={
-        <View style={{ gap: 4 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <PrimaryButton label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={() => run('save')} disabled={!!busy} style={{ flex: 1 }} />
-            <PrimaryButton label={busy === 'share' ? '만드는 중…' : '공유하기'} onPress={() => run('share')} disabled={!!busy} style={{ flex: 1.4 }} icon={busy ? undefined : <Icon name="share" size={18} color={colors.white} />} />
-          </View>
-          <PrimaryButton label="링크만 복사하기" variant="text" onPress={copy} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <PrimaryButton label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={save} disabled={!!busy} style={{ flex: 1 }} />
+          <PrimaryButton label={busy === 'share' ? '만드는 중…' : '공유하기'} onPress={share} disabled={!!busy} style={{ flex: 1.4 }} icon={busy ? undefined : <Icon name="share" size={18} color={colors.white} />} />
         </View>
       }
     >
-      <View style={[s.shadow, shadow.hero]}>
+      <View style={[s.shadow, shadow.hero, spec.today && { borderRadius: 20 }]}>
         <ShareCard ref={ref} spec={spec} today={today} />
       </View>
-      <Text style={[txt.caption, { marginTop: 12, textAlign: 'center' }]}>인스타그램 스토리에 꼭 맞는 9:16 크기예요{'\n'}가려진 내용은 친구가 운Pick에서 자기 결과로 확인해요</Text>
+      <Text style={[txt.caption, { marginTop: 12, textAlign: 'center' }]}>
+        {spec.today ? `올해 ${daysInYear(today)}일 중 오늘의 순위를 담았어요.` : '인스타그램 스토리에 꼭 맞는 9:16 크기예요\n가려진 내용은 친구가 운Pick에서 자기 결과로 확인해요'}
+      </Text>
     </Screen>
   );
 }

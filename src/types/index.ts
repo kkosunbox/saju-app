@@ -114,6 +114,16 @@ export interface DailyFortune {
   dayPillar?: { stem: number; branch: number };
   /** 전날 점수 (같은 프로필로 계산). 기능 전에 만든 운세는 null */
   yesterdayScores?: { totalScore: number; love: number; money: number; work: number; relationship: number } | null;
+  /** 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 % (뽑기 전후로 같음). 기능 전에 만든 운세는 null */
+  shareCard?: ShareCard | null;
+}
+
+/** 오늘의 운세 공유 카드 문구 */
+export interface ShareCard {
+  title: string;
+  line: string;
+  /** 올해 나의 날 중 상위 N% (1~100) */
+  yearTopPercent: number;
 }
 
 /** 궁합 상대와의 관계 */

@@ -3,7 +3,7 @@
  * 봉인된 이야기는 결과의 가장 궁금한 부분을 가려서, 보는 사람이 직접 들어와 확인하게 만든다.
  * 생년월일 같은 개인 정보는 카드에 넣지 않는다.
  */
-import { CombinedFortune, CompatibilityResult, User } from '../../types';
+import { CombinedFortune, CompatibilityResult, ShareCard, User } from '../../types';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
@@ -38,6 +38,18 @@ export interface ShareSpec {
   short: string;
   /** 오늘의 부적: 스토리 카드에 부적 종이를 그대로 그린다 */
   talisman?: TalismanPaperData;
+  /** 오늘의 운세: 칭호 · 올해 상위 % 카드로 그린다 */
+  today?: TodayCardData;
+}
+
+export interface TodayCardData {
+  nickname: string;
+  total: number;
+  title: string;
+  line: string;
+  topPercent: number;
+  /** [라벨, 점수] 4개 */
+  scores: [string, string][];
 }
 
 /** 받침이 있으면 a, 없으면 b (예: 훈장이었대 / 시인이었대 / 화가였대) */
@@ -46,7 +58,21 @@ const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d}`; }
 const mdw = (iso: string) => `${md(iso)} ${WEEK[weekdayOf(iso)]}`;
 
 /* ---------- 무료 ---------- */
-export function todaySpec(u: User, f: CombinedFortune): ShareSpec {
+export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null): ShareSpec {
+  if (card) {
+    const pct = `상위 ${card.yearTopPercent}%`;
+    return {
+      kind: '오늘의 운세', seal: '日', eyebrow: `${u.nickname}님의 오늘 칭호`,
+      headline: card.title, sub: card.line, stats: [],
+      hook: '너는 오늘 상위 몇 %?',
+      text: `오늘 내 칭호는 '${card.title}', 올해 나의 날 중 ${pct}래. 너는 오늘 상위 몇 %야?`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
+      today: {
+        nickname: u.nickname, total: f.totalScore, title: card.title, line: card.line, topPercent: card.yearTopPercent,
+        scores: [['연애', String(f.love)], ['재물', String(f.money)], ['직장', String(f.work)], ['관계', String(f.relationship)]],
+      },
+    };
+  }
+  // 칭호가 없는 예전 운세는 기본 카드로
   return {
     kind: '오늘의 운세', seal: '日', eyebrow: `${u.nickname}님의 오늘`,
     headline: f.summary, big: { value: String(f.totalScore), unit: '점', label: '오늘의 종합운' },

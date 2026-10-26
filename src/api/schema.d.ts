@@ -2048,6 +2048,20 @@ export interface components {
             number: string;
             time: string;
         };
+        ShareCardDto: {
+            /**
+             * @description 오늘의 칭호
+             * @example 기회를 낚는 사람
+             */
+            title: string;
+            /** @example 오늘 기회가 먼저 DM 보냄. 읽씹 금지. */
+            line: string;
+            /**
+             * @description 올해 나의 날 중 상위 N% (1~100). 같은 점수인 날은 같은 순위로 셈
+             * @example 25
+             */
+            yearTopPercent: number;
+        };
         CombinedFortuneDto: {
             totalScore: number;
             summary: string;
@@ -2095,6 +2109,8 @@ export interface components {
             textsPending: boolean;
             /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
             yesterdayScores: components["schemas"]["DayScoresDto"] | null;
+            /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */
+            shareCard: components["schemas"]["ShareCardDto"] | null;
         };
         PeriodFlowDto: {
             /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
