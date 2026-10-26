@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
@@ -24,9 +24,12 @@ const MESSAGE: Record<string, string> = {
 };
 const messageOf = (e: unknown, fallback: string) => (e instanceof ApiError && MESSAGE[e.code]) || fallback;
 
-/** 이메일 가입: 이메일·비밀번호 → 약관 시트 → 메일로 받은 인증번호 → 가입 (게스트로 쓰던 데이터는 그대로 이어짐) */
+/**
+ * 이메일 가입: 이메일·비밀번호 → 약관 시트 → 메일로 받은 인증번호 → 가입 (게스트로 쓰던 데이터는 그대로 이어짐)
+ * 이미 가입한 이메일이면 칸을 벗어날 때(늦어도 '다음'에서) '이미 회원이신가요?' 시트로 로그인 화면에 안내한다
+ */
 export default function SignUpScreen() {
-  const { sendSignupCode, verifySignupCode, completeSignup } = useApp();
+  const { checkSignupEmail, sendSignupCode, verifySignupCode, completeSignup } = useApp();
   const nav = useNavigation();
   const { toast } = usePremium();
   const [email, setEmail] = useState('');
@@ -38,11 +41,42 @@ export default function SignUpScreen() {
   const [busy, setBusy] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState('');
+  const [member, setMember] = useState<{ email: string; social: boolean } | null>(null);
+  // 같은 이메일을 두 번 묻지 않게 (가입 안 된 이메일만 기억)
+  const checked = useRef<string | null>(null);
 
   const emailBad = email.length > 0 && !isEmail(email);
   const pwBad = pw.length > 0 && !isStrongPassword(pw);
   const formOk = isEmail(email) && isStrongPassword(pw);
   const requiredOk = requiredAgreed(agree);
+
+  /** 이미 회원인 이메일인지 확인. 회원이면 시트를 띄우고 true. 확인이 안 되면 그냥 진행(인증 메일 단계에서 다시 걸러짐) */
+  const isMember = async (target: string) => {
+    if (!isEmail(target) || checked.current === target) return false;
+    try {
+      const r = await checkSignupEmail(target);
+      if (r.exists) { setMember({ email: target, social: r.social }); return true; }
+      checked.current = target;
+    } catch { /* 네트워크 오류 등 */ }
+    return false;
+  };
+
+  const next = async () => {
+    if (!formOk || busy) return;
+    setBusy(true);
+    const known = await isMember(email);
+    setBusy(false);
+    if (!known) setSheet(true);
+  };
+
+  /** 이미 회원: 이메일 로그인(이메일 채워서) 또는 SNS 아이콘이 있는 로그인 화면으로 */
+  const goLogin = () => {
+    const m = member;
+    setMember(null);
+    if (!m) return;
+    if (m.social) return nav.canGoBack() ? nav.goBack() : nav.replace('Login');
+    nav.replace('EmailLogin', { prefill: { email: m.email } });
+  };
 
   /** 약관 동의 → 인증 메일 발송 */
   const submit = async () => {
@@ -55,6 +89,7 @@ export default function SignUpScreen() {
       toast('인증번호를 메일로 보냈어요');
     } catch (e) {
       setSheet(false);
+      if (e instanceof ApiError && e.code === 'ALREADY_EXISTS') { setMember({ email, social: false }); return; }
       setErr(messageOf(e, '인증 메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.'));
     } finally {
       setBusy(false);
@@ -92,14 +127,14 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen back footer={<PrimaryButton label="다음" onPress={() => setSheet(true)} disabled={!formOk} />}>
+    <Screen back footer={<PrimaryButton label={busy ? '확인 중…' : '다음'} onPress={next} disabled={!formOk || busy} />}>
       <Text style={[txt.title, { marginTop: 8 }]}>이메일로 시작하기</Text>
       <Text style={[txt.small, { marginTop: 6 }]}>이메일 인증 한 번이면 바로 시작할 수 있어요. 지금까지 본 운세는 그대로 이어져요.</Text>
 
       <View style={{ marginTop: 28, gap: 20 }}>
         <View>
           <FieldLabel>이메일</FieldLabel>
-          <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus invalid={emailBad || !!err} />
+          <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus onBlur={() => { isMember(email); }} invalid={emailBad || !!err} />
           <FieldError>{emailBad ? '이메일 형식을 확인해 주세요.' : err}</FieldError>
         </View>
         <View>
@@ -118,6 +153,17 @@ export default function SignUpScreen() {
         <Text style={txt.h2}>약관에 동의해 주세요</Text>
         <TermsAgreement value={agree} onChange={setAgree} onOpenDoc={doc => { setSheet(false); nav.navigate('Legal', { doc }); }} />
         <PrimaryButton label={busy ? '보내는 중…' : '동의하고 인증 메일 받기'} onPress={submit} disabled={!requiredOk || busy} style={{ marginTop: 16 }} />
+      </BottomSheet>
+
+      <BottomSheet visible={!!member} onClose={() => setMember(null)}>
+        <Text style={txt.h2}>이미 회원이신가요?</Text>
+        <Text style={[txt.small, { marginTop: 8 }]}>
+          {member?.social
+            ? `${member.email}은(는) SNS 계정으로 가입돼 있어요. 가입할 때 쓴 SNS로 로그인해 주세요.`
+            : `${member?.email}은(는) 이미 가입된 이메일이에요. 비밀번호만 넣으면 바로 이어서 쓸 수 있어요.`}
+        </Text>
+        <PrimaryButton label={member?.social ? 'SNS로 로그인하기' : '로그인하기'} onPress={goLogin} style={{ marginTop: 20 }} />
+        <PrimaryButton label="다른 이메일로 가입할래요" variant="text" onPress={() => setMember(null)} style={{ marginTop: 4 }} />
       </BottomSheet>
     </Screen>
   );

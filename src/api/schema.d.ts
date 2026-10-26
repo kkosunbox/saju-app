@@ -141,6 +141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/check-signup-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 가입 여부 확인
+         * @description 이메일 가입 화면에서 이미 가입한 이메일인지 미리 확인합니다. 가입돼 있으면 소셜 계정인지도 함께 알려줘 앱이 알맞은 로그인 화면으로 안내합니다.
+         */
+        post: operations["AuthController_checkSignupEmail_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/send-signup-email-verification": {
         parameters: {
             query?: never;
@@ -2649,6 +2669,12 @@ export interface components {
              */
             relationship: "lover" | "friend" | "family" | "work";
         };
+        CheckSignupEmailResponse: {
+            /** @description 이미 가입된 이메일인지 */
+            exists: boolean;
+            /** @description 소셜 로그인으로 가입한 계정인지 (비밀번호가 없음) */
+            social: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -2896,6 +2922,33 @@ export interface operations {
                         /** @example true */
                         result?: boolean;
                         data?: components["schemas"]["SocialLoginResponse"] | components["schemas"]["TwoFactorRequiredResponse"];
+                    };
+                };
+            };
+        };
+    };
+    AuthController_checkSignupEmail_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendSignupEmailVerificationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["CheckSignupEmailResponse"];
                     };
                 };
             };

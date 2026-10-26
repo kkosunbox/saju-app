@@ -15,7 +15,8 @@ export type TabParamList = {
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
-  EmailLogin: undefined;
+  /** 가입 화면에서 이미 회원인 이메일을 넣었을 때 그 이메일을 채워 둔다 (메모리로만 넘김) */
+  EmailLogin: { prefill?: { email: string } } | undefined;
   SignUp: undefined;
   SocialTerms: { next?: string } | undefined;
   FindPassword: undefined;

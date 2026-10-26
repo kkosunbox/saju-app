@@ -43,6 +43,7 @@ interface AppState {
   signIn(email: string, password: string): Promise<void>;
   /** After a login finished elsewhere (web social callback): reads the new session. true if it has a profile. */
   reloadSession(): Promise<boolean>;
+  checkSignupEmail(email: string): Promise<{ exists: boolean; social: boolean }>;
   sendSignupCode(email: string): Promise<void>;
   verifySignupCode(email: string, otp: string): Promise<string>;
   completeSignup(params: { emailVerifiedToken: string; password: string; marketing: boolean }): Promise<void>;
@@ -160,6 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cancelProfileEdit: () => setEditingProfile(false),
     signIn: async (email, password) => { await authApi.login(email, password); queryClient.clear(); await loadSession(); },
     reloadSession: async () => { queryClient.clear(); return loadSession(); },
+    checkSignupEmail: email => authApi.checkSignupEmail(email),
     sendSignupCode: email => authApi.sendSignupCode(email),
     verifySignupCode: (email, otp) => authApi.verifySignupCode(email, otp),
     completeSignup: async params => { await authApi.signup(params); queryClient.clear(); await loadSession(); },

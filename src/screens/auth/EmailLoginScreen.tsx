@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@/navigation/compat';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -8,6 +8,7 @@ import PressableScale from '../../components/PressableScale';
 import { FieldError } from '../../components/auth/AuthKit';
 import { useApp } from '../../context/AppContext';
 import { ApiError } from '../../api/client';
+import { RootStackParamList } from '../../navigation/types';
 import { isEmail } from '../../utils/validate';
 import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
@@ -15,7 +16,9 @@ import { txt } from '../../theme/typography';
 export default function EmailLoginScreen() {
   const nav = useNavigation();
   const { signIn } = useApp();
-  const [email, setEmail] = useState('');
+  // 가입 화면에서 '이미 회원이신가요?'로 넘어오면 이메일을 채워 두고 비밀번호 칸부터
+  const prefill = useRoute<RouteProp<RootStackParamList, 'EmailLogin'>>().params?.prefill?.email ?? '';
+  const [email, setEmail] = useState(prefill);
   const [pw, setPw] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,8 +43,8 @@ export default function EmailLoginScreen() {
     <Screen back footer={<PrimaryButton label={busy ? '로그인 중…' : '로그인'} onPress={submit} disabled={!can} />}>
       <Text style={[txt.title, { marginTop: 8 }]}>이메일로 로그인</Text>
       <View style={{ marginTop: 28, gap: 8 }}>
-        <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="이메일" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus />
-        <TextField value={pw} onChangeText={t => { setPw(t); setErr(null); }} placeholder="비밀번호" secureTextEntry autoComplete="password" textContentType="password" returnKeyType="go" onSubmitEditing={submit} invalid={!!err} />
+        <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="이메일" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus={!prefill} />
+        <TextField value={pw} onChangeText={t => { setPw(t); setErr(null); }} placeholder="비밀번호" secureTextEntry autoComplete="password" textContentType="password" autoFocus={!!prefill} returnKeyType="go" onSubmitEditing={submit} invalid={!!err} />
         <FieldError>{err}</FieldError>
       </View>
       <View style={s.links}>

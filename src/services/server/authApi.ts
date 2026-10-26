@@ -42,6 +42,13 @@ export const authApi = {
     await keep(data, false);
   },
 
+  /** Before step 1: is this address already a member (and a social one, with no password)? */
+  async checkSignupEmail(email: string): Promise<{ exists: boolean; social: boolean }> {
+    return call<{ exists: boolean; social: boolean }>(
+      api.POST('/v1/auth/check-signup-email', { body: { email: email.trim().toLowerCase() } }),
+    );
+  },
+
   /** Step 1 of signup: a 6-digit code is sent to the address. */
   async sendSignupCode(email: string): Promise<void> {
     await call(api.POST('/v1/auth/send-signup-email-verification', { body: { email: email.trim().toLowerCase() } }));
