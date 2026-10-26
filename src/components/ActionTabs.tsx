@@ -36,7 +36,14 @@ export default function ActionTabs({ good, avoid, variant = 'default' }: { good:
   return (
     <View>
       <Segmented<'good' | 'avoid'> options={[{ key: 'good', label: '하면 좋은 것' }, { key: 'avoid', label: '피하면 좋은 것' }]} value={tab} onChange={setTab} variant={variant} />
-      <View style={[s.list, variant === 'figma' && s.figmaList]}>
+      {isGood && good.length > 0 ? (
+        <View style={s.hint}>
+          <Icon name="check" size={12} color={variant === 'figma' ? FIGMA_ACCENT : colors.accent} strokeWidth={3} />
+          <Text style={s.hintText}>{allDone ? '오늘 할 일을 모두 체크했어요' : '해낸 일은 눌러서 체크해 보세요'}</Text>
+          <Text style={[s.hintCount, { color: variant === 'figma' ? FIGMA_ACCENT : colors.accent }]}>{good.filter(x => done.includes(x)).length}/{good.length}</Text>
+        </View>
+      ) : null}
+      <View style={[s.list, variant === 'figma' && s.figmaList, isGood && good.length > 0 && s.listAfterHint]}>
         {list.map(item => {
           const text = (
             <Text style={[s.item, variant === 'figma' && s.figmaItem]}>
@@ -83,7 +90,7 @@ function CheckMark({ checked, figma }: { checked: boolean; figma: boolean }) {
     <Svg width={18} height={18} viewBox="0 0 18 18" style={figma ? s.figmaMark : s.svgMark}>
       {checked
         ? <Circle cx={9} cy={9} r={9} fill={accent} />
-        : <Circle cx={9} cy={9} r={8.25} fill={figma && !isDark ? '#E7F0FF' : colors.accentSoft} stroke={accent} strokeWidth={1.5} strokeOpacity={0.5} />}
+        : <Circle cx={9} cy={9} r={8.25} fill={colors.surface} stroke={accent} strokeWidth={1.5} />}
       {checked ? <Path d="M5.15385 8.95897L7.44309 11.2012C7.83621 11.5863 8.46658 11.5814 8.85364 11.1902L13 7" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" fill="none" /> : null}
     </Svg>
   );
@@ -110,6 +117,10 @@ function Praise({ text }: { text: string }) {
 const s = StyleSheet.create({
   list: { gap: 12, marginTop: 16, paddingHorizontal: 4 },
   figmaList: { gap: 0 },
+  listAfterHint: { marginTop: 10 },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingHorizontal: 4 },
+  hintText: { ...sansW('500'), flex: 1, fontSize: 12, lineHeight: 18, letterSpacing: -0.4, color: colors.inkSub },
+  hintCount: { ...sansW('700'), fontSize: 12, lineHeight: 18, letterSpacing: -0.2 },
   figmaRow: { gap: 8 },
   figmaMark: { marginTop: 6 },
   svgMark: { marginTop: 1 },
