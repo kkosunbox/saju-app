@@ -10,8 +10,8 @@ import { api, call } from '../../api/client';
 import { Relationship } from '../../types';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
 
-/** 앱(네이티브)에서 만든 링크가 여는 웹 주소 — 배포마다 EXPO_PUBLIC_WEB_URL (없으면 프로토타입 주소) */
-const APP_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://onulna-prototype.vercel.app';
+/** 앱(네이티브)에서 만든 링크가 여는 웹 주소 — 배포마다 EXPO_PUBLIC_WEB_URL (없으면 운영 웹) */
+const APP_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://woonpick.com';
 export const appUrl = () => (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : APP_URL);
 
 /** 공유 결과: 'shared' | 'copied' | 'cancelled' */

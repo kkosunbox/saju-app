@@ -3,11 +3,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-dev.woonpick.com",
         "EXPO_PUBLIC_WEB_URL": "https://dev.woonpick.com"
       }
     },
     "production": {
       "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.woonpick.com",
         "EXPO_PUBLIC_WEB_URL": "https://woonpick.com"
       }
     }

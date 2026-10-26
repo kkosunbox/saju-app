@@ -7,7 +7,7 @@
 | 부제 / 짧은 설명 | 사주부터 MBTI까지, 오늘의 나를 PICK | 오늘, 어떤 운을 PICK하시겠어요? 사주부터 MBTI까지, 오늘의 나를 PICK하다. (80자 이내) |
 | 카테고리 | 라이프스타일 (보조: 엔터테인먼트) | 라이프스타일 |
 | 연령 등급 | 12+ (설문에서 "가끔/약한 성인 주제" 없음 → 4+가 나올 수 있으나, 고민 상담을 고려해 12+ 권장) | 만 12세 이상 |
-| 개인정보처리방침 URL | https://woonpick.com/privacy (도메인 확보 후. 그 전에는 https://onulna-prototype.vercel.app/privacy) | 동일 |
+| 개인정보처리방침 URL | https://woonpick.com/privacy | 동일 |
 | 지원 URL | 정식 도메인 또는 문의 페이지 | 동일 |
 | 번들 ID | `com.woonpick.ios` | `com.woonpick.android` |
 

@@ -59,8 +59,9 @@ src/
   앱은 서버 결과를 받아 문장표(`services/premium/data.ts`)로 화면을 그린다.
 - **기기에는** 로그인 토큰(네이티브 SecureStore · 웹은 httpOnly 쿠키 + 메모리, localStorage에는 로그인 표시만), 온보딩 완료, 알림 시간, 새 콘텐츠 알림 신청, 이달의 미션 체크만 둔다.
 - 결제: 웹은 토스페이먼츠 결제위젯(`/charge`), 앱 인앱결제는 준비 중.
-- 웹 배포(Vercel): 환경 변수 `EXPO_PUBLIC_API_URL`에 운영 API 주소. 빌드할 때 들어가므로 바꾸면 다시 배포한다.
-- 앱 빌드(EAS): `eas.json`의 빌드 종류(preview · production)마다 `EXPO_PUBLIC_WEB_URL` = 앱에서 공유하는 링크가 여는 웹 주소. 웹은 지금 열린 주소를 쓰므로 필요 없다. 지금 값(`woonpick.com` · `dev.woonpick.com`)은 예시 — 도메인이 정해지면 바꾼다.
+- 주소: 운영 웹 `woonpick.com` · API `api.woonpick.com`, 개발 웹 `dev.woonpick.com` · API `api-dev.woonpick.com`.
+- 웹 배포(Vercel): 웹은 자기 `/api`를 부르고(`EXPO_PUBLIC_API_URL=/api`, vercel.json) `middleware.ts`가 환경 변수 `API_ORIGIN`(Production = `https://api.woonpick.com`, Preview = `https://api-dev.woonpick.com`)으로 넘긴다. `API_PROXY_SECRET`은 각 API 서버와 같은 값.
+- 앱 빌드(EAS): `eas.json`의 빌드 종류(preview · production)마다 `EXPO_PUBLIC_API_URL` = API 주소, `EXPO_PUBLIC_WEB_URL` = 앱에서 공유하는 링크가 여는 웹 주소. 웹은 지금 열린 주소를 쓰므로 필요 없다.
 
 ## 남은 작업
 

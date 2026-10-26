@@ -98,7 +98,12 @@ export default function ChargeScreen() {
         widgets.current = w;
         setOrder(created);
         setPhase('ready');
-      } catch {
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'PAYMENT_NOT_READY') {
+          toast('알 충전은 준비 중이에요');
+          fail('알 충전은 준비 중이에요. 조금만 기다려 주세요.');
+          return;
+        }
         fail('결제창을 열지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     })();
