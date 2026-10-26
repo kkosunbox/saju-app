@@ -75,9 +75,9 @@ export default function CategoryDetailScreen() {
 
       <SectionHeader title="오늘의 팁" />
       <Ledger tone={t.color} rows={[
-        [`해 봐요 · ${f.goodActions[0]}`, ACTION_NOTE[f.goodActions[0]] ?? '오늘 한 번 해 보세요.'],
+        [f.goodActions[0], ACTION_NOTE[f.goodActions[0]] ?? '오늘 한 번 해 보세요.'],
         [`행운의 시간 ${f.luckyTime}`, '중요한 연락이나 결정은 이 시간대에 잡아 보세요.'],
-        ...(score < 66 ? [[`피해요 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
+        ...(score < 66 ? [[`오늘은 피하기 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
       ]} />
       <Disclaimer compact />
     </Screen>
