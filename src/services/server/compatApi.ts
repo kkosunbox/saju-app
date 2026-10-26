@@ -27,12 +27,15 @@ const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult =>
   // 관계가 없던 예전 기록은 연인 궁합
   relationship: dto.relationship ?? dto.result.relationship ?? 'lover',
   userId,
-  // invite records carry no partner details (only the inviter's nickname)
+  // invite records accepted without sharing carry no partner details (only the nickname)
   target: dto.partner
     ? { nickname: dto.partnerNickname, birthDate: dto.partner.birthDateSolar, birthTime: dto.partner.birthTime, birthPlace: dto.partner.birthPlace ?? null, gender: dto.partner.gender, mbti: dto.partner.mbti ?? null, bloodType: dto.partner.bloodType ?? null }
     : { nickname: dto.partnerNickname, birthDate: '', birthTime: null, gender: 'female', mbti: null, bloodType: null },
   createdAt: dto.createdAt,
 });
+
+/** 공개 동의 없이 본 예전 초대 궁합: 상대 생일·MBTI·혈액형이 없다 */
+export const isPrivateInvite = (r: CompatibilityResult) => r.source === 'invite' && !r.target.birthDate;
 
 /** 저장된 상대(궁합 기록) 목록 캐시 */
 export const compatKeys = { list: ['compat-list'] as const };
@@ -81,13 +84,16 @@ export const compatApi = {
   },
 
   /** Public: who invited (no login). */
-  async previewInvite(token: string): Promise<{ inviterNickname: string; relationship: Relationship; expiresAt: string }> {
+  async previewInvite(token: string): Promise<{ inviterNickname: string; relationship: Relationship; sharesProfile: boolean; expiresAt: string }> {
     return call(api.GET('/v1/compatibility-invites/{token}', { params: { path: { token } } }));
   },
 
-  /** My compatibility with the inviter, saved in my history. */
+  /** My compatibility with the inviter, saved in both histories with each other's profile (I agreed to share it). */
   async acceptInvite(userId: string, token: string): Promise<CompatibilityResult> {
-    const dto = await call<CompatibilityDto>(api.POST('/v1/compatibility-invites/{token}/compatibilities', { params: { path: { token } } }));
+    const dto = await call<CompatibilityDto>(api.POST('/v1/compatibility-invites/{token}/compatibilities', {
+      params: { path: { token } },
+      body: { shareProfile: true },
+    }));
     return toResult(userId, dto);
   },
 };

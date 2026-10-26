@@ -33,7 +33,7 @@ import { useFortuneDraw, useOpened } from '../services/content/opened';
 import { motion } from '../utils/motion';
 import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
-import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite } from '../services/share/linkShare';
+import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, clearPendingInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
@@ -140,14 +140,17 @@ export default function HomeScreen() {
   };
   const [friend, setFriend] = useState<FriendResult | null>(null);
   useEffect(() => { getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
-  // 초대 링크는 홈이 이미 떠 있을 때도 들어오니 홈에 올 때마다 다시 읽는다.
-  // 프로필을 넣으러 갔다 온 초대(auto)는 궁합 보기 안내를 바로 한 번 연다
+  // 프로필을 넣으러 갔다 온 초대(auto)는 홈에 오면 궁합 보기 안내를 한 번 연다 — 수락하거나 버리거나
   useFocusEffect(useCallback(() => {
     getPendingInvite().then(inv => {
+      if (!inv?.auto) return;
       setInvite(inv);
-      if (inv?.auto) { setShowInvite(true); savePendingInvite({ ...inv, auto: false }); }
+      setShowInvite(true);
+      savePendingInvite({ ...inv, auto: false });
     });
   }, []));
+  const closeInvite = () => { setShowInvite(false); setInvite(null); };
+  const declineInvite = () => { clearPendingInvite(); closeInvite(); };
   // 내 초대 링크로 상대가 본 궁합 중 아직 안 연 것 — 궁합 탭과 같은 캐시
   const compat = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user });
   const { refetch: refetchCompat } = compat;
@@ -193,9 +196,10 @@ export default function HomeScreen() {
     />
   );
 
+  // 스켈레톤과 본 화면이 따로 그리면 운세가 오는 순간 시트가 다시 올라오니 본 화면에서만 연다
   const invitePrompt = invite && user ? (
-    <BottomSheet visible={showInvite} onClose={() => setShowInvite(false)}>
-      <InvitePicker invite={invite} onDone={() => { setShowInvite(false); setInvite(null); }} />
+    <BottomSheet visible={showInvite} onClose={declineInvite}>
+      <InvitePicker invite={invite} onDone={closeInvite} onDecline={declineInvite} />
     </BottomSheet>
   ) : null;
 
@@ -205,7 +209,6 @@ export default function HomeScreen() {
         {sky}
         {top}
         <HomeSkeleton />
-        {invitePrompt}
       </View>
     );
   }
@@ -264,19 +267,9 @@ export default function HomeScreen() {
             <Text style={s.date}>{formatKoreanDate(today)}</Text>
           </Reveal>
 
-          {invite ? (
-            <PressableScale onPress={() => setShowInvite(true)} style={[s.notice, { marginTop: 16 }]} scaleTo={0.98} accessibilityLabel={`${invite.inviterNickname}님과 궁합 보기`}>
-              <Mascot name="friends" size={30} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.noticeTitle}>{invite.inviterNickname}님이 궁합을 신청했어요</Text>
-                <Text style={txt.small}>눌러서 둘의 궁합 결과 바로 보기</Text>
-              </View>
-              <Icon name="chevronRight" size={18} color={colors.inkMute} />
-            </PressableScale>
-          ) : null}
           {/* 내 링크로 상대가 궁합을 봤다 — 누르면 결과로 (열면 궁합 탭이 '봤음'으로 바꾼다) */}
           {arrived.length ? (
-            <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility', params: { result: arrived[0] } })} style={[s.notice, { marginTop: invite ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${arrived[0].target.nickname}님과의 궁합 결과 보기`}>
+            <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility', params: { result: arrived[0] } })} style={[s.notice, { marginTop: 16 }]} scaleTo={0.98} accessibilityLabel={`${arrived[0].target.nickname}님과의 궁합 결과 보기`}>
               <Mascot name="friends" size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={s.noticeTitle} numberOfLines={1}>
@@ -289,7 +282,7 @@ export default function HomeScreen() {
           ) : null}
 
           {friend ? (
-            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: invite || arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
+            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
               <Mascot size={30} />
               <View style={{ flex: 1 }}>
                 <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 '{friend.k}' 결과가 도착했어요</Text>

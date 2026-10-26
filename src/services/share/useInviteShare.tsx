@@ -47,6 +47,9 @@ export function useInviteShare() {
           ))}
         </View>
         <PrimaryButton label={busy ? '초대 링크 만드는 중…' : '초대 링크 공유하기'} onPress={send} disabled={!relationship || busy} />
+        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>
+          링크를 연 사람과 서로의 생년월일·태어난 시간·출생지·MBTI·혈액형이 공개돼요.
+        </Text>
       </BottomSheet>
     ),
   };

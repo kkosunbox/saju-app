@@ -784,7 +784,7 @@ export interface paths {
         put?: never;
         /**
          * 친구 궁합 초대 링크 만들기
-         * @description 선택한 관계의 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 운세 프로필이 있어야 합니다.
+         * @description 선택한 관계의 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 링크를 연 친구가 공개에 동의하면 서로의 생년월일·MBTI·혈액형이 상대에게 보입니다. 운세 프로필이 있어야 합니다.
          */
         post: operations["CompatibilityInviteController_createOrGet_v1"];
         delete?: never;
@@ -845,7 +845,7 @@ export interface paths {
         put?: never;
         /**
          * 초대 링크로 궁합 보기
-         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 결과에는 초대한 사람의 이름만 있고 생년월일·MBTI·혈액형은 없습니다(partner = null). 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(내 생년월일 등은 없음, isNew = true). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계는 초대한 사람이 링크 생성 시 선택한 값을 사용합니다. 내 링크를 내가 열면 INVITATION_OWN.
+         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(isNew = true). shareProfile = true(공개 동의)면 양쪽 기록의 partner에 상대의 생년월일·태어난 시간·출생지·MBTI·혈액형이 들어가고, 아니면 이름만 남습니다(partner = null). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계는 초대한 사람이 링크 생성 시 선택한 값을 사용합니다. 내 링크를 내가 열면 INVITATION_OWN.
          */
         post: operations["CompatibilityInviteController_accept_v1"];
         delete?: never;
@@ -2048,20 +2048,6 @@ export interface components {
             number: string;
             time: string;
         };
-        ShareCardDto: {
-            /**
-             * @description 오늘의 칭호
-             * @example 기회를 낚는 사람
-             */
-            title: string;
-            /** @example 오늘 기회가 먼저 DM 보냄. 읽씹 금지. */
-            line: string;
-            /**
-             * @description 올해 나의 날 중 상위 N% (1~100). 같은 점수인 날은 같은 순위로 셈
-             * @example 25
-             */
-            yearTopPercent: number;
-        };
         CombinedFortuneDto: {
             totalScore: number;
             summary: string;
@@ -2093,6 +2079,20 @@ export interface components {
             money: number;
             work: number;
             relationship: number;
+        };
+        ShareCardDto: {
+            /**
+             * @description 오늘의 칭호
+             * @example 기회를 낚는 사람
+             */
+            title: string;
+            /** @example 오늘 기회가 먼저 DM 보냄. 읽씹 금지. */
+            line: string;
+            /**
+             * @description 올해 나의 날 중 상위 N% (1~100). 같은 점수인 날은 같은 순위로 셈
+             * @example 25
+             */
+            yearTopPercent: number;
         };
         DailyFortuneDto: {
             date: string;
@@ -2326,7 +2326,7 @@ export interface components {
             partnerNickname: string;
             /** @enum {string} */
             relationship: "lover" | "friend" | "family" | "work";
-            /** @description 초대로 만든 기록은 상대 정보를 주지 않음 (null) */
+            /** @description 초대로 만든 기록은 친구가 공개에 동의했을 때만 있음 (아니면 null) */
             partner: components["schemas"]["CompatibilityPartnerDto"] | null;
             result: components["schemas"]["CompatibilityResultDto"];
             /**
@@ -2407,8 +2407,17 @@ export interface components {
             relationship: "lover" | "friend" | "family" | "work";
             /** @description 초대한 사람의 운세 프로필 이름 */
             inviterNickname: string;
+            /** @description 궁합을 보면(공개 동의) 서로의 생년월일·MBTI·혈액형이 보이는 링크인지. false는 공개 안내 전에 만든 링크라 서로 비공개 */
+            sharesProfile: boolean;
             /** Format: date-time */
             expiresAt: string;
+        };
+        AcceptCompatibilityInviteRequest: {
+            /**
+             * @description 서로의 생년월일·태어난 시간·출생지·MBTI·혈액형 공개에 동의. true면 양쪽 기록에 상대 정보가 들어가 심층 궁합·속마음을 그대로 볼 수 있어요. 빠지거나 false면 예전처럼 서로 비공개(partner = null)
+             * @default false
+             */
+            shareProfile: boolean;
         };
         WalletDto: {
             /** @description 잔액 (환불 회수로 음수일 수 있음) */
@@ -5137,7 +5146,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptCompatibilityInviteRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {

@@ -16,6 +16,7 @@ import { TG } from '../../services/premium/data';
 import { BRANCHES, ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
+import { isPrivateInvite } from '../../services/server/compatApi';
 import { colors, isDark } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 
@@ -29,7 +30,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   u: User; r: CompatibilityResult; D: DeepCompatibility; reading: ReadingView<CompatReading> | null; onRetry(): void;
 }) {
   const p = r.target; const A = toSajuFull(D.me), B = D.partner ? toSajuFull(D.partner) : null;
-  const privatePartner = r.source === 'invite';
+  const privatePartner = isPrivateInvite(r);
   const nmA = u.nickname, nmB = p.nickname;
   const [adviceFor, setAdviceFor] = useState<'me' | 'partner'>('me');
   const writing = reading?.status === 'writing';

@@ -49,9 +49,10 @@ export async function shareInvite(nickname: string, relationship: Relationship):
 
 /**
  * 초대 링크로 들어온 사람에게 보여 줄 대기 중인 초대 (초대한 사람 이름과 관계).
+ * sharesProfile: 궁합을 보면 서로의 생년월일 등이 공개되는 링크 (false·없음은 공개 안내 전에 만든 비공개 링크)
  * auto: 프로필을 넣으러 갔다 — 홈에 오면 궁합 보기 안내를 바로 연다 (한 번만)
  */
-export interface PendingInvite { token: string; inviterNickname: string; relationship?: Relationship; auto?: boolean }
+export interface PendingInvite { token: string; inviterNickname: string; relationship?: Relationship; sharesProfile?: boolean; auto?: boolean }
 
 export async function savePendingInvite(invite: PendingInvite) {
   await AsyncStorage.setItem(PENDING, JSON.stringify(invite));

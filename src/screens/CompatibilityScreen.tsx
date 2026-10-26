@@ -26,7 +26,7 @@ import { ITEMS } from '../services/premium/catalog';
 import { usePremiumContent, useReading } from '../services/server/premiumApi';
 import { CompatReading, CrushReading } from '../types/reading';
 import { CrushReport, DeepCompatibility } from '../types/premium';
-import { compatApi, compatKeys } from '../services/server/compatApi';
+import { compatApi, compatKeys, isPrivateInvite } from '../services/server/compatApi';
 import { placeLabel } from '../services/server/birthPlaceApi';
 import BirthPlaceSearch from '../components/BirthPlaceSearch';
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +54,8 @@ const BLOOD_TYPES: BloodType[] = ['A', 'B', 'O', 'AB'];
 
 /** 아는 것만: "ENFP · A형" / 하나도 모르면 null */
 const traitsOf = (p: PartnerInput): string | null => [p.mbti, p.bloodType && `${p.bloodType}형`].filter(Boolean).join(' · ') || null;
+/** 저장된 상대 이름 옆 생일 (양력, 1998.07.01). 공개 동의 없이 본 예전 초대 궁합은 없다 */
+const birthOf = (p: PartnerInput): string | null => p.birthDate ? p.birthDate.replaceAll('-', '.') : null;
 
 function Label({ children }: { children: string }) {
   return <Text style={s.fieldLabel}>{children}</Text>;
@@ -247,7 +249,7 @@ export default function CompatibilityScreen() {
           ))}
         </View>
 
-        {result.source === 'invite' ? (
+        {isPrivateInvite(result) ? (
           <Text style={[txt.small, { marginTop: 20 }]}>상대의 생년월일은 공개하지 않고, 두 사람의 프로필로 심층 궁합을 볼 수 있어요.</Text>
         ) : null}
 
@@ -255,7 +257,7 @@ export default function CompatibilityScreen() {
           <>
             <DeepSection u={user} r={result} id={result.id} />
             {/* 속마음은 연애 리포트라 연인일 때만 */}
-            {result.source !== 'invite' && result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
+            {!isPrivateInvite(result) && result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
           </>
         ) : null}
 
@@ -320,11 +322,12 @@ export default function CompatibilityScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={s.rowTitle} numberOfLines={1}>{r.target.nickname}</Text>
+                    {birthOf(r.target) ? <Text style={s.rowBirth}>{birthOf(r.target)}</Text> : null}
                     {r.isNew ? <Text style={s.newBadge}>NEW</Text> : null}
                   </View>
                   <Text style={s.rowSub} numberOfLines={1}>
                     {RELATIONSHIP_INFO[r.relationship].label}
-                    {r.inviteRole === 'inviter' ? ' · 내 링크로 본 궁합' : r.source === 'invite' ? ' · 초대 링크로 본 궁합' : traitsOf(r.target) ? ` · ${traitsOf(r.target)}` : ''}
+                    {traitsOf(r.target) ? ` · ${traitsOf(r.target)}` : ''}
                     {r.id != null && owned(`compat:${r.id}`) ? ' · 심층 궁합' : ''}
                     {r.id != null && owned(`crush:${r.id}`) ? ' · 속마음' : ''}
                   </Text>
@@ -482,6 +485,7 @@ const s = StyleSheet.create({
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 16, paddingVertical: 12, borderRadius: radius.lg, backgroundColor: colors.card },
   rowIco: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { flexShrink: 1, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
+  rowBirth: { fontSize: 12, letterSpacing: -0.4, color: colors.inkMute },
   rowSub: { marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   savedSealText: { fontSize: 16, fontWeight: '700', letterSpacing: -0.64, color: colors.ink },
   savedScore: { fontSize: 20, fontWeight: '600', letterSpacing: -0.8, color: colors.love, fontVariant: ['tabular-nums'] },
