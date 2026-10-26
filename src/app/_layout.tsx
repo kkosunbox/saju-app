@@ -28,8 +28,8 @@ function useCloseAuthFlowOnSignIn() {
   const pathname = usePathname();
   const lastPath = useRef('/');
   const hadAccount = useRef(!!account);
-  // 웹 랜딩(/onboarding)은 로그인하러 가면서 닫히므로 돌아갈 곳은 홈
-  if (!isAuthPath(pathname)) lastPath.current = pathname === '/onboarding' ? '/' : pathname;
+  // 웹 랜딩(/onboarding)은 로그인하러 가면서 닫히고, 프로필 입력(/profile-setup)은 프로필 있는 계정으로 로그인하면 막히므로 돌아갈 곳은 홈
+  if (!isAuthPath(pathname)) lastPath.current = pathname === '/onboarding' || pathname === '/profile-setup' ? '/' : pathname;
   useEffect(() => {
     if (!hadAccount.current && account && isAuthPath(pathname)) router.dismissTo((user ? lastPath.current : '/profile-setup') as Href);
     hadAccount.current = !!account;
