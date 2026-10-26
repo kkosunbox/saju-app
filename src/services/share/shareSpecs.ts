@@ -11,6 +11,7 @@ import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
+import type { TalismanPaperData } from '../../components/TalismanPaper';
 
 export interface ShareSpec {
   /** 상단 분류 (예: 미래 배우자 리포트) */
@@ -35,6 +36,8 @@ export interface ShareSpec {
   /** 결과 링크로 친구가 열 화면 · 친구에게 보일 결과 한 줄 */
   route: string;
   short: string;
+  /** 오늘의 부적: 스토리 카드에 부적 종이를 그대로 그린다 */
+  talisman?: TalismanPaperData;
 }
 
 /** 받침이 있으면 a, 없으면 b (예: 훈장이었대 / 시인이었대 / 화가였대) */
@@ -85,6 +88,7 @@ export function talismanSpec(u: User, t: Talisman): ShareSpec {
     stats: [['행운의 색', t.color], ['숫자', String(t.number)], ['시간', t.time]],
     hook: '오늘 너에게 온 부적은?',
     text: `오늘 받은 부적: ${t.hanja}(${t.keyword}). "${t.mantra}" 너도 하나 받아 봐.`, file: 'woonpick-talisman', route: 'Talisman', short: `${t.hanja} · ${t.keyword}`,
+    talisman: { hanja: t.hanja, mantra: t.mantra, keyword: t.keyword, nickname: u.nickname },
   };
 }
 

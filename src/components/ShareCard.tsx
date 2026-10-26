@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, Logo } from './Mascot';
 import Icon from './Icon';
 import CharacterArt from './CharacterArt';
+import TalismanPaper from './TalismanPaper';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { parseISO } from '../utils/date';
 
@@ -11,6 +12,7 @@ import { parseISO } from '../utils/date';
  * 공유 카드 — 인스타 스토리 비율(9:16). 홈과 같은 언어로:
  * 하늘색 그라디언트 위 로고 · 흰 말풍선에 결과 한 줄 · 둥실 뜬 마스코트 · 회색 숫자 칸 ·
  * 가려 둔 "잠긴 이야기"로 호기심을 남기고, 마지막 질문으로 앱에 부른다.
+ * 오늘의 부적은 말풍선·마스코트 자리에 부적 종이를 그대로 담는다.
  * 모드(다크)와 상관없이 늘 밝은 카드. 캡처(html2canvas · view-shot)에서도 나오도록 View·Text·Image·그라디언트만 쓴다.
  */
 const C = { ink: '#222222', sub: '#4F4F4F', mute: '#777777', card: '#F5F6F8', line: '#ECEEF2', accent: '#28B2FE', blue: '#4392F7', dark: '#1D212D' };
@@ -41,6 +43,11 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
       <View style={s.kind}><Text style={s.kindText}>{spec.kind}</Text></View>
 
       {/* 결과 말풍선 */}
+      {spec.talisman ? (
+        <View style={s.spacer}>
+          <View style={s.paper}><TalismanPaper data={spec.talisman} today={today} /></View>
+        </View>
+      ) : <>
       <View style={s.bubble}>
         <Text style={s.eyebrow} numberOfLines={1}>{spec.eyebrow}</Text>
         <Text style={[longHead ? s.headSm : s.head, KEEP]} numberOfLines={3}>{spec.headline}</Text>
@@ -52,6 +59,7 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
       <View style={s.spacer}>
         {spec.pillar ? <CharacterArt hanja={spec.pillar} size={96} /> : <Mascot name={POSE[spec.seal] ?? 'mascot'} size={72} />}
       </View>
+      </>}
 
       {spec.big ? (
         <View style={s.big}>
@@ -112,6 +120,7 @@ const s = StyleSheet.create({
   headSm: { fontSize: 20, lineHeight: 27, fontWeight: '800', letterSpacing: -0.8, marginTop: 6, color: C.ink },
   sub: { fontSize: 12, lineHeight: 18, marginTop: 6, color: C.sub },
   spacer: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  paper: { borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
   big: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   bigVal: { fontSize: 44, lineHeight: 48, fontWeight: '800', letterSpacing: -1.5, color: C.ink },
   bigUnit: { fontSize: 16, fontWeight: '600', letterSpacing: 0, color: C.mute },

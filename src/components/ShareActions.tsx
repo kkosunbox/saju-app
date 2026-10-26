@@ -5,7 +5,7 @@ import PressableScale from './PressableScale';
 import GradientBorder from './GradientBorder';
 import { SHARE_P, usePremium } from '../context/PremiumContext';
 import { ShareSpec } from '../services/share/shareSpecs';
-import { useShare } from '../services/share/useShare';
+import { ShareImage, useShare } from '../services/share/useShare';
 import { colors } from '../theme/colors';
 import { radius, sansW, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
@@ -13,11 +13,12 @@ import { COPY } from '../content/copy';
 /**
  * 무료 결과 아래 공유 블록 — 결과를 본 직후가 가장 공유하고 싶은 순간이라 크게 보여준다.
  * 링크로 보내면 친구가 열었을 때 내 결과와 친구 결과가 나란히 비교된다.
+ * image가 있으면(예: 오늘의 부적) 친구에게 그 이미지를 링크와 함께 보낸다.
  */
-export default function ShareActions({ spec, title = COPY.friend, outlined = false }: { spec: ShareSpec; title?: string; outlined?: boolean }) {
+export default function ShareActions({ spec, title = COPY.friend, outlined = false, image }: { spec: ShareSpec; title?: string; outlined?: boolean; image?: ShareImage }) {
   const nav = useNavigation();
   const { shareRewardsLeft } = usePremium();
-  const { sendLink } = useShare();
+  const { sendLink, sendImage } = useShare();
   const content = (
     <>
       <View style={[s.head, outlined && s.outlinedHead]}>
@@ -26,7 +27,7 @@ export default function ShareActions({ spec, title = COPY.friend, outlined = fal
       </View>
       <Text style={[s.sub, outlined && s.outlinedSub]}>보내면 친구 결과와 내 결과가 나란히 비교돼요.</Text>
       <View style={s.row}>
-        <PressableScale onPress={() => sendLink(spec)} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="친구에게 링크 보내기">
+        <PressableScale onPress={() => (image ? sendImage(spec, image) : sendLink(spec))} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="친구에게 링크 보내기">
           <Text style={[s.text, { color: colors.white }]}>친구에게 보내기</Text>
         </PressableScale>
         <PressableScale onPress={() => nav.navigate('Share', { spec })} style={[s.btn, s.soft]} scaleTo={0.96} accessibilityLabel="스토리용 카드 만들기">

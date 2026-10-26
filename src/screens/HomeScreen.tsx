@@ -140,8 +140,8 @@ export default function HomeScreen() {
           </PressableScale>
         ) : null}
         <PointPill />
-        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 저장·공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
-          <Icon name="download" size={24} color={colors.ink} />
+        <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
+          <Icon name="share" size={24} color={colors.ink} />
         </PressableScale>
       </View>
     </View>
