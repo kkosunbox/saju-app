@@ -10,6 +10,23 @@ export type ShareResult = 'shared' | 'saved' | 'cancelled' | 'failed' | 'unsuppo
 export interface WebCard { dataUri: string; file: File }
 
 /**
+ * html2canvas는 <style>을 복제할 때 지금 규칙 전체 뒤에 원래 글자를 한 번 더 붙인다.
+ * 정적 export 웹은 RN 웹 스타일이 글자로 미리 들어 있어서, 뒤에 붙은 기본 글자 스타일(검정)이
+ * 화면에서 나중에 추가된 색·여백 규칙을 덮는다 — 복제본을 지금 규칙 한 벌로 바로잡는다.
+ */
+function syncStyles(clone: Document) {
+  const live = document.querySelectorAll('style');
+  const copies = clone.querySelectorAll('style');
+  live.forEach((style, i) => {
+    try {
+      if (style.sheet && copies[i]) copies[i].textContent = Array.from(style.sheet.cssRules, rule => rule.cssText).join('\n');
+    } catch {
+      // 다른 출처 시트는 읽을 수 없다 — 그대로 둔다
+    }
+  });
+}
+
+/**
  * 웹: 카드를 1080px 폭 PNG로 그린다 (view-shot이 findNodeHandle을 못 써서 html2canvas로).
  * 버튼을 누른 뒤에 그리면 그 사이 iOS 사파리가 사용자 동작이 끝났다고 보고 공유를 막으니, 화면에 들어오면 미리 그려 둔다.
  */
@@ -18,7 +35,7 @@ export async function renderCardWeb(ref: RefObject<View | null>, file = 'woonpic
   const node = ref.current as unknown as HTMLElement;
   const html2canvas = (await import('html2canvas')).default;
   await (document as any).fonts?.ready;
-  const canvas = await html2canvas(node, { scale: 1080 / node.offsetWidth, backgroundColor: null, logging: false, useCORS: true });
+  const canvas = await html2canvas(node, { scale: 1080 / node.offsetWidth, backgroundColor: null, logging: false, useCORS: true, onclone: syncStyles });
   const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
   if (!blob) return null;
   return { dataUri: canvas.toDataURL('image/png'), file: new File([blob], `${file}.png`, { type: 'image/png' }) };
