@@ -52,6 +52,8 @@ export default function Root({ children }: PropsWithChildren) {
         <meta property="og:image:alt" content={`${BRAND.name} — ${BRAND.slogan}`} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content={`${SITE_URL}/og-v3.png`} />
+        {/* 네이버 서치어드바이저 소유확인 (Google은 DNS TXT 레코드) */}
+        <meta name="naver-site-verification" content="c6e00275211265c4ab02d8421ae1bfa179e70866" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
