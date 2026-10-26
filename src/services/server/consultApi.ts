@@ -13,7 +13,12 @@ export interface ConsultAnswer {
   followUps?: string[];
 }
 /** 잠긴 미리보기에서 보이는 부분 */
-export type ConsultPreview = Pick<ConsultAnswer, 'headline' | 'direct' | 'empathy' | 'followUps'>;
+export type ConsultPreview = Pick<ConsultAnswer, 'headline' | 'direct' | 'empathy' | 'followUps'> & {
+  /** 잠긴 나머지를 가리키는 한 줄 (예전 미리보기엔 없음) */
+  hook?: string;
+};
+/** 잠겨 있을 때 보여 줄 사주 일부 — 점수 · 좋은 달 · 좋은 날 자체는 없다 */
+export interface ConsultTeaser { modeLabel: string; relatedStarName: string; months: string[]; goodDayCount: number }
 export interface ConsultFacts {
   topic: ConsultCat; topicLabel: string; mode: string; modeLabel: string;
   flow: { label: string; score: number }[]; bestMonth: string;
@@ -36,6 +41,8 @@ export interface ConsultView {
   answer: ConsultAnswer | ConsultPreview | null;
   locked: boolean;
   facts: ConsultFacts | null;
+  /** 잠겨 있을 때만 */
+  teaser?: ConsultTeaser | null;
   /** 이어 묻기 대화 (목록에서는 null) */
   turns: ConsultTurn[] | null;
   followUpsLeft: number;

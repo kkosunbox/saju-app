@@ -16,8 +16,8 @@ import { useApp } from '../../context/AppContext';
 import { refreshPoints, usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
-import { ro } from '../../services/premium/catalog';
-import { ConsultAnswer, ConsultFacts, ConsultView, HelpLine, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
+import { fmtN, ro } from '../../services/premium/catalog';
+import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, HelpLine, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
@@ -107,7 +107,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
 function Chat({ id }: { id: number }) {
   const nav = useNavigation<Nav>();
   const { user: u, account } = useApp();
-  const { toast, goWallet } = usePremium();
+  const { toast, goWallet, points } = usePremium();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
@@ -115,6 +115,8 @@ function Chat({ id }: { id: number }) {
   const [sending, setSending] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const [unlockOpen, setUnlockOpen] = useState(false);
+  /** 잠긴 채로 물어본 질문 — 열고 나면 바로 보낸다 */
+  const [pendingQ, setPendingQ] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [del, setDel] = useState(false);
   const q = useQuery({ queryKey: consultKeys.one(id), queryFn: () => consultApi.get(id), enabled: Number.isFinite(id) });
@@ -138,17 +140,22 @@ function Chat({ id }: { id: number }) {
   const turns = e.turns ?? [];
   const suggestions = (turns.length ? turns[turns.length - 1].followUps : e.answer.followUps) ?? [];
   const canAsk = !e.locked && e.followUpsLeft > 0;
+  const hook = 'hook' in e.answer ? e.answer.hook : undefined;
 
   const put = (v: ConsultView) => {
     queryClient.setQueryData(consultKeys.one(id), v);
     queryClient.invalidateQueries({ queryKey: consultKeys.list });
   };
 
-  const send = async (raw: string) => {
+  const send = (raw: string) => {
     const question = raw.trim();
     if (!question || sending) return;
-    if (e.locked) { setUnlockOpen(true); return; }
+    if (e.locked) { setPendingQ(question); setUnlockOpen(true); return; }
     if (!canAsk) { toast(SEND_ERROR.CONSULT_CLOSED); return; }
+    post(question);
+  };
+
+  const post = async (question: string) => {
     setSending(question); setInput(''); setCrisis(null);
     try {
       const v = await consultApi.followUp(id, question);
@@ -165,14 +172,19 @@ function Chat({ id }: { id: number }) {
     }
   };
 
+  const closeUnlock = () => { setUnlockOpen(false); setPendingQ(null); };
+
   const unlock = async () => {
-    setUnlockOpen(false); setUnlocking(true);
+    const question = pendingQ;
+    closeUnlock(); setUnlocking(true);
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80);
+    let opened = false;
     try {
       const v = await consultApi.unlock(id);
       put(v);
       refreshPoints();
-      toast(`전체 답변을 열었어요. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
+      opened = true;
+      toast(question ? '전체 답변을 열었어요. 물어본 질문에 바로 답해 드릴게요' : `전체 답변을 열었어요. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
     } catch (err) {
       if (err instanceof ApiError && err.code === 'INSUFFICIENT_POINTS') {
         toast(`${cost}알이 필요해요. 충전 후 다시 시도해 주세요`);
@@ -183,6 +195,8 @@ function Chat({ id }: { id: number }) {
     } finally {
       setUnlocking(false);
     }
+    // 열자마자 물어본 질문을 보낸다 (이어 묻기 1번으로 센다)
+    if (opened && question) post(question);
   };
 
   const remove = async () => {
@@ -234,8 +248,8 @@ function Chat({ id }: { id: number }) {
 
           <Counselor>
             <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
-            <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
             <View style={s.headline}><Text style={s.headlineV}>{e.answer.headline}</Text></View>
+            <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
             {full ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
@@ -243,6 +257,7 @@ function Chat({ id }: { id: number }) {
               </View>
             ) : null}
             <Text style={s.replyText}>{e.answer.empathy}</Text>
+            {e.locked && hook && !unlocking ? <Cliff hook={hook} /> : null}
           </Counselor>
 
           {full ? (
@@ -250,7 +265,7 @@ function Chat({ id }: { id: number }) {
           ) : unlocking ? (
             <ReplyBubble typing={STAGES.rest} />
           ) : (
-            <LockedRest cost={cost} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
+            <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
           )}
 
           {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
@@ -272,7 +287,7 @@ function Chat({ id }: { id: number }) {
           {!sending && !unlocking && (e.locked || canAsk) ? (
             <SuggestionChips
               items={suggestions}
-              caption={e.locked ? `${cost}알로 열면 이렇게 이어서 물어볼 수 있어요` : '이어서 물어보기'}
+              caption={e.locked ? `궁금한 질문을 누르면 ${cost}알로 열고 바로 답해 드려요` : '이어서 물어보기'}
               onPick={send}
             />
           ) : null}
@@ -287,12 +302,20 @@ function Chat({ id }: { id: number }) {
         <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>{footer}</View>
       </KeyboardAvoidingView>
 
-      <BottomSheet visible={unlockOpen} onClose={() => setUnlockOpen(false)}>
+      <BottomSheet visible={unlockOpen} onClose={closeUnlock}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
-        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 전부 열까요?</Text>
+        {pendingQ ? (
+          <>
+            <View style={s.pendingQ}><Text style={s.pendingQText} numberOfLines={3}>{pendingQ}</Text></View>
+            <Text style={[txt.h2, { textAlign: 'center', marginTop: 12 }]}>열고 이 질문에 바로 답해 드릴게요</Text>
+          </>
+        ) : (
+          <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 전부 열까요?</Text>
+        )}
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>사주로 본 나 · 3개월 흐름 · 해 볼 것과 피할 것 · 행동하기 좋은 날{'\n'}그리고 {hours}시간 동안 {limit}번 이어서 물어볼 수 있어요.</Text>
         <PrimaryButton label={`${cost}${ro(cost)} 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
-        <PrimaryButton label="취소" variant="soft" onPress={() => setUnlockOpen(false)} style={{ marginTop: 8 }} />
+        <Balance cost={cost} points={points} />
+        <PrimaryButton label="취소" variant="soft" onPress={closeUnlock} style={{ marginTop: 8 }} />
       </BottomSheet>
       <BottomSheet visible={del} onClose={() => setDel(false)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>상담 기록을 지울까요?</Text>
@@ -304,15 +327,72 @@ function Chat({ id }: { id: number }) {
   );
 }
 
-/** 무료 미리보기에서 잠긴 부분 — 무엇이 열리는지 보여 준다 */
-function LockedRest({ cost, hours, limit, onUnlock }: { cost: number; hours: number; limit: number; onUnlock(): void }) {
-  const rows = ['사주로 본 나', '지금의 흐름 · 앞으로 3개월', '이렇게 해 보세요 3가지', '이것만은 피하세요', '행동하기 좋은 날', `${hours}시간 동안 ${limit}번 이어 묻기`];
+/** 미리보기의 마지막 말 — 상담가가 나머지를 꺼내려다 가려진다 */
+function Cliff({ hook }: { hook: string }) {
+  return (
+    <View accessibilityLabel={`${hook} 이어지는 말은 잠겨 있어요`}>
+      <Text style={s.replyText}>{hook}</Text>
+      <View style={{ gap: 8, marginTop: 10 }}>
+        {CLIFF_LINES.map((w, i) => <View key={i} style={[s.cliffLine, { width: w, opacity: 1 - i * 0.3 }]} />)}
+      </View>
+    </View>
+  );
+}
+
+const CLIFF_LINES = ['94%', '82%', '58%'] as const;
+
+/** 보유 알 — 이미 가진 알로 열 수 있는지 */
+function Balance({ cost, points }: { cost: number; points: number }) {
+  return (
+    <Text style={[txt.caption, { textAlign: 'center', marginTop: 8 }]}>
+      보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}
+    </Text>
+  );
+}
+
+/** 무료 미리보기에서 잠긴 부분 — 내 사주의 일부(이번 달 흐름 · 이어진 기운)와 함께 무엇이 열리는지 보여 준다 */
+function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { teaser: ConsultTeaser | null; cost: number; points: number; hours: number; limit: number; onUnlock(): void }) {
+  // 잠긴 사주 일부를 보여 주면 목록에서는 그 항목을 뺀다
+  const rows = [
+    ...(T ? [] : ['사주로 본 나', '지금의 흐름 · 앞으로 3개월']),
+    '이렇게 해 보세요 3가지', '이것만은 피하세요',
+    ...(T ? [] : ['행동하기 좋은 날']),
+    `${hours}시간 동안 ${limit}번 이어 묻기`,
+  ];
   return (
     <GradientBorder outer={{ marginTop: 24 }} style={s.locked}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={s.lockIco}><Icon name="lock" size={18} color={colors.accent} /></View>
-        <Text style={s.lockTitle}>나머지 답이 기다리고 있어요</Text>
+        <Text style={[s.lockTitle, { flex: 1 }]}>나머지 답이 기다리고 있어요</Text>
       </View>
+      {T ? (
+        <View style={s.peek}>
+          <View style={s.peekRow}>
+            <Text style={s.peekK}>이번 달 흐름</Text>
+            <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{T.modeLabel}</Text></View>
+          </View>
+          <View style={s.peekRow}>
+            <Text style={s.peekK}>고민과 이어진 기운</Text>
+            <View style={[s.fact, { backgroundColor: colors.accentSoft }]}><Text style={s.factT}>{T.relatedStarName}</Text></View>
+          </View>
+          <Text style={[s.peekK, { marginTop: 6 }]}>앞으로 3개월 · 가장 풀리는 달은?</Text>
+          <View style={s.peekBars}>
+            {T.months.map(m => (
+              <View key={m} style={s.barCol}>
+                <Text style={s.barV}>?</Text>
+                <View style={[s.bar, s.peekBar]} />
+                <Text style={txt.caption}>{m}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[s.peekK, { marginTop: 6 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {Array.from({ length: T.goodDayCount }, (_, i) => (
+              <View key={i} style={[s.day, s.peekDay]}><Icon name="lock" size={14} color={colors.inkMute} /></View>
+            ))}
+          </View>
+        </View>
+      ) : null}
       <View style={{ gap: 10, marginTop: 12, paddingLeft: 22 }}>
         {rows.map(r => (
           <View key={r} style={s.lockRow}>
@@ -322,6 +402,7 @@ function LockedRest({ cost, hours, limit, onUnlock }: { cost: number; hours: num
         ))}
       </View>
       <PrimaryButton small label={`${cost}${ro(cost)} 전부 열기`} icon={<Coin size={16} />} onPress={onUnlock} style={{ marginTop: 16 }} />
+      <Balance cost={cost} points={points} />
     </GradientBorder>
   );
 }
@@ -390,6 +471,16 @@ const s = StyleSheet.create({
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   lockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   lockText: { fontSize: 13, color: colors.ink, letterSpacing: -0.5, flex: 1 },
+  peek: { gap: 8, marginTop: 14, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
+  peekRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  peekK: { fontSize: 12, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.5 },
+  peekBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 76 },
+  // 점수는 잠겨 있으니 막대는 모두 같은 높이로 (실제 흐름처럼 보이지 않게)
+  peekBar: { height: 36, backgroundColor: colors.lineStrong },
+  peekDay: { paddingVertical: 10, backgroundColor: colors.surface },
+  cliffLine: { height: 12, borderRadius: 6, backgroundColor: colors.lineStrong },
+  pendingQ: { alignSelf: 'center', maxWidth: '90%', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
+  pendingQText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 120, marginTop: 16 },
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   barV: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
