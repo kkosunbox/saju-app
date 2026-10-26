@@ -22,6 +22,7 @@ import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
 import { motion, useReducedMotion } from '../utils/motion';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
+import ScoreDelta from '../components/ScoreDelta';
 
 const TABS: { key: Period; label: string }[] = [
   { key: 'daily', label: '오늘' }, { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
@@ -102,7 +103,10 @@ export default function FortuneScreen() {
       <LinearGradient colors={gradients.skyCard} style={s.hero}>
         <View style={{ alignSelf: 'center' }}><ResultMascot dayStem={fortune.dayPillar?.stem} scores={tab === 'daily' ? f : period ? { totalScore: period.score, love: period.cats.love.score, money: period.cats.money.score, work: period.cats.work.score, relationship: period.cats.relationship.score } : undefined} size={88} /></View>
         <View style={s.heroRow}>
-          <ScoreRing key={tab} score={score} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
+          <View style={{ alignItems: 'center', gap: 2 }}>
+            <ScoreRing key={tab} score={score} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
+            {tab === 'daily' ? <ScoreDelta now={score} before={fortune.yesterdayScores?.totalScore} /> : null}
+          </View>
           <View style={{ flex: 1 }}>
             <View style={s.heroHead}>
               <Text style={s.heroTitle}>{tab === 'weekly' ? '이번주' : label}의 흐름</Text>
@@ -123,6 +127,7 @@ export default function FortuneScreen() {
             <CategoryRow
               key={`${tab}-${k}`}
               category={k} score={c.score} text={c.text} delay={i * 80}
+              before={tab === 'daily' ? fortune.yesterdayScores?.[k] : undefined}
               badge={c.best ? `${c.best} 최고` : undefined}
               lines={tab !== 'daily' && open === k ? 4 : 1}
               expand={tab !== 'daily'} open={open === k}

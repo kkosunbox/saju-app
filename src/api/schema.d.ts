@@ -784,7 +784,7 @@ export interface paths {
         put?: never;
         /**
          * 친구 궁합 초대 링크 만들기
-         * @description 선택한 관계의 유효한 초대 링크를 재사용하거나 새로 만듭니다(30일 유효). 관계가 다르면 별도 링크를 만들며 기존 링크의 관계는 바꾸지 않습니다.
+         * @description 선택한 관계의 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 운세 프로필이 있어야 합니다.
          */
         post: operations["CompatibilityInviteController_createOrGet_v1"];
         delete?: never;
@@ -823,7 +823,7 @@ export interface paths {
         };
         /**
          * 초대 링크 미리보기 (로그인 불필요)
-         * @description 초대한 사람의 이름과 선택한 관계를 보여 줍니다. IP당 시간당 60회로 제한합니다.
+         * @description 링크를 연 친구에게 초대한 사람의 이름과 선택된 관계를 보여 줍니다. IP당 시간당 60회로 제한합니다.
          */
         get: operations["CompatibilityInviteController_preview_v1"];
         put?: never;
@@ -1003,7 +1003,7 @@ export interface paths {
         put?: never;
         /**
          * 웹 충전 주문 (토스 결제위젯)
-         * @description 금액은 서버 상품표로 정합니다. 받은 clientKey·customerKey로 위젯을 열고, orderId·orderName·amount로 결제를 요청하세요.
+         * @description 금액은 서버 상품표로 정합니다. 받은 clientKey·customerKey로 위젯을 열고, orderId·orderName·amount로 결제를 요청하세요. 토스 키가 아직 없으면(운영 준비 중) PAYMENT_NOT_READY.
          */
         post: operations["PaymentsController_createTossOrder_v1"];
         delete?: never;
@@ -1379,7 +1379,7 @@ export interface paths {
         };
         /**
          * 웹 카드 등록 준비 (토스 정기결제)
-         * @description 받은 clientKey·customerKey로 requestBillingAuth를 호출하세요.
+         * @description 받은 clientKey·customerKey로 requestBillingAuth를 호출하세요. 토스 키가 아직 없으면(운영 준비 중) PAYMENT_NOT_READY.
          */
         get: operations["SubscriptionsController_billingAuth_v1"];
         put?: never;
@@ -1619,6 +1619,8 @@ export interface components {
              * @enum {string}
              */
             status: "guest" | "active" | "inactive" | "suspended";
+            /** @description 로그인 방법 (비밀번호가 있으면 email, 연결된 소셜 계정마다 그 제공자). 게스트는 빈 배열 */
+            loginMethods: ("email" | "google" | "kakao" | "naver" | "apple")[];
             /**
              * Format: date-time
              * @description 마지막 로그인 일시
@@ -1675,13 +1677,19 @@ export interface components {
             /** @description redirect url */
             callbackUrl?: string;
         };
-        SendSignupEmailVerificationResponse: {
-            /** @description 응답 메시지 */
-            message: string;
+        CheckSignupEmailResponse: {
+            /** @description 이미 가입된 이메일인지 */
+            exists: boolean;
+            /** @description 소셜 로그인으로 가입한 계정인지 (비밀번호가 없음) */
+            social: boolean;
         };
         SendSignupEmailVerificationRequest: {
             /** @description 이메일 */
             email: string;
+        };
+        SendSignupEmailVerificationResponse: {
+            /** @description 응답 메시지 */
+            message: string;
         };
         VerifyEmailForSignupResponse: {
             /** @description 이메일 인증 완료 토큰 (10분 유효) */
@@ -2034,6 +2042,12 @@ export interface components {
             title: string;
             body: string;
         };
+        LuckyReasonsDto: {
+            /** @example 내 사주에 필요한 용신 화(火)의 색 가운데, 오늘 일지 유(酉)에 맞춰 코랄을 골랐어요 */
+            color: string;
+            number: string;
+            time: string;
+        };
         CombinedFortuneDto: {
             totalScore: number;
             summary: string;
@@ -2056,6 +2070,15 @@ export interface components {
             luckyColorHex: string;
             luckyNumber: number;
             luckyTime: string;
+            /** @description 행운 색 · 숫자 · 시간을 고른 근거 (한 문장씩). 예전에 저장된 운세에는 없음 */
+            luckyReasons?: components["schemas"]["LuckyReasonsDto"];
+        };
+        DayScoresDto: {
+            totalScore: number;
+            love: number;
+            money: number;
+            work: number;
+            relationship: number;
         };
         DailyFortuneDto: {
             date: string;
@@ -2070,6 +2093,8 @@ export interface components {
             dayPillar: Record<string, never>;
             /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
             textsPending: boolean;
+            /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
+            yesterdayScores: components["schemas"]["DayScoresDto"] | null;
         };
         PeriodFlowDto: {
             /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
@@ -2345,22 +2370,29 @@ export interface components {
              * @example k3x9Qp2LmZ7vT1sYw8nB4a
              */
             token: string;
+            /** @enum {string} */
+            relationship: "lover" | "friend" | "family" | "work";
             /** Format: date-time */
             expiresAt: string;
             /** @description 이 링크로 친구들이 궁합을 본 횟수 */
             acceptCount: number;
             /** Format: date-time */
             createdAt: string;
-            /** @enum {string} */
+        };
+        CreateCompatibilityInviteRequest: {
+            /**
+             * @default lover
+             * @enum {string}
+             */
             relationship: "lover" | "friend" | "family" | "work";
         };
         InvitePreviewDto: {
+            /** @enum {string} */
+            relationship: "lover" | "friend" | "family" | "work";
             /** @description 초대한 사람의 운세 프로필 이름 */
             inviterNickname: string;
             /** Format: date-time */
             expiresAt: string;
-            /** @enum {string} */
-            relationship: "lover" | "friend" | "family" | "work";
         };
         WalletDto: {
             /** @description 잔액 (환불 회수로 음수일 수 있음) */
@@ -2370,6 +2402,8 @@ export interface components {
             attendedToday: boolean;
             /** @description 오늘 남은 공유 보상 횟수 */
             shareRewardsLeft: number;
+            /** @description 이번 호출로 준 가입 축하 포인트 (지갑을 처음 만든 호출만, 그 밖엔 0) */
+            signupBonus: number;
         };
         ShareRewardDto: {
             /** @description 이번 공유로 포인트를 받았는지 */
@@ -2661,19 +2695,6 @@ export interface components {
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
-        };
-        CreateCompatibilityInviteRequest: {
-            /**
-             * @default lover
-             * @enum {string}
-             */
-            relationship: "lover" | "friend" | "family" | "work";
-        };
-        CheckSignupEmailResponse: {
-            /** @description 이미 가입된 이메일인지 */
-            exists: boolean;
-            /** @description 소셜 로그인으로 가입한 계정인지 (비밀번호가 없음) */
-            social: boolean;
         };
     };
     responses: never;
@@ -5780,6 +5801,24 @@ export interface operations {
                     };
                 };
             };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
         };
     };
     PaymentsController_confirmToss_v1: {
@@ -7245,6 +7284,24 @@ export interface operations {
                         /** @example MEMBER_ONLY */
                         code?: string;
                         /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

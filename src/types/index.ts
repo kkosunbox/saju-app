@@ -112,6 +112,8 @@ export interface DailyFortune {
   textsPending?: boolean;
   /** 그날의 일진 (서버 만세력). */
   dayPillar?: { stem: number; branch: number };
+  /** 전날 점수 (같은 프로필로 계산). 기능 전에 만든 운세는 null */
+  yesterdayScores?: { totalScore: number; love: number; money: number; work: number; relationship: number } | null;
 }
 
 /** 궁합 상대와의 관계 */
