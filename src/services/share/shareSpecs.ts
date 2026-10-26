@@ -11,6 +11,7 @@ import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
+import { getResultMascot, type MascotPose } from '../../utils/resultMascot';
 import type { TalismanPaperData } from '../../components/TalismanPaper';
 
 export interface ShareSpec {
@@ -48,6 +49,8 @@ export interface TodayCardData {
   title: string;
   line: string;
   topPercent: number;
+  /** 홈과 같은 마스코트 포즈 (null이면 기본 무지개 젤리) */
+  pose: MascotPose | null;
   /** [라벨, 점수] 4개 */
   scores: [string, string][];
 }
@@ -67,7 +70,7 @@ export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null):
       hook: '너는 오늘 상위 몇 %?',
       text: `오늘 내 칭호는 '${card.title}', 올해 나의 날 중 ${pct}래. 너는 오늘 상위 몇 %야?`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
       today: {
-        nickname: u.nickname, total: f.totalScore, title: card.title, line: card.line, topPercent: card.yearTopPercent,
+        nickname: u.nickname, total: f.totalScore, title: card.title, line: card.line, topPercent: card.yearTopPercent, pose: getResultMascot(f).pose,
         scores: [['연애', String(f.love)], ['재물', String(f.money)], ['직장', String(f.work)], ['관계', String(f.relationship)]],
       },
     };

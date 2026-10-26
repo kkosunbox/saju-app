@@ -6,7 +6,7 @@ import { getMascotFrame } from '../utils/mascotLayout';
 import { motion } from '../utils/motion';
 import { getResultMascot, MASCOT_LABELS, type MascotPose, type MascotScores } from '../utils/resultMascot';
 
-const POSES: Record<MascotPose, number> = {
+export const POSES: Record<MascotPose, number> = {
   crown: require('../../assets/images/mascots/crown.webp'),
   hearts: require('../../assets/images/mascots/hearts.webp'),
   clover: require('../../assets/images/mascots/clover.webp'),

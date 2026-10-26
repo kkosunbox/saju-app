@@ -1,20 +1,23 @@
 import React, { forwardRef } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Logo } from './Mascot';
+import { ART, Logo } from './Mascot';
+import { POSES } from './ResultMascot';
 import { TodayCardData } from '../services/share/shareSpecs';
 import { parseISO } from '../utils/date';
+import { getMascotFrame } from '../utils/mascotLayout';
 
 /**
  * 오늘의 운세 공유 카드 — 하늘색 그라디언트 위에 구름 액자를 두고,
- * 클로버 마스코트 · 오늘의 칭호 · 올해 상위 % · 한 줄 문구 · 분야 점수를 담는다.
+ * 홈과 같은 마스코트 · 오늘의 칭호 · 올해 상위 % · 한 줄 문구 · 분야 점수를 담는다.
  * ShareCard와 같은 9:16 크기. 캡처에서도 나오도록 View·Text·Image·그라디언트만 쓴다.
  */
 const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', percent: '#1FA6FD', dark: '#1D212D', chip: '#DCFFA3' };
 
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 
-const MASCOT = require('../../assets/images/share-today-mascot.webp');
+/** 홈 마스코트와 같은 포즈 · 같은 칸 (몸통 기준 108×100) */
+const MASCOT_SIZE = 100;
 const CLOUDS = require('../../assets/images/share-today-bg.webp');
 
 /** 총점 구간 칩 (서버 문장 은행과 같은 83 · 66 경계) */
@@ -38,7 +41,9 @@ const TodayShareCard = forwardRef<View, { data: TodayCardData; today: string; wi
           </View>
 
           <View style={s.body}>
-            <Image source={MASCOT} style={s.mascot} />
+            <View style={s.mascot}>
+              <Image source={data.pose ? POSES[data.pose] : ART.mascot} style={[s.art, getMascotFrame(data.pose ?? 'original', MASCOT_SIZE)]} resizeMode="contain" />
+            </View>
             <Text style={s.owner} numberOfLines={1}>{data.nickname}님의 오늘 칭호</Text>
             <Text style={s.title} numberOfLines={1} adjustsFontSizeToFit>{data.title}</Text>
             <Text style={s.yearLabel}>올해 나의 날 중</Text>
@@ -81,7 +86,8 @@ const s = StyleSheet.create({
   chipText: { fontSize: 12, fontWeight: '800', color: C.chip, opacity: 0.8 },
   date: { fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: -0.65, color: C.mute },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  mascot: { width: 110, height: 110 },
+  mascot: { width: MASCOT_SIZE * 1.08, height: MASCOT_SIZE },
+  art: { position: 'absolute' },
   owner: { marginTop: 12, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: C.accent },
   title: { marginTop: 6, fontSize: 28, lineHeight: 36, fontWeight: '800', letterSpacing: -1.4, color: C.ink },
   yearLabel: { marginTop: 14, fontSize: 14, fontWeight: '600', letterSpacing: -0.56, color: C.mute },
