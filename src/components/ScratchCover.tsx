@@ -11,8 +11,10 @@ const DONE_AT = 0.45; // 이만큼 긁으면 나머지는 저절로 걷힌다
  * 긁어서 보는 덮개 — 아래 카드 위에 겹쳐 두고, 손가락이 지나간 자리만 뚫린다.
  * 긁힌 칸이 절반 가까이 되면 덮개가 사라지며 onDone. reveal 을 바꾸면(버튼) 바로 걷힌다.
  */
-export default function ScratchCover({ width, height, radius = 16, title, hint, reveal, onDone }: {
+export default function ScratchCover({ width, height, radius = 16, title, hint, reveal, onDone, onScratching }: {
   width: number; height: number; radius?: number; title: string; hint: string; reveal?: boolean; onDone(): void;
+  /** 긁기 시작·끝 — 스크롤 화면 안에서는 긁는 동안 스크롤을 멈춘다 */
+  onScratching?(on: boolean): void;
 }) {
   const [strokes, setStrokes] = useState<string[]>([]);
   const cells = useRef(new Set<number>());
@@ -62,6 +64,7 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
     onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
       const { locationX: x, locationY: y } = e.nativeEvent;
+      onScratching?.(true);
       setTouched(true);
       setStrokes(s => [...s, `M${x.toFixed(1)} ${y.toFixed(1)} l0.1 0`]);
       mark(x, y);
@@ -71,6 +74,8 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
       setStrokes(s => s.length ? [...s.slice(0, -1), `${s[s.length - 1]} L${x.toFixed(1)} ${y.toFixed(1)}`] : s);
       mark(x, y);
     },
+    onResponderRelease: () => onScratching?.(false),
+    onResponderTerminate: () => onScratching?.(false),
   };
 
   return (
@@ -99,10 +104,13 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
         <View pointerEvents="none" style={s.hint}><Text style={s.hintText}>{hint}</Text></View>
       )}
       {/* 손가락 위치를 덮개 기준으로 받으려고 맨 위에 빈 판 하나 */}
-      <View ref={plate} style={StyleSheet.absoluteFill} {...touch} accessible accessibilityRole="button" accessibilityLabel={`${title}. ${hint}`} accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={finish} />
+      <View ref={plate} style={[StyleSheet.absoluteFill, NO_PAN]} {...touch} accessible accessibilityRole="button" accessibilityLabel={`${title}. ${hint}`} accessibilityActions={[{ name: 'activate' }]} onAccessibilityAction={finish} />
     </Animated.View>
   );
 }
+
+/** 웹: 긁는 손가락이 페이지 스크롤로 번지지 않게 */
+const NO_PAN = (Platform.OS === 'web' ? { touchAction: 'none' } : {}) as object;
 
 const s = StyleSheet.create({
   hint: { position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center' },

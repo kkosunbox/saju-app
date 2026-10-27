@@ -17,6 +17,8 @@ interface Props {
   subtitle?: string;     // 예전 큰 제목 아래 한 줄. 지금 디자인에는 자리가 없어 보여주지 않는다
   back?: boolean;
   scroll?: boolean;
+  /** 스크롤은 두되 잠시 멈춘다 (예: 금박을 긁는 동안) */
+  scrollEnabled?: boolean;
   right?: React.ReactNode;
   contentStyle?: ViewStyle;
   bg?: string;
@@ -32,7 +34,7 @@ interface Props {
   floatingBar?: boolean;
 }
 
-export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
+export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollEnabled = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -61,7 +63,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       {floating ? null : bar}
       {scroll ? (
         <Animated.ScrollView
-          contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
           onScroll={floating ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false }) : undefined} scrollEventThrottle={16}
         >
           {children}

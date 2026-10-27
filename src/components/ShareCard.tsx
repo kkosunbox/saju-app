@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, Logo } from './Mascot';
 import Icon from './Icon';
 import CharacterArt from './CharacterArt';
-import TalismanPaper from './TalismanPaper';
+import TalismanPaper, { PAPER_H, PAPER_W } from './TalismanPaper';
 import TodayShareCard from './TodayShareCard';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { parseISO } from '../utils/date';
@@ -28,9 +28,10 @@ const BARS = [64, 40, 88, 28, 52, 36];
 const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜: 'pose-thai', 性: 'pose-mbti', 血: 'pose-blood', 符: 'talisman' };
 
 export const CARD_W = 320;
+const PAPER_SCALE = 0.8;
 
 const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, today }, ref) => {
-  if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} width={CARD_W} />;
+  if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   const { y, m, d } = parseISO(today);
   const longHead = spec.headline.length > 18;
   return (
@@ -47,7 +48,7 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
       {/* 결과 말풍선 */}
       {spec.talisman ? (
         <View style={s.spacer}>
-          <View style={s.paper}><TalismanPaper data={spec.talisman} today={today} /></View>
+          <View style={s.paper}><View style={s.paperScale}><TalismanPaper data={spec.talisman} today={today} /></View></View>
         </View>
       ) : <>
       <View style={s.bubble}>
@@ -122,7 +123,9 @@ const s = StyleSheet.create({
   headSm: { fontSize: 20, lineHeight: 27, fontWeight: '800', letterSpacing: -0.8, marginTop: 6, color: C.ink },
   sub: { fontSize: 12, lineHeight: 18, marginTop: 6, color: C.sub },
   spacer: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  paper: { borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
+  // 부적 종이(263×412)를 카드 안에 맞게 줄인다 — 가운데 기준으로 줄어드니 남는 만큼 당겨 둔다
+  paper: { width: PAPER_W * PAPER_SCALE, height: PAPER_H * PAPER_SCALE, borderRadius: 32 * PAPER_SCALE, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
+  paperScale: { position: 'absolute', left: (PAPER_W * PAPER_SCALE - PAPER_W) / 2, top: (PAPER_H * PAPER_SCALE - PAPER_H) / 2, transform: [{ scale: PAPER_SCALE }] },
   big: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   bigVal: { fontSize: 44, lineHeight: 48, fontWeight: '800', letterSpacing: -1.5, color: C.ink },
   bigUnit: { fontSize: 16, fontWeight: '600', letterSpacing: 0, color: C.mute },
