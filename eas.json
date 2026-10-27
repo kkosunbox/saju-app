@@ -1,4 +1,7 @@
 {
+  "cli": {
+    "appVersionSource": "remote"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
@@ -8,9 +11,29 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.woonpick.com",
         "EXPO_PUBLIC_WEB_URL": "https://woonpick.com"
+      }
+    },
+    "store-test": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-dev.woonpick.com",
+        "EXPO_PUBLIC_WEB_URL": "https://dev.woonpick.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "support@petbridgecore.com",
+        "appleTeamId": "8AQ9RLUFUF",
+        "ascAppId": "6827429370",
+        "companyName": "PetBridgeCore Co., Ltd.",
+        "language": "ko",
+        "appName": "운Pick"
       }
     }
   }

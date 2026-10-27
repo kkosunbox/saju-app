@@ -46,7 +46,9 @@
         {
           "photosPermission": false,
           "savePhotosPermission": "부적과 운세 카드 이미지를 사진첩에 저장하려면 사진 추가 권한이 필요해요.",
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
       ],
       [
@@ -61,11 +63,19 @@
             "backgroundColor": "#121418"
           }
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cddb3374-f974-4221-94c3-09a717e81956"
+      }
+    },
+    "owner": "errcode2323"
   }
 }

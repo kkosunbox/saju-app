@@ -1,5 +1,5 @@
 /** Points wallet, history, unlocks (entitlements) and the web Toss charge. Members only. */
-import { api, call } from '../../api/client';
+import { api, call, requestData } from '../../api/client';
 
 export interface Wallet {
   balance: number;
@@ -44,6 +44,9 @@ export const pointsKeys = {
 };
 
 export const pointsApi = {
+  storeAccount: () => requestData<{ appAccountToken: string; obfuscatedAccountId: string }>('/v1/payments/store/account'),
+  confirmApple: (signedTransaction: string) => requestData('/v1/payments/apple/transactions', { signedTransaction }),
+  confirmGoogle: (productId: string, purchaseToken: string) => requestData('/v1/payments/google/purchases', { productId, purchaseToken }),
   wallet: () => call<Wallet>(api.GET('/v1/points/wallet')),
 
   async transactions(limit = 20): Promise<PointTransaction[]> {

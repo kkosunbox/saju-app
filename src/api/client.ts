@@ -71,6 +71,18 @@ async function authFetch(request: Request): Promise<Response> {
 
 export const api = createClient<paths>({ baseUrl: API_URL, fetch: authFetch });
 
+/** Authenticated JSON request for newly introduced endpoints before OpenAPI regeneration. */
+export async function requestData<T>(path: string, body?: unknown): Promise<T> {
+  return call<T>(authFetch(new Request(`${API_URL}${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })).then(async response => {
+    const payload = await response.json();
+    return { response, data: response.ok ? payload : undefined, error: response.ok ? undefined : payload };
+  }));
+}
+
 /** Unwraps `{ data }` or throws ApiError. */
 export async function call<T>(promise: Promise<{ data?: unknown; error?: unknown; response: Response }>): Promise<T> {
   const { data, error, response } = await promise.catch((err: Error) => {

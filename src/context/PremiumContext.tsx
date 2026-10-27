@@ -138,7 +138,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  /** 웹은 토스 결제창으로, 앱은 스토어 결제 준비 중 */
+  /** 결제 화면은 플랫폼별로 웹 Toss / iOS App Store / Android Play를 사용한다. */
   function doCharge(i: number) {
     setSheet(null);
     router.push({ pathname: '/charge', params: { productId: PACKS[i][3] } });
@@ -272,13 +272,14 @@ function UnlockSheet({ item: it, points, busy, onConfirm, onClose, onWallet }: {
 
 function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: number; onConfirm(): void; onClose(): void }) {
   const [w, p, b] = PACKS[i];
+  const price = Platform.OS === 'web' ? w.toLocaleString('ko-KR') + '원' : '스토어에서 확인';
   return (
     <View>
       <Text style={[txt.caption, s.center]}>알 충전</Text>
       <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{fmtP(p + b)} 충전</Text>
       {b ? <Text style={[txt.small, s.center, { marginTop: 2 }]}>기본 {fmtP(p)} + 보너스 {fmtP(b)}</Text> : null}
       <View style={s.sumBox}>
-        <SumRow label="결제 금액" value={w.toLocaleString('ko-KR') + '원'} />
+        <SumRow label="결제 금액" value={price} />
         <SumRow label="충전 후 잔액" value={points + p + b} color={colors.purple} />
       </View>
       {Platform.OS === 'web' ? (
@@ -288,8 +289,8 @@ function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: num
         </>
       ) : (
         <>
-          <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>앱 결제는 준비 중이에요. 지금은 웹에서 충전할 수 있어요</Text>
-          <PrimaryButton label="준비 중" onPress={() => {}} disabled />
+          <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}에서 결제 금액을 확인하고 구매해요</Text>
+          <PrimaryButton label="스토어 결제로 계속" onPress={onConfirm} />
         </>
       )}
       <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />

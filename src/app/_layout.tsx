@@ -8,6 +8,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
+import { StoreBillingProvider } from '@/context/StoreBillingContext';
 import { LogoMark } from '@/components/BrandMark';
 import SiteHead from '@/components/SiteHead';
 import LandingScreen from '@/screens/LandingScreen';
@@ -126,9 +127,11 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AppProvider>
           <PremiumProvider>
-            <StatusBar style={isDark ? 'light' : 'dark'} />
-            {Platform.OS === 'web' ? <SiteHead /> : null}
-            <RootStack />
+            <StoreBillingProvider>
+              <StatusBar style={isDark ? 'light' : 'dark'} />
+              {Platform.OS === 'web' ? <SiteHead /> : null}
+              <RootStack />
+            </StoreBillingProvider>
           </PremiumProvider>
         </AppProvider>
       </QueryClientProvider>

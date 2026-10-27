@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -12,6 +12,7 @@ import { usePremium } from '../../context/PremiumContext';
 import { PACKS, PRICE_TABLE, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
 import { PointTransaction, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
+import { useStoreBilling } from '../../context/StoreBillingContext';
 import { colors, gradients } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 import { useReducedMotion } from '../../utils/motion';
@@ -85,6 +86,7 @@ const FLOW_PAD = 30;
 
 export default function WalletScreen() {
   const { account } = useApp();
+  const billing = useStoreBilling();
   const { points, expiringSoon, attendedToday: att, ownedCount, attend, openCharge } = usePremium();
   const { data: history = [] } = useQuery<PointTransaction[]>({ queryKey: [...pointsKeys.transactions, account?.id], queryFn: () => pointsApi.transactions(20), enabled: !!account });
   return (
@@ -120,7 +122,8 @@ export default function WalletScreen() {
 
       <SubHead title="알 충전하기" />
       <View style={{ gap: 12 }}>
-        {PACKS.map(([w, p, b], i) => {
+        {PACKS.map(([w, p, b, productId], i) => {
+          const price = Platform.OS === 'web' ? `${w.toLocaleString('ko-KR')}원` : billing.products[productId]?.displayPrice ?? '가격 확인';
           const row = (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -128,11 +131,11 @@ export default function WalletScreen() {
                 <Text style={s.packCount}>{fmtN(p)}</Text>
                 {b ? <View style={s.bonus}><Text style={s.chipText}>+{b} 보너스</Text></View> : null}
               </View>
-              <Text style={s.won}>{w.toLocaleString('ko-KR')}원</Text>
+              <Text style={s.won}>{price}</Text>
             </>
           );
           return (
-            <PressableScale key={w} onPress={() => openCharge(i)} accessibilityLabel={`${fmtP(p + b)} ${w}원`}>
+            <PressableScale key={w} onPress={() => openCharge(i)} accessibilityLabel={`${fmtP(p + b)} ${price}`}>
               {i === 3 ? <PopularBorder>{row}</PopularBorder> : <View style={s.pack}>{row}</View>}
               {i === 3 ? <View style={s.bestTag}><Text style={s.bestText}>인기</Text></View> : null}
             </PressableScale>
