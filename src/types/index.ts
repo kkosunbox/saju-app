@@ -110,6 +110,8 @@ export interface DailyFortune {
   engine: 'rule' | 'ai';
   /** 문장이 아직 규칙 엔진 것이고, 뽑으면 AI가 다시 쓴다 (점수·요약은 그대로). */
   textsPending?: boolean;
+  /** 이미 뽑았는지 (서버 기록이라 다른 기기에서 뽑았어도 true). 예전 서버는 주지 않는다 */
+  drawn?: boolean;
   /** 그날의 일진 (서버 만세력). */
   dayPillar?: { stem: number; branch: number };
   /** 전날 점수 (같은 프로필로 계산). 기능 전에 만든 운세는 null */

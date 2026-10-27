@@ -2107,6 +2107,8 @@ export interface components {
             dayPillar: Record<string, never>;
             /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
             textsPending: boolean;
+            /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
+            drawn: boolean;
             /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
             yesterdayScores: components["schemas"]["DayScoresDto"] | null;
             /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */

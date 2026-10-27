@@ -129,7 +129,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const fortuneKey = fortune ? `${fortune.userId}:${fortune.date}` : null;
   const fortuneWriting = !!fortune?.textsPending && drawnKey !== fortuneKey;
   const drawFortune = useCallback(async () => {
-    if (!fortune?.textsPending || !fortuneKey || drawing.current === fortuneKey) return;
+    // AI 문장이 남았거나, 뽑았다는 기록이 서버에 아직 없을 때 (다른 기기에서도 뽑은 걸로 보이게)
+    const needed = !!fortune?.textsPending || fortune?.drawn === false;
+    if (!needed || !fortuneKey || drawing.current === fortuneKey) return;
     drawing.current = fortuneKey;
     try {
       setFortune(await fortuneApi.draw(fortune.userId, fortune.date));
