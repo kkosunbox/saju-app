@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Animated, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { ClipPath, Defs, G, LinearGradient as SvgGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
 import { useApp } from '../context/AppContext';
@@ -30,13 +31,13 @@ import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
-import { motion } from '../utils/motion';
+import { motion, useReducedMotion } from '../utils/motion';
 import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, clearPendingInvite } from '../services/share/linkShare';
 import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
-import { radius, SCREEN_PX, shadow, txt } from '../theme/typography';
+import { radius, sansW, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
 import { useWebTopBar } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
@@ -72,8 +73,66 @@ function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
 /** 마스코트 밑 해시태그 — 관점별 한 줄의 태그 중 여러 관점에 겹친 것부터, 3개(길면 2개)까지 */
 const TAG_MAX_CHARS = 12;
+const TAG_FONT = 13;
 /** 유리 칩 위쪽에 맺히는 빛 — 아래로 갈수록 사라진다 */
 const GLASS_SHINE = isDark ? (['rgba(255,255,255,0.14)', 'rgba(255,255,255,0)'] as const) : (['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.15)'] as const);
+/** 키워드 글자색과, 글자 위로만 훑고 지나가는 빛 */
+const TAG_INK = isDark ? '#7CC4EE' : '#45ABE6';
+const TAG_GLINT = isDark ? '#EAF7FF' : '#D2EEFF';
+const GLINT_W = 26;
+/** SVG 글자도 앱 글꼴(Pretendard SemiBold)로 — 원래 글자 자리와 폭이 맞게 */
+const TAG_FACE = sansW('600');
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+
+/** 글자 모양으로 잘라낸 안에서만 빛 줄기가 지나간다 — 한 줄기가 칩을 하나씩 관통하도록 칩마다 sweep 구간을 늦춘다 */
+function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animated.Value; index: number; count: number }) {
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null);
+  const step = 1 / (count + 1);
+  const from = index * step;
+  const x = sweep.interpolate({ inputRange: [from, from + step * 2], outputRange: [-GLINT_W, (box?.width ?? 0) + GLINT_W], extrapolate: 'clamp' });
+  const id = `tag-glint-${index}`;
+  return (
+    <View>
+      {/* 크기는 보통 글자로 잡고, 그린 뒤엔 투명하게 두어 SVG 글자만 보인다 */}
+      <Text style={[s.mascotTag, box && { color: 'transparent' }]} onLayout={e => setBox(e.nativeEvent.layout)}>#{label}</Text>
+      {box && (
+        <Svg width={box.width} height={box.height} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Defs>
+            <ClipPath id={`${id}-clip`}>
+              <SvgText x={0} y={box.height / 2 + TAG_FONT * 0.36} fontSize={TAG_FONT} fontFamily={TAG_FACE.fontFamily} fontWeight={TAG_FACE.fontWeight} letterSpacing={-0.5}>{`#${label}`}</SvgText>
+            </ClipPath>
+            <SvgGradient id={`${id}-glint`} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor={TAG_GLINT} stopOpacity={0} />
+              <Stop offset="0.5" stopColor={TAG_GLINT} stopOpacity={1} />
+              <Stop offset="1" stopColor={TAG_GLINT} stopOpacity={0} />
+            </SvgGradient>
+          </Defs>
+          <G clipPath={`url(#${id}-clip)`}>
+            <Rect width={box.width} height={box.height} fill={TAG_INK} />
+            <AnimatedRect x={x} width={GLINT_W} height={box.height} fill={`url(#${id}-glint)`} />
+          </G>
+        </Svg>
+      )}
+    </View>
+  );
+}
+
+function useTagSweep() {
+  const reduced = useReducedMotion();
+  const [sweep] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (reduced) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.delay(1200),
+      Animated.timing(sweep, { toValue: 1, duration: 2200, easing: motion.easeInOut, useNativeDriver: false }),
+      Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: false }),
+      Animated.delay(2600),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [reduced, sweep]);
+  return sweep;
+}
 
 function mascotTags(lists: KeywordTag[][]): string[] {
   const count = new Map<KeywordTag, number>();
@@ -101,6 +160,7 @@ export default function HomeScreen() {
   const [luckOpen, setLuckOpen] = useState(false);
   const [drawn, setDrawn] = useState(false); // 방금 뽑았으면 차례로 펼친다 (이미 뽑은 날엔 바로)
   const [waitingForPolish, setWaitingForPolish] = useState(false);
+  const tagSweep = useTagSweep();
   const [mascotPreview, setMascotPreview] = useState<{ date: string; index: number } | null>(null);
   const mascotOverride = DEV_TOOLS && mascotPreview?.date === today ? MASCOT_PREVIEWS[mascotPreview.index] : null;
   // 타이머 대신 실제 세 구역 연출의 완료 신호를 기다린다.
@@ -314,10 +374,10 @@ export default function HomeScreen() {
             <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} pose={mascotOverride?.pose} scores={hidden ? undefined : f} />
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
-                {tags.map(tag => (
+                {tags.map((tag, i) => (
                   <View key={tag} style={s.glassChip}>
                     <LinearGradient colors={GLASS_SHINE} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
-                    <Text style={s.mascotTag}><Text style={s.mascotTagHash}>#</Text>{tag}</Text>
+                    <GlintTag label={tag} sweep={tagSweep} index={i} count={tags.length} />
                   </View>
                 ))}
               </View>
@@ -513,8 +573,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.95)',
     shadowColor: isDark ? '#000000' : '#1E8FD6', shadowOpacity: isDark ? 0.3 : 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  mascotTag: { fontSize: 13, fontWeight: '600', color: colors.inkSub, letterSpacing: -0.5 },
-  mascotTagHash: { color: colors.accent, fontWeight: '700' },
+  mascotTag: { fontSize: TAG_FONT, fontWeight: '600', color: TAG_INK, letterSpacing: -0.5 },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },
 
   ringSealed: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
