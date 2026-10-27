@@ -35,7 +35,7 @@ export default function BusinessFooter({ style }: { style?: object }) {
 
 const s = StyleSheet.create({
   wrap: { paddingTop: 24, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  head: { marginHorizontal: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   links: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   link: { ...sansW('600'), fontSize: 12, letterSpacing: -0.3, color: colors.inkSub },
   bar: { width: StyleSheet.hairlineWidth, height: 10, backgroundColor: colors.lineStrong },

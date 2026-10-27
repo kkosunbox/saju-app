@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 
 export type IconName =
   | 'home' | 'sparkle' | 'sheet' | 'heart' | 'user' | 'share' | 'chevronRight' | 'chevronLeft' | 'chevronDown' | 'bell' | 'crown'
-  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'lock' | 'calendar' | 'ticket' | 'mapPin';
+  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'external' | 'lock' | 'calendar' | 'ticket' | 'mapPin';
 
 /** 디자인의 Icon/Outline 세트(heroicons 계열 선형 아이콘)와 같은 모양 */
 const PATHS: Record<IconName, string> = {
@@ -14,6 +14,7 @@ const PATHS: Record<IconName, string> = {
   sheet: 'M5.5 6.5h13v13.5h-13z M5.5 10.5h13 M9 4v4 M15 4v4',
   heart: 'M12 20s-7.5-4.6-7.5-10.3A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z',
   user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+  external: 'M14 3H21V10M21 3L11 13 M9 4C8.536 4 8.304 4 8.108 4.017C5.932 4.207 4.207 5.932 4.017 8.108C4 8.304 4 8.536 4 9V12C4 15.279 4 16.919 4.814 18.081C5.115 18.511 5.489 18.885 5.919 19.186C7.081 20 8.721 20 12 20H15C15.464 20 15.696 20 15.892 19.983C18.068 19.793 19.793 18.068 19.983 15.892C20 15.696 20 15.464 20 15',
   share: 'M12 3.5v11 M7.5 8 12 3.5 16.5 8 M5 13.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5.5',
   chevronRight: 'M9 5l7 7-7 7',
   chevronLeft: 'M15 19l-7-7 7-7',

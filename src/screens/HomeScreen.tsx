@@ -199,7 +199,8 @@ export default function HomeScreen() {
     tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
   };
   const [friend, setFriend] = useState<FriendResult | null>(null);
-  useEffect(() => { getFriendResult().then(f => setFriend(f && !f.seen ? f : null)); }, []);
+  // 오늘의 운세(Home) 결과는 눌러도 이 화면이라 알림을 띄우지 않는다 (로그인 화면 안내에는 쓰인다)
+  useEffect(() => { getFriendResult().then(f => setFriend(f && !f.seen && f.c !== 'Home' ? f : null)); }, []);
   // 프로필을 넣으러 갔다 온 초대(auto)는 홈에 오면 궁합 보기 안내를 한 번 연다 — 수락하거나 버리거나
   useFocusEffect(useCallback(() => {
     getPendingInvite().then(inv => {
