@@ -16,7 +16,7 @@ import ScoreRing from '../components/ScoreRing';
 import { COPY } from '../content/copy';
 import { analysisTheme, CategoryKey, categoryTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
-import { useWebTopBar } from '../utils/webThemeColor';
+import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
 const POSE = { saju: 'pose-saju', thai: 'pose-thai', mbti: 'pose-mbti', blood: 'pose-blood' } as const;
@@ -56,6 +56,7 @@ const CTA = '내 운세 보기 · 무료';
 export default function LandingScreen() {
   const { completeOnboarding } = useApp();
   const insets = useSafeAreaInsets();
+  const safeTop = webSafeTop(insets.top);
   const start = () => { completeOnboarding(); };
   const login = async () => { await completeOnboarding(); router.push('/login'); };
 
@@ -66,7 +67,7 @@ export default function LandingScreen() {
   const [y, setY] = useState(0);
   // 히어로는 상단 바(상태바 + 로고 줄)까지 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 하고,
   // 웹에서는 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
-  const heroHold = insets.top + 52;
+  const heroHold = safeTop + 52;
   const heroGradient = heroH > heroHold * 2
     ? { colors: [gradients.sky[0], ...gradients.sky] as const, locations: [0, heroHold / heroH, 0.5, 0.92] as const }
     : { colors: gradients.sky, locations: [0, 0.5, 0.92] as const };
@@ -86,7 +87,7 @@ export default function LandingScreen() {
       <View pointerEvents="none" style={[s.overscroll, { backgroundColor: gradients.sky[0] }]} />
       <ScrollView onScroll={onScroll} scrollEventThrottle={16} onLayout={e => setViewH(e.nativeEvent.layout.height)}>
         <View onLayout={e => setHeroH(e.nativeEvent.layout.height)}>
-        <LinearGradient colors={heroGradient.colors} locations={heroGradient.locations} style={[s.hero, { paddingTop: insets.top }]}>
+        <LinearGradient colors={heroGradient.colors} locations={heroGradient.locations} style={[s.hero, { paddingTop: safeTop }]}>
           <View style={s.top}>
             <BrandMark light />
             <PressableScale onPress={login} hitSlop={12} scaleTo={0.94} accessibilityRole="link"><Text style={s.topLink}>로그인</Text></PressableScale>

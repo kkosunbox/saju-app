@@ -10,6 +10,14 @@ const TOP_TINT_H = 12;
 const IS_IOS = Platform.OS === 'web' && typeof navigator !== 'undefined'
   && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
+/**
+ * 화면 위 여백(safe area top)을 띠 높이 이상으로. Safari 탭에서는 safe area top이 0이라
+ * 띠가 상태바 밑에 숨지 못하고 맨 위 내용(홈·랜딩 로고)을 덮는다
+ */
+export function webSafeTop(top: number) {
+  return IS_IOS ? Math.max(top, TOP_TINT_H) : top;
+}
+
 /** 내용 맨 위 기준 [위치, 색]. 위치 순서대로, 마지막 색이 그 아래로 이어진다 */
 export type TopBarStops = readonly (readonly [number, string])[];
 

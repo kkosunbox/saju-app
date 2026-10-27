@@ -39,7 +39,7 @@ import { openFriendRoute } from '../navigation/premium';
 import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
-import { useWebTopBar } from '../utils/webThemeColor';
+import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import { KEYWORDS } from '../data/keywords';
 import { KeywordTag } from '../types';
@@ -219,16 +219,17 @@ export default function HomeScreen() {
   const arrived = compat.data?.filter(r => r.isNew) ?? [];
 
   const insets = useSafeAreaInsets();
+  const safeTop = webSafeTop(insets.top);
   // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바).
   // 상단 바(상태바 + 로고 줄)까지는 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 한다
-  const skyH = 296 + insets.top;
-  const skyHold = insets.top + 56;
+  const skyH = 296 + safeTop;
+  const skyHold = safeTop + 56;
   // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
   const onScrollTopBar = useWebTopBar([
     [0, gradients.sky[0]], [skyHold, gradients.sky[0]], [skyH * 0.48, gradients.sky[1]], [skyH * 0.88, gradients.sky[2]],
   ]);
   const top = (
-    <View style={[s.topBar, { marginTop: insets.top }]}>
+    <View style={[s.topBar, { marginTop: safeTop }]}>
       <Logo height={50} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, flexShrink: 1, marginLeft: 12 }}>
         {DEV_TOOLS && draw.opened ? (
