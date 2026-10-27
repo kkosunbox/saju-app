@@ -55,10 +55,17 @@ export interface TodayCardData {
   scores: [string, string][];
 }
 
-/** 받침이 있으면 a, 없으면 b (예: 훈장이었대 / 시인이었대 / 화가였대) */
+/** 받침이 있으면 a, 없으면 b (예: 훈장이에요 / 화가예요) */
 const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
 const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d}`; };
 const mdw = (iso: string) => `${md(iso)} ${WEEK[weekdayOf(iso)]}`;
+const ieyo = (w: string) => josa(w, '이에요', '예요');
+
+/*
+ * 공유 메시지는 사용자 말투로 꾸미지 않고 앱이 보내는 안내문으로 쓴다 (선물 부적 문구와 같은 결).
+ * 첫 줄은 누구의 어떤 결과인지 하나만, 둘째 줄은 받은 사람이 링크로 무엇을 볼 수 있는지.
+ */
+const seeMine = (what: string, verb = '볼') => `생일만 넣으면 나의 ${what}도 바로 ${verb} 수 있어요.`;
 
 /* ---------- 무료 ---------- */
 export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null): ShareSpec {
@@ -68,7 +75,7 @@ export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null):
       kind: '오늘의 운세', seal: '日', eyebrow: `${u.nickname}님의 오늘 칭호`,
       headline: card.title, sub: card.line, stats: [],
       hook: '너는 오늘 상위 몇 %?',
-      text: `오늘 내 칭호는 '${card.title}', 올해 나의 날 중 ${pct}래. 너는 오늘 상위 몇 %야?`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
+      text: `${u.nickname}님의 오늘 칭호는 '${card.title}'${ieyo(card.title)}.\n${seeMine('오늘 운세')}`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
       today: {
         nickname: u.nickname, total: f.totalScore, title: card.title, line: card.line, topPercent: card.yearTopPercent, pose: getResultMascot(f).pose,
         scores: [['연애', String(f.love)], ['재물', String(f.money)], ['직장', String(f.work)], ['관계', String(f.relationship)]],
@@ -82,7 +89,7 @@ export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null):
     stats: [['연애', String(f.love)], ['재물', String(f.money)], ['일', String(f.work)]],
     teaser: '오늘 꼭 피해야 할 한 가지',
     hook: '너의 오늘은 몇 점일까?',
-    text: `오늘 내 운세 ${f.totalScore}점, 키워드는 '${f.keywords[0]}'. 너는 오늘 몇 점이야?`, file: 'woonpick-today', route: 'Home', short: `${f.totalScore}점 · ${f.keywords[0]}`,
+    text: `${u.nickname}님의 오늘 운세는 ${f.totalScore}점이에요.\n${seeMine('오늘 운세')}`, file: 'woonpick-today', route: 'Home', short: `${f.totalScore}점 · ${f.keywords[0]}`,
   };
 }
 
@@ -95,7 +102,7 @@ export function mbtiSpec(u: User, m: MbtiMatches): ShareSpec {
     stats: [['2위', best[1].type], ['3위', best[2].type], ['조심', worst.type]],
     teaser: `${top.type}와 잘 맞는 진짜 이유`,
     hook: '너의 찰떡 MBTI는 뭘까?',
-    text: `내 찰떡 MBTI는 ${top.type}(${top.nickname})래. 너랑 잘 맞는 유형은 뭐야?`, file: 'woonpick-mbti', route: 'MbtiMatch', short: `${top.type}(${top.nickname})`,
+    text: `${u.nickname}님의 찰떡 MBTI는 ${top.type}(${top.nickname})예요.\n${seeMine('찰떡 MBTI')}`, file: 'woonpick-mbti', route: 'MbtiMatch', short: `${top.type}(${top.nickname})`,
   };
 }
 
@@ -106,7 +113,7 @@ export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
     stats: [['일주', c.hanja], ['기운', `${ELEMENT_INFO[c.element].ko}(${ELEMENT_INFO[c.element].hanja})`], ['키워드', c.keyword]],
     teaser: `나와 찰떡인 캐릭터는 '${c.bestFriend.split(' ')[0]} ··'`,
     hook: '너는 60가지 중 어떤 캐릭터일까?',
-    text: `나 사주 캐릭터가 '${c.name}'${josa(c.name, '이래', '래')}. 너는 60가지 중에 뭐 나와?`, file: 'woonpick-character', route: 'Character', short: c.name,
+    text: `60가지 사주 캐릭터 중 ${u.nickname}님은 '${c.name}'${ieyo(c.name)}.\n${seeMine('캐릭터')}`, file: 'woonpick-character', route: 'Character', short: c.name,
   };
 }
 
@@ -116,7 +123,7 @@ export function talismanSpec(u: User, t: Talisman): ShareSpec {
     headline: t.mantra, sub: `${t.hanja} · ${t.keyword}`,
     stats: [['행운의 색', t.color], ['숫자', String(t.number)], ['시간', t.time]],
     hook: '오늘 너에게 온 부적은?',
-    text: `오늘 받은 부적: ${t.hanja}(${t.keyword}). "${t.mantra}" 너도 하나 받아 봐.`, file: 'woonpick-talisman', route: 'Talisman', short: `${t.hanja} · ${t.keyword}`,
+    text: `${u.nickname}님이 받은 오늘의 부적은 '${t.keyword}'${ieyo(t.keyword)}.\n"${t.mantra}"\n나의 오늘 부적도 받아 보세요.`, file: 'woonpick-talisman', route: 'Talisman', short: `${t.hanja} · ${t.keyword}`,
     talisman: { hanja: t.hanja, mantra: t.mantra, keyword: t.keyword, nickname: u.nickname },
   };
 }
@@ -128,7 +135,7 @@ export function compatSpec(u: User, r: CompatibilityResult): ShareSpec {
     stats: [[RELATIONSHIP_INFO[r.relationship].bars.love.replace(/ 궁합$/, ''), String(r.love)], ['대화', String(r.conversation)], [RELATIONSHIP_INFO[r.relationship].bars.money.replace(/ 궁합$/, ''), String(r.money)]],
     teaser: '둘이 가장 부딪히기 쉬운 순간',
     hook: '우리 궁합은 몇 점일까?',
-    text: `${u.nickname} × ${r.target.nickname} 궁합 ${r.total}점 나왔어. 생일만 넣으면 우리 궁합도 바로 나와.`, file: 'woonpick-compat', route: 'Compatibility', short: `궁합 ${r.total}점`,
+    text: `${u.nickname} × ${r.target.nickname} 궁합은 ${r.total}점이에요.\n생일만 넣으면 누구와의 궁합이든 바로 볼 수 있어요.`, file: 'woonpick-compat', route: 'Compatibility', short: `궁합 ${r.total}점`,
   };
 }
 
@@ -139,7 +146,7 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
     stats: [['시대', P.era.split('의 ')[0]], ['타고난 재능', P.carried.split(' ')[0]], ['전생 인연', P.bond]],
     teaser: '이번 생에 풀어야 할 숙제',
     hook: '너는 전생에 누구였을까?',
-    text: `나 전생에 '${P.title}'${josa(P.title, '이었대', '였대')}. 너는 전생에 누구였을 것 같아?`, file: 'woonpick-pastlife', route: 'PastLife', short: P.title,
+    text: `${u.nickname}님의 전생은 '${P.title}'${ieyo(P.title)}.\n${seeMine('전생')}`, file: 'woonpick-pastlife', route: 'PastLife', short: P.title,
   };
 }
 
@@ -153,7 +160,7 @@ export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
     stats: [['MBTI', R.mbti], ['띠', `${R.animal}띠`], ['올해 인연 지수', String(R.thisYear)]],
     teaser: '그 사람을 처음 만나는 곳',
     hook: '내 미래 배우자는 어떤 사람일까?',
-    text: `내 미래 배우자는 '${R.headline}'래. ${R.bestYear}년에 인연이 제일 강하다는데, 너는?`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
+    text: `${u.nickname}님의 미래 배우자는 '${R.headline}'${ieyo(R.headline)}.\n${seeMine('미래 배우자')}`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
   };
 }
 
@@ -164,7 +171,7 @@ export function crushSpec(u: User, r: CompatibilityResult, R: CrushReport): Shar
     stats: [['연인 가능성', `${R.chance}%`], ['나는 그에게', R.tg], ['연락하기 좋은 날', md(R.contact[0].iso)]],
     teaser: '마음을 표현하기 가장 좋은 날',
     hook: '그 사람은 나를 어떻게 생각할까?',
-    text: `그 사람 마음 온도가 ${R.temp}℃래. 너도 궁금한 사람 있으면 봐 봐.`, file: 'woonpick-crush', route: 'Compatibility', short: `마음 온도 ${R.temp}℃`,
+    text: `${u.nickname}님을 향한 그 사람의 마음 온도는 ${R.temp}℃예요.\n생일만 넣으면 궁금한 그 사람의 마음도 바로 볼 수 있어요.`, file: 'woonpick-crush', route: 'Compatibility', short: `마음 온도 ${R.temp}℃`,
   };
 }
 
@@ -178,7 +185,7 @@ export function lifeSpec(u: User, st: LifeStage[], dae: DaeunTable, now: number)
     stats: st.map(x => [x.label, String(x.score)] as [string, string]),
     teaser: '인생에서 가장 조심해야 할 10년',
     hook: '내 인생의 황금기는 언제일까?',
-    text: `내 인생 최고의 10년은 ${gold.age}세부터래. 너의 황금기는 언제야?`, file: 'woonpick-life', route: 'Life', short: `최고의 10년 ${gold.age}세~`,
+    text: `${u.nickname}님의 인생 최고의 10년은 ${gold.age}세부터예요.\n${seeMine('황금기')}`, file: 'woonpick-life', route: 'Life', short: `최고의 10년 ${gold.age}세~`,
   };
 }
 
@@ -191,7 +198,7 @@ export function newYearSpec(u: User, D: YearData): ShareSpec {
     stats: [['좋은 달', D.best.map(b => b.m).sort((a, b) => a - b).join('·') + '월'], ['연애', String(D.cat.love)], ['재물', String(D.cat.money)]],
     teaser: `${y}년에 조심해야 할 달`,
     hook: `너의 ${y}년은 어떤 해일까?`,
-    text: `내 ${y}년은 '${idiom[0]}(${idiom[1]})'의 해래. 너의 ${y}년은 어떤 해야?`, file: `woonpick-${y}`, route: 'NewYear', short: `${idiom[0]}의 해`,
+    text: `${u.nickname}님의 ${y}년은 '${idiom[0]}'의 해예요.\n${seeMine(`${y}년 운세`)}`, file: `woonpick-${y}`, route: 'NewYear', short: `${idiom[0]}의 해`,
   };
 }
 
@@ -205,7 +212,7 @@ export function monthlySpec(u: User, R: MonthReport): ShareSpec {
     stats: [['행운의 날', R.best.map(b => b.d).sort((a, b) => a - b).join('·') + '일'], ['키워드', R.kws[0]], ['연애', String(R.cat.love)]],
     teaser: `${m}월에 피해야 할 날`,
     hook: '이번 달 나의 행운의 날은?',
-    text: `내 ${m}월은 '${line[0]}'. 행운의 날은 ${R.best.map(b => b.d).sort((a, b) => a - b).join('·')}일이래. 너는 언제야?`, file: `woonpick-${y}-${m}`, route: 'Monthly', short: line[0],
+    text: `${u.nickname}님의 ${m}월 행운의 날은 ${R.best.map(b => b.d).sort((a, b) => a - b).join('·')}일이에요.\n${seeMine(`${m}월 행운의 날`)}`, file: `woonpick-${y}-${m}`, route: 'Monthly', short: line[0],
   };
 }
 
@@ -218,7 +225,7 @@ export function sajuDeepSpec(u: User, F: SajuFull): ShareSpec {
     stats: [['기운', F.strength], ['용신', `${ELEMENT_INFO[F.yong].ko}(${ELEMENT_INFO[F.yong].hanja})`], ['강점', per.str[0].split(' ')[0]]],
     teaser: '타고난 재물 그릇의 크기',
     hook: '내 사주에 숨겨진 본성은?',
-    text: `나는 '${name}', ${per.core}을 타고났대. 너는 무슨 일주야?`, file: 'woonpick-saju', route: 'SajuDeep', short: name,
+    text: `${u.nickname}님은 ${per.core}을 타고난 '${name}'${ieyo(name)}.\n${seeMine('일주')}`, file: 'woonpick-saju', route: 'SajuDeep', short: name,
   };
 }
 
@@ -231,7 +238,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
       stats: [['연애운 강한 달', L.ms.map(x => x.m).sort((a, b) => a - b).join('·') + '월'], ['잘 맞는 MBTI', L.types[0]], ['인연의 해', L.yrs[0] ? `${L.yrs[0].yy}` : '—']],
       teaser: '결혼 흐름이 들어오는 시기',
       hook: '나는 어떤 연애를 하는 사람일까?',
-      text: `내 연애 스타일은 '${L.st}'래. 너는 어떤 연애 해?`, file: 'woonpick-love', route: 'Theme', short: L.st,
+      text: `${u.nickname}님의 연애 스타일은 '${L.st}'${ieyo(L.st)}.\n${seeMine('연애 스타일')}`, file: 'woonpick-love', route: 'Theme', short: L.st,
     };
   }
   if (kind === 'money') {
@@ -242,7 +249,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
       stats: [['재물 강한 달', M.ms.map(x => x.m).sort((a, b) => a - b).join('·') + '월'], ['재물 기운', `${M.cnt}개`], ['강점', M.t.str.split(' ')[0]]],
       teaser: '재물이 크게 모이는 10년',
       hook: '나는 어떤 부자가 될 사람일까?',
-      text: `내 돈 성향은 '${M.t.name}'래. 너는 어떤 타입이야?`, file: 'woonpick-money', route: 'ThemeMoney', short: M.t.name,
+      text: `${u.nickname}님의 돈 성향은 '${M.t.name}'${ieyo(M.t.name)}.\n${seeMine('돈 성향')}`, file: 'woonpick-money', route: 'ThemeMoney', short: M.t.name,
     };
   }
   const C = data as ThemeCareer; const up = C.ups[0];
@@ -252,7 +259,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
     stats: [['커리어 상승기', up ? `${up.age}세~` : '—'], ['일하는 방식', C.style[1].split(' ')[0]], ['추천', C.jobs[2] ?? '—']],
     teaser: '이직·창업하기 좋은 타이밍',
     hook: '나에게 꼭 맞는 일은 뭘까?',
-    text: `나한테 맞는 일은 ${C.jobs[0]}·${C.jobs[1]}래. 너는 뭐 나와?`, file: 'woonpick-career', route: 'ThemeCareer', short: `${C.jobs[0]} · ${C.jobs[1]}`,
+    text: `${u.nickname}님에게 맞는 일은 ${C.jobs[0]}·${C.jobs[1]}${ieyo(C.jobs[1])}.\n${seeMine('적성')}`, file: 'woonpick-career', route: 'ThemeCareer', short: `${C.jobs[0]} · ${C.jobs[1]}`,
   };
 }
 
@@ -264,7 +271,7 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
     stats: [['2순위', mdw(list[1].iso)], ['3순위', mdw(list[2].iso)], ['행운의 시간', list[0].c.luckyTime]],
     teaser: `${P[2]}할 때 피해야 할 날`,
     hook: `나에게 ${P[2]}하기 좋은 날은?`,
-    text: `내 ${P[2]} 길일은 ${mdw(list[0].iso)}래. 너한테 좋은 날도 찾아봐.`, file: `woonpick-lucky-${pk}`, route: 'Lucky', short: `${P[2]} 길일 ${mdw(list[0].iso)}`,
+    text: `${u.nickname}님의 ${P[2]} 길일은 ${mdw(list[0].iso)}${ieyo(mdw(list[0].iso))}.\n${seeMine(`${P[2]} 길일`, '찾을')}`, file: `woonpick-lucky-${pk}`, route: 'Lucky', short: `${P[2]} 길일 ${mdw(list[0].iso)}`,
   };
 }
 
