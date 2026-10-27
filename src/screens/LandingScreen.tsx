@@ -186,7 +186,7 @@ export default function LandingScreen() {
 const s = StyleSheet.create({
   overscroll: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%' },
   hero: { paddingHorizontal: 24, paddingBottom: 28 },
-  top: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  top: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, // 홈 상단 바와 같은 높이 · 로고 크기 (좌우 24는 hero가 준다)
   topLink: { fontSize: 14, fontWeight: '700', color: colors.white },
   headline: { fontSize: 28, lineHeight: 38, marginTop: 16, textAlign: 'center' },
   lead: { marginTop: 10, textAlign: 'center' },

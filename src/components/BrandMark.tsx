@@ -13,7 +13,7 @@ export function LogoMark({ size = 24 }: { size?: number; fg?: string }) {
   return <Mascot size={size} />;
 }
 
-/** 워드마크: 마스코트 얼굴 + '운픽' 레터링 (첫 화면 · 헤더 · 공유 카드). size = 예전 워드마크 높이 기준 */
+/** 워드마크: '운PICK' 레터링 + 말풍선 속 마스코트 얼굴 (첫 화면 · 헤더 · 공유 카드). size = 예전 워드마크 높이 기준 */
 export default function BrandMark({ light = false, size = 22 }: { light?: boolean; size?: number }) {
-  return <Logo height={Math.round(size * 1.5)} color={light ? colors.white : colors.ink} />;
+  return <Logo height={Math.round(size * 1.5 * 55 / 36)} color={light ? colors.white : colors.ink} />;
 }

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ART, Logo } from './Mascot';
 import { POSES } from './ResultMascot';
 import { TodayCardData } from '../services/share/shareSpecs';
-import { parseISO } from '../utils/date';
+import { formatKoreanDate } from '../utils/date';
 import { getMascotFrame } from '../utils/mascotLayout';
 
 /**
@@ -12,7 +12,7 @@ import { getMascotFrame } from '../utils/mascotLayout';
  * 홈과 같은 마스코트 · 오늘의 칭호 · 올해 상위 % · 한 줄 문구 · 분야 점수를 담는다.
  * ShareCard와 같은 9:16 크기. 캡처에서도 나오도록 View·Text·Image·그라디언트만 쓴다.
  */
-const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', percent: '#1FA6FD', dark: '#1D212D', chip: '#DCFFA3' };
+const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', percent: '#1FA6FD', dark: '#1D212D' };
 
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 
@@ -20,24 +20,19 @@ const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 const MASCOT_SIZE = 100;
 const CLOUDS = require('../../assets/images/share-today-bg.webp');
 
-/** 총점 구간 칩 (서버 문장 은행과 같은 83 · 66 경계) */
-const dayChip = (total: number) => (total >= 83 ? '★굿데이' : total >= 66 ? '●노멀데이' : '☂쉼표데이');
-
 const TodayShareCard = forwardRef<View, { data: TodayCardData; today: string; width: number }>(function TodayShareCard({ data, today, width }, ref) {
-  const { y, m, d } = parseISO(today);
   return (
     <View ref={ref} collapsable={false} style={[s.card, { width }]}>
       <LinearGradient colors={['#1BADFE', '#C4E3F3', '#8ACAFF']} locations={[0, 0.44, 0.95]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
 
-      <View style={s.mast}><Logo height={24} /></View>
+      <View style={s.mast}><Logo height={37} /></View>
 
       {/* 구름 액자 */}
       <LinearGradient colors={['#7FD1FF', '#B8EAC2', '#94D9D9', '#83D1F6']} locations={[0, 0.51, 0.71, 1]} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={s.frame}>
         <View style={s.inner}>
           <Image source={CLOUDS} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <View style={s.top}>
-            <View style={s.chip}><Text style={s.chipText}>{dayChip(data.total)}</Text></View>
-            <Text style={s.date}>{y}.{String(m).padStart(2, '0')}.{String(d).padStart(2, '0')}</Text>
+            <Text style={s.date}>{formatKoreanDate(today)}</Text>
           </View>
 
           <View style={s.body}>
@@ -81,9 +76,7 @@ const s = StyleSheet.create({
   mast: { height: 30, justifyContent: 'center' },
   frame: { flex: 1, marginTop: 6, padding: 3, borderRadius: 32 },
   inner: { flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: '#FFFFFF' },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 21, paddingTop: 17 },
-  chip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 24, backgroundColor: C.ink },
-  chipText: { fontSize: 12, fontWeight: '800', color: C.chip, opacity: 0.8 },
+  top: { alignItems: 'center', paddingHorizontal: 21, paddingTop: 17 },
   date: { fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: -0.65, color: C.mute },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   mascot: { width: MASCOT_SIZE * 1.08, height: MASCOT_SIZE },

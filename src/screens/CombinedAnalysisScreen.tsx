@@ -47,7 +47,7 @@ export default function CombinedAnalysisScreen() {
       <View style={s.hero}>
         <Image source={require('../../assets/figma/combined/hero.png')} style={s.heroArt} contentFit="contain" />
         <View style={s.heroTop}>
-          <Logo height={19} />
+          <Logo height={29} />
           <Text style={s.date}>{m}.{String(d).padStart(2, '0')} ({WEEK[weekdayOf(today)]})</Text>
         </View>
         <Text style={s.eyebrow}>네 가지 관점이 겹친 오늘</Text>

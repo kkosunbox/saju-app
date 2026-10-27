@@ -39,7 +39,7 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
 
       {/* 제호 */}
       <View style={s.mast}>
-        <Logo height={24} />
+        <Logo height={37} />
         <Text style={s.date}>{y}.{String(m).padStart(2, '0')}.{String(d).padStart(2, '0')}</Text>
       </View>
       <View style={s.kind}><Text style={s.kindText}>{spec.kind}</Text></View>

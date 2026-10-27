@@ -55,7 +55,7 @@ export default function MbtiMatchScreen() {
       {wrap(
       <View ref={card} collapsable={false} style={s.card}>
         <MbtiArt type={top.type} size={115} style={s.cardArt} />
-        <Logo height={19} />
+        <Logo height={29} />
         <Text style={s.eyebrow}>{u.mbti} {u.nickname}님의 찰떡 MBTI는</Text>
         <Text style={s.big}>{top.type}</Text>
         <Text style={s.nick}>{top.nickname} ㆍ 궁합 {top.score}점</Text>

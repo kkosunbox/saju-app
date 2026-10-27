@@ -14,7 +14,7 @@ import MoonLoader from '../components/MoonLoader';
 import BirthPlaceSearch from '../components/BirthPlaceSearch';
 import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, fmtTime, sijinLabel, sijinOf, sijinTime } from '../components/BirthFields';
 import { colors, gradients } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
+import { radius, SCREEN_PX, txt } from '../theme/typography';
 import { profileLine, profileType } from '../theme/profileDesign';
 import { BirthPlace, BloodType, Gender, MBTI } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
@@ -343,8 +343,9 @@ export default function ProfileSetupScreen() {
 }
 
 const s = StyleSheet.create({
-  top: { height: 41, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24 },
-  brand: { height: 41, justifyContent: 'center' },
+  // 홈 상단 바와 같은 높이 · 로고 크기
+  top: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
+  brand: { justifyContent: 'center' },
   back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   skip: profileType(13, '400', 16, -0.65, colors.inkMute),
   title: profileType(18, '800', 21, -0.72),

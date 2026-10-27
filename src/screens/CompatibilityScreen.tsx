@@ -206,7 +206,7 @@ export default function CompatibilityScreen() {
     return (
       <Screen largeTitle="우리 둘의 궁합" onBack={() => setResult(null)}>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
-          <View style={s.heroLogo}><Logo height={19} /></View>
+          <View style={s.heroLogo}><Logo height={29} /></View>
           <View style={s.pair}>
             <Avatar name={user.nickname} me />
             <RelationIcon relationship={result.relationship} />

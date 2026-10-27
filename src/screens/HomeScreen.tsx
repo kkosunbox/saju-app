@@ -168,7 +168,7 @@ export default function HomeScreen() {
   ]);
   const top = (
     <View style={[s.topBar, { marginTop: insets.top }]}>
-      <Logo height={33} />
+      <Logo height={50} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, flexShrink: 1, marginLeft: 12 }}>
         {DEV_TOOLS && draw.opened ? (
           <View style={s.devControls}>

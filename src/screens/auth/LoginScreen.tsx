@@ -88,7 +88,7 @@ const s = StyleSheet.create({
   close: { position: 'absolute', top: 8, left: 12, zIndex: 1, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   root: { flex: 1, backgroundColor: colors.cream },
   hero: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  headline: { fontFamily: fonts.display, fontSize: 21, lineHeight: 29, fontWeight: '700', color: colors.ink, letterSpacing: -0.6, marginTop: 22 },
+  headline: { fontFamily: fonts.display, fontSize: 21, lineHeight: 29, fontWeight: '700', color: colors.ink, letterSpacing: -0.6, marginTop: -24 }, // 로고 아래 여백(약 46)을 빼고 레터링에서 22
   logo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 18 },
   logoText: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 56, fontWeight: '800', color: colors.purple, letterSpacing: -1, marginTop: 20 },
   logoDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.moon, marginTop: 22 },

@@ -7,7 +7,7 @@ import PressableScale from '../components/PressableScale';
 import BrandMark, { LogoMark } from '../components/BrandMark';
 import Mascot from '../components/Mascot';
 import { analysisTheme, colors } from '../theme/colors';
-import { fonts, radius, txt } from '../theme/typography';
+import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
 
 const PAGES = [
@@ -123,7 +123,8 @@ export default function OnboardingScreen() {
 }
 
 const s = StyleSheet.create({
-  top: { height: 52, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // 홈 상단 바와 같은 높이 · 로고 크기
+  top: { height: 56, paddingHorizontal: SCREEN_PX, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   skip: { fontSize: 14, color: colors.inkMute, fontWeight: '600' },
   bottom: { paddingHorizontal: 24, paddingBottom: 12, gap: 20 },
   dots: { flexDirection: 'row', gap: 6 },
