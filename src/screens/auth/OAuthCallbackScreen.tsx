@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import PrimaryButton from '../../components/PrimaryButton';
-import { useApp } from '../../context/AppContext';
 import { SOCIAL_LABEL } from '../../components/auth/socialLabels';
 import { SocialLoginError, finishWebSocialLogin } from '../../services/server/socialAuth';
+import { useAfterSocialLogin } from './useAfterSocialLogin';
 import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
 
@@ -19,7 +19,7 @@ const MESSAGE: Record<SocialLoginError['reason'], string> = {
 /** 웹 소셜 로그인 콜백 (/oauth/{provider}/callback · /auth/callback/{provider}): 서버에서 로그인을 마치고 돌아간다 */
 export default function OAuthCallbackScreen() {
   const q = useLocalSearchParams<{ provider: string; code?: string; state?: string; error?: string }>();
-  const { reloadSession, onboarded, completeOnboarding } = useApp();
+  const afterLogin = useAfterSocialLogin();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
   const brand = SOCIAL_LABEL[q.provider as keyof typeof SOCIAL_LABEL] ?? '소셜';
@@ -29,13 +29,7 @@ export default function OAuthCallbackScreen() {
     started.current = true;
     (async () => {
       try {
-        const { returnTo, needsTerms } = await finishWebSocialLogin(q.provider, q);
-        const hasProfile = await reloadSession();
-        if (!onboarded) await completeOnboarding();
-        // a new account without a fortune profile goes to the profile form first
-        const next = hasProfile ? returnTo || '/' : '/profile-setup';
-        // a new social account agrees to our terms before anything else
-        router.replace((needsTerms ? `/signup-terms?next=${encodeURIComponent(next)}` : next) as Href);
+        await afterLogin(await finishWebSocialLogin(q.provider, q));
       } catch (e) {
         setError(MESSAGE[e instanceof SocialLoginError ? e.reason : 'server']);
       }

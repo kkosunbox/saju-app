@@ -361,6 +361,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/social/apple/web-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Apple 로그인 설정 (웹)
+         * @description Apple JS(AppleID.auth.init)에 넣을 Services ID와 redirectURI. redirectURI는 Apple 콘솔의 Services ID에 등록된 주소여야 합니다. origin: 웹 앱 주소 (운영은 CORS_ALLOWED_ORIGINS 중 하나). 받은 id_token · code를 같은 redirectUri와 함께 POST /auth/apple로 보냅니다.
+         */
+        get: operations["AuthController_appleWebConfig_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/withdraw": {
         parameters: {
             query?: never;
@@ -567,7 +587,7 @@ export interface paths {
         put?: never;
         /**
          * 오늘의 운세 뽑기
-         * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다.
+         * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다. 뽑았다는 기록(drawn=true)은 AI와 상관없이 남아 다른 기기에서도 뽑은 상태로 보입니다.
          */
         post: operations["FortuneController_drawDailyFortune_v1"];
         delete?: never;
@@ -986,6 +1006,57 @@ export interface paths {
          * @description 이미 열려 있으면 포인트를 쓰지 않고 그대로 돌려줍니다. 무료 포인트 → 만료가 가까운 포인트 순으로 차감. 인생 패키지는 포함 항목 열람권을 함께 만들고, 이미 가진 항목만큼 싸집니다(GET /premium/quote). 포함 항목을 반 이상 가졌으면 CONTENT_NOT_FOR_SALE. compat:{id} · crush:{id}는 내 궁합 기록만 가능합니다.
          */
         post: operations["PremiumController_unlock_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/store/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 스토어 결제 계정 식별자 (결제 요청에 그대로 사용) */
+        get: operations["PaymentsController_storeAccount_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/apple/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apple 소모성 상품 검증·충전 (동일 거래는 한 번만 지급) */
+        post: operations["PaymentsController_confirmApple_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/google/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Google Play 소모성 상품 검증·충전·소비 */
+        post: operations["PaymentsController_confirmGoogle_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1668,6 +1739,10 @@ export interface components {
         AppleLoginRequest: {
             /** @description Apple identity token (iOS: expo-apple-authentication, 웹: Apple JS의 id_token) */
             identityToken: string;
+            /** @description Apple authorization code (선택). 서버가 refresh token으로 바꿔 두었다가 탈퇴할 때 철회합니다 */
+            authorizationCode?: string;
+            /** @description 웹: Apple JS에 넘긴 redirectURI (GET /auth/social/apple/web-config의 redirectUri). 앱은 보내지 않습니다 */
+            redirectUri?: string;
             /** @description Apple이 최초 로그인에만 주는 이름 (선택) */
             name?: string;
         };
@@ -2505,6 +2580,39 @@ export interface components {
              */
             contentKey: string;
         };
+        StoreAccountDto: {
+            appAccountToken: string;
+            obfuscatedAccountId: string;
+        };
+        PurchaseDto: {
+            id: number;
+            /** @enum {string} */
+            store: "apple" | "google" | "toss";
+            productId: string;
+            /** @enum {string} */
+            status: "pending" | "completed" | "refunded" | "cancelled" | "failed";
+            amountKrw: number;
+            points: number;
+            bonusPoints: number;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            refundedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ConfirmApplePurchaseRequest: {
+            /** @description StoreKit 2 signed transaction JWS */
+            signedTransaction: string;
+        };
+        ConfirmGooglePurchaseRequest: {
+            /**
+             * @example points_5000
+             * @enum {string}
+             */
+            productId: "points_1000" | "points_3000" | "points_5000" | "points_10000" | "points_30000";
+            purchaseToken: string;
+        };
         TossOrderDto: {
             /** @description 서버가 발급한 주문 ID */
             orderId: string;
@@ -2523,23 +2631,6 @@ export interface components {
              * @enum {string}
              */
             productId: "points_1000" | "points_3000" | "points_5000" | "points_10000" | "points_30000";
-        };
-        PurchaseDto: {
-            id: number;
-            /** @enum {string} */
-            store: "apple" | "google" | "toss";
-            productId: string;
-            /** @enum {string} */
-            status: "pending" | "completed" | "refunded" | "cancelled" | "failed";
-            amountKrw: number;
-            points: number;
-            bonusPoints: number;
-            /** Format: date-time */
-            completedAt: string | null;
-            /** Format: date-time */
-            refundedAt: string | null;
-            /** Format: date-time */
-            createdAt: string;
         };
         ConfirmTossPaymentRequest: {
             paymentKey: string;
@@ -2641,6 +2732,16 @@ export interface components {
             name: string;
             phone: string;
         };
+        ConsultTeaserDto: {
+            /** @description 이번 달 이 고민을 대하는 법 (움직일 때 …) */
+            modeLabel: string;
+            /** @description 고민과 이어진 기운 (정재 …) */
+            relatedStarName: string;
+            /** @description 잠긴 흐름 그래프의 3개월 (점수 없이) */
+            months: string[];
+            /** @description 잠긴 행동하기 좋은 날 수 */
+            goodDayCount: number;
+        };
         ConsultTurnDto: {
             question: string;
             reply: string;
@@ -2663,12 +2764,14 @@ export interface components {
             helpLines: components["schemas"]["HelpLineDto"][] | null;
             /** @description 고민 글 (상세 조회에서만) */
             question: string | null;
-            /** @description 잠겨 있으면 headline · direct · empathy · followUps만. followUps는 이어 물어볼 질문 3개 (예전 답변엔 없을 수 있음) */
+            /** @description 잠겨 있으면 headline · direct · empathy · hook · followUps만. hook은 나머지 답을 가리키는 한 줄 (예전 미리보기엔 없음). followUps는 이어 물어볼 질문 3개 (예전 답변엔 없을 수 있음) */
             answer: Record<string, never> | null;
             /** @description 무료 미리보기라 잠겨 있는지 */
             locked: boolean;
             /** @description 사주 근거 (흐름 · 좋은 달 · 좋은 날 …). 잠겨 있으면 null */
             facts: Record<string, never> | null;
+            /** @description 잠겨 있을 때만: 잠긴 나머지에 무엇이 있는지 보여 줄 사주 일부 (점수 · 좋은 달 · 좋은 날 자체는 없음) */
+            teaser: components["schemas"]["ConsultTeaserDto"] | null;
             /** @description 이어 묻기 대화 (목록에서는 null) */
             turns: components["schemas"]["ConsultTurnDto"][] | null;
             /** @description 남은 이어 묻기 횟수 (잠김 · 기한 지남이면 0) */
@@ -3461,6 +3564,37 @@ export interface operations {
             path: {
                 provider: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    AuthController_appleWebConfig_v1: {
+        parameters: {
+            query: {
+                origin: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -5745,6 +5879,263 @@ export interface operations {
                         /** @example MEMBER_ONLY */
                         code?: string;
                         /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PaymentsController_storeAccount_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["StoreAccountDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PaymentsController_confirmApple_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmApplePurchaseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PurchaseDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_FAILED */
+                        code?: string;
+                        /** @example PAYMENT_FAILED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PaymentsController_confirmGoogle_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmGooglePurchaseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PurchaseDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_FAILED */
+                        code?: string;
+                        /** @example PAYMENT_FAILED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

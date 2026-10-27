@@ -1,5 +1,5 @@
 /**
- * Web social login (카카오 · 네이버 · 구글): redirect to the provider, come back to the callback
+ * Web social login (카카오 · 네이버 · 구글; Apple is a popup, see appleAuth.ts): redirect to the provider, come back to the callback
  * (/oauth/{provider}/callback or /auth/callback/{provider}, per the server config) with a code,
  * and let the server finish (POST /auth/{provider}).
  * The login page address (client id) comes from the server, so new keys are a server change only.
@@ -15,7 +15,7 @@ export const isWebSocial = (p: string): p is WebSocialProvider => (WEB_SOCIAL as
 const PENDING = 'woonpick.oauth';
 interface Pending { provider: WebSocialProvider; state: string; redirectUri: string; returnTo: string }
 
-function randomState(): string {
+export function randomState(): string {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -39,6 +39,28 @@ export class SocialLoginError extends Error {
   constructor(readonly reason: 'state' | 'denied' | 'two-factor' | 'server', message: string) {
     super(message);
   }
+}
+
+/** What Apple gave us (app: expo-apple-authentication, web: Apple JS), sent to POST /auth/apple. */
+export interface AppleCredential { identityToken: string; authorizationCode?: string; redirectUri?: string; name?: string }
+
+/** Korean names read family name first; Latin ones given name first. */
+export function appleDisplayName(given?: string | null, family?: string | null): string | undefined {
+  const parts = [given, family].filter(Boolean) as string[];
+  if (!parts.length) return undefined;
+  return parts.every(p => /^[\x00-\x7F]*$/.test(p)) ? parts.join(' ') : [family, given].filter(Boolean).join('');
+}
+
+/** Signs in with Apple's identity token (the guest session rides along, like the others). */
+export async function finishAppleLogin(credential: AppleCredential): Promise<{ needsTerms: boolean }> {
+  const data = await call<LoginPayload & { twoFactorToken?: string; user?: { isAllowTerms: boolean } }>(
+    api.POST('/v1/auth/apple', { body: credential }),
+  ).catch(e => {
+    throw new SocialLoginError('server', (e as Error).message);
+  });
+  if (data.twoFactorToken) throw new SocialLoginError('two-factor', '2FA is not supported for Apple login yet');
+  await keep(data, false);
+  return { needsTerms: data.user?.isAllowTerms === false };
 }
 
 /**

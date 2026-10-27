@@ -17,7 +17,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "운Pick"
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.woonpick.android",
@@ -64,7 +65,8 @@
           }
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
