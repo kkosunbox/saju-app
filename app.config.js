@@ -41,6 +41,7 @@ module.exports = ({ config }) => ({
     ['expo-build-properties', { android: { extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'] } }],
     // iOS 로그인 복귀 URL은 아래 SceneDelegate 플러그인이 받는다 (handleKakaoOpenUrl 은 AppDelegate 전용이라 쓰지 않음)
     ['@react-native-kakao/core', { nativeAppKey: KEYS.kakaoNativeAppKey, android: { authCodeHandlerActivity: true }, ios: {} }],
+    './plugins/withKakaoAndroidCompileSdk',
     ['@react-native-seoul/naver-login', { urlScheme: NAVER_URL_SCHEME }],
     ['@react-native-google-signin/google-signin', { iosUrlScheme: GOOGLE.iosUrlScheme }],
     ['./plugins/withSocialLoginScene', { naverUrlScheme: NAVER_URL_SCHEME }],
