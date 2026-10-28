@@ -31,7 +31,7 @@ import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
-import { motion, useReducedMotion } from '../utils/motion';
+import { motion, useReducedMotion, useScreenLive } from '../utils/motion';
 import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
 import { FriendResult, PendingInvite, getFriendResult, markFriendSeen, getPendingInvite, savePendingInvite, clearPendingInvite } from '../services/share/linkShare';
@@ -117,9 +117,11 @@ function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animat
 
 function useTagSweep() {
   const reduced = useReducedMotion();
+  const live = useScreenLive();
   const [sweep] = useState(() => new Animated.Value(0));
+  // SVG 속성이라 네이티브로 못 넘겨 JS가 매 프레임 그린다 — 홈이 안 보이면 멈춘다
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !live) return;
     const loop = Animated.loop(Animated.sequence([
       Animated.delay(1200),
       Animated.timing(sweep, { toValue: 1, duration: 2200, easing: motion.easeInOut, useNativeDriver: false }),
@@ -127,8 +129,8 @@ function useTagSweep() {
       Animated.delay(2600),
     ]));
     loop.start();
-    return () => loop.stop();
-  }, [reduced, sweep]);
+    return () => { loop.stop(); sweep.setValue(0); };
+  }, [reduced, live, sweep]);
   return sweep;
 }
 
