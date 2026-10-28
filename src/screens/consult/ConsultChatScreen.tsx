@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
-import Screen from '../../components/Screen';
+import Screen, { useKeyboardShown } from '../../components/Screen';
 import Icon from '../../components/Icon';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
@@ -109,6 +109,7 @@ function Chat({ id }: { id: number }) {
   const { user: u, account } = useApp();
   const { toast, goWallet, points } = usePremium();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardShown();
   const scroll = useRef<ScrollViewInstance>(null);
   const inputRef = useRef<TextInputInstance>(null);
   const [input, setInput] = useState('');
@@ -241,66 +242,66 @@ function Chat({ id }: { id: number }) {
 
   return (
     <Screen title="고민 상담" back sky scroll={false}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
-          {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
+      {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
+      <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
+        {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
-          <Counselor>
-            <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
-            <View style={s.headline}><Text style={s.headlineV}>{e.answer.headline}</Text></View>
-            <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
-            {full ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
-                <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
-              </View>
-            ) : null}
-            <Text style={s.replyText}>{e.answer.empathy}</Text>
-            {e.locked && hook && !unlocking ? <Cliff hook={hook} /> : null}
-          </Counselor>
-
+        <Counselor>
+          <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
+          <View style={s.headline}><Text style={s.headlineV}>{e.answer.headline}</Text></View>
+          <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
           {full ? (
-            <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
-          ) : unlocking ? (
-            <ReplyBubble typing={STAGES.rest} />
-          ) : (
-            <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
-          )}
-
-          {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
-
-          {turns.map(t => (
-            <View key={t.createdAt}>
-              <MyBubble at={t.createdAt}>{t.question}</MyBubble>
-              <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
+              <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
             </View>
-          ))}
-          {sending ? (
-            <>
-              <MyBubble>{sending}</MyBubble>
-              <ReplyBubble typing={STAGES.reply} />
-            </>
           ) : null}
-          {crisis ? <HelpLines lines={crisis} crisis /> : null}
+          <Text style={s.replyText}>{e.answer.empathy}</Text>
+          {e.locked && hook && !unlocking ? <Cliff hook={hook} /> : null}
+        </Counselor>
 
-          {!sending && !unlocking && (e.locked || canAsk) ? (
-            <SuggestionChips
-              items={suggestions}
-              caption={e.locked ? `궁금한 질문을 누르면 ${cost}알로 열고 바로 답해 드려요` : '이어서 물어보기'}
-              onPick={send}
-            />
-          ) : null}
+        {full ? (
+          <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
+        ) : unlocking ? (
+          <ReplyBubble typing={STAGES.rest} />
+        ) : (
+          <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
+        )}
 
-          {full ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
+        {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
 
-          <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
-            <Text style={s.delete}>이 상담 기록 지우기</Text>
-          </PressableScale>
-          <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
-        </ScrollView>
-        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 10) }]}>{footer}</View>
-      </KeyboardAvoidingView>
+        {turns.map(t => (
+          <View key={t.createdAt}>
+            <MyBubble at={t.createdAt}>{t.question}</MyBubble>
+            <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>
+          </View>
+        ))}
+        {sending ? (
+          <>
+            <MyBubble>{sending}</MyBubble>
+            <ReplyBubble typing={STAGES.reply} />
+          </>
+        ) : null}
+        {crisis ? <HelpLines lines={crisis} crisis /> : null}
+
+        {!sending && !unlocking && (e.locked || canAsk) ? (
+          <SuggestionChips
+            items={suggestions}
+            caption={e.locked ? `궁금한 질문을 누르면 ${cost}알로 열고 바로 답해 드려요` : '이어서 물어보기'}
+            onPick={send}
+          />
+        ) : null}
+
+        {full ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
+
+        <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
+          <Text style={s.delete}>이 상담 기록 지우기</Text>
+        </PressableScale>
+        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
+      </ScrollView>
+      {/* 키보드가 떠 있으면 홈 인디케이터 여백 없이 키보드 바로 위에 붙인다 */}
+      <View style={[s.footer, { paddingBottom: keyboard ? 10 : Math.max(insets.bottom, 10) }]}>{footer}</View>
 
       <BottomSheet visible={unlockOpen} onClose={closeUnlock}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>

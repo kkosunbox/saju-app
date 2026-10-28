@@ -90,7 +90,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
 }
 
 /** 키보드가 떠 있는지. iOS는 올라오기 시작할 때 바꿔 버튼 여백이 키보드와 같이 움직이게 한다 */
-function useKeyboardShown() {
+export function useKeyboardShown() {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'web') return;
