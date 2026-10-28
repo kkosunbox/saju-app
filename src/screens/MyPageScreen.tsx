@@ -145,7 +145,7 @@ export default function MyPageScreen() {
       <Card style={s.wallet}>
         <View style={s.walletTop}>
           <Image source={require('../../assets/figma/my-page/wallet-mascot.png')} style={{ width: 35, height: 32 }} contentFit="cover" />
-          <View style={{ flex: 1, height: 40 }}>
+          <View style={{ flex: 1 }}>
             <Text style={s.walletCaption}>보유 알</Text>
             <Text style={s.walletCount}>{fmtN(points)}</Text>
           </View>
@@ -256,7 +256,7 @@ const s = StyleSheet.create({
   wallet: { padding: 0, overflow: 'hidden' },
   walletTop: { minHeight: 64, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 16 },
   walletCaption: profileType(13, '400', 18, -0.65),
-  walletCount: { ...profileType(24, '700', 17, -1.2), marginTop: 4 },
+  walletCount: { ...profileType(24, '700', 29, -1.2), marginTop: 1 },
   walletRow: { height: 55, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: profileLine },
   menuLabel: { ...profileType(14, '600', 18, -0.7), flex: 1 },
   menuArrow: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },

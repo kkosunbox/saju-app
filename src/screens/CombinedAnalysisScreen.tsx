@@ -111,7 +111,7 @@ const s = StyleSheet.create({
   heroTop: { height: 19, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   date: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 5 },
   eyebrow: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 14 },
-  summary: { includeFontPadding: false, ...sansW('700'), fontSize: 20, lineHeight: 18, letterSpacing: -1, color: '#FFFFFF', marginTop: 8 },
+  summary: { includeFontPadding: false, ...sansW('700'), fontSize: 20, lineHeight: 28, letterSpacing: -1, color: '#FFFFFF', marginTop: 8 },
   heroTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16, paddingLeft: 2 },
   heroChip: { borderWidth: 0.5, borderColor: '#FFFFFF', borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
   heroTag: { includeFontPadding: false, ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#FFFFFF', opacity: 0.8 },
