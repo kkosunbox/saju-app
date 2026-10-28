@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
-import Segmented from '../../components/Segmented';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Hero, InfoRows, Para, Pill, Seal, SubHead, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Hero, Para, SubHead, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { Image } from 'expo-image';
+import { Closing, InfoRows, SajuIcon, SajuIconName } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
@@ -17,17 +18,15 @@ import { ReadingView, ThemeReading } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { EL_LUCK } from '../../services/premium/data';
 import { ELEMENT_INFO, STEMS } from '../../data/sajuData';
-import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { colors, isDark } from '../../theme/colors';
+import { radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { themeSpec } from '../../services/share/shareSpecs';
-
-const TABS: { key: ThemeKind; label: string }[] = [{ key: 'love', label: '연애·결혼' }, { key: 'money', label: '재물' }, { key: 'career', label: '직업·적성' }];
 
 export default function ThemeScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Theme'>>();
   const { user: u } = useApp();
-  const [kind, setKind] = useState<ThemeKind>(params.kind);
+  const kind = params.kind;
   const ref = { kind: 'theme', theme: kind } as const;
   const content = usePremiumContent<ThemeContent<ThemeKind> & { details: ThemeDetails }>(ref);
   const { reading, retry } = useReading<ThemeReading>(content);
@@ -70,13 +69,12 @@ export default function ThemeScreen() {
   return (
     <Screen title="테마 운세" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti} · ${u.bloodType}형`} />
-      <View style={{ marginTop: 12 }}><Segmented<ThemeKind> options={TABS} value={kind} onChange={setKind} /></View>
       {hero}
       {!content.open ? <LockGate key={item.key} item={item} />
         : data && F ? <ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
-      <Disclaimer compact />
+      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <Disclaimer compact mt={24} />
     </Screen>
   );
 }
@@ -90,8 +88,19 @@ interface ThemeDetails {
   career?: { type: string; typeDesc: string; leadership: string; jobs: string[]; yongsinJobs: string[] };
 }
 
-const THEME_COLOR: Record<ThemeKind, [string, string, string]> = {
-  love: [colors.love, colors.loveBg, '緣'], money: [colors.money, colors.moneyBg, '財'], career: [colors.work, colors.workBg, '業'],
+const THEME_COLOR: Record<ThemeKind, [string, string, SajuIconName]> = {
+  love: [colors.love, colors.loveBg, 'heart'], money: [colors.money, colors.moneyBg, 'database'], career: [colors.work, colors.workBg, 'work'],
+};
+
+// 용신 업종 칩 — 칩마다 다른 파스텔 바탕 (Figma Ticker)
+const TICKER_BG = ['#E7F0FF', '#DEF4FF', '#E4F6F2', '#F2E7FF', '#DEE5FF'];
+function Ticker({ children, i }: { children: React.ReactNode; i: number }) {
+  return <View style={[s.ticker, { backgroundColor: isDark ? colors.surface : TICKER_BG[i % TICKER_BG.length] }]}><Text style={s.tickerText}>{children}</Text></View>;
+}
+
+// 대운 칸 아이콘 — 테마 색으로 칠한 16px (Figma)
+const PERIOD_ICON: Partial<Record<ThemeKind, number>> = {
+  love: require('../../../assets/figma/theme/heart.svg'), money: require('../../../assets/figma/theme/database.svg'),
 };
 
 /** 점수·시기·유형은 서버 계산값, 글은 AI 풀이 */
@@ -99,7 +108,7 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
   const writing = reading?.status === 'writing';
   const P = reading?.parts ?? {};
   const core = P.core; const timing = P.timing;
-  const [color, bg, ch] = THEME_COLOR[kind];
+  const [color, bg, icon] = THEME_COLOR[kind];
   const name = { love: '연애', money: '재물', career: '커리어' }[kind];
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
   let n = 0; const no = () => String(++n).padStart(2, '0');
@@ -145,12 +154,12 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
               </Card>
               <Card>
                 <Text style={s.label}>내가 호감 있을 때 보이는 신호</Text>
-                {P.match.signals.map((t, i) => <Bullet key={i}>{t}</Bullet>)}
+                {P.match.signals.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}
               </Card>
             </View>
           ) : <Card style={{ marginTop: 12 }}>{pending(5)}</Card>}
           <SubHead title={`${no()} · 연애할 때 조심할 점`} />
-          <Card>{P.core?.cautions ? P.core.cautions.map((t, i) => <Bullet key={i} color="#C27A2C">{t}</Bullet>) : pending()}</Card>
+          <Card>{P.core?.cautions ? P.core.cautions.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>) : pending()}</Card>
         </>
       ) : null}
 
@@ -165,11 +174,11 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
           ) : <Card>{pending(5)}</Card>}
           <SubHead title={`${no()} · 돈 쓰는 습관`} />
           <Card>
-            {P.core?.spend ? (<><Para mt={0}>{P.core.spend.text}</Para><Text style={[s.label, { marginTop: 12 }]}>돈이 새기 쉬운 곳</Text>{P.core.spend.leaks.map((t, i) => <Bullet key={i} color="#C27A2C">{t}</Bullet>)}</>) : pending(4)}
+            {P.core?.spend ? (<><Para mt={0}>{P.core.spend.text}</Para><Text style={[s.label, { marginTop: 12 }]}>돈이 새기 쉬운 곳</Text>{P.core.spend.leaks.map((t, i) => <Bullet key={i} color={colors.money}>{t}</Bullet>)}</>) : pending(4)}
           </Card>
           <SubHead title={`${no()} · 맞춤 관리법`} />
           <Card>
-            {P.core?.manage ? (<><Para mt={0}>{P.core.manage.text}</Para><Text style={[s.label, { marginTop: 12 }]}>재물 습관</Text>{P.core.manage.habits.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</>) : pending(4)}
+            {P.core?.manage ? (<><Para mt={0}>{P.core.manage.text}</Para><Text style={[s.label, { marginTop: 12 }]}>재물 습관</Text>{P.core.manage.habits.map((t, i) => <Bullet key={i} color={colors.money}>{t}</Bullet>)}</>) : pending(4)}
           </Card>
         </>
       ) : null}
@@ -183,8 +192,8 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
             {P.core ? <Para mt={10}>{P.core.type}</Para> : pending()}
           </Card>
           <SubHead title={`${no()} · 잘 맞는 일`} caption="위의 기질별 직군과 용신 업종에서" />
-          <Text style={[s.label, { marginBottom: 6 }]}>용신 {ELEMENT_INFO[F.yong].ko}({ELEMENT_INFO[F.yong].hanja})의 업종</Text>
-          <View style={s.chips}>{D.career.yongsinJobs.map(j => <Pill key={j}>{j}</Pill>)}</View>
+          <Text style={s.tickerLabel}>용신 {ELEMENT_INFO[F.yong].ko}({ELEMENT_INFO[F.yong].hanja})의 업종</Text>
+          <View style={s.chips}>{D.career.yongsinJobs.map((j, i) => <Ticker key={j} i={i}>{j}</Ticker>)}</View>
           {P.core ? <View style={{ gap: 10, marginTop: 12 }}>{P.core.jobs.map((x, i) => <Card key={i}><Text style={txt.h3}>{x.title}</Text><Para>{x.text}</Para></Card>)}</View> : <Card style={{ marginTop: 12 }}>{pending(5)}</Card>}
           <SubHead title={`${no()} · 일하는 방식`} />
           <Card>
@@ -248,8 +257,8 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
           {D.periods.map((p, i) => (
             <Card key={p.age}>
               <View style={s.between}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Seal ch={ch} bg={bg} color={color} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={s.iconBox}>{PERIOD_ICON[kind] ? <Image source={PERIOD_ICON[kind]} style={{ width: 16, height: 16 }} contentFit="contain" /> : <SajuIcon name={icon} />}</View>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{p.age}~{p.age + 9}세 <Text style={[txt.caption, { fontWeight: '500' }]}>{pText(p.pillar)} · {p.group}</Text></Text>
                 </View>
                 <Text style={{ fontWeight: '700', color: scoreColor(p.score) }}>{p.score}</Text>
@@ -271,12 +280,12 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
       {kind === 'money' ? (
         <>
           <SubHead title={`${no()} · 재물 개운법`} />
-          <InfoRows rows={[['財', '지갑·소품 색', EL_LUCK[F.yong].color], ['方', '돈이 들어오는 방향', EL_LUCK[F.yong].dir], ['數', '행운의 숫자', EL_LUCK[F.yong].num]]} />
+          <InfoRows rows={[['luck-color-gold', '지갑 · 소품 색', EL_LUCK[F.yong].color], ['luck-direction-gold', '돈이 들어오는 방향', EL_LUCK[F.yong].dir], ['luck-number-gold', '행운의 숫자', EL_LUCK[F.yong].num]]} />
           {timing?.luck ? <Card style={{ marginTop: 10 }}><Para mt={0}>{timing.luck}</Para></Card> : null}
-          <Text style={[txt.caption, { marginTop: 12, textAlign: 'center' }]}>투자·대출 등 금전 결정은 운세가 아닌 전문가 상담을 바탕으로 해주세요.</Text>
+          <Text style={s.moneyNote}>투자·대출 등 금전 결정은 운세가 아닌 전문가 상담을 바탕으로 해주세요.</Text>
         </>
       ) : null}
-      {core ? <Tip title="마지막 한마디">{core.closing}</Tip> : null}
+      {core ? <Closing title="마지막 한마디" top={3} style={{ marginTop: kind === 'career' ? 32 : 16 }}>{core.closing}</Closing> : null}
     </>
   );
 }
@@ -284,11 +293,17 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
 const s = StyleSheet.create({
   mtile: { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6, borderRadius: radius.lg },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  // 용신 업종: 섹션 왼쪽 끝에서 6 들여 놓는다 (Figma x 30)
+  chips: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 8, paddingHorizontal: 6 },
+  tickerLabel: { ...sansW('600'), fontSize: 12, lineHeight: 17, letterSpacing: -0.48, color: isDark ? colors.ink : '#000000', marginBottom: 8, paddingHorizontal: 6 },
+  ticker: { height: 32, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 30 },
+  tickerText: { ...sansW('600'), fontSize: 13, color: isDark ? colors.ink : '#000000', opacity: 0.8 },
+  iconBox: { width: 31, height: 31, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
+  moneyNote: { ...sansW('700'), fontSize: 12, lineHeight: 17, letterSpacing: -0.48, color: isDark ? colors.inkMute : '#838383', textAlign: 'center', marginTop: 16 },
   yrow: { paddingVertical: 12 },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden', marginTop: 8 },
   fill: { height: 6, borderRadius: 3 },

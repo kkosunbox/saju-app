@@ -24,12 +24,20 @@ const ICONS = {
   thai: require('../../../assets/figma/saju/thai.svg'),
   mbti: require('../../../assets/figma/saju/mbti.svg'),
   blood: require('../../../assets/figma/saju/blood.svg'),
+  // 신년운세 분야 아이콘
+  pulse: require('../../../assets/figma/new-year/health.svg'),
+  study: require('../../../assets/figma/new-year/study.svg'),
+  users: require('../../../assets/figma/new-year/people.svg'),
+  // 재물 테마 개운법 (금색)
+  'luck-color-gold': require('../../../assets/figma/theme/luck-color-gold.svg'),
+  'luck-direction-gold': require('../../../assets/figma/theme/luck-direction-gold.svg'),
+  'luck-number-gold': require('../../../assets/figma/theme/luck-number-gold.svg'),
 };
 export type SajuIconName = keyof typeof ICONS;
 
 /** Keep exported vector dimensions inside the design's icon slot. */
 export function SajuIcon({ name }: { name: SajuIconName }) {
-  const [width, height] = name === 'work' ? [13, 13.0002] : name === 'people' ? [15, 11.0005]
+  const [width, height] = name === 'work' ? [13, 13.0002] : name === 'people' ? [15, 11.0005] : name === 'users' ? [18, 14]
     : name === 'luck-items' ? [12.8, 11.2] : name.startsWith('luck-') ? [16, 16] : [20, 20];
   return <View style={{ width: name.startsWith('luck-') ? 16 : 20, height: name.startsWith('luck-') ? 16 : 20, alignItems: 'center', justifyContent: 'center' }}><Image source={ICONS[name]} style={{ width, height }} contentFit="contain" /></View>;
 }
@@ -43,13 +51,14 @@ export function SajuHeading({ title, icon, small = false }: { title: string; ico
   return <View style={s.heading}><SajuIcon name={icon} /><Text style={[s.cardTitle, { lineHeight: 20 }, small && { fontSize: 14, letterSpacing: -0.7 }]}>{title}</Text></View>;
 }
 
-export function SubHead({ title, caption }: { title: string; caption?: string }) {
-  const [number, label] = title.split(' · ');
+export function SubHead({ title, caption, captionStyle }: { title: string; caption?: string; captionStyle?: StyleProp<TextStyle> }) {
+  // "01 · 초년 · 중년 · 말년" — 번호 뒤는 모두 제목
+  const [number, ...rest] = title.split(' · '); const label = rest.join(' · ');
   return <View style={s.section}>
     <Text style={s.number}>{number}</Text>
     <View style={s.sectionTitle}>
       <Text style={s.sectionLabel} accessibilityRole="header">{label}</Text>
-      {caption ? <View style={s.captionRow}><View style={s.divider} /><Text style={s.caption}>{caption}</Text></View> : null}
+      {caption ? <View style={s.captionRow}><View style={s.divider} /><Text style={[s.caption, captionStyle]}>{caption}</Text></View> : null}
     </View>
   </View>;
 }
@@ -63,12 +72,13 @@ export function Bullet({ children }: { children: React.ReactNode }) {
 export function Tip({ title, children, style }: { title: string; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[s.tip, style]}><View style={s.tipHeading}><Image source={require('../../../assets/figma/saju/mascot.png')} style={{ width: 19, height: 18 }} contentFit="contain" /><Text style={s.tipTitle}>{title}</Text></View><Para mt={4}>{children}</Para></View>;
 }
-export function Closing({ children }: { children: React.ReactNode }) {
-  return <View style={s.closing}><Image source={require('../../../assets/figma/saju/mascot.png')} style={{ width: 57, height: 53 }} contentFit="contain" /><View style={{ flex: 1 }}><Text style={[s.cardTitle, { lineHeight: 19, color: colors.white }]}>평생 기억할 한마디</Text><Para mt={4} style={{ color: colors.white }}>{children}</Para></View></View>;
+/** top: 마스코트를 카드 위쪽에 맞출 때 패딩 아래 여백 (가운데 정렬이 기본) */
+export function Closing({ children, title = '평생 기억할 한마디', top, style }: { children: React.ReactNode; title?: string; top?: number; style?: StyleProp<ViewStyle> }) {
+  return <View style={[s.closing, top != null && { alignItems: 'flex-start' }, style]}><Image source={require('../../../assets/figma/saju/mascot.png')} style={{ width: 57, height: 53, marginTop: top }} contentFit="contain" /><View style={{ flex: 1 }}><Text style={[s.cardTitle, { lineHeight: 19, color: colors.white }]}>{title}</Text><Para mt={4} style={{ color: colors.white }}>{children}</Para></View></View>;
 }
 
-export function InfoRows({ rows }: { rows: [SajuIconName, string, string][] }) {
-  return <View style={s.table}>{rows.map(([icon, label, value], i) => <View key={label} style={[s.infoRow, i > 0 && s.topLine]}><SajuIcon name={icon} /><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>)}</View>;
+export function InfoRows({ rows, rowStyle }: { rows: [SajuIconName, string, string][]; rowStyle?: StyleProp<ViewStyle> }) {
+  return <View style={s.table}>{rows.map(([icon, label, value], i) => <View key={label} style={[s.infoRow, rowStyle, i > 0 && s.topLine]}><SajuIcon name={icon} /><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>)}</View>;
 }
 const SOURCE_LABEL = { saju: '사주', thai: '점성술', mbti: 'MBTI', blood: '혈액형' };
 export function ViewRow({ k, children }: { k: SrcKey; children: React.ReactNode }) {

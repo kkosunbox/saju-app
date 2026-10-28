@@ -15,7 +15,7 @@ import { COPY } from '../content/copy';
  * 링크로 보내면 친구가 열었을 때 내 결과와 친구 결과가 나란히 비교된다.
  * image가 있으면(예: 오늘의 부적) 친구에게 그 이미지를 링크와 함께 보낸다.
  */
-export default function ShareActions({ spec, title = COPY.friend, outlined = false, image }: { spec: ShareSpec; title?: string; outlined?: boolean; image?: ShareImage }) {
+export default function ShareActions({ spec, title = COPY.friend, outlined = false, image, marginTop }: { spec: ShareSpec; title?: string; outlined?: boolean; image?: ShareImage; marginTop?: number }) {
   const nav = useNavigation();
   const { shareRewardsLeft } = usePremium();
   const { sendLink, sendImage } = useShare();
@@ -36,7 +36,7 @@ export default function ShareActions({ spec, title = COPY.friend, outlined = fal
       </View>
     </>
   );
-  return <GradientBorder outer={{ marginTop: outlined ? 24 : 20 }} style={[s.box, outlined && s.outlined]}>{content}</GradientBorder>;
+  return <GradientBorder outer={{ marginTop: marginTop ?? (outlined ? 24 : 20) }} style={[s.box, outlined && s.outlined]}>{content}</GradientBorder>;
 }
 
 const s = StyleSheet.create({

@@ -7,7 +7,8 @@ import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import KeywordChip from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, Hero, InfoRows, MonthBars, Para, SubHead, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, Hero, MonthBars, Para, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { Closing, InfoRows, Para as LuckPara, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
@@ -20,7 +21,7 @@ import { usePremiumContent, usePremiumPreview, useReading } from '../../services
 import { EL_LUCK } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
 import { categoryTheme, colors } from '../../theme/colors';
-import { txt } from '../../theme/typography';
+import { sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { newYearSpec } from '../../services/share/shareSpecs';
 
@@ -58,8 +59,8 @@ export default function NewYearScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : D ? <NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
-      <Disclaimer compact />
+      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <Disclaimer compact mt={24} />
     </Screen>
   );
 }
@@ -72,7 +73,7 @@ interface YearDetails {
 }
 type YearContent = YearData & { details: YearDetails };
 
-const FIELD_ICON: Record<FieldKey, string> = { money: '財', work: '業', love: '緣', health: '康', people: '人', study: '學' };
+const FIELD_ICON: Record<FieldKey, SajuIconName> = { money: 'database', work: 'work', love: 'heart', health: 'pulse', people: 'users', study: 'study' };
 
 /** 점수·간지·신살은 서버 계산값, 글은 AI 풀이 */
 function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull | null; reading: ReadingView<YearReading> | null; onRetry(): void }) {
@@ -134,7 +135,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
           return (
             <Card key={f.key}>
               <View style={s.between}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.ink }}>{FIELD_ICON[f.key]} {f.label}</Text>
+                <SajuHeading title={f.label} icon={FIELD_ICON[f.key]} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: scoreColor(f.score) }}>{f.score}</Text>
               </View>
               <View style={{ marginTop: 10, marginBottom: 2 }}><ScoreBar value={f.score} color={colors.purpleSoft} /></View>
@@ -150,7 +151,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
         })}
       </View>
 
-      <SubHead title="05 · 12개월 흐름" caption="막대나 카드를 누르면 그 달의 상세운세로 이동해요" />
+      <SubHead title="05 · 12개월 흐름" caption="막대를 누르면 그 달의 상세운세로 이동해요" captionStyle={{ letterSpacing: -0.91 }} />
       <MonthBars months={D.months} onPress={goMonth} />
       <View style={{ gap: 10, marginTop: 12 }}>
         {D.months.map((x, i) => {
@@ -170,8 +171,8 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
                   <Text style={[txt.body, { fontSize: 14, marginTop: 2 }]}>{t.text}</Text>
                 </>
               ) : <PartPending writing={writing} lines={2} />}
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
-                {CATS.map(c => <Text key={c} style={txt.caption}>{categoryTheme[c].emoji} {x[c]}</Text>)}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                {CATS.map(c => <Text key={c} style={s.catScore}>{categoryTheme[c].short}운 · {x[c]}</Text>)}
               </View>
             </Card>
           );
@@ -198,26 +199,27 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
       </View>
 
       <SubHead title={`07 · ${y}년 개운법`} />
-      {L ? <InfoRows labelWidth={120} rows={[['色', '올해의 행운 색', L.color], ['數', '행운의 숫자', L.num], ['方', '좋은 방향', L.dir], ['物', '곁에 두면 좋은 물건', L.items]]} /> : null}
+      {L ? <InfoRows rowStyle={{ paddingRight: 20 }} rows={[['luck-color', '올해의 행운 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-direction', '좋은 방향', L.dir], ['luck-items', '곁에 두면 좋은 물건', L.items]]} /> : null}
       {overview ? (
-        <Card style={{ marginTop: 12 }}>
-          <Para mt={0}>{overview.luck.text}</Para>
-          <Text style={[s.label, { marginTop: 14 }]}>올해 습관으로 만들 것</Text>
-          {overview.luck.actions.map((t, i) => <Bullet key={i}>{t}</Bullet>)}
+        <Card style={{ marginTop: 16 }}>
+          <LuckPara mt={0}>{overview.luck.text}</LuckPara>
+          <Text style={[s.label, { marginTop: 16 }]}>올해 습관으로 만들 것</Text>
+          <View style={{ marginTop: 6 }}>{overview.luck.actions.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</View>
         </Card>
       ) : writing ? <Card style={{ marginTop: 12 }}><PartPending writing /></Card> : null}
 
       <SubHead title="08 · 주의할 점" />
       {overview ? (
         <>
-          <Card>{overview.cautions.map((t, i) => <Bullet key={i} color="#C27A2C">{t}</Bullet>)}</Card>
-          <Tip title="올해를 위한 한마디">{overview.closing}</Tip>
+          <Card>{overview.cautions.map((t, i) => <Bullet key={i} color={CAUTION_DOT}>{t}</Bullet>)}</Card>
+          <Closing title="올해를 위한 한마디" top={10}>{overview.closing}</Closing>
         </>
       ) : <Card><PartPending writing={writing} lines={3} /></Card>}
     </>
   );
 }
 
+const CAUTION_DOT = '#E54D4D';
 const FLAG_ICON: Record<string, string> = { zodiac: '合', dohwa: '桃', yeokma: '驛', gwiin: '貴', dayClash: '沖', dayHap: '人', samjae: '災' };
 
 const s = StyleSheet.create({
@@ -228,7 +230,8 @@ const s = StyleSheet.create({
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   cell2: { width: '47%', flexGrow: 1, padding: 16 },
   flag: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 14 },
-  label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
+  label: { ...sansW('600'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, color: colors.ink },
+  catScore: { ...sansW('500'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
 });
 

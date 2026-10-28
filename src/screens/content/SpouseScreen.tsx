@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { ActRow, BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, Pill, Seal, SubHead, Tip, heroTxt } from '../../components/premium/Kit';
+import { BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, SubHead, Tip, heroTxt } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
@@ -13,8 +14,8 @@ import { SpousePreview, SpouseReport } from '../../types/premium';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { MBTI_INFO } from '../../data/mbtiData';
-import { colors } from '../../theme/colors';
-import { fonts, radius, txt } from '../../theme/typography';
+import { colors, isDark } from '../../theme/colors';
+import { fonts, radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
@@ -82,8 +83,8 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
         <ReadingBanner reading={reading} onRetry={onRetry} />
         <SubHead title="01 · 그 사람은 이런 사람" caption={`${el.ko}(${el.hanja})의 기운 · ${R.persona.img}`} />
         <Card>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Seal ch={R.persona.hanja} size={44} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <IconBox icon="user" size={38} />
             <View style={{ flex: 1 }}><Text style={txt.h3}>{R.persona.core}</Text></View>
           </View>
           {portrait ? (
@@ -101,20 +102,20 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
         <Card>
           {portrait ? (
             <>
-              <Text style={txt.h3}>緣 사랑을 표현하는 방식</Text>
+              <Heading icon="heart">사랑을 표현하는 방식</Heading>
               <Para>{portrait.love}</Para>
-              <Text style={[txt.h3, { marginTop: 16 }]}>財 돈을 대하는 방식</Text>
+              <Heading icon="money" mt={16}>돈을 대하는 방식</Heading>
               <Para>{portrait.money}</Para>
-              <Text style={[txt.h3, { marginTop: 16 }]}>業 일하는 모습</Text>
+              <Heading icon="work" mt={16}>일하는 모습</Heading>
               <Para>{portrait.work}</Para>
             </>
           ) : pending(6)}
           <Text style={[txt.caption, { marginTop: 16 }]}>이런 일을 하고 있을 가능성이 커요</Text>
-          <View style={s.wrap}>{R.jobs.map(j => <Pill key={j}>{j}</Pill>)}</View>
+          <View style={s.wrap}>{R.jobs.map(j => <View key={j} style={s.job}><Text style={s.jobText}>{j}</Text></View>)}</View>
         </Card>
 
         <SubHead title="03 · 이런 신호가 보이면 그 사람이에요" caption="처음 만났을 때 알아보는 법" />
-        <Card style={{ gap: 10 }}>{portrait ? portrait.signs.map(t => <ActRow key={t} icon="sparkle">{t}</ActRow>) : pending(5)}</Card>
+        <Card style={{ gap: 10 }}>{portrait ? portrait.signs.map(t => <SignRow key={t}>{t}</SignRow>) : pending(5)}</Card>
 
         <SubHead title="04 · 찰떡 조건" caption="MBTI · 띠 · 나이" />
         <View style={s.grid}>
@@ -131,13 +132,13 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
         </Card>
 
         <SubHead title="05 · 나의 배우자 운" caption={`배우자의 별 ${R.star.n}개${R.star.type ? ` · ${R.star.type[0]}` : ''}`} />
-        <Card style={{ paddingVertical: 4, paddingHorizontal: 18 }}>
+        <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
           <View style={s.lrow}>
-            <Seal ch="星" />
+            <IconBox icon="star" />
             <View style={{ flex: 1 }}><Text style={txt.h3}>배우자의 별</Text>{mine ? <Text style={[txt.small, { marginTop: 2 }]}>{mine.star}</Text> : pending(2)}</View>
           </View>
           <View style={[s.lrow, s.line]}>
-            <Seal ch={R.seatNote[0]} />
+            <IconBox icon="users" />
             <View style={{ flex: 1 }}><Text style={txt.h3}>배우자 자리 · {R.stage[0]}</Text>{mine ? <Text style={[txt.small, { marginTop: 2 }]}>{mine.seat}</Text> : pending(2)}</View>
           </View>
         </Card>
@@ -150,7 +151,7 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
               return (
                 <View key={x.yy} style={s.barCol}>
                   <Text style={[s.barVal, top && { color: colors.love }]}>{x.v}</Text>
-                  <View style={[s.bar, { height: Math.max(10, (x.v - 38) * 1.7), backgroundColor: top ? colors.love : colors.loveBg }]} />
+                  <View style={[s.bar, { height: barH(x.v), backgroundColor: top ? colors.love : colors.surface }]} />
                   <Text style={txt.caption}>{String(x.yy).slice(2)}년</Text>
                 </View>
               );
@@ -169,10 +170,10 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
           </View>
         </Card>
         {R.daeLove.length ? (
-          <Card style={{ marginTop: 10, paddingVertical: 4, paddingHorizontal: 18 }}>
+          <Card style={{ marginTop: 10, paddingVertical: 4, paddingHorizontal: 16 }}>
             {R.daeLove.map((d, i) => (
               <View key={d.age} style={[s.lrow, i ? s.line : null]}>
-                <Seal ch="緣" />
+                <IconBox icon="heartBox" />
                 <View style={{ flex: 1 }}>
                   <Text style={txt.h3}>{d.age}~{d.age + 9}세 · {pText(d.p)} 대운</Text>
                   {timing?.periods[i] ? <Text style={txt.small}>{timing.periods[i]}</Text> : <Text style={txt.small}>배우자의 별이 들어오는 10년</Text>}
@@ -206,7 +207,7 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
         </Card>
 
         <SubHead title="09 · 내가 놓치기 쉬운 것" caption="좋은 인연을 붙잡으려면" />
-        <Card style={{ gap: 10 }}>{mine ? mine.blind.map(t => <ActRow key={t} ok={false}>{t}</ActRow>) : pending(3)}</Card>
+        <Card style={{ gap: 10 }}>{mine ? mine.blind.map(t => <SignRow key={t} care>{t}</SignRow>) : pending(3)}</Card>
 
         <SubHead title="10 · 인연을 끌어오는 법" />
         <Card>{timing ? timing.advice.map(a => <Bullet key={a}>{a}</Bullet>) : pending(3)}</Card>
@@ -215,20 +216,81 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
   );
 }
 
+// Figma 운픽_22 아이콘 — 31칸(흰 네모 안)과 20칸(제목 옆)
+const ICONS = {
+  user: require('../../../assets/figma/saju/user.svg'),
+  heart: require('../../../assets/figma/saju/heart.svg'),
+  money: require('../../../assets/figma/spouse/money.svg'),
+  work: require('../../../assets/figma/spouse/work.svg'),
+  star: require('../../../assets/figma/spouse/star.svg'),
+  users: require('../../../assets/figma/spouse/users.svg'),
+  heartBox: require('../../../assets/figma/spouse/heart.svg'),
+};
+type IconName = keyof typeof ICONS;
+// 31칸 아이콘은 svg가 칸 크기 그대로, 나머지는 20 아이콘을 가운데에
+const BOXED: IconName[] = ['star', 'users', 'heartBox'];
+const INK = isDark ? colors.ink : '#000000';
+const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
+
+/** 흰 바탕 둥근 네모 + 하늘색 아이콘 (회색 카드 위) */
+function IconBox({ icon, size = 31 }: { icon: IconName; size?: number }) {
+  const boxed = BOXED.includes(icon);
+  return (
+    <View style={[s.iconBox, { width: size, height: size }]}>
+      <Image source={ICONS[icon]} style={boxed ? { width: size, height: size } : { width: 20, height: 20 }} contentFit="contain" accessible={false} />
+    </View>
+  );
+}
+
+function Heading({ icon, mt = 0, children }: { icon: IconName; mt?: number; children: string }) {
+  return (
+    <View style={[s.heading, { marginTop: mt }]}>
+      <Image source={ICONS[icon]} style={{ width: 20, height: 20 }} contentFit="contain" accessible={false} />
+      <Text style={s.headingText} accessibilityRole="header">{children}</Text>
+    </View>
+  );
+}
+
+/** 흰 동그라미 안 반짝이 + 한 줄 — 알아보는 신호(하늘색 20), 놓치기 쉬운 것(빨강 22) */
+function SignRow({ care, children }: { care?: boolean; children: string }) {
+  const size = care ? 22 : 20;
+  return (
+    <View style={s.sign}>
+      <View style={[s.signMark, { width: size, height: size, borderRadius: size / 2, marginTop: (22 - size) / 2 }]}>
+        <Image source={care ? require('../../../assets/figma/spouse/sparkle-red.svg') : require('../../../assets/figma/spouse/sparkle-blue.svg')} style={{ width: size, height: size }} contentFit="contain" accessible={false} />
+      </View>
+      <Text style={s.signText}>{children}</Text>
+    </View>
+  );
+}
+
+// Figma 막대: 52→25 · 94→82.5 (같은 기울기로 이어 그린다)
+const barH = (v: number) => Math.max(10, (v - 34) * 1.375);
+
 const s = StyleSheet.create({
   heroLine: { alignSelf: 'stretch', height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 18 },
   heroNum: { fontFamily: fonts.serif, fontSize: 26, fontWeight: '600', color: colors.moon },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  // Figma Ticker3 — 흰 바탕 · 4/8 여백 · 12 SemiBold 80%
+  job: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 30, backgroundColor: colors.surface },
+  jobText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: INK, opacity: 0.8, ...TIGHT },
+  iconBox: { borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headingText: { ...sansW('600'), fontSize: 16, lineHeight: 20, letterSpacing: -0.8, color: INK, flexShrink: 1, ...TIGHT },
+  sign: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  signMark: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  signText: { flex: 1, fontSize: 15, lineHeight: 22, color: colors.ink },
   grid: { flexDirection: 'row', gap: 12 },
   cell: { flex: 1, alignItems: 'center', gap: 4 },
   big: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.purple, textAlign: 'center' },
   avoid: { marginTop: 14, padding: 12, borderRadius: radius.md, backgroundColor: colors.cream },
-  lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  lrow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 13 },
   line: { borderTopWidth: 1, borderTopColor: colors.line },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 130 },
+  // 막대 27 · 간격 52 (375 화면에서 Figma 위치 그대로)
+  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 17, height: 130 },
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   barVal: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
-  bar: { width: '60%', borderRadius: 6 },
+  bar: { width: 27, borderRadius: 4 },
   month: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: radius.lg, backgroundColor: colors.loveBg },
   label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
   yrow: { paddingVertical: 10 },

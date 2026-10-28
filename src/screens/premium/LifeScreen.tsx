@@ -6,7 +6,8 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, HeadRow, Hero, LockGate, Para, SubHead, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, HeadRow, Hero, LockGate, Para, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { Bullet, Closing, SubHead, Tip } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
@@ -18,8 +19,8 @@ import { usePremiumContent, usePremiumPreview, useReading } from '../../services
 import { User } from '../../types';
 import { STAGE12, TG } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
-import { colors } from '../../theme/colors';
-import { fonts, radius, txt } from '../../theme/typography';
+import { colors, isDark } from '../../theme/colors';
+import { radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { lifeSpec } from '../../services/share/shareSpecs';
 
@@ -89,8 +90,8 @@ export default function LifeScreen() {
       {!content.open ? <LockGate item={item} />
         : L && F ? <LifeBody u={u} L={L} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
-      <Disclaimer compact />
+      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <Disclaimer compact mt={24} />
     </Screen>
   );
 }
@@ -129,20 +130,20 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
         {L.stages.map((x, i) => {
           const cur = x.key === curKey;
           const t = overview?.stages[i];
-          const color = cur ? colors.white : colors.purple;
+          const color = cur ? colors.white : INK;
           return (
             <Card key={x.key} style={{ padding: 0, overflow: 'hidden' }}>
-              <View style={[s.stageHead, { backgroundColor: cur ? colors.heroBg : colors.lavenderSoft }]}>
+              <View style={[s.stageHead, { backgroundColor: cur ? colors.heroBg : STAGE_BG }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', opacity: 0.8, color }}>{x.label} · {x.range}{cur ? ' · 지금' : ''}</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '800', marginTop: 2, color }}>{t?.title ?? x.headline}</Text>
+                  <Text style={[s.stageLabel, { color: cur ? 'rgba(255,255,255,0.8)' : LABEL }]}>{x.label} · {x.range}{cur ? ' · 지금' : ''}</Text>
+                  <Text style={[s.stageTitle, { color }]}>{t?.title ?? x.headline}</Text>
                 </View>
-                <Text style={{ fontSize: 26, fontWeight: '800', color }}>{x.score}</Text>
+                <Text style={[s.bigScore, { color, marginTop: 6 }]}>{x.score}</Text>
               </View>
-              <View style={{ paddingVertical: 16, paddingHorizontal: 18 }}>
+              <View style={{ paddingTop: 16, paddingBottom: 12, paddingHorizontal: 14 }}>
                 {t ? (
                   <>
-                    <Para mt={0}>{t.text}</Para>
+                    <Para mt={0} style={{ paddingHorizontal: 4 }}>{t.text}</Para>
                     <Tip title="이 시기를 잘 보내는 법" style={{ marginTop: 12 }}>{t.advice}</Tip>
                   </>
                 ) : writing ? <PartPending writing lines={3} /> : <Para mt={0}>{x.desc}</Para>}
@@ -187,20 +188,20 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
             <Card key={d.age} style={cur ? { borderWidth: 1.5, borderColor: colors.purpleSoft } : null}>
               <View style={s.between}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                  <View style={s.dp}><Text style={{ fontFamily: fonts.serif, fontSize: 16, color: colors.purple, fontWeight: '600' }}>{STEMS[d.p.stem].hanja}{BRANCHES[d.p.branch].hanja}</Text></View>
+                  <View style={s.dp}><Text style={s.dpText}>{STEMS[d.p.stem].ko}{BRANCHES[d.p.branch].ko}</Text></View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{d.age}~{d.age + 9}세</Text>
+                      <Text style={s.rowTitle}>{d.age}~{d.age + 9}세</Text>
                       {cur ? <View style={s.nowTag}><Text style={s.nowText}>지금</Text></View> : null}
                     </View>
                     <Text style={txt.caption}>{cy - now + d.age}~{cy - now + d.age + 9}년 · {TG[tenGod(u.natal!.chart.day.stem, d.p.stem)]} / {TG[tenGod(u.natal!.chart.day.stem, mainStem(d.p.branch))]} · {STAGE12[stage12(u.natal!.chart.day.stem, d.p.branch)]}</Text>
                   </View>
                 </View>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: scoreColor(d.score) }}>{d.score}</Text>
+                <Text style={[s.bigScore, { color: INK }]}>{d.score}</Text>
               </View>
               {t ? (
                 <>
-                  <Text style={[txt.h3, { marginTop: 10 }]}>{t.title}</Text>
+                  <Text style={[s.rowTitle, { marginTop: 16 }]}>{t.title}</Text>
                   <Para>{t.text}</Para>
                 </>
               ) : <PartPending writing={writing} lines={2} />}
@@ -232,13 +233,13 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
           const t = years?.years[i];
           return (
             <PressableScale key={x.year} disabled={i >= 2} onPress={() => nav.navigate('NewYear', { year: x.year })} style={[s.drow, i ? s.topLine : null]} scaleTo={0.98}>
-              <View style={s.dd}><Text style={{ fontFamily: fonts.serif, fontSize: 14, fontWeight: '600', color: colors.ink }}>{x.year}</Text><Text style={{ fontSize: 11, color: colors.inkMute }}>{x.age}세</Text></View>
+              <View style={s.dd}><Text style={s.year}>{x.year}</Text><Text style={{ fontSize: 11, color: colors.inkMute }}>{x.age}세</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{t?.title ?? `${pText(x.pillar)} · ${x.group}`}</Text>
                 <Text style={txt.caption}>{pText(x.pillar)} · {x.group} · {x.animal}의 해</Text>
                 {t ? <Text style={[txt.small, { marginTop: 4 }]}>{t.text}</Text> : null}
               </View>
-              <Text style={{ fontWeight: '700', color: scoreColor(x.score) }}>{x.score}</Text>
+              <Text style={[s.year, { color: scoreColor(x.score) }]}>{x.score}</Text>
             </PressableScale>
           );
         })}
@@ -248,8 +249,8 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
       <SubHead title="06 · 평생 조언" />
       {overview ? (
         <>
-          <Card>{overview.lifeAdvice.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card>
-          <Tip title="마지막 한마디">{overview.closing}</Tip>
+          <Card style={{ paddingTop: 6 }}>{overview.lifeAdvice.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card>
+          <Closing title="마지막 한마디">{overview.closing}</Closing>
         </>
       ) : <Card><PartPending writing={writing} lines={3} /></Card>}
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>인생의 흐름을 참고하는 콘텐츠이며 미래를 단정하지 않아요.</Text>
@@ -257,17 +258,28 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
   );
 }
 
+// 초년·중년·말년 카드 머리 (지금 시기는 어두운 머리) · 점수와 제목은 디자인의 검정, 라벨은 #555
+const STAGE_BG = isDark ? colors.accentSoft : '#E7F6FF';
+const INK = isDark ? colors.ink : '#000000';
+const LABEL = isDark ? colors.inkSub : '#555555';
+
 interface SeunYear { year: number; age: number; pillar: Pillar; group: string; animal: string; score: number }
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  stageHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 18 },
+  stageHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 10, paddingBottom: 14, paddingHorizontal: 18 },
+  stageLabel: { ...sansW('700'), fontSize: 10, lineHeight: 12, letterSpacing: -0.5 },
+  stageTitle: { ...sansW('800'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, marginTop: 3 },
+  bigScore: { ...sansW('800'), fontSize: 24, lineHeight: 29, letterSpacing: -1.2 },
+  rowTitle: { ...sansW('700'), fontSize: 15, lineHeight: 20, letterSpacing: -0.6, color: colors.ink },
+  year: { ...sansW('700'), fontSize: 16, lineHeight: 20, letterSpacing: -0.6, color: colors.ink },
   fgrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   fcell: { width: '48%', flexGrow: 1, backgroundColor: colors.cream, borderRadius: radius.sm, paddingVertical: 10, paddingHorizontal: 12, gap: 3 },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   grid2: { flexDirection: 'row', gap: 12 },
   goldCard: { flex: 1, padding: 16, backgroundColor: colors.moneyBg, borderRadius: radius.lg },
-  dp: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center' },
+  dp: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  dpText: { ...sansW('700'), fontSize: 14, letterSpacing: -0.7, color: colors.accent },
   nowTag: { backgroundColor: colors.seal, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4 },
   nowText: { color: colors.white, fontSize: 10.5, fontWeight: '700' },
   drow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },

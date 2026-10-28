@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -9,7 +10,8 @@ import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import KeywordChip, { emojiFor } from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Hero, InfoRows, Para, Seal, SubHead, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Hero, Para, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { Closing, InfoRows, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
@@ -23,8 +25,8 @@ import { usePremiumContent, usePremiumPreview, useReading } from '../../services
 import { EL_LUCK } from '../../services/premium/data';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
-import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { colors, isDark } from '../../theme/colors';
+import { radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { monthlySpec } from '../../services/share/shareSpecs';
 
@@ -69,8 +71,8 @@ export default function MonthlyScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : R && F ? <MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
-      <Disclaimer compact />
+      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <Disclaimer compact mt={24} />
     </Screen>
   );
 }
@@ -82,7 +84,17 @@ interface MonthDetails {
 }
 type MonthContent = MonthReport & { details: MonthDetails };
 
-const FIELDS: ['love' | 'money' | 'work' | 'relationship', string, string][] = [['love', '緣', '연애운'], ['money', '財', '재물운'], ['work', '業', '일·학업운'], ['relationship', '人', '인간관계']];
+const FIELDS: ['love' | 'money' | 'work' | 'relationship', SajuIconName, string][] = [['love', 'heart', '연애운'], ['money', 'database', '재물운'], ['work', 'work', '일·학업운'], ['relationship', 'people', '인간관계']];
+
+/** 섹션 제목 — 이 화면 디자인은 설명 자간이 -0.07em */
+function Head(p: { title: string; caption?: string }) {
+  return <SubHead {...p} captionStyle={{ letterSpacing: -0.91 }} />;
+}
+
+/** 좋은 날 ✓ · 조심할 날 − 표시 (흰 칸 안의 16 아이콘) */
+function DayMark({ good }: { good?: boolean }) {
+  return <View style={s.dayMark}><Image source={good ? require('../../../assets/figma/monthly/good-day.svg') : require('../../../assets/figma/monthly/low-day.svg')} style={{ width: 16, height: 16 }} contentFit="contain" /></View>;
+}
 
 /** 점수·간지·날짜는 서버 계산값, 글은 AI 풀이 */
 function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull; reading: ReadingView<MonthReading> | null; onRetry(): void }) {
@@ -101,10 +113,10 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
     <>
       <ReadingBanner reading={reading} onRetry={onRetry} />
 
-      <SubHead title={`01 · ${R.m}월 총운`} />
+      <Head title={`01 · ${R.m}월 총운`} />
       <Card>{overview ? <><Text style={txt.h3}>{overview.headline}</Text><Para>{overview.summary}</Para></> : <PartPending writing={writing} lines={4} />}</Card>
 
-      <SubHead title="02 · 이달의 사주 기운" caption={'월운(月運) · ' + pText(X.pillar)} />
+      <Head title="02 · 이달의 사주 기운" caption={'월운(月運) · ' + pText(X.pillar)} />
       <View style={s.grid3}>
         {([['천간', X.stemTenGod], ['지지', X.branchTenGod], ['12운성', X.stage]] as const).map(([l, v]) => (
           <Card key={l} style={s.cell3}><Text style={txt.caption}>{l}</Text><Text style={{ fontSize: 17, fontWeight: '700', marginTop: 6, color: colors.purple }}>{v}</Text></Card>
@@ -115,14 +127,14 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         {X.flags.map(f => <Bullet key={f.key}>{f.label}</Bullet>)}
       </Card>
 
-      <SubHead title="03 · 분야별 운세" />
+      <Head title="03 · 분야별 운세" />
       <View style={{ gap: 10 }}>
         {FIELDS.map(([k, e, l]) => {
           const v = R.cat[k]; const t = overview?.fields[k];
           return (
             <Card key={k}>
               <View style={s.between}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.ink }}>{e} {l}</Text>
+                <SajuHeading title={l} icon={e} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: scoreColor(v) }}>{v}</Text>
               </View>
               <View style={{ marginTop: 10, marginBottom: 2 }}><ScoreBar value={v} color={colors.purpleSoft} /></View>
@@ -138,7 +150,7 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         })}
       </View>
 
-      <SubHead title="04 · 주차별 흐름" />
+      <Head title="04 · 주차별 흐름" />
       <View style={{ gap: 10 }}>
         {X.weeks.map((w, i) => {
           const t = days?.weeks[i];
@@ -159,7 +171,7 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         })}
       </View>
 
-      <SubHead title="05 · 운세 달력" caption="날짜를 누르면 그날의 운세가 보여요" />
+      <Head title="05 · 운세 달력" caption="날짜를 누르면 그날의 운세가 보여요" />
       <Card style={{ padding: 14 }}>
         <FortuneCalendar days={R.days} first={R.first} today={today} sel={calSel} best={bestSet} onSelect={iso => setCalSel(c => (c === iso ? null : iso))} />
         {picked ? (
@@ -173,11 +185,11 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         ) : null}
       </Card>
 
-      <SubHead title="06 · 좋은 날과 조심할 날" />
+      <Head title="06 · 좋은 날과 조심할 날" />
       <Card style={{ paddingVertical: 4, paddingHorizontal: 18 }}>
         {R.best.map((x, i) => (
           <View key={x.iso} style={[s.lrow, i ? s.topLine : null]}>
-            <Seal ch="吉" bg={colors.moneyBg} color={colors.money} />
+            <DayMark good />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{x.d}일 {WEEK[weekdayOf(x.iso)]}요일 · {pText(dayPillar(x.iso))}일</Text>
               {days ? <Text style={txt.small}>{days.bestDays[i]}</Text> : writing ? <PartPending writing lines={2} /> : <Text style={txt.small}>{x.c.summary}</Text>}
@@ -187,7 +199,7 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         ))}
         {R.low.map((x, i) => (
           <View key={x.iso} style={[s.lrow, s.topLine]}>
-            <Seal ch="愼" bg={colors.line} color={colors.inkMute} />
+            <DayMark />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>{x.d}일 {WEEK[weekdayOf(x.iso)]}요일 · {pText(dayPillar(x.iso))}일</Text>
               {days ? <Text style={txt.small}>{days.lowDays[i]}</Text> : writing ? <PartPending writing lines={2} /> : <Text style={txt.small}>{x.c.avoidActions[0]}을(를) 피하고, 큰 결정은 하루 미뤄보세요.</Text>}
@@ -197,22 +209,22 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
         ))}
       </Card>
 
-      <SubHead title="07 · 이달의 개운법" caption={`용신 ${ELEMENT_INFO[F.yong].ko}(${ELEMENT_INFO[F.yong].hanja}) 기준`} />
-      <InfoRows labelWidth={90} rows={[['色', '행운의 색', L.color], ['數', '행운의 숫자', L.num], ['食', '추천 음식', L.food], ['行', '추천 활동', L.act]]} />
+      <Head title="07 · 이달의 개운법" caption={`용신 ${ELEMENT_INFO[F.yong].ko}(${ELEMENT_INFO[F.yong].hanja}) 기준`} />
+      <InfoRows rowStyle={{ paddingRight: 20 }} rows={[['luck-color', '행운의 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-food', '추천 음식', L.food], ['luck-activity', '추천 활동', L.act]]} />
 
-      <SubHead title="08 · 이달의 미션" caption="이달 기운에 맞춘 작은 실천" />
-      <Card style={{ gap: 12 }}>
+      <Head title="08 · 이달의 미션" caption="이달 기운에 맞춘 작은 실천" />
+      <View style={{ paddingLeft: 4 }}>
         {missionList.length ? missionList.map((x, i) => {
           const key = `${R.y}-${R.m}-${i}`; const on = !!missions[key];
           return (
             <PressableScale key={key} onPress={() => toggleMission(key)} style={s.mission} scaleTo={0.98} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
-              <View style={[s.box, on && s.boxOn]}>{on ? <Icon name="check" size={14} color={colors.white} strokeWidth={3} /> : null}</View>
-              <Text style={{ flex: 1, fontSize: 15, color: colors.ink, textDecorationLine: on ? 'line-through' : 'none' }}>{x}</Text>
+              <View style={[s.box, on && s.boxOn]}>{on ? <Icon name="check" size={11} color={colors.accent} strokeWidth={2.6} /> : null}</View>
+              <Text style={[s.missionText, on && s.missionOn]}>{x}</Text>
             </PressableScale>
           );
         }) : <PartPending writing={writing} lines={3} />}
-      </Card>
-      {overview ? <Tip title="이달을 위한 한마디">{overview.closing}</Tip> : null}
+      </View>
+      {overview ? <Closing title="이달을 위한 한마디" style={{ marginTop: 32 }}>{overview.closing}</Closing> : null}
     </>
   );
 }
@@ -226,7 +238,11 @@ const s = StyleSheet.create({
   calInfo: { marginTop: 12, backgroundColor: colors.lavenderSoft, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, gap: 3 },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
-  mission: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  box: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
-  boxOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  dayMark: { width: 31, height: 31, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  // 미션: 카드 없이 32 높이 줄, 한 것은 하늘색 굵게
+  mission: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 32 },
+  box: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: isDark ? colors.lineStrong : '#E8E8E8', alignItems: 'center', justifyContent: 'center' },
+  boxOn: { backgroundColor: isDark ? colors.surface : '#E7F0FF', borderColor: isDark ? colors.surface : '#E7F0FF' },
+  missionText: { flex: 1, ...sansW('600'), fontSize: 12, lineHeight: 18, letterSpacing: -0.48, color: colors.inkMute, paddingVertical: 7 },
+  missionOn: { ...sansW('700'), color: colors.accent },
 });

@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
-import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import { ActRow, BodyState, Coin, LockCard, Para, SubHead } from '../../components/premium/Kit';
+import { BodyState, Coin, LockCard } from '../../components/premium/Kit';
 import GradientBorder from '../../components/GradientBorder';
 import BottomSheet from '../../components/BottomSheet';
 import LoadingScreen from '../../components/LoadingScreen';
@@ -219,14 +219,14 @@ function Chat({ id }: { id: number }) {
       <View style={s.inputRow}>
         <TextInput
           ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW}
-          placeholder={e.locked ? '어떤 고민이든 편하게 말씀해주세요' : '이어서 물어보세요'} placeholderTextColor={colors.inkMute}
+          placeholder={e.locked ? '어떤 고민이든 편하게 말씀해주세요' : '이어서 물어보세요'} placeholderTextColor={isDark ? colors.inkMute : '#999999'}
           style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
         />
         <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (!input.trim() || sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
-          <Icon name="arrowUp" size={18} color={colors.white} strokeWidth={2.4} />
+          <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M16 10l-4-4-4 4M12 6v12" stroke={colors.white} strokeWidth={2} strokeLinecap="round" fill="none" /></Svg>
         </PressableScale>
       </View>
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>
+      <Text style={s.footCap}>
         {e.locked
           ? (unlocking ? '나머지 답을 쓰고 있어요' : `${cost}알로 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
           : `${e.followUpsLeft}번 더 물어볼 수 있어요${e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}`}
@@ -299,7 +299,7 @@ function Chat({ id }: { id: number }) {
           </PressableScale>
           <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
         </ScrollView>
-        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>{footer}</View>
+        <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 10) }]}>{footer}</View>
       </KeyboardAvoidingView>
 
       <BottomSheet visible={unlockOpen} onClose={closeUnlock}>
@@ -378,9 +378,9 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
           <Text style={[s.peekK, { marginTop: 6 }]}>앞으로 3개월 · 가장 풀리는 달은?</Text>
           <View style={s.peekBars}>
             {T.months.map(m => (
-              <View key={m} style={s.barCol}>
-                <Text style={s.barV}>?</Text>
-                <View style={[s.bar, s.peekBar]} />
+              <View key={m} style={s.peekBarCol}>
+                <Text style={s.peekBarV}>?</Text>
+                <View style={[s.peekBarW, s.peekBar]} />
                 <Text style={txt.caption}>{m}</Text>
               </View>
             ))}
@@ -388,7 +388,7 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
           <Text style={[s.peekK, { marginTop: 6 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {Array.from({ length: T.goodDayCount }, (_, i) => (
-              <View key={i} style={[s.day, s.peekDay]}><Icon name="lock" size={14} color={colors.inkMute} /></View>
+              <View key={i} style={s.peekDayBox}><Icon name="lock" size={14} color={colors.inkMute} /></View>
             ))}
           </View>
         </View>
@@ -407,56 +407,129 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
   );
 }
 
+/** 흐름 막대 높이 — 68점 44 · 85점 67 (디자인) */
+const barH = (score: number) => Math.max(8, Math.round((score - 35) * 4 / 3));
+
+/** "11/6 (금)" → ["11/6", "금요일"] */
+const splitDay = (label: string) => {
+  const m = /^(.+?)\s*\((.)\)$/.exec(label);
+  return m ? [m[1], `${m[2]}요일`] : [label, ''];
+};
+
 function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; facts: ConsultFacts; label: string }) {
   const mx = Math.max(...F.flow.map(f => f.score));
   return (
     <>
-      <SubHead title="사주로 본 나" />
-      <Card>
-        <Para mt={0}>{A.me}</Para>
-        <Para mt={10}>{A.star}</Para>
-      </Card>
+      <View style={[s.box, { marginTop: 24 }]}>
+        <BoxHead icon={<BookIcon />} title="사주로 본 나" />
+        <Text style={s.boxText}>{A.me}{'\n'}{A.star}</Text>
+      </View>
 
-      <SubHead title="지금의 흐름" caption={`앞으로 3개월 · ${label} 운`} />
-      <Card>
-        <Para mt={0}>{A.now}</Para>
+      <View style={[s.box, { marginTop: 16 }]}>
+        <BoxHead icon={<TrendIcon />} title="지금의 흐름" caption={`앞으로 3개월 · ${label} 운`} />
+        <Text style={s.boxText}>{A.now}</Text>
         <View style={s.bars}>
           {F.flow.map(f => (
             <View key={f.label} style={s.barCol}>
-              <Text style={[s.barV, f.score === mx && { color: colors.love }]}>{f.score}</Text>
-              <View style={[s.bar, { height: Math.max(10, (f.score - 50) * 1.8), backgroundColor: f.score === mx ? colors.love : colors.loveBg }]} />
-              <Text style={txt.caption}>{f.label}</Text>
+              <Text style={[s.barV, f.score === mx && s.barTop]}>{f.score}</Text>
+              <View style={[s.bar, { height: barH(f.score), backgroundColor: f.score === mx ? colors.accent : colors.surface }]} />
+              <Text style={[s.barV, s.barLabel, f.score === mx && s.barTop]}>{f.label}</Text>
             </View>
           ))}
         </View>
-      </Card>
-
-      <SubHead title="이렇게 해 보세요" />
-      <Card style={{ gap: 10 }}>{A.dos.map(t => <ActRow key={t}>{t}</ActRow>)}</Card>
-
-      <SubHead title="이것만은 피하세요" />
-      <Card style={{ gap: 10 }}>{A.avoid.map(t => <ActRow key={t} ok={false}>{t}</ActRow>)}</Card>
-
-      <SubHead title="행동하기 좋은 날" caption="앞으로 30일 중 이 고민에 힘이 실리는 날" />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {F.goodDays.map(d => <View key={d.iso} style={s.day}><Text style={{ fontSize: 14, fontWeight: '700', color: colors.love }}>{d.label}</Text></View>)}
       </View>
 
-      <Card style={s.closing}>
-        <Text style={s.idiom}>{F.idiom[1]}</Text>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>{F.idiom[0]} · {F.idiom[2]}</Text>
+      <Text style={[s.sectionT, { marginTop: 24 }]}>이렇게 해 보세요</Text>
+      <View style={s.acts}>{A.dos.map(t => <Act key={t} ok>{t}</Act>)}</View>
+
+      <Text style={[s.sectionT, { marginTop: 32 }]}>이것만은 피하세요</Text>
+      <View style={s.acts}>{A.avoid.map(t => <Act key={t} ok={false}>{t}</Act>)}</View>
+
+      <View style={[s.headRow, { marginTop: 32 }]}>
+        <Text style={[s.sectionT, { letterSpacing: -0.64 }]}>행동하기 좋은 날</Text>
+        <View style={s.headBar} />
+        <Text style={[s.headCap, { flexShrink: 1 }]} numberOfLines={1}>앞으로 30일 중 이 고민에 힘이 실리는 날</Text>
+      </View>
+      <View style={s.days}>
+        {F.goodDays.map(d => {
+          const [date, wd] = splitDay(d.label);
+          return (
+            <View key={d.iso} style={s.day}>
+              <Text style={s.dayDate}>{date}</Text>
+              {wd ? <Text style={s.dayWd}>{wd}</Text> : null}
+            </View>
+          );
+        })}
+      </View>
+
+      <ImageBackground source={IDIOM_BG} resizeMode="cover" style={s.closing} imageStyle={Platform.OS === 'web' ? s.closingImgWeb : s.closingImg}>
+        <Text style={s.idiom}>{F.idiom[1]} · {F.idiom[0]}</Text>
+        <Text style={s.idiomMean}>{F.idiom[0]} · {F.idiom[2]}.</Text>
         <Text style={s.closeText}>{A.closing}</Text>
-      </Card>
+      </ImageBackground>
     </>
+  );
+}
+
+const IDIOM_BG = require('../../../assets/images/consult-idiom-bg.webp');
+/** 디자인의 검정 글자 (다크 모드에선 테마 글자색) */
+const INK = isDark ? colors.ink : '#000000';
+
+/** 회색 카드 머리 — 아이콘 · 제목 (| 부제) */
+function BoxHead({ icon, title, caption }: { icon: React.ReactNode; title: string; caption?: string }) {
+  return (
+    <View style={s.headRow8}>
+      {icon}
+      <Text style={s.boxT}>{title}</Text>
+      {caption ? (
+        <>
+          <View style={s.headBar} />
+          <Text style={[s.headCap, { flexShrink: 1 }]} numberOfLines={1}>{caption}</Text>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** 해 볼 것(파란 체크) · 피할 것(빨간 X) 한 줄 */
+function Act({ ok, children }: { ok: boolean; children: string }) {
+  return (
+    <View style={s.act}>
+      <Svg width={18} height={18} viewBox="0 0 18 18">
+        <Circle cx={9} cy={9} r={9} fill={ok ? (isDark ? colors.accentSoft : '#E7F0FF') : (isDark ? colors.loveBg : '#FDE9E9')} />
+        {ok
+          ? <Path d="M5.154 8.959l2.289 2.242a1 1 0 001.411-.011L13 7" stroke="#1DADFE" strokeWidth={2} strokeLinecap="round" fill="none" />
+          : <Path d="M12 6L6 12M6 6l6 6" stroke="#DD2828" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
+      </Svg>
+      <Text style={s.actText}>{children}</Text>
+    </View>
+  );
+}
+
+function BookIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 20 20">
+      <Path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" fill={colors.accent} />
+    </Svg>
+  );
+}
+
+function TrendIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 20 20">
+      <Path d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" fill={colors.accent} fillRule="evenodd" clipRule="evenodd" />
+    </Svg>
   );
 }
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingBottom: 24 },
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 12, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 4, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
-  input: { flex: 1, maxHeight: INPUT_MAX, paddingTop: 10, paddingBottom: 10, fontSize: 14, lineHeight: 20, color: colors.ink, letterSpacing: -0.5 },
-  sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
+  // 위 선 1px 포함 입력칸까지 12
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 11, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: isDark ? colors.line : '#EDEDED' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 12, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
+  input: { flex: 1, maxHeight: INPUT_MAX, paddingTop: 7, paddingBottom: 7, ...sansW('500'), fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
+  sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
+  footCap: { ...sansW('600'), fontSize: 11, lineHeight: 17, letterSpacing: -0.44, color: colors.inkMute, textAlign: 'center', marginTop: 8 },
   eyebrow: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginTop: 4 },
   direct: { padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
   directV: { ...sansW('700'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
@@ -477,17 +550,41 @@ const s = StyleSheet.create({
   peekBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 76 },
   // 점수는 잠겨 있으니 막대는 모두 같은 높이로 (실제 흐름처럼 보이지 않게)
   peekBar: { height: 36, backgroundColor: colors.lineStrong },
-  peekDay: { paddingVertical: 10, backgroundColor: colors.surface },
   cliffLine: { height: 12, borderRadius: 6, backgroundColor: colors.lineStrong },
   pendingQ: { alignSelf: 'center', maxWidth: '90%', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   pendingQText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 120, marginTop: 16 },
-  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  barV: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
-  bar: { width: '50%', borderRadius: 6 },
-  day: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: colors.loveBg },
-  closing: { marginTop: 24, alignItems: 'center', paddingVertical: 24 },
-  idiom: { fontFamily: fonts.serif, fontSize: 28, fontWeight: '700', color: colors.seal, letterSpacing: 4 },
+  // 미리보기(잠김) 막대
+  peekBarCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
+  peekBarV: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
+  peekBarW: { width: '50%', borderRadius: 6 },
+  peekDayBox: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.surface },
+  // 전체 답 (Figma 운픽_2_2)
+  box: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
+  headRow8: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  boxT: { ...sansW('600'), fontSize: 16, lineHeight: 20, letterSpacing: -0.8, color: INK },
+  headBar: { width: 1, height: 14, backgroundColor: isDark ? colors.lineStrong : '#999999' },
+  headCap: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  boxText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, marginTop: 7 },
+  bars: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 40, marginTop: 12 },
+  barCol: { width: 44, alignItems: 'center' },
+  barV: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, textAlign: 'center' },
+  barTop: sansW('700'),
+  barLabel: { marginTop: 4 },
+  bar: { width: 44, marginTop: 8, borderRadius: 4 },
+  sectionT: { ...sansW('600'), fontSize: 16, lineHeight: 19, color: INK },
+  acts: { gap: 14, marginTop: 18, paddingLeft: 4 },
+  act: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  actText: { flex: 1, ...sansW('600'), fontSize: 12, lineHeight: 18, letterSpacing: -0.48, color: INK },
+  days: { flexDirection: 'row', gap: 16, marginTop: 18 },
+  day: { flex: 1, height: 63, alignItems: 'center', paddingTop: 12, borderRadius: radius.lg, backgroundColor: isDark ? colors.loveBg : '#FFE7E7' },
+  dayDate: { ...sansW('700'), fontSize: 18, lineHeight: 21, letterSpacing: -0.72, color: isDark ? colors.love : '#DD2828' },
+  dayWd: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  closing: { marginTop: 16, minHeight: 140, paddingTop: 20, paddingBottom: 24, paddingHorizontal: 24, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: '#1B2440' },
+  closingImg: { borderRadius: radius.lg },
+  closingImgWeb: { width: '100%', height: '100%', borderRadius: radius.lg }, // 웹은 크기를 안 주면 그림 원래 크기로 그린다
+  idiom: { ...sansW('700'), fontSize: 22, lineHeight: 26, letterSpacing: -1.1, color: '#FFFFFF' },
+  idiomMean: { ...sansW('400'), fontSize: 11, lineHeight: 18, letterSpacing: -0.55, color: '#DDDDDD', marginTop: 8 },
+  closeText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#FFFFFF', marginTop: 8, marginRight: 42 },
   delete: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
-  closeText: { ...sansW('600'), fontSize: 16, lineHeight: 25, color: colors.ink, textAlign: 'center', marginTop: 14 },
 });

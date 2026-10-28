@@ -8,7 +8,7 @@ import { usePremium } from '../context/PremiumContext';
 import { Item } from '../services/premium/catalog';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { colors } from '../theme/colors';
-import { fonts, radius, txt } from '../theme/typography';
+import { fonts, radius, sansW, txt } from '../theme/typography';
 
 /**
  * 유료 결과 끝의 공유 배너 — 열람한 사람에게만 (결과를 받기 전에는 숨김).
@@ -48,10 +48,10 @@ const BANNER_INK = '#222222';
 
 const s = StyleSheet.create({
   bannerBox: { marginTop: 12, borderRadius: radius.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent, overflow: 'hidden' },
-  banner: { height: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 84, paddingRight: 20 },
+  banner: { height: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 84, paddingRight: 20 },
   fill: { width: '100%', height: '100%' },
-  bannerTitle: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: BANNER_INK },
-  bannerSub: { marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#000000' },
+  bannerTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: BANNER_INK },
+  bannerSub: { ...sansW('400'), marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#000000' },
   box: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 24, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong, borderStyle: 'dashed' },
   seal: { width: 40, height: 40, borderRadius: 4, borderWidth: 1.5, borderColor: colors.seal, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-6deg' }] },
   sealText: { fontFamily: fonts.serif, fontSize: 22, fontWeight: '700', color: colors.seal },
