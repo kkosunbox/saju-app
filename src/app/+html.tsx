@@ -1,4 +1,4 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 import { BRAND } from '@/components/BrandMark';
 import { SITE_URL } from '@/content/seo';
@@ -32,8 +32,10 @@ const JSON_LD = JSON.stringify({
  * 경로별 제목 · 설명 · canonical · noindex 는 SiteHead(expo-router/head).
  */
 export default function Root({ children }: PropsWithChildren) {
+  // SDK 58부터 번들 <script>·RN 웹 스타일·SiteHead 태그는 이 노드로 들어온다 — 빠뜨리면 하이드레이션이 안 돼 빈 화면
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
-    <html lang="ko">
+    <html lang="ko" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         {/* maximum-scale=1: iOS 사파리가 16px보다 작은 입력창(상담 14px)에 포커스할 때 화면을 확대하지 않게. 손가락 확대는 iOS가 그대로 허용한다 */}
@@ -62,8 +64,12 @@ export default function Root({ children }: PropsWithChildren) {
         <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
         <ScrollViewStyleReset />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }
