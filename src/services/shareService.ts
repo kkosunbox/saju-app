@@ -1,5 +1,5 @@
 import { RefObject } from 'react';
-import { View, Alert, Linking, Platform, Share } from 'react-native';
+import { Alert, Linking, Platform, Share, type ViewInstance } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
@@ -30,7 +30,7 @@ function syncStyles(clone: Document) {
  * 웹: 카드를 1080px 폭 PNG로 그린다 (view-shot이 findNodeHandle을 못 써서 html2canvas로).
  * 버튼을 누른 뒤에 그리면 그 사이 iOS 사파리가 사용자 동작이 끝났다고 보고 공유를 막으니, 화면에 들어오면 미리 그려 둔다.
  */
-export async function renderCardWeb(ref: RefObject<View | null>, file = 'woonpick'): Promise<WebCard | null> {
+export async function renderCardWeb(ref: RefObject<ViewInstance | null>, file = 'woonpick'): Promise<WebCard | null> {
   if (Platform.OS !== 'web' || !ref.current) return null;
   const node = ref.current as unknown as HTMLElement;
   const html2canvas = (await import('html2canvas')).default;
@@ -72,7 +72,7 @@ async function saveToPhotos(uri: string): Promise<ShareResult> {
  * - prepared: 웹에서 renderCardWeb으로 미리 그려 둔 이미지 (없거나 실패했으면 지금 그린다)
  */
 export async function shareCardImage(
-  ref: RefObject<View | null>,
+  ref: RefObject<ViewInstance | null>,
   opts: { file?: string; text?: string; url?: string; mode?: 'share' | 'save'; fallback?: 'save' | 'none'; prepared?: WebCard | null; aspectRatio?: number } = {},
 ): Promise<ShareResult> {
   const { file = 'woonpick', text, url, mode = 'save', fallback = 'save', prepared } = opts;

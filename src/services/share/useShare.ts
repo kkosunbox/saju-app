@@ -1,5 +1,5 @@
 import { RefObject } from 'react';
-import { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ShareSpec } from './shareSpecs';
@@ -7,7 +7,7 @@ import { resultUrl, shareLink } from './linkShare';
 import { WebCard, shareCardImage } from '../shareService';
 
 /** 링크 대신 이미지로 보낼 결과 (예: 오늘의 부적) — prepared는 웹에서 미리 그려 둔 이미지 */
-export interface ShareImage { ref: RefObject<View | null>; aspectRatio?: number; prepared?: () => WebCard | null }
+export interface ShareImage { ref: RefObject<ViewInstance | null>; aspectRatio?: number; prepared?: () => WebCard | null }
 
 /**
  * 공유 동작 모음 — 링크에는 내 결과 한 줄을 담아 친구가 열면 나란히 비교되게 하고,

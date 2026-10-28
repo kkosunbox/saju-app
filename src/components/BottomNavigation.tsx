@@ -38,7 +38,7 @@ function TabItem({ focused, label, icon, onPress }: { focused: boolean; label: s
   );
 }
 
-export default function BottomNavigation({ state, navigation }: BottomTabBarProps) {
+export default function BottomNavigation({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[s.bar, shadow.float, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -52,10 +52,10 @@ export default function BottomNavigation({ state, navigation }: BottomTabBarProp
             label={item.label}
             icon={item.icon}
             onPress={() => {
-              const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              const e = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!focused && !e.defaultPrevented) {
                 Haptics.selectionAsync().catch(() => {});
-                navigation.navigate(route.name as never);
+                navigateToTab(route.key);
               }
             }}
           />

@@ -1,5 +1,5 @@
 import React, { RefObject, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Image as AssetImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
@@ -37,7 +37,7 @@ const GIFT_FILE = 'woonpick-talisman-gift';
 const EFFECT = '효력은 오늘 자정까지 지속되어요.';
 
 /** 웹은 부적을 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유(사진첩 저장)를 막는다 */
-function usePreparedCard(ref: RefObject<View | null>, ready: boolean, file: string, key: string) {
+function usePreparedCard(ref: RefObject<ViewInstance | null>, ready: boolean, file: string, key: string) {
   const prepared = useRef<WebCard | null>(null);
   useEffect(() => {
     if (Platform.OS !== 'web' || !ready) return;
@@ -54,8 +54,8 @@ function usePreparedCard(ref: RefObject<View | null>, ready: boolean, file: stri
 export default function TalismanScreen() {
   const { user: u, today } = useApp();
   const { toast, rewardShare } = usePremium();
-  const card = useRef<View>(null);
-  const giftCard = useRef<View>(null);
+  const card = useRef<ViewInstance>(null);
+  const giftCard = useRef<ViewInstance>(null);
   const q = useFreeContent('talisman');
   const draw = useOpened('talisman');
   const [tab, setTab] = useState<Tab>('mine');

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
@@ -109,8 +109,8 @@ function Chat({ id }: { id: number }) {
   const { user: u, account } = useApp();
   const { toast, goWallet, points } = usePremium();
   const insets = useSafeAreaInsets();
-  const scroll = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState<string | null>(null);
   const [crisis, setCrisis] = useState<HelpLine[] | null>(null);

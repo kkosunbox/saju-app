@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -26,7 +26,7 @@ import { useOpened } from '../../services/content/opened';
 export default function MbtiMatchScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
-  const card = useRef<View>(null);
+  const card = useRef<ViewInstance>(null);
   const [showAll, setShowAll] = useState(false);
   const q = useFreeContent('mbti-match');
   const draw = useOpened('mbti-match');
@@ -107,7 +107,7 @@ export default function MbtiMatchScreen() {
           </View>
           <Text style={[s.topScore, { color: colors.inkMute }]}>{worst.score}</Text>
         </View>
-        <Text style={[txt.body, { marginTop: 8, fontSize: 14 }]}>보는 방식이 많이 달라 오해가 생기기 쉬워요. 대신 서로의 다름을 인정하면 가장 크게 배우는 사이이기도 해요. {u.mbti}인 내가 '{MBTI_INFO[u.mbti].watch}'만 조심하면 충분해요.</Text>
+        <Text style={[txt.body, { marginTop: 8, fontSize: 14 }]}>보는 방식이 많이 달라 오해가 생기기 쉬워요. 대신 서로의 다름을 인정하면 가장 크게 배우는 사이이기도 해요. {u.mbti}인 내가 &apos;{MBTI_INFO[u.mbti].watch}&apos;만 조심하면 충분해요.</Text>
       </Card>
 
       <SubHead title="16가지 MBTI 궁합 순위" />

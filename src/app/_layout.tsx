@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewInstance } from 'react-native';
 import { Stack, router, usePathname, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -60,17 +60,19 @@ function RootStack() {
       </View>
     );
   }
+  // 막힌 화면을 열면 지금 상태의 첫 화면으로 — 지정하지 않으면 expo-router가 파일 이름순 첫 화면(예: /inquiry)으로 보낸다
+  const home: Href = !onboarded ? '/onboarding' : hasProfile ? '/' : '/profile-setup';
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.cream } }}>
-      <Stack.Protected guard={!onboarded}>
+      <Stack.Protected guard={!onboarded} redirectTo={home}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
       {/* 첫 화면 결정 순서: 프로필이 없으면(또는 "다시 입력" 중이면) 프로필 입력이 로그인보다 먼저 */}
-      <Stack.Protected guard={onboarded && !hasProfile}>
+      <Stack.Protected guard={onboarded && !hasProfile} redirectTo={home}>
         <Stack.Screen name="profile-setup" />
       </Stack.Protected>
       {/* 프로필이 있어야 쓰는 화면 */}
-      <Stack.Protected guard={onboarded && hasProfile}>
+      <Stack.Protected guard={onboarded && hasProfile} redirectTo={home}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="profile-edit" />
         <Stack.Screen name="category/[category]" />
@@ -96,7 +98,7 @@ function RootStack() {
         <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>
       {/* 로그인·약관: 프로필 입력 전(이미 계정이 있는 사람)과 후 모두 */}
-      <Stack.Protected guard={onboarded}>
+      <Stack.Protected guard={onboarded} redirectTo={home}>
         <Stack.Screen name="login/index" />
         <Stack.Screen name="login/email" />
         <Stack.Screen name="signup" />
@@ -119,8 +121,8 @@ function RootStack() {
 export default function RootLayout() {
   // 네이티브: 굵기별 글꼴 파일 (src/theme/fontFiles.native.ts). 로드 전에는 시스템 글꼴로 먼저 보여준다. 웹은 +html.tsx 의 웹폰트.
   useFonts(FONT_FILES);
-  const bg = useRef<View>(null);
-  const frame = useRef<View>(null);
+  const bg = useRef<ViewInstance>(null);
+  const frame = useRef<ViewInstance>(null);
   useWebSideScroll(bg, frame);
   const app = (
     <SafeAreaProvider>

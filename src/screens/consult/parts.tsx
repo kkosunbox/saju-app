@@ -1,5 +1,5 @@
 import React, { RefObject, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import { Para } from '../../components/premium/Kit';
@@ -35,7 +35,7 @@ export const kstTime = (iso: string | null) => {
 export const WEB_ONE_ROW = (Platform.OS === 'web' ? { rows: 1 } : {}) as object;
 
 /** 웹: 입력창을 쓰는 만큼 max 까지 늘린다 (앱은 multiline 입력창이 스스로 늘어난다) */
-export function useWebAutoGrow(ref: RefObject<TextInput | null>, value: string, max: number) {
+export function useWebAutoGrow(ref: RefObject<TextInputInstance | null>, value: string, max: number) {
   useLayoutEffect(() => {
     const el = ref.current as unknown as HTMLTextAreaElement | null;
     if (Platform.OS !== 'web' || !el?.style) return;

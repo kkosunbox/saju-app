@@ -2,7 +2,7 @@
  * 프리미엄 콘텐츠 공용 UI 조각 — HTML 미리보기의 card/hero/tip/toc/lock 등과 1:1 대응.
  */
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Image, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Image, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle, type ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../PressableScale';
 import Card from '../Card';
@@ -200,7 +200,7 @@ export function HeroPill({ label, onPress }: { label: string; onPress(): void })
 
 /* ---------- 가로 칩 선택 ---------- */
 export function ChipSelect<T extends string | number>({ items, value, onChange }: { items: [T, string, string?][]; value: T; onChange(v: T): void }) {
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ScrollViewInstance>(null);
   const xs = useRef<Record<string, number>>({});
   const scrollTo = (k: string, animated: boolean) => {
     const x = xs.current[k];

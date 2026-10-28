@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -25,7 +25,7 @@ import { useOpened } from '../../services/content/opened';
 export default function CharacterScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
-  const card = useRef<View>(null);
+  const card = useRef<ViewInstance>(null);
   const q = useFreeContent('character');
   const draw = useOpened('character');
   const [drawn, setDrawn] = useState(false);

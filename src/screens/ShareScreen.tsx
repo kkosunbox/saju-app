@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
 import ShareCard from '../components/ShareCard';
@@ -27,7 +27,7 @@ export default function ShareScreen() {
   const { fortune, user, today } = useApp();
   const { toast } = usePremium();
   const { sendImage, urlOf, reward } = useShare();
-  const ref = useRef<View>(null);
+  const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
   const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
   // 웹은 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유를 막는다 (아직 못 그렸으면 누를 때 그린다)

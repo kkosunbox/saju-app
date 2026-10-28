@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ART, Logo } from './Mascot';
 import { POSES } from './ResultMascot';
@@ -29,7 +29,7 @@ const CLOUDS = require('../../assets/images/share-today-bg.webp');
 /** 카드 기준 y → 액자 안쪽 기준 y */
 const y = (cardY: number) => cardY - FRAME.top - FRAME.border;
 
-const TodayShareCard = forwardRef<View, { data: TodayCardData; today: string }>(function TodayShareCard({ data, today }, ref) {
+const TodayShareCard = forwardRef<ViewInstance, { data: TodayCardData; today: string }>(function TodayShareCard({ data, today }, ref) {
   return (
     <View ref={ref} collapsable={false} style={s.card}>
       {/* 피그마 227° 그라디언트를 픽셀에서 되짚은 값 — 대각선(좌상→우하) 위 28.5% · 50% · 75% (웹·앱 모두 같은 선) */}

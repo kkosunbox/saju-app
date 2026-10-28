@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, GestureResponderEvent, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, GestureResponderEvent, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Mask, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { haptic } from '../utils/haptic';
 
@@ -21,7 +21,7 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
   const [fade] = useState(() => new Animated.Value(1));
   const finished = useRef(false);
   const [touched, setTouched] = useState(false);
-  const plate = useRef<View>(null);
+  const plate = useRef<ViewInstance>(null);
 
   // 웹에서 마우스로 긁으면 끌기가 글자 선택으로 번져 화면 글자가 칠해진다 — 누르는 순간 선택을 막는다
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade, userSelect: 'none' }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }, NO_SELECT]}>
       <Svg width={width} height={height} pointerEvents="none">
         <Defs>
           <LinearGradient id="scratchFoil" x1="0" y1="0" x2="1" y2="1">
@@ -111,6 +111,9 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
 
 /** 웹: 긁는 손가락이 페이지 스크롤로 번지지 않게 */
 const NO_PAN = (Platform.OS === 'web' ? { touchAction: 'none' } : {}) as object;
+
+// 웹에서 긁을 때 글자가 선택되지 않게 — RN 타입은 userSelect를 Text 스타일에만 둔다
+const NO_SELECT = { userSelect: 'none' } as object;
 
 const s = StyleSheet.create({
   hint: { position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center' },
