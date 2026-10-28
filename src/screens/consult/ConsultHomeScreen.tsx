@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -51,7 +51,7 @@ export default function ConsultHomeScreen() {
   const { user: u, account, fortune } = useApp();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 요약 대신 홈으로 뽑으러 가게 한다
   const { points, toast } = usePremium();
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);

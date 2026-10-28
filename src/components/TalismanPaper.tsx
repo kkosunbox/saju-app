@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { formatKoreanDate } from '../utils/date';
 import { sansW } from '../theme/typography';
 import { GiftTalisman } from '../content/giftTalismans';
@@ -14,7 +14,7 @@ export const PAPER_W = 263, PAPER_H = 412;
 interface PaperProps { today: string; onLoad?: () => void }
 
 /** 종이 그림 + 흰 테두리 — 캡처(html2canvas · view-shot)에서도 나오도록 View·Text·Image만 쓴다 */
-const Paper = forwardRef<View, PaperProps & { bg: ImageSourcePropType; dateStyle: object; children: React.ReactNode }>(({ bg, today, onLoad, dateStyle, children }, ref) => (
+const Paper = forwardRef<ViewInstance, PaperProps & { bg: ImageSourcePropType; dateStyle: object; children: React.ReactNode }>(({ bg, today, onLoad, dateStyle, children }, ref) => (
   <View ref={ref} collapsable={false} style={s.paper}>
     <Image source={bg} style={s.paperImage} resizeMode="cover" onLoad={onLoad} accessible={false} />
     <Text style={[s.date, dateStyle]}>{formatKoreanDate(today)}</Text>
@@ -33,7 +33,7 @@ const Chip = ({ text, color, top }: { text: string; color: string; top: number }
 );
 
 /** 오늘 나의 부적 */
-const TalismanPaper = forwardRef<View, PaperProps & { data: TalismanPaperData }>(({ data, ...rest }, ref) => (
+const TalismanPaper = forwardRef<ViewInstance, PaperProps & { data: TalismanPaperData }>(({ data, ...rest }, ref) => (
   <Paper ref={ref} bg={require('../../assets/figma/talisman/paper-today.webp')} dateStyle={s.todayDate} {...rest}>
     <Hanja text={data.hanja} color={INK} top={124} />
     <Text style={[s.line, s.mantra, { top: 298 }]} adjustsFontSizeToFit numberOfLines={1}>{data.mantra}</Text>
@@ -43,7 +43,7 @@ const TalismanPaper = forwardRef<View, PaperProps & { data: TalismanPaperData }>
 TalismanPaper.displayName = 'TalismanPaper';
 
 /** 친구에게 보내는 선물 부적 — 받는 사람을 비우면 From만 적는다 */
-export const GiftTalismanPaper = forwardRef<View, PaperProps & { gift: GiftTalisman; to: string; from: string }>(({ gift, to, from, ...rest }, ref) => (
+export const GiftTalismanPaper = forwardRef<ViewInstance, PaperProps & { gift: GiftTalisman; to: string; from: string }>(({ gift, to, from, ...rest }, ref) => (
   <Paper ref={ref} bg={gift.paper} dateStyle={s.giftDate} {...rest}>
     <Hanja text={gift.hanja} color={gift.ink} top={106} />
     <Text style={[s.line, s.title, { top: 271 }]} numberOfLines={1}>{gift.label}의 부적</Text>

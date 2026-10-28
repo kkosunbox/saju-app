@@ -345,7 +345,7 @@ export default function HomeScreen() {
             <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
               <Mascot size={30} />
               <View style={{ flex: 1 }}>
-                <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 '{friend.k}' 결과가 도착했어요</Text>
+                <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 &apos;{friend.k}&apos; 결과가 도착했어요</Text>
                 <Text style={txt.small} numberOfLines={1}>{friend.h} · 나도 해보고 비교하기</Text>
               </View>
               <Icon name="chevronRight" size={18} color={colors.inkMute} />

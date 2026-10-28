@@ -1,5 +1,5 @@
 import { RefObject, useEffect } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, type ViewInstance } from 'react-native';
 
 const LINE_PX = 16;
 
@@ -19,7 +19,7 @@ function scrollerFor(el: Element | null, dy: number): HTMLElement | null {
  * 웹(데스크톱): 앱은 가운데 폰 폭 기둥이라 양옆 여백에서 휠을 굴리면 아무것도 안 움직인다.
  * 여백에서 굴린 휠을 같은 높이의 가운데 화면(맨 위에 떠 있는 시트 포함)의 스크롤 영역으로 넘긴다.
  */
-export function useWebSideScroll(bg: RefObject<View | null>, frame: RefObject<View | null>) {
+export function useWebSideScroll(bg: RefObject<ViewInstance | null>, frame: RefObject<ViewInstance | null>) {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const bgEl = bg.current as unknown as HTMLElement | null;

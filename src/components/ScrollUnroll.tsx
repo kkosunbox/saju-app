@@ -48,7 +48,7 @@ export default function ScrollUnroll({ children, onDone }: { children: React.Rea
   };
 
   return (
-    <View style={s.root}>
+    <View style={NO_SELECT}>
       <View style={s.rod} />
       <Animated.View style={[s.paper, { height: h }]}>
         <View style={s.inner}>{children}</View>
@@ -62,8 +62,10 @@ export default function ScrollUnroll({ children, onDone }: { children: React.Rea
   );
 }
 
+// 웹에서 끌 때 글자가 선택되지 않게 — RN 타입은 userSelect를 Text 스타일에만 둔다
+const NO_SELECT = { userSelect: 'none' } as object;
+
 const s = StyleSheet.create({
-  root: { userSelect: 'none' }, // 웹에서 끌 때 글자가 선택되지 않게
   rod: { height: 18, marginHorizontal: -6, borderRadius: 9, backgroundColor: '#8A5A2B', borderWidth: 2, borderColor: '#5E3A16' },
   paper: { overflow: 'hidden', marginHorizontal: 6, backgroundColor: colors.heroBg },
   inner: { height: OPEN, paddingHorizontal: 20, paddingTop: 22, alignItems: 'center' },

@@ -52,7 +52,7 @@ export default function ConsultHistoryScreen() {
         onEndReached={() => { if (q.hasNextPage && !q.isFetchingNextPage) q.fetchNextPage(); }}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={<Text style={[txt.small, s.empty]}>{kind === 'open' ? '이어서 이야기할 상담이 없어요' : '지난 상담이 없어요'}</Text>}
-        ListFooterComponent={q.isFetchingNextPage ? <View style={s.more}><ActivityIndicator color={colors.purple} /></View> : null}
+        ListFooterComponent={q.isFetchingNextPage ? <View style={s.more}><ActivityIndicator color={colors.purple} /></View> : undefined}
       />
     </Screen>
   );

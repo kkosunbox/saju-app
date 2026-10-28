@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, Logo } from './Mascot';
 import Icon from './Icon';
@@ -30,7 +30,7 @@ const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜:
 export const CARD_W = 320;
 const PAPER_SCALE = 0.8;
 
-const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, today }, ref) => {
+const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(({ spec, today }, ref) => {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   const { y, m, d } = parseISO(today);
   const longHead = spec.headline.length > 18;
@@ -106,6 +106,8 @@ const ShareCard = forwardRef<View, { spec: ShareSpec; today: string }>(({ spec, 
     </View>
   );
 });
+
+ShareCard.displayName = 'ShareCard';
 
 export default ShareCard;
 

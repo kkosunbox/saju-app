@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import PrimaryButton from './PrimaryButton';
 import PressableScale from './PressableScale';
 import OptionChip from './OptionChip';
@@ -22,7 +22,7 @@ export default function MbtiQuiz({ onDone, onClose }: { onDone(t: MBTI): void; o
   const [ans, setAns] = useState<(0 | 1 | null)[]>([null, null, null, null]);
   const result = ans.every(x => x !== null) ? ans.map((x, k) => QUIZ[k].axis[x!]).join('') as MBTI : null;
   // 결과가 나오면 아래로 내려 보여준다
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   useEffect(() => { if (result) scroll.current?.scrollToEnd({ animated: true }); }, [result]);
   return (
     <>
