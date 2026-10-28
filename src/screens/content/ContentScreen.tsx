@@ -122,7 +122,7 @@ export default function ContentScreen() {
           <MascotPeek width={112} top={7.5} opacity={0.55} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={s.bundleT}>인생 패키지</Text>
-            <View style={s.bundleTag}><Text style={s.bundleTagText}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
+            <View style={[s.bundleTag, bOwned && s.bundleTagOwned]}><Text style={[s.bundleTagText, bOwned && s.bundleTagOwnedText]}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
           </View>
           <Text style={s.bundleD}>{bundle.desc}</Text>
           {bOwned ? null : (
@@ -219,6 +219,9 @@ const s = StyleSheet.create({
   bundleT: { fontSize: 16, lineHeight: 18, fontWeight: '700', color: '#00A3FF', letterSpacing: -0.8 },
   bundleTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: colors.seal },
   bundleTagText: { fontSize: 12, lineHeight: 15, fontWeight: '600', color: colors.seal, letterSpacing: 0 },
+  // 보유 중 — Figma 칩: 0.5 테두리 · 좌우 4
+  bundleTagOwned: { paddingHorizontal: 4, borderWidth: 0.5, borderColor: '#FF6F35' },
+  bundleTagOwnedText: { color: '#FF6F35' },
   bundleD: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, marginTop: 8, paddingRight: 80 },
   bundleOrig: { fontSize: 13, color: colors.inkMute, textDecorationLine: 'line-through', marginTop: 4 },
   artBox: { height: 40, justifyContent: 'center' },
