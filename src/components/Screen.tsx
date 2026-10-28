@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Animated, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
@@ -39,6 +39,9 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const floating = floatingBar && scroll;
+  const keyboard = useKeyboardShown();
+  // 하단 버튼은 홈 인디케이터·화면 라운딩을 피해 올린다. 탭 화면(largeTitle)은 아래 탭 바가 이미 피해 주고, 키보드가 떠 있으면 키보드 바로 위에 붙인다
+  const footerBottom = largeTitle || keyboard ? 12 : Math.max(insets.bottom, 12);
   // 웹: 상단 바 색을 화면 맨 위 그라디언트에 맞춘다. 그라디언트는 스크롤해도 제자리라 한 번만 맞추면 된다
   useWebTopBar(sky ? [[0, gradients.skySoft[0]], [SKY_H * SKY_FADE, gradients.skySoft[1]]] : null);
   // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다
@@ -61,6 +64,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : null}
       {floating ? null : bar}
+      {/* 키보드가 뜨면 본문과 하단 버튼을 키보드 위로 올린다 (이메일 입력 중에도 '다음'을 바로 누르게) */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {scroll ? (
         <Animated.ScrollView
           contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
@@ -71,6 +76,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       ) : (
         <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
       )}
+      {footer ? <View style={[s.footer, { paddingBottom: footerBottom }]}>{footer}</View> : null}
+      </KeyboardAvoidingView>
       {floating ? (
         // 바 배경: 화면 맨 위 그라디언트와 같은 그림을 바 높이만큼 잘라, 스크롤을 내리면 나타나게 한다
         <Animated.View pointerEvents="none" style={[s.barBg, { height: insets.top + BAR_H, opacity: scrollY.interpolate({ inputRange: [0, 16], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
@@ -78,9 +85,23 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
         </Animated.View>
       ) : null}
       {floating ? bar : null}
-      {footer ? <View style={s.footer}>{footer}</View> : null}
     </SafeAreaView>
   );
+}
+
+/** 키보드가 떠 있는지. iOS는 올라오기 시작할 때 바꿔 버튼 여백이 키보드와 같이 움직이게 한다 */
+function useKeyboardShown() {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const ios = Platform.OS === 'ios';
+    const subs = [
+      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setShown(true)),
+      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setShown(false)),
+    ];
+    return () => subs.forEach(sub => sub.remove());
+  }, []);
+  return shown;
 }
 
 const BAR_H = 56;
@@ -96,5 +117,5 @@ const s = StyleSheet.create({
   title: { ...txt.h2, flex: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 40 },
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 12 },
+  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 8 },
 });

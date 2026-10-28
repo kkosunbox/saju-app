@@ -15,7 +15,7 @@ export const fonts = {
 };
 
 /** Pretendard 굵기 → 글꼴 이름 (웹은 굵기로, 네이티브는 굵기별 파일 이름으로) */
-const PRE: Record<string, string> = { '400': 'Pretendard-Regular', '500': 'Pretendard-Medium', '600': 'Pretendard-SemiBold', '700': 'Pretendard-Bold', '800': 'Pretendard-Bold' };
+export const PRE: Record<string, string> = { '400': 'Pretendard-Regular', '500': 'Pretendard-Medium', '600': 'Pretendard-SemiBold', '700': 'Pretendard-Bold', '800': 'Pretendard-Bold' };
 export const sansW = (w: '400' | '500' | '600' | '700' | '800'): TextStyle =>
   Platform.OS === 'web' ? { fontFamily: fonts.sans, fontWeight: w } : { fontFamily: PRE[w] };
 

@@ -1,3 +1,5 @@
+// 네이티브 기본 글꼴(Pretendard) — 화면 모듈보다 먼저 불러와야 한다
+import '@/theme/nativeText';
 import { useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Stack, router, usePathname, type Href } from 'expo-router';
