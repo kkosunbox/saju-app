@@ -31,7 +31,7 @@ const TODAY_IMG = require('../../../assets/images/consult-today.webp');
 /** 오늘의 기운 카드 바탕 — 밝은 화면은 디자인의 구름 그림, 어두운 화면은 같은 하늘색 결의 그라데이션 */
 function TodayCard({ children }: { children: React.ReactNode }) {
   if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>{children}</LinearGradient>;
-  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={s.today} imageStyle={s.todayImg}>{children}</ImageBackground>;
+  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={s.today} imageStyle={Platform.OS === 'web' ? s.todayImg : s.todayImgNative}>{children}</ImageBackground>;
 }
 
 const EXAMPLES = [
@@ -209,6 +209,8 @@ const s = StyleSheet.create({
   greet: { fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
   today: { gap: 5, minHeight: 72, marginTop: 28, padding: 16, borderRadius: radius.lg, overflow: 'hidden' },
   todayImg: { width: '100%', height: '100%', borderRadius: radius.lg }, // 웹은 크기를 안 주면 그림 원래 크기로 그린다
+  // 네이티브는 그림이 이미 카드를 꽉 채운다. 100%를 주면 카드 안쪽 여백을 뺀 크기로 줄어 왼쪽 위에만 깔린다
+  todayImgNative: { borderRadius: radius.lg },
   todayK: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
   todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },

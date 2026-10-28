@@ -58,9 +58,7 @@
     "build:web": "expo export --platform web",
     "postbuild:web": "node scripts/web-postbuild.mjs",
     "api:fetch": "curl -sf ${EXPO_PUBLIC_API_URL:-http://localhost:8080}/documentation-json -o src/api/openapi.json",
-    "api:types": "npx -y openapi-typescript@7 src/api/openapi.json -o src/api/schema.d.ts",
-    "update:store-test": "EXPO_PUBLIC_API_URL=https://api-dev.woonpick.com EXPO_PUBLIC_WEB_URL=https://dev.woonpick.com npx eas-cli@latest update --channel store-test --environment preview",
-    "update:production": "EXPO_PUBLIC_API_URL=https://api.woonpick.com EXPO_PUBLIC_WEB_URL=https://woonpick.com npx eas-cli@latest update --channel production --environment production"
+    "api:types": "npx -y openapi-typescript@7 src/api/openapi.json -o src/api/schema.d.ts"
   },
   "private": true
 }
