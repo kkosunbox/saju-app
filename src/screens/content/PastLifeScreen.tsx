@@ -6,7 +6,7 @@ import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import FriendCompare from '../../components/FriendCompare';
-import ScrollUnroll from '../../components/ScrollUnroll';
+import MemoryReveal from '../../components/MemoryReveal';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
 import Mascot, { Logo } from '../../components/Mascot';
@@ -41,14 +41,9 @@ export default function PastLifeScreen() {
           <Index number="02" title="지금의 나에게 남은 흔적" />
           <Index number="03" title="다시 만날 인연과 이번 생의 과제" />
         </View>
-        <Text style={s.unrollLabel}>당신의 기록이 도착했어요</Text>
-        <ScrollUnroll onDone={() => { setDrawn(true); draw.open(); }}>
-          <Mascot name="pastLife" size={56} />
-          <Text style={s.scrollEyebrow}>{u.nickname}님의 전생 기록</Text>
-          <Text style={s.scrollName}>{P.role}</Text>
-          <Text style={s.scrollEra}>{P.era}</Text>
-          <Text style={s.scrollLine}>{story.line}</Text>
-        </ScrollUnroll>
+        <View style={s.reveal}>
+          <MemoryReveal nickname={u.nickname} era={P.era} role={P.role} line={story.line} onDone={() => { setDrawn(true); draw.open(); }} />
+        </View>
         <Text style={s.note}>사주와 성향을 모티브로 만든 창작 콘텐츠예요.</Text>
       </Screen>
     );
@@ -68,7 +63,8 @@ export default function PastLifeScreen() {
   );
 
   return (
-    <Screen title="전생 테스트" back contentStyle={s.content}>
+    // key: 기록을 연 뒤 새 화면처럼 맨 위부터 보이게
+    <Screen key="result" title="전생 테스트" back contentStyle={s.content}>
       <FriendCompare route="PastLife" spec={spec} />
       {drawn ? <Reveal>{record}</Reveal> : record}
 
@@ -138,7 +134,6 @@ function Index({ number, title }: { number: string; title: string }) {
   return <View style={s.indexRow}><Text style={s.indexNumber}>{number}</Text><Text style={txt.bodyStrong}>{title}</Text></View>;
 }
 
-const GOLD = '#D8C393';
 // Figma 운픽_23 — 본문 글자는 검정(#000), 다크 모드에서는 ink
 const INK = isDark ? colors.ink : '#000000';
 const CHIP = '#FFF386';
@@ -154,12 +149,8 @@ const s = StyleSheet.create({
   index: { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, gap: 14 },
   indexRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   indexNumber: { ...txt.caption, color: colors.inkMute, fontVariant: ['tabular-nums'] },
-  unrollLabel: { ...txt.small, marginTop: 28, marginBottom: 18, textAlign: 'center' },
+  reveal: { marginTop: 28 },
   note: { ...txt.caption, textAlign: 'center', marginTop: 16, marginBottom: 12 },
-  scrollEyebrow: { ...sansW('500'), color: '#BBC0CF', fontSize: 13, marginTop: 10 },
-  scrollName: { ...sansW('700'), color: colors.white, fontSize: 28, lineHeight: 38, marginTop: 8, textAlign: 'center' },
-  scrollEra: { ...sansW('500'), color: GOLD, fontSize: 13, lineHeight: 20, marginTop: 12, textAlign: 'center' },
-  scrollLine: { color: '#D5D8E2', fontSize: 14, lineHeight: 23, marginTop: 16, textAlign: 'center' },
 
   // 결과 (Figma 운픽_23): 상단 바 바로 아래(y 100)부터, 맨 아래 여백 60
   content: { paddingTop: 0, paddingBottom: 60 },
