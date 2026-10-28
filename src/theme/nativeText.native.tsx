@@ -10,6 +10,7 @@ import { PRE } from './typography';
  * 스타일마다 sansW 를 붙이지 않은 곳(fontWeight 만 쓴 곳)이 많아, Text·TextInput 을 감싸 같은 규칙을 적용한다.
  * - 바깥 Text: 글꼴이 없으면 fontWeight 에 맞는 Pretendard 파일과 웹과 같은 자간을 넣는다
  * - 안쪽 Text: 부모 글꼴을 물려받고, fontWeight 를 따로 줬을 때만 그 굵기 파일로 바꾼다
+ * - 시스템 글자 크기(iOS 텍스트 크기·Android 글꼴 크기)는 따르지 않는다. 웹과 같은 크기로 디자인대로 보이게 (화면에서 allowFontScaling 을 주면 그 값을 쓴다)
  */
 const BaseText = RN.Text;
 const BaseTextInput = RN.TextInput;
@@ -29,13 +30,13 @@ function pretendard(style: RN.StyleProp<TextStyle>, nested: boolean): TextStyle 
 
 const Text = forwardRef<React.ComponentRef<typeof BaseText>, RN.TextProps>((props, ref) => {
   const add = pretendard(props.style, useContext(TextAncestor));
-  return <BaseText ref={ref} {...props} style={add ? [add, props.style] : props.style} />;
+  return <BaseText ref={ref} allowFontScaling={false} {...props} style={add ? [add, props.style] : props.style} />;
 });
 Text.displayName = 'Text';
 
 const TextInput = forwardRef<React.ComponentRef<typeof BaseTextInput>, RN.TextInputProps>((props, ref) => {
   const add = pretendard(props.style, false);
-  return <BaseTextInput ref={ref} {...props} style={add ? [add, props.style] : props.style} />;
+  return <BaseTextInput ref={ref} allowFontScaling={false} {...props} style={add ? [add, props.style] : props.style} />;
 });
 TextInput.displayName = 'TextInput';
 // 포커스 관리(TextInput.State)는 그대로 쓰게 한다
