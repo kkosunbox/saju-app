@@ -24,4 +24,7 @@ export const storage = {
   getNotificationSettings: async (): Promise<NotificationSettings> =>
     (await getJSON<NotificationSettings>(deviceKey('notification'))) ?? { enabled: true, hour: 8, minute: 0 },
   saveNotificationSettings: (s: NotificationSettings) => AsyncStorage.setItem(deviceKey('notification'), JSON.stringify(s)),
+  /** 이 기기에서 마지막으로 로그인한 방법 ('email' · 'kakao' …) — 로그인 화면의 '최근 로그인' 말풍선 */
+  getLastLogin: () => AsyncStorage.getItem(deviceKey('lastLogin')).catch(() => null),
+  setLastLogin: (method: string) => AsyncStorage.setItem(deviceKey('lastLogin'), method).catch(() => {}),
 };

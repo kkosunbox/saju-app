@@ -6,6 +6,7 @@
 import { api, call } from '../../api/client';
 import { IS_WEB, setTokens } from '../../api/tokens';
 import type { SocialProvider } from '../../components/auth/socialLabels';
+import { storage } from '../storage/storageService';
 
 /** How the account signs in: email · password, or a linked social account. */
 export type LoginMethod = 'email' | SocialProvider;
@@ -20,8 +21,9 @@ export interface Account {
 /** refreshToken is absent on the web (the server puts it in an httpOnly cookie). */
 export interface LoginPayload { accessToken: string; refreshToken?: string }
 
-export async function keep(payload: LoginPayload, isGuest: boolean) {
+export async function keep(payload: LoginPayload, isGuest: boolean, method?: LoginMethod) {
   await setTokens({ accessToken: payload.accessToken, refreshToken: payload.refreshToken ?? '', isGuest });
+  if (method) await storage.setLastLogin(method);
 }
 
 export const authApi = {
@@ -39,7 +41,7 @@ export const authApi = {
     const data = await call<LoginPayload & { twoFactorToken?: string }>(
       api.POST('/v1/auth/login', { body: { email: email.trim().toLowerCase(), password } }),
     );
-    await keep(data, false);
+    await keep(data, false, 'email');
   },
 
   /** Before step 1: is this address already a member (and a social one, with no password)? */
@@ -78,7 +80,7 @@ export const authApi = {
         },
       }),
     );
-    await keep(data, false);
+    await keep(data, false, 'email');
   },
 
   /** Finishes a social signup: the terms are agreed after the provider's login (POST /auth/complete-signup). */

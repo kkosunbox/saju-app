@@ -59,7 +59,22 @@ export async function finishAppleLogin(credential: AppleCredential): Promise<{ n
     throw new SocialLoginError('server', (e as Error).message);
   });
   if (data.twoFactorToken) throw new SocialLoginError('two-factor', '2FA is not supported for Apple login yet');
-  await keep(data, false);
+  await keep(data, false, 'apple');
+  return { needsTerms: data.user?.isAllowTerms === false };
+}
+
+/**
+ * App: signs in with the token the provider's native SDK gave us (카카오 · 네이버: access token,
+ * 구글: ID token), POST /auth/{provider}/app. The guest session rides along, like the web.
+ */
+export async function finishAppSocialLogin(provider: WebSocialProvider, token: string): Promise<{ needsTerms: boolean }> {
+  const data = await call<LoginPayload & { twoFactorToken?: string; user?: { isAllowTerms: boolean } }>(
+    api.POST('/v1/auth/{provider}/app' as never, { params: { path: { provider } }, body: { token } } as never),
+  ).catch(e => {
+    throw new SocialLoginError('server', (e as Error).message);
+  });
+  if (data.twoFactorToken) throw new SocialLoginError('two-factor', '2FA is not supported in the app yet');
+  await keep(data, false, provider);
   return { needsTerms: data.user?.isAllowTerms === false };
 }
 
@@ -82,6 +97,6 @@ export async function finishWebSocialLogin(provider: string, query: { code?: str
     throw new SocialLoginError('server', (e as Error).message);
   });
   if (data.twoFactorToken) throw new SocialLoginError('two-factor', '2FA is not supported on the web yet');
-  await keep(data, false);
+  await keep(data, false, pending.provider);
   return { returnTo: pending.returnTo, needsTerms: data.user?.isAllowTerms === false };
 }

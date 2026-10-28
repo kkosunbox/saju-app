@@ -10,6 +10,7 @@ import { SocialCircle } from '../../components/auth/AuthKit';
 import { usePremium } from '../../context/PremiumContext';
 import { SocialProvider } from '../../components/auth/socialLabels';
 import { getFriendResult, getPendingInvite } from '../../services/share/linkShare';
+import { storage } from '../../services/storage/storageService';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { COPY } from '../../content/copy';
@@ -24,6 +25,9 @@ export default function LoginScreen() {
   const [help, setHelp] = useState(false);
   // 친구가 보낸 결과·궁합 초대 링크로 들어왔다면 가입 전에 먼저 보여준다
   const [gift, setGift] = useState<{ who: string; what: string; line: string } | null>(null);
+  // 이 기기에서 마지막으로 쓴 로그인 방법 위에 '최근 로그인' 말풍선
+  const [last, setLast] = useState<string | null>(null);
+  useEffect(() => { storage.getLastLogin().then(setLast); }, []);
   useEffect(() => {
     (async () => {
       const f = await getFriendResult();
@@ -63,12 +67,22 @@ export default function LoginScreen() {
 
       <View style={s.bottom}>
         <Text style={s.caption}>SNS 계정으로 간편 가입하기</Text>
-        <View style={s.circles}>
-          {PROVIDERS.map(p => <SocialCircle key={p} provider={p} onPress={() => nav.navigate('SocialLogin', { provider: p })} />)}
+        {/* 말풍선이 설명 문구를 가리지 않게 그만큼 내린다 */}
+        <View style={[s.circles, last && last !== 'email' ? { marginTop: 40 } : null]}>
+          {PROVIDERS.map(p => (
+            <View key={p}>
+              {last === p ? <LastBadge /> : null}
+              <SocialCircle provider={p} onPress={() => nav.navigate('SocialLogin', { provider: p })} />
+            </View>
+          ))}
         </View>
-        <PressableScale onPress={() => nav.navigate('SignUp')} hitSlop={8} style={{ marginTop: 26 }}>
-          <Text style={s.emailLink}>이메일로 시작하기</Text>
-        </PressableScale>
+        {/* 로그인 화면부터 — 처음이면 거기서 회원가입으로 */}
+        <View style={{ marginTop: 26 }}>
+          <PressableScale onPress={() => nav.navigate('EmailLogin')} hitSlop={8}>
+            <Text style={s.emailLink}>이메일로 시작하기</Text>
+          </PressableScale>
+          {last === 'email' ? <LastBadge side="right" /> : null}
+        </View>
         <PressableScale onPress={() => setHelp(true)} style={s.helpPill} scaleTo={0.96}>
           <Text style={s.helpPillText}>로그인에 어려움이 있나요?</Text>
         </PressableScale>
@@ -82,6 +96,18 @@ export default function LoginScreen() {
         {helpItem('고객센터에 문의하기', () => toast('고객센터는 준비 중이에요 (데모)'))}
       </BottomSheet>
     </SafeAreaView>
+  );
+}
+
+/** 버튼을 가리키는 작은 말풍선 — 소셜 아이콘은 위에서, 이메일 링크는 오른쪽에서 */
+function LastBadge({ side = 'top' }: { side?: 'top' | 'right' }) {
+  const right = side === 'right';
+  return (
+    <View style={right ? s.badgeRight : s.badgeTop} pointerEvents="none">
+      {right ? <View style={[s.badgeTail, { marginRight: -4 }]} /> : null}
+      <View style={s.badge}><Text style={s.badgeText}>최근 로그인</Text></View>
+      {right ? null : <View style={[s.badgeTail, { marginTop: -4 }]} />}
+    </View>
   );
 }
 
@@ -104,4 +130,9 @@ const s = StyleSheet.create({
   giftLine: { fontFamily: fonts.display, fontSize: 19, lineHeight: 27, fontWeight: '700', color: colors.ink, marginTop: 6 },
   helpRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.line },
   helpText: { fontSize: 15, color: colors.ink, fontWeight: '500' },
+  badgeTop: { position: 'absolute', bottom: '100%', left: -40, right: -40, alignItems: 'center', marginBottom: 4, zIndex: 1 },
+  badgeRight: { position: 'absolute', left: '100%', top: 0, bottom: 0, marginLeft: 8, flexDirection: 'row', alignItems: 'center' },
+  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.navy },
+  badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '700', color: colors.white },
+  badgeTail: { width: 8, height: 8, backgroundColor: colors.navy, transform: [{ rotate: '45deg' }], zIndex: -1 },
 });
