@@ -16,7 +16,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleDisplayName": "운Pick"
+        "CFBundleDisplayName": "운Pick",
+        "CFBundleName": "운Pick"
       },
       "usesAppleSignIn": true
     },
