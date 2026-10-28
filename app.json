@@ -85,6 +85,12 @@
         "projectId": "cddb3374-f974-4221-94c3-09a717e81956"
       }
     },
-    "owner": "errcode2323"
+    "owner": "errcode2323",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cddb3374-f974-4221-94c3-09a717e81956"
+    }
   }
 }
