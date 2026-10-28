@@ -74,8 +74,6 @@ const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', w
 /** 마스코트 밑 해시태그 — 관점별 한 줄의 태그 중 여러 관점에 겹친 것부터, 3개(길면 2개)까지 */
 const TAG_MAX_CHARS = 12;
 const TAG_FONT = 13;
-/** 유리 칩 위쪽에 맺히는 빛 — 아래로 갈수록 사라진다 */
-const GLASS_SHINE = isDark ? (['rgba(255,255,255,0.14)', 'rgba(255,255,255,0)'] as const) : (['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.15)'] as const);
 /** 키워드 글자색과, 글자 위로만 훑고 지나가는 빛 */
 const TAG_INK = isDark ? '#7CC4EE' : '#45ABE6';
 const TAG_GLINT = isDark ? '#EAF7FF' : '#D2EEFF';
@@ -377,8 +375,7 @@ export default function HomeScreen() {
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
                 {tags.map((tag, i) => (
-                  <View key={tag} style={s.glassChip}>
-                    <LinearGradient colors={GLASS_SHINE} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                  <View key={tag} style={s.tagChip}>
                     <GlintTag label={tag} sweep={tagSweep} index={i} count={tags.length} />
                   </View>
                 ))}
@@ -568,12 +565,12 @@ const s = StyleSheet.create({
   bubbleScore: { fontSize: 32, fontWeight: '600', color: colors.ink, letterSpacing: -1.3, fontVariant: ['tabular-nums'] },
   bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
   mascotTags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: -12, marginBottom: 16, paddingHorizontal: SCREEN_PX },
-  // 리퀴드 글래스 칩: 비치는 바탕 + 위쪽 빛 반사 + 얇은 빛 테두리
-  glassChip: {
-    overflow: 'hidden', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)',
-    borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.95)',
-    shadowColor: isDark ? '#000000' : '#1E8FD6', shadowOpacity: isDark ? 0.3 : 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2,
+  // 해시태그 칩: 흰 바탕 + 얇은 테두리 + 옅은 푸른 그림자 (다크는 같은 느낌을 면 색으로만)
+  tagChip: {
+    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: isDark ? colors.surface : 'rgba(255,255,255,0.7)',
+    borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+    shadowColor: '#1E8FD6', shadowOpacity: isDark ? 0 : 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: isDark ? 0 : 2,
   },
   mascotTag: { fontSize: TAG_FONT, fontWeight: '600', color: TAG_INK, letterSpacing: -0.5 },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },

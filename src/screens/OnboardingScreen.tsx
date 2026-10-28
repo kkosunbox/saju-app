@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Animated, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
@@ -9,6 +9,7 @@ import Mascot from '../components/Mascot';
 import { analysisTheme, colors } from '../theme/colors';
 import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
+import { webSafeTop } from '../utils/webThemeColor';
 
 const PAGES = [
   { title: '오늘, 어떤 운을\nPICK하시겠어요?', body: COPY.pickMe, art: 'sheet' },
@@ -63,6 +64,8 @@ export function Illustration({ kind }: { kind: Art }) {
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useApp();
+  // 웹(아이폰 Safari)에서 상단 띠가 로고를 덮지 않게 위 여백을 띠 높이 이상으로
+  const safeTop = webSafeTop(useSafeAreaInsets().top);
   // 웹에서는 앱이 휴대폰 폭으로 가운데 놓이므로 창 폭이 아니라 실제 영역 폭으로 넘긴다
   const win = useWindowDimensions().width;
   const [w, setW] = useState(0);
@@ -79,7 +82,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream, paddingTop: safeTop }} edges={['left', 'right', 'bottom']}>
       <View style={s.top}>
         <BrandMark />
         {!last ? (

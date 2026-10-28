@@ -23,6 +23,7 @@ import { ApiError } from '../api/client';
 import { ProfileInput } from '../services/server/profileApi';
 import { placeLabel } from '../services/server/birthPlaceApi';
 import { getPendingInvite } from '../services/share/linkShare';
+import { webSafeTop } from '../utils/webThemeColor';
 
 /**
  * 한 화면에 질문이 차례로 쌓인다: 이름 → 생년월일 → 태어난 시간 → 태어난 곳 → 성별 → 혈액형 → MBTI (직업·관심사는 마이에서 나중에).
@@ -288,7 +289,8 @@ export default function ProfileSetupScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+      {/* 웹(아이폰 Safari)에서 상단 띠가 로고를 덮지 않게 위 여백을 띠 높이 이상으로 */}
+      <SafeAreaView style={{ flex: 1, paddingTop: webSafeTop(insets.top) }} edges={['left', 'right']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.top}>
             {Platform.OS === 'web' && !editing ? (
