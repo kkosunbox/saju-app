@@ -43,6 +43,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   const keyboard = useKeyboardShown();
   // 하단 버튼은 홈 인디케이터·화면 라운딩을 피해 올린다. 탭 화면(largeTitle)은 아래 탭 바가 이미 피해 주고, 키보드가 떠 있으면 키보드 바로 위에 붙인다
   const footerBottom = largeTitle || keyboard ? 12 : Math.max(insets.bottom, 12);
+  // 하단 버튼도 탭 바도 없으면 본문 끝이 안드로이드 내비게이션 바(edge-to-edge)·홈 인디케이터에 가리지 않게 그만큼 더 띄운다
+  const scrollBottom = footer || largeTitle ? 0 : insets.bottom;
   // 웹: 상단 바 색을 화면 맨 위 그라디언트에 맞춘다. 그라디언트는 스크롤해도 제자리라 한 번만 맞추면 된다
   useWebTopBar(sky ? [[0, gradients.skySoft[0]], [SKY_H * SKY_FADE, gradients.skySoft[1]]] : null);
   // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다
@@ -73,6 +75,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
           onScroll={floating ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false }) : undefined} scrollEventThrottle={16}
         >
           {children}
+          {scrollBottom ? <View style={{ height: scrollBottom }} /> : null}
         </Animated.ScrollView>
       ) : (
         <View style={[{ flex: 1 }, contentStyle]}>{children}</View>

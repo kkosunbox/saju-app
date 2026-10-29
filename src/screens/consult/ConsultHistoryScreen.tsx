@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import { BodyState } from '../../components/premium/Kit';
@@ -17,6 +18,7 @@ export default function ConsultHistoryScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'ConsultHistory'>>();
   const kind = params?.kind === 'open' ? 'open' : 'past';
+  const insets = useSafeAreaInsets();
   const q = useInfiniteQuery({
     queryKey: consultKeys.pages(kind),
     queryFn: ({ pageParam }) => consultApi.list({ kind, before: pageParam, limit: PAGE }),
@@ -47,7 +49,7 @@ export default function ConsultHistoryScreen() {
         renderItem={({ item }) => <ConsultRows rows={item} onOpen={openChat} />}
         renderSectionHeader={({ section }) => (section.title ? <Text style={s.month} accessibilityRole="header">{section.title}</Text> : null)}
         stickySectionHeadersEnabled={false}
-        contentContainerStyle={s.content}
+        contentContainerStyle={[s.content, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         onEndReached={() => { if (q.hasNextPage && !q.isFetchingNextPage) q.fetchNextPage(); }}
         onEndReachedThreshold={0.5}
