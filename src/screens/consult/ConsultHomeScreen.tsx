@@ -17,12 +17,12 @@ import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
 import { CONSULT_CONFIG, guessCat } from '../../services/content/consult';
-import { ConsultListKind, ConsultView, HelpLine, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
+import { ConsultListKind, ConsultView, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
 import { useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
-import { ConsultRows, HelpLines, WEB_ONE_ROW, useWebAutoGrow } from './parts';
+import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow } from './parts';
 import WorryMarquee from './WorryMarquee';
 
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
@@ -55,7 +55,6 @@ export default function ConsultHomeScreen() {
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
-  const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const status = useConsultStatus(!!account);
   // 각각 앞의 HOME_ROWS개만 보이고, 하나 더 받아 와서 넘치면 '더보기'로 목록 화면을 연다
   const head = (kind: ConsultListKind) => ({ queryKey: consultKeys.head(kind), queryFn: () => consultApi.list({ kind, limit: HOME_ROWS + 1 }), enabled: !!account });
@@ -75,7 +74,7 @@ export default function ConsultHomeScreen() {
 
   // 주제는 글에서 추측해 서버에 함께 보낸다 (서버가 다시 판단한다)
   const cat = text.trim() ? guessCat(text) : null;
-  const onText = (t: string) => { setText(t); setCrisis(null); };
+  const onText = (t: string) => setText(t);
   const fillExample = (ex: string) => { onText(ex); input.current?.focus(); };
   const pickExample = (ex: string) => {
     if (!text.trim() || text === ex) return fillExample(ex);
@@ -90,12 +89,12 @@ export default function ConsultHomeScreen() {
     if (free) ask();
     else setConfirm(true);
   };
-  // 포인트가 모자라도 서버에 보낸다: 위기 신호가 있으면 포인트와 상관없이 상담 전화를 안내받아야 한다.
+  // 포인트가 모자라면 서버가 INSUFFICIENT_POINTS로 돌려주고, 대화 화면이 충전으로 안내한다.
   // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 상담가가 답을 쓰는 중)
   const ask = () => {
     setConfirm(false);
     const key = startAsk(text.trim(), cat ?? undefined);
-    setText(''); setCrisis(null);
+    setText('');
     input.current?.blur();
     nav.push('ConsultChat', { id: 'new', ask: key });
   };
@@ -139,8 +138,6 @@ export default function ConsultHomeScreen() {
           <View style={{ gap: 12 }}>
             {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
           </View>
-
-          {crisis ? <HelpLines lines={crisis} crisis /> : null}
 
           {section('open', '이어서 이야기하기', openQ.data)}
           {section('past', '지난 상담', pastQ.data)}

@@ -1,13 +1,12 @@
 import React, { RefObject, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
-import { Para } from '../../components/premium/Kit';
 import { ITEMS, Item } from '../../services/premium/catalog';
 import { ConsultCat, catOf } from '../../services/content/consult';
-import { ConsultView, HelpLine } from '../../services/server/consultApi';
+import { ConsultView } from '../../services/server/consultApi';
 import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { txt } from '../../theme/typography';
 import Icon from '../../components/Icon';
 import Mascot from '../../components/Mascot';
 import CatIcon from './CatIcon';
@@ -62,25 +61,6 @@ export function ConsultRows({ rows, onOpen }: { rows: ConsultView[]; onOpen(e: C
           </PressableScale>
         );
       })}
-    </Card>
-  );
-}
-
-/** 위기 · 마음 건강 신호일 때: 운세보다 사람의 도움을 먼저 (탭하면 바로 전화) */
-export function HelpLines({ lines, crisis }: { lines: HelpLine[]; crisis?: boolean }) {
-  return (
-    <Card style={s.crisis}>
-      <Text style={[txt.h3, { color: colors.love }]}>{crisis ? '지금 많이 힘드시죠' : '마음이 많이 지칠 땐'}</Text>
-      <Para>{crisis
-        ? '이런 마음은 운세보다 사람의 도움이 먼저 필요해요. 혼자 견디지 말고 지금 바로 이야기해 주세요. 24시간 언제든 연결돼요.'
-        : '혼자 견디기 어려울 땐 전문가와 이야기해 보세요. 24시간 언제든 연결돼요.'}</Para>
-      <View style={{ gap: 8, marginTop: 12 }}>
-        {lines.map(l => (
-          <PressableScale key={l.phone} onPress={() => Linking.openURL(`tel:${l.phone.replace(/-/g, '')}`)} style={s.line} scaleTo={0.98} accessibilityLabel={`${l.name} ${l.phone}에 전화하기`}>
-            <Text style={{ fontSize: 14, color: colors.ink }}>{l.name}</Text><Text style={{ fontSize: 17, fontWeight: '800', color: colors.love }}>{l.phone}</Text>
-          </PressableScale>
-        ))}
-      </View>
     </Card>
   );
 }
@@ -205,8 +185,6 @@ const s = StyleSheet.create({
   histLine: { borderTopWidth: 1, borderTopColor: colors.lineStrong },
   histT: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
   histM: { fontSize: 11, lineHeight: 18, color: colors.inkMute, letterSpacing: -0.55 },
-  crisis: { marginTop: 16, borderWidth: 1.5, borderColor: colors.love },
-  line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: radius.md, backgroundColor: colors.loveBg },
   mineWrap: { alignItems: 'flex-end', marginTop: 16, gap: 8 },
   mine: { maxWidth: '82%', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18, backgroundColor: colors.card },
   mineText: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: colors.ink, letterSpacing: -0.5 },

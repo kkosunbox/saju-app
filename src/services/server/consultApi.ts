@@ -26,15 +26,11 @@ export interface ConsultFacts {
   idiom: [string, string, string];
 }
 export interface ConsultTurn { question: string; reply: string; followUps: string[]; createdAt: string }
-export interface HelpLine { name: string; phone: string }
 export interface ConsultView {
-  /** null: 위기 안내 (저장하지 않음) */
-  id: number | null;
-  status: 'preview' | 'answered' | 'crisis';
+  id: number;
+  status: 'preview' | 'answered';
   topic: ConsultCat;
   risk: 'none' | 'concern' | 'crisis';
-  /** 위기 · 마음 건강 신호 · '나 자신' 고민일 때 */
-  helpLines: HelpLine[] | null;
   /** 고민 글 (한 건 조회에서만) */
   question: string | null;
   /** 잠겨 있으면 ConsultPreview 항목만 */

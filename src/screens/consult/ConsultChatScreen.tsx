@@ -17,12 +17,12 @@ import { refreshPoints, usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
 import { fmtN, ro } from '../../services/premium/catalog';
-import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, HelpLine, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
+import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { Counselor, HelpLines, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow } from './parts';
+import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -52,7 +52,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
   const nav = useNavigation<Nav>();
   const { goWallet } = usePremium();
   const [key, setKey] = useState(askKey);
-  const [state, setState] = useState<{ kind: 'wait' } | { kind: 'crisis'; lines: HelpLine[] } | { kind: 'error'; message: string }>({ kind: 'wait' });
+  const [state, setState] = useState<{ kind: 'wait' } | { kind: 'error'; message: string }>({ kind: 'wait' });
   const ask = getAsk(key);
   useEffect(() => {
     if (!ask || !key) return;
@@ -61,7 +61,6 @@ function PendingChat({ askKey }: { askKey?: string }) {
       v => {
         if (!live) return;
         dropAsk(key);
-        if (v.status === 'crisis' || v.id == null) { setState({ kind: 'crisis', lines: v.helpLines ?? [] }); return; }
         nav.replace('ConsultChat', { id: String(v.id) });
       },
       err => {
@@ -87,19 +86,10 @@ function PendingChat({ askKey }: { askKey?: string }) {
     <Screen title="고민 상담" back sky>
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
-      {state.kind === 'crisis' ? (
-        <>
-          <HelpLines lines={state.lines} crisis />
-          <PrimaryButton label="상담 탭으로" variant="soft" onPress={toTab} style={{ marginTop: 16 }} />
-        </>
-      ) : (
-        <>
-          {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
-          {state.kind === 'error' ? (
-            <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.topic)); }} style={{ marginTop: 16 }} />
-          ) : null}
-        </>
-      )}
+      {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
+      {state.kind === 'error' ? (
+        <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.topic)); }} style={{ marginTop: 16 }} />
+      ) : null}
     </Screen>
   );
 }
@@ -114,7 +104,6 @@ function Chat({ id }: { id: number }) {
   const inputRef = useRef<TextInputInstance>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState<string | null>(null);
-  const [crisis, setCrisis] = useState<HelpLine[] | null>(null);
   const [unlockOpen, setUnlockOpen] = useState(false);
   /** 잠긴 채로 물어본 질문 — 열고 나면 바로 보낸다 */
   const [pendingQ, setPendingQ] = useState<string | null>(null);
@@ -125,7 +114,7 @@ function Chat({ id }: { id: number }) {
   const turnCount = q.data?.turns?.length ?? 0;
   useWebAutoGrow(inputRef, input, INPUT_MAX);
   // 새 말이 붙으면 아래로 (첫 화면은 답변 위에서 시작)
-  useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending, crisis]);
+  useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending]);
 
   if (!u) return null;
   if (q.isPending) return <LoadingScreen />;
@@ -157,11 +146,9 @@ function Chat({ id }: { id: number }) {
   };
 
   const post = async (question: string) => {
-    setSending(question); setInput(''); setCrisis(null);
+    setSending(question); setInput('');
     try {
-      const v = await consultApi.followUp(id, question);
-      if (v.status === 'crisis') setCrisis(v.helpLines ?? []);
-      else put(v);
+      put(await consultApi.followUp(id, question));
     } catch (err) {
       const code = err instanceof ApiError ? err.code : '';
       if (code === 'CONTENT_LOCKED') setUnlockOpen(true);
@@ -269,8 +256,6 @@ function Chat({ id }: { id: number }) {
           <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
         )}
 
-        {e.helpLines?.length ? <HelpLines lines={e.helpLines} /> : null}
-
         {turns.map(t => (
           <View key={t.createdAt}>
             <MyBubble at={t.createdAt}>{t.question}</MyBubble>
@@ -283,7 +268,6 @@ function Chat({ id }: { id: number }) {
             <ReplyBubble typing={STAGES.reply} />
           </>
         ) : null}
-        {crisis ? <HelpLines lines={crisis} crisis /> : null}
 
         {!sending && !unlocking && (e.locked || canAsk) ? (
           <SuggestionChips
