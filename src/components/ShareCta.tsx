@@ -48,8 +48,8 @@ export function ShareIconButton({ item, spec, download = false }: { item?: Item;
   const { owned } = usePremium();
   if (!spec || (item && !owned(item.key))) return null;
   return (
-    <PressableScale onPress={() => nav.navigate('Share', { spec })} scaleTo={0.9} accessibilityLabel="결과를 카드로 공유하기" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={download ? "download" : "share"} size={download ? 24 : 20} color={colors.purple} />
+    <PressableScale onPress={() => nav.navigate('Share', { spec })} scaleTo={0.9} accessibilityLabel="결과를 카드로 공유하기" style={{ width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' }}>
+      <Icon name={download ? 'download' : 'external'} size={24} strokeWidth={2} color={colors.purple} />
     </PressableScale>
   );
 }
