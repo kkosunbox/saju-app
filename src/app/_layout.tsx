@@ -10,8 +10,11 @@ import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { StoreBillingProvider } from '@/context/StoreBillingContext';
 import { LogoMark } from '@/components/BrandMark';
+import LaunchSplash from '@/components/LaunchSplash';
 import SiteHead from '@/components/SiteHead';
 import LandingScreen from '@/screens/LandingScreen';
+import GuideScreen from '@/screens/GuideScreen';
+import { guideSlugOf } from '@/content/guides';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
 import { useWebSideScroll } from '@/utils/webSideScroll';
@@ -37,6 +40,12 @@ function useCloseAuthFlowOnSignIn() {
   }, [account, pathname]);
 }
 
+/** 네이티브 시작 화면: 부팅(세션 확인)이 끝나면 걷히며 첫 화면을 드러낸다 */
+function BootSplash() {
+  const { booting } = useApp();
+  return <LaunchSplash ready={!booting} />;
+}
+
 function RootStack() {
   const { booting, onboarded, user, editingProfile } = useApp();
   const hasProfile = !!user && !editingProfile;
@@ -54,6 +63,17 @@ function RootStack() {
         </View>
       );
     }
+    // 서비스 소개(/g/*)도 같은 이유로 부팅을 기다리지 않는다 — 온보딩을 마친 사람에게도 그대로 보인다
+    const guide = Platform.OS === 'web' ? guideSlugOf(pathname) : undefined;
+    if (guide) {
+      return (
+        <View pointerEvents="none" style={{ flex: 1 }}>
+          <GuideScreen slug={guide} />
+        </View>
+      );
+    }
+    // 앱은 그 위의 LaunchSplash 가 가린다
+    if (Platform.OS !== 'web') return null;
     return (
       <View style={s.boot}>
         <LogoMark size={52} />
@@ -111,6 +131,8 @@ function RootStack() {
       <Stack.Screen name="invite/[token]" />
       {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
       <Stack.Screen name="legal/[doc]" />
+      {/* 서비스 소개는 누구나 (웹 검색 유입) */}
+      <Stack.Screen name="g/[topic]" />
       {/* 웹 소셜 로그인 콜백: 온보딩·프로필 여부와 상관없이 받는다 */}
       <Stack.Screen name="oauth/[provider]/callback" />
       <Stack.Screen name="auth/callback/[provider]" />
@@ -133,6 +155,7 @@ export default function RootLayout() {
               <StatusBar style={isDark ? 'light' : 'dark'} />
               {Platform.OS === 'web' ? <SiteHead /> : null}
               <RootStack />
+              {Platform.OS !== 'web' ? <BootSplash /> : null}
             </StoreBillingProvider>
           </PremiumProvider>
         </AppProvider>

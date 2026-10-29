@@ -1,7 +1,7 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 import { BRAND } from '@/components/BrandMark';
-import { SITE_URL } from '@/content/seo';
+import { headMeta, SITE_DESCRIPTION, SITE_URL } from '@/content/seo';
 
 const SANS = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
 // react-native-web 기본 글꼴보다 우선하되, 글꼴을 지정한 요소와 중첩 텍스트는 건드리지 않는다.
@@ -24,20 +24,31 @@ const JSON_LD = JSON.stringify({
   name: BRAND.name,
   alternateName: [BRAND.ko, 'woonpick'],
   url: `${SITE_URL}/`,
+  description: SITE_DESCRIPTION,
   inLanguage: 'ko-KR',
 });
 
 /**
- * 웹 정적 렌더링(SEO)용 HTML 셸 — 모든 경로에 같은 태그만 둔다.
- * 경로별 제목 · 설명 · canonical · noindex 는 SiteHead(expo-router/head).
+ * 웹 정적 렌더링(SEO)용 HTML 셸.
+ * 경로별 제목 · 설명 · canonical · 공유 미리보기 · noindex 도 여기서 그린다 — 정적 렌더러가 넘겨 주는 pathname 으로 (content/seo).
+ * SDK 58의 정적 렌더링은 expo-router/head(SiteHead) 태그를 HTML에 넣지 않는다.
  */
-export default function Root({ children }: PropsWithChildren) {
-  // SDK 58부터 번들 <script>·RN 웹 스타일·SiteHead 태그는 이 노드로 들어온다 — 빠뜨리면 하이드레이션이 안 돼 빈 화면
+export default function Root({ children, pathname = '/' }: PropsWithChildren<{ pathname?: string }>) {
+  // SDK 58부터 번들 <script>·RN 웹 스타일은 이 노드로 들어온다 — 빠뜨리면 하이드레이션이 안 돼 빈 화면
   const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
+  const meta = headMeta(pathname);
   return (
     <html lang="ko" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
+        <title>{meta.title}</title>
+        <meta name="description" content={meta.description} />
+        {meta.url ? <link rel="canonical" href={meta.url} /> : <meta name="robots" content="noindex, follow" />}
+        {meta.url ? <meta property="og:url" content={meta.url} /> : null}
+        <meta property="og:title" content={meta.shareTitle} />
+        <meta property="og:description" content={meta.shareDescription} />
+        <meta name="twitter:title" content={meta.shareTitle} />
+        <meta name="twitter:description" content={meta.shareDescription} />
         {/* maximum-scale=1: iOS 사파리가 16px보다 작은 입력창(상담 14px)에 포커스할 때 화면을 확대하지 않게. 손가락 확대는 iOS가 그대로 허용한다 */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <script dangerouslySetInnerHTML={{ __html: RETURNING_JS }} />

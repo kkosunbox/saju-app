@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://woonpick.com/</loc></url>
-  <url><loc>https://woonpick.com/terms</loc></url>
-  <url><loc>https://woonpick.com/privacy</loc></url>
+  <url><loc>https://woonpick.com/g/today</loc></url>
+  <url><loc>https://woonpick.com/g/saju</loc></url>
+  <url><loc>https://woonpick.com/g/astrology</loc></url>
+  <url><loc>https://woonpick.com/g/mbti</loc></url>
+  <url><loc>https://woonpick.com/g/blood</loc></url>
+  <url><loc>https://woonpick.com/g/compatibility</loc></url>
+  <url><loc>https://woonpick.com/g/new-year</loc></url>
 </urlset>

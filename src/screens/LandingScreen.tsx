@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { Link, router, type Href } from 'expo-router';
 import { useApp } from '../context/AppContext';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
@@ -14,6 +14,7 @@ import MascotCarousel from '../components/MascotCarousel';
 import { CategoryGlyph } from '../components/CategoryIcon';
 import ScoreRing from '../components/ScoreRing';
 import { COPY } from '../content/copy';
+import { GUIDES, GUIDE_SLUGS } from '../content/guides';
 import { analysisTheme, CategoryKey, categoryTheme, colors, gradients } from '../theme/colors';
 import { fonts, radius, shadow, txt } from '../theme/typography';
 import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
@@ -167,6 +168,12 @@ export default function LandingScreen() {
           <View style={s.chips}>{PAID.map(p => <View key={p} style={s.chip}><Text style={s.chipText}>{p}</Text></View>)}</View>
           <Text style={[txt.small, { marginTop: 10 }]}>앱 안의 알로 원하는 것만 열어 보세요. 가입하면 100알을 드려요.</Text>
 
+          {/* 서비스 소개 페이지 — <a href> 로 그려 검색엔진도 따라간다 */}
+          <Text style={s.h}>운세 하나씩 알아보기</Text>
+          <View style={s.chips}>
+            {GUIDE_SLUGS.map(k => <Link key={k} href={`/g/${k}` as Href} style={s.guideChip}>{GUIDES[k].name}</Link>)}
+          </View>
+
           <View onLayout={e => setLastCtaY(e.nativeEvent.layout.y)}>
             <PrimaryButton label={CTA} onPress={start} style={{ marginTop: 32 }} />
           </View>
@@ -213,5 +220,6 @@ const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
+  guideChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, fontSize: 13, fontWeight: '600', color: colors.inkSub },
   floatBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 24, paddingTop: 12, backgroundColor: colors.cream, ...shadow.float },
 });
