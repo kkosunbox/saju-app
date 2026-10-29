@@ -49,8 +49,9 @@ export const pointsApi = {
   confirmGoogle: (productId: string, purchaseToken: string) => requestData('/v1/payments/google/purchases', { productId, purchaseToken }),
   wallet: () => call<Wallet>(api.GET('/v1/points/wallet')),
 
-  async transactions(limit = 20): Promise<PointTransaction[]> {
-    const data = await call<{ list: PointTransaction[] }>(api.GET('/v1/points/transactions', { params: { query: { limit } } }));
+  /** 최신순. beforeId를 주면 그 id보다 오래된 내역 (다음 페이지) */
+  async transactions(limit = 20, beforeId?: number): Promise<PointTransaction[]> {
+    const data = await call<{ list: PointTransaction[] }>(api.GET('/v1/points/transactions', { params: { query: { limit, beforeId } } }));
     return data.list;
   },
 

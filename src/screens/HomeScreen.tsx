@@ -228,6 +228,12 @@ export default function HomeScreen() {
   const onScrollTopBar = useWebTopBar([
     [0, gradients.sky[0]], [skyHold, gradients.sky[0]], [skyH * 0.48, gradients.sky[1]], [skyH * 0.88, gradients.sky[2]],
   ]);
+  // 뒤에 깐 하늘색은 맨 위에서 당길 때만 둔다. 빠르게 스크롤하면 Safari가 내용을 늦게 그려 빈 자리로 하늘색 띠가 비친다
+  const [atTop, setAtTop] = useState(true);
+  const onScroll = (y: number) => {
+    onScrollTopBar(y);
+    setAtTop(y <= 0);
+  };
   const top = (
     <View style={[s.topBar, { marginTop: safeTop }]}>
       <Logo height={50} />
@@ -313,12 +319,12 @@ export default function HomeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       {/* 웹(아이폰 Safari)은 스크롤 영역 위로 삐져나간 하늘을 잘라 버려서, 당기면 뒤가 보인다.
           뒤쪽 위 절반을 하늘색으로 깔고 내용은 흰 바탕으로 덮어, 위로 당기면 하늘색·아래로 당기면 흰색이 보이게 한다 */}
-      <View pointerEvents="none" style={[s.overscrollTop, { backgroundColor: gradients.sky[0] }]} />
+      {atTop ? <View pointerEvents="none" style={[s.overscrollTop, { backgroundColor: gradients.sky[0] }]} /> : null}
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32, backgroundColor: colors.cream }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={e => onScrollTopBar(e.nativeEvent.contentOffset.y)}
+        onScroll={e => onScroll(e.nativeEvent.contentOffset.y)}
         refreshControl={<RefreshControl refreshing={fortuneLoading} onRefresh={() => refreshFortune()} tintColor={colors.white} />}
       >
         {sky}

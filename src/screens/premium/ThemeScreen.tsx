@@ -73,7 +73,7 @@ export default function ThemeScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : data && F ? <ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
   );

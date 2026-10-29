@@ -233,7 +233,7 @@ export default function CompatibilityScreen() {
           ))}
         </Card>
 
-        <ShareCta spec={compatSpec(user, result)} banner />
+        <ShareCta spec={compatSpec(user, result)} style={{ marginTop: 12 }} />
 
         <SectionHeader title="관점별 풀이" />
         <View style={{ gap: 16 }}>

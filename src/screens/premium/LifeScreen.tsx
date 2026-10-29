@@ -90,7 +90,7 @@ export default function LifeScreen() {
       {!content.open ? <LockGate item={item} />
         : L && F ? <LifeBody u={u} L={L} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
   );

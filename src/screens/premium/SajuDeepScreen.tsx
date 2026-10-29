@@ -107,7 +107,7 @@ export default function SajuDeepScreen() {
         : F && content.data ? (
           <SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} />
         ) : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
   );

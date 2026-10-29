@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,7 @@ import PressableScale from '../../components/PressableScale';
 import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
 import { PACKS, PRICE_TABLE, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
-import { PointTransaction, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
+import { TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { useStoreBilling } from '../../context/StoreBillingContext';
 import { colors, gradients } from '../../theme/colors';
@@ -22,6 +22,8 @@ const TYPE_LABEL: Record<TransactionType, string> = { charge: '충전', grant: '
 const kstDate = (iso: string) => new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10);
 /** 보너스 · 무료 칩 글자색 (디자인의 #00A3FF) */
 const SKY = '#00A3FF';
+/** 이용내역 한 번에 불러오는 개수 */
+const PAGE = 20;
 
 /** 흰 칸 안의 알 아이콘 — 충전 상품 행 */
 function CoinBox() {
@@ -88,7 +90,14 @@ export default function WalletScreen() {
   const { account } = useApp();
   const billing = useStoreBilling();
   const { points, expiringSoon, attendedToday: att, ownedCount, attend, openCharge } = usePremium();
-  const { data: history = [] } = useQuery<PointTransaction[]>({ queryKey: [...pointsKeys.transactions, account?.id], queryFn: () => pointsApi.transactions(20), enabled: !!account });
+  const q = useInfiniteQuery({
+    queryKey: [...pointsKeys.transactions, account?.id],
+    queryFn: ({ pageParam }) => pointsApi.transactions(PAGE, pageParam),
+    initialPageParam: undefined as number | undefined,
+    getNextPageParam: last => (last.length < PAGE ? undefined : last[last.length - 1].id),
+    enabled: !!account,
+  });
+  const history = q.data?.pages.flat() ?? [];
   return (
     <Screen title="내 알" back>
       <Hero style={{ marginTop: 4, padding: 16 }}>
@@ -166,6 +175,12 @@ export default function WalletScreen() {
             <CoinPill label={fmtN(Math.abs(h.amount))} sign={h.amount > 0 ? '+' : '-'} color={h.amount > 0 ? colors.white : '#BBBBBB'} />
           </View>
         )) : <Text style={[txt.body, { paddingVertical: 14 }]}>아직 이용 내역이 없어요.</Text>}
+        {q.hasNextPage ? (
+          <PressableScale onPress={() => q.fetchNextPage()} disabled={q.isFetchingNextPage} style={[s.more, s.line]} accessibilityLabel="이용내역 더 보기">
+            <Text style={s.moreText}>{q.isFetchingNextPage ? '불러오는 중…' : '더 보기'}</Text>
+            {q.isFetchingNextPage ? null : <Icon name="chevronDown" size={14} color={colors.inkMute} strokeWidth={2} />}
+          </PressableScale>
+        ) : null}
       </View>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 12, paddingHorizontal: 20 }]}>충전한 알(보너스 포함)은 5년, 출석·공유 등으로 받은 알은 1년 동안 쓸 수 있어요. 받은 알부터 먼저 쓰여요. 충전 후 7일 안에 하나도 쓰지 않았다면 환불을 요청할 수 있어요.</Text>
     </Screen>
@@ -189,7 +204,8 @@ const s = StyleSheet.create({
   chipText: { ...sansW('600'), fontSize: 12, color: SKY, opacity: 0.8 },
   won: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   popular: { borderRadius: radius.sm, padding: 1.5, overflow: 'hidden' },
-  glow: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: radius.sm, backgroundColor: colors.card, shadowColor: colors.accent, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 4 },
+  // 안드로이드는 elevation을 주면 형제(테두리·내용) 위로 올라와 흰 배경이 셀을 덮고 깜빡여서, shadow* 대신 boxShadow로 빛만 낸다
+  glow: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: radius.sm, backgroundColor: colors.card, ...Platform.select({ android: { boxShadow: `0 0 10px ${colors.accent}8C` }, default: { shadowColor: colors.accent, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } } }) },
   flow: { position: 'absolute', top: 0, bottom: 0, left: -FLOW_PAD },
   bestTag: { position: 'absolute', top: -9, right: 24, backgroundColor: colors.accent, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
   bestText: { ...sansW('600'), fontSize: 12, color: colors.white },
@@ -201,5 +217,7 @@ const s = StyleSheet.create({
   historyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, gap: 8 },
   historyLabel: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   historyDate: { ...sansW('500'), fontSize: 10, lineHeight: 12, letterSpacing: -0.5, color: colors.inkMute },
+  more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12 },
+  moreText: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
   line: { borderTopWidth: 1, borderTopColor: colors.lineStrong },
 });

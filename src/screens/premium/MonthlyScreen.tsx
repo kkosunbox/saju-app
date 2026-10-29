@@ -71,7 +71,7 @@ export default function MonthlyScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : R && F ? <MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} />
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} banner style={{ marginTop: 16 }} />
+      <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
   );
