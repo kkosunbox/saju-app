@@ -108,16 +108,34 @@ function isLight(hex: string) {
  * 상자는 Figma 로고 프레임(65×55)대로 아래에 여백이 있어 레터링이 상자 한가운데 온다 — 옆 글자와 가운데 정렬하면 레터링 기준으로 맞는다.
  * height = 여백까지 포함한 상자 높이.
  */
-export function Logo({ height = 55, color = '#FFFFFF' }: { height?: number; color?: string }) {
+export function Logo({ height = 55, color = '#FFFFFF', face = true }: { height?: number; color?: string; face?: boolean }) {
   const k = height / 55;
-  const bubble = isLight(color) ? '#003560' : '#59C3FB';
   return (
     <View style={{ width: 65 * k, height }} accessible accessibilityLabel="운픽">
       <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={{ position: 'absolute' }}>
         {LOGO_PATHS.map(d => <Path key={d.slice(0, 12)} d={d} fill={color} />)}
-        <Path d={LOGO_BUBBLE} fill={bubble} />
       </Svg>
-      <Image source={ART.mascot} style={{ position: 'absolute', left: 43 * k, top: 0, width: 21 * k, height: 19 * k }} resizeMode="contain" />
+      {face ? <LogoBubble height={height} color={color} /> : null}
+      {face ? <LogoFace height={height} /> : null}
     </View>
   );
+}
+
+/** 워드마크의 말풍선만 — 워드마크 상자(height)와 같은 크기로 겹쳐 그린다. 시작 화면이 따로 움직이려고 나눴다 */
+export function LogoBubble({ height = 55, color = '#FFFFFF' }: { height?: number; color?: string }) {
+  const k = height / 55;
+  return (
+    <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={{ position: 'absolute' }}>
+      <Path d={LOGO_BUBBLE} fill={isLight(color) ? '#003560' : '#59C3FB'} />
+    </Svg>
+  );
+}
+
+/** 말풍선 속 마스코트 얼굴 자리 (워드마크 상자 65×55 기준) */
+export const LOGO_FACE = { left: 43, top: 0, width: 21, height: 19 };
+
+export function LogoFace({ height = 55, style }: { height?: number; style?: StyleProp<ImageStyle> }) {
+  const k = height / 55;
+  const f = LOGO_FACE;
+  return <Image source={ART.mascot} style={[{ position: 'absolute', left: f.left * k, top: f.top * k, width: f.width * k, height: f.height * k }, style]} resizeMode="contain" />;
 }

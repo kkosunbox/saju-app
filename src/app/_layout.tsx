@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewInstance } from 'react-native';
 import { Stack, router, usePathname, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useFonts } from 'expo-font';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from '@/context/AppContext';
@@ -40,13 +41,11 @@ function useCloseAuthFlowOnSignIn() {
   }, [account, pathname]);
 }
 
-/** 네이티브 시작 화면: 부팅(세션 확인)이 끝나면 걷히며 첫 화면을 드러낸다 */
-function BootSplash() {
-  const { booting } = useApp();
-  return <LaunchSplash ready={!booting} />;
-}
-
-function RootStack() {
+/**
+ * hold: 네이티브 시작 화면의 연출이 끝날 때까지 첫 화면을 그리지 않는다 — 첫 화면을 한꺼번에 그리는 동안 메인 스레드가 멈춰
+ * 마스코트가 말풍선으로 뛰어드는 연출이 끊기거나 건너뛰어진다. onShown: 첫 화면이 실제로 그려졌을 때 (시작 화면이 걷힐 신호)
+ */
+function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
   const { booting, onboarded, user, editingProfile } = useApp();
   const hasProfile = !!user && !editingProfile;
   const { setGoWallet } = usePremium();
@@ -80,86 +79,95 @@ function RootStack() {
       </View>
     );
   }
+  if (hold) return null;
   // 막힌 화면을 열면 지금 상태의 첫 화면으로 — 지정하지 않으면 expo-router가 파일 이름순 첫 화면(예: /inquiry)으로 보낸다
   const home: Href = !onboarded ? '/onboarding' : hasProfile ? '/' : '/profile-setup';
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.cream } }}>
-      <Stack.Protected guard={!onboarded} redirectTo={home}>
-        <Stack.Screen name="onboarding" />
-      </Stack.Protected>
-      {/* 첫 화면 결정 순서: 프로필이 없으면(또는 "다시 입력" 중이면) 프로필 입력이 로그인보다 먼저 */}
-      <Stack.Protected guard={onboarded && !hasProfile} redirectTo={home}>
-        <Stack.Screen name="profile-setup" />
-      </Stack.Protected>
-      {/* 프로필이 있어야 쓰는 화면 */}
-      <Stack.Protected guard={onboarded && hasProfile} redirectTo={home}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="profile-edit" />
-        <Stack.Screen name="category/[category]" />
-        <Stack.Screen name="analysis/[source]" />
-        <Stack.Screen name="combined" />
-        <Stack.Screen name="wallet" />
-        <Stack.Screen name="charge" />
-        <Stack.Screen name="subscribe" />
-        <Stack.Screen name="premium/saju" />
-        <Stack.Screen name="premium/life" />
-        <Stack.Screen name="premium/new-year" />
-        <Stack.Screen name="premium/monthly" />
-        <Stack.Screen name="premium/theme/[kind]" />
-        <Stack.Screen name="premium/lucky" />
-        <Stack.Screen name="mbti-match" />
-        <Stack.Screen name="character" />
-        <Stack.Screen name="talisman" />
-        <Stack.Screen name="spouse" />
-        <Stack.Screen name="fortune" />
-        <Stack.Screen name="consult/history" />
-        <Stack.Screen name="consult/[id]" />
-        <Stack.Screen name="past-life" />
-        <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-      </Stack.Protected>
-      {/* 로그인·약관: 프로필 입력 전(이미 계정이 있는 사람)과 후 모두 */}
-      <Stack.Protected guard={onboarded} redirectTo={home}>
-        <Stack.Screen name="login/index" />
-        <Stack.Screen name="login/email" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="signup-terms" options={{ gestureEnabled: false }} />
-        <Stack.Screen name="find-password" />
-        <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-      </Stack.Protected>
-      {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
-          보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
-      <Stack.Screen name="invite/[token]" />
-      {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
-      <Stack.Screen name="legal/[doc]" />
-      {/* 서비스 소개는 누구나 (웹 검색 유입) */}
-      <Stack.Screen name="g/[topic]" />
-      {/* 웹 소셜 로그인 콜백: 온보딩·프로필 여부와 상관없이 받는다 */}
-      <Stack.Screen name="oauth/[provider]/callback" />
-      <Stack.Screen name="auth/callback/[provider]" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.cream } }}>
+        <Stack.Protected guard={!onboarded} redirectTo={home}>
+          <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+        {/* 첫 화면 결정 순서: 프로필이 없으면(또는 "다시 입력" 중이면) 프로필 입력이 로그인보다 먼저 */}
+        <Stack.Protected guard={onboarded && !hasProfile} redirectTo={home}>
+          <Stack.Screen name="profile-setup" />
+        </Stack.Protected>
+        {/* 프로필이 있어야 쓰는 화면 */}
+        <Stack.Protected guard={onboarded && hasProfile} redirectTo={home}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="category/[category]" />
+          <Stack.Screen name="analysis/[source]" />
+          <Stack.Screen name="combined" />
+          <Stack.Screen name="wallet" />
+          <Stack.Screen name="charge" />
+          <Stack.Screen name="subscribe" />
+          <Stack.Screen name="premium/saju" />
+          <Stack.Screen name="premium/life" />
+          <Stack.Screen name="premium/new-year" />
+          <Stack.Screen name="premium/monthly" />
+          <Stack.Screen name="premium/theme/[kind]" />
+          <Stack.Screen name="premium/lucky" />
+          <Stack.Screen name="mbti-match" />
+          <Stack.Screen name="character" />
+          <Stack.Screen name="talisman" />
+          <Stack.Screen name="spouse" />
+          <Stack.Screen name="fortune" />
+          <Stack.Screen name="consult/history" />
+          <Stack.Screen name="consult/[id]" />
+          <Stack.Screen name="past-life" />
+          <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        </Stack.Protected>
+        {/* 로그인·약관: 프로필 입력 전(이미 계정이 있는 사람)과 후 모두 */}
+        <Stack.Protected guard={onboarded} redirectTo={home}>
+          <Stack.Screen name="login/index" />
+          <Stack.Screen name="login/email" />
+          <Stack.Screen name="signup" />
+          <Stack.Screen name="signup-terms" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="find-password" />
+          <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        </Stack.Protected>
+        {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
+            보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
+        <Stack.Screen name="invite/[token]" />
+        {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
+        <Stack.Screen name="legal/[doc]" />
+        {/* 서비스 소개는 누구나 (웹 검색 유입) */}
+        <Stack.Screen name="g/[topic]" />
+        {/* 웹 소셜 로그인 콜백: 온보딩·프로필 여부와 상관없이 받는다 */}
+        <Stack.Screen name="oauth/[provider]/callback" />
+        <Stack.Screen name="auth/callback/[provider]" />
+      </Stack>
+      {Platform.OS !== 'web' ? <View style={s.probe} onLayout={onShown} /> : null}
+    </>
   );
 }
 
 export default function RootLayout() {
   // 네이티브: 굵기별 글꼴 파일 (src/theme/fontFiles.native.ts). 로드 전에는 시스템 글꼴로 먼저 보여준다. 웹은 +html.tsx 의 웹폰트.
-  useFonts(FONT_FILES);
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
+  // 네이티브 시작 화면: 연출이 끝나면 첫 화면을 그리고, 첫 화면이 그려지면 걷힌다
+  const [introDone, setIntroDone] = useState(Platform.OS === 'web');
+  const [shown, setShown] = useState(Platform.OS === 'web');
   const bg = useRef<ViewInstance>(null);
   const frame = useRef<ViewInstance>(null);
   useWebSideScroll(bg, frame);
   const app = (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <AppProvider>
-          <PremiumProvider>
-            <StoreBillingProvider>
-              <StatusBar style={isDark ? 'light' : 'dark'} />
-              {Platform.OS === 'web' ? <SiteHead /> : null}
-              <RootStack />
-              {Platform.OS !== 'web' ? <BootSplash /> : null}
-            </StoreBillingProvider>
-          </PremiumProvider>
-        </AppProvider>
-      </QueryClientProvider>
+      <KeyboardProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppProvider>
+            <PremiumProvider>
+              <StoreBillingProvider>
+                <StatusBar style={isDark ? 'light' : 'dark'} />
+                {Platform.OS === 'web' ? <SiteHead /> : null}
+                <RootStack hold={!introDone} onShown={() => setShown(true)} />
+                {Platform.OS !== 'web' ? <LaunchSplash ready={shown} settled={fontsLoaded || !!fontError} onIntroDone={() => setIntroDone(true)} /> : null}
+              </StoreBillingProvider>
+            </PremiumProvider>
+          </AppProvider>
+        </QueryClientProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
   if (Platform.OS !== 'web') return app;
@@ -172,6 +180,8 @@ export default function RootLayout() {
 }
 
 const s = StyleSheet.create({
+  // 첫 화면과 같은 커밋에 붙는 빈 점 — 레이아웃 이벤트가 오면 첫 화면이 그려진 것
+  probe: { position: 'absolute', width: 0, height: 0 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cream },
   webBg: { flex: 1, alignItems: 'center', backgroundColor: colors.frame },
   webFrame: { flex: 1, width: '100%', maxWidth: 430, overflow: 'hidden', backgroundColor: colors.cream },

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
@@ -113,7 +114,7 @@ export default function ConsultHomeScreen() {
 
   return (
     <Screen largeTitle="상담" right={<PointPill />} scroll={false}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
             <Mascot size={80} />

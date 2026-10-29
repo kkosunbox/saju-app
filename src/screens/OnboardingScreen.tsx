@@ -6,6 +6,9 @@ import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import BrandMark, { LogoMark } from '../components/BrandMark';
 import Mascot from '../components/Mascot';
+import TodayShareCard, { TODAY_W } from '../components/TodayShareCard';
+import type { TodayCardData } from '../services/share/shareSpecs';
+import { todayISO } from '../utils/date';
 import { analysisTheme, colors } from '../theme/colors';
 import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
 import { COPY } from '../content/copy';
@@ -19,6 +22,17 @@ const PAGES = [
 
 type Art = (typeof PAGES)[number]['art'];
 const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
+const SAMPLE_CARD: TodayCardData = {
+  nickname: '운픽',
+  total: 82,
+  title: '막힘없는 해결사',
+  line: '막혀 있던 일이 풀리는 날이에요',
+  topPercent: 12,
+  pose: 'crown',
+  scores: [['연애', '78'], ['재물', '64'], ['직장', '88'], ['관계', '71']],
+};
+/** 스토리 카드(311×553)를 무대(높이 300) 안에 들어가게 */
+const STORY_SCALE = 0.48;
 
 export function Illustration({ kind }: { kind: Art }) {
   if (kind === 'sheet') {
@@ -29,17 +43,11 @@ export function Illustration({ kind }: { kind: Art }) {
     );
   }
   if (kind === 'story') {
+    // 실제로 공유되는 오늘의 운세 스토리 카드를 예시 값으로 줄여 보여 준다
     return (
       <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
-        <View style={a.paper}>
-          <View style={a.paperIn}>
-            <Text style={a.paperKind}>— 전생 테스트</Text>
-            <Text style={a.paperHead}>발해의{'\n'}서당 훈장</Text>
-            <View style={a.paperSeal}><Text style={a.paperSealText}>前</Text></View>
-            <View style={{ flex: 1 }} />
-            <View style={a.paperBars}>{[44, 28, 60, 20].map((w, i) => <View key={i} style={[a.paperBar, { width: w }]} />)}</View>
-            <Text style={a.paperHook}>너는 전생에 누구였을까?</Text>
-          </View>
+        <View style={a.story}>
+          <View style={a.storyScale}><TodayShareCard data={SAMPLE_CARD} today={todayISO()} /></View>
         </View>
       </View>
     );
@@ -135,15 +143,8 @@ const s = StyleSheet.create({
 });
 
 const a = StyleSheet.create({
-  paper: { width: 150, height: 250, backgroundColor: '#F4EDDF', padding: 6, transform: [{ rotate: '3deg' }], shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
-  paperIn: { flex: 1, borderWidth: 0.5, borderColor: '#CDBFA6', padding: 10 },
-  paperKind: { fontSize: 10, fontWeight: '800', color: '#A8402B', letterSpacing: 1 },
-  paperHead: { fontFamily: fonts.serif, fontSize: 19, lineHeight: 24, fontWeight: '700', color: '#1C1A17', marginTop: 8 },
-  paperSeal: { position: 'absolute', right: 10, top: 22, width: 26, height: 26, borderRadius: 2, backgroundColor: '#B5432E', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-6deg' }] },
-  paperSealText: { fontFamily: fonts.serif, fontSize: 14, fontWeight: '700', color: '#FBF4E8' },
-  paperBars: { flexDirection: 'row', flexWrap: 'wrap', gap: 3, borderWidth: 0.5, borderStyle: 'dashed', borderColor: '#CDBFA6', padding: 5 },
-  paperBar: { height: 5, borderRadius: 3, backgroundColor: '#1C1A17' },
-  paperHook: { fontFamily: fonts.serif, fontSize: 11, fontWeight: '700', color: '#1C1A17', marginTop: 8 },
+  story: { width: TODAY_W * STORY_SCALE, aspectRatio: 9 / 16, transform: [{ rotate: '3deg' }], borderRadius: 20 * STORY_SCALE, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+  storyScale: { width: TODAY_W, transform: [{ scale: STORY_SCALE }], transformOrigin: 'top left' },
   stage: { height: 300, marginTop: 12, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   halo: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: colors.moon, opacity: 0.12 },
   moon: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.moon, overflow: 'hidden' },

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useApp } from '../context/AppContext';
@@ -99,7 +100,7 @@ function ProfileEditForm({ user }: { user: User }) {
 
   return (
     <SafeAreaView style={s.screen}>
-      <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={s.screen} behavior="padding">
         <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
           <View style={s.heading}>
             <Text style={s.title} accessibilityRole="header">프로필을 확인해 주세요</Text>

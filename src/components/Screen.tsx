@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
+import { KeyboardAvoidingView, KeyboardEvents } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
@@ -65,7 +66,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : null}
       {floating ? null : bar}
       {/* 키보드가 뜨면 본문과 하단 버튼을 키보드 위로 올린다 (이메일 입력 중에도 '다음'을 바로 누르게) */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       {scroll ? (
         <Animated.ScrollView
           contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
@@ -89,15 +90,14 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   );
 }
 
-/** 키보드가 떠 있는지. iOS는 올라오기 시작할 때 바꿔 버튼 여백이 키보드와 같이 움직이게 한다 */
+/** 키보드가 떠 있는지. 올라오기 시작할 때 바꿔 버튼 여백이 키보드와 같이 움직이게 한다 (안드로이드도 keyboard-controller가 시작 시점을 알려 준다) */
 export function useKeyboardShown() {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const ios = Platform.OS === 'ios';
     const subs = [
-      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setShown(true)),
-      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setShown(false)),
+      KeyboardEvents.addListener('keyboardWillShow', () => setShown(true)),
+      KeyboardEvents.addListener('keyboardWillHide', () => setShown(false)),
     ];
     return () => subs.forEach(sub => sub.remove());
   }, []);

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleProp, StyleSheet, Text, View, ViewStyle, type ScrollViewInstance } from 'react-native';
+import { Animated, Keyboard, Platform, ScrollView, StyleProp, StyleSheet, Text, View, ViewStyle, type ScrollViewInstance } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -291,7 +292,7 @@ export default function ProfileSetupScreen() {
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       {/* 웹(아이폰 Safari)에서 상단 띠가 로고를 덮지 않게 위 여백을 띠 높이 이상으로 */}
       <SafeAreaView style={{ flex: 1, paddingTop: webSafeTop(insets.top) }} edges={['left', 'right']}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <View style={s.top}>
             {Platform.OS === 'web' && !editing ? (
               <PressableScale onPress={returnToLanding} style={s.brand} scaleTo={0.94} accessibilityRole="link" accessibilityLabel="운픽 랜딩페이지로 돌아가기">
