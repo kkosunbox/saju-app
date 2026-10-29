@@ -41,6 +41,13 @@
         "language": "ko",
         "appName": "운Pick"
       }
+    },
+    "store-test": {
+      "extends": "production",
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
     }
   }
 }
