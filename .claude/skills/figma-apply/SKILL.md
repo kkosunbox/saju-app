@@ -34,7 +34,10 @@ description: 피그마 디자인 링크를 받아 운Pick 앱 화면에 컴포�
 
 ## 3. 로컬 화면에서 재기
 
-- 웹 개발 서버는 보통 다른 채팅이 4000번에 띄워 둔 상태다. `preview_start`가 포트 충돌을 내면 `navigate`로 `http://localhost:4000/<경로>`(예: `/premium/lucky`)를 바로 연다. 같은 폴더라 HMR로 수정이 반영된다.
+- 먼저 로컬 API 서버(8080)와 웹(4000)이 이미 떠 있는지 본다: `lsof -iTCP:8080 -iTCP:4000 -sTCP:LISTEN`.
+  - **둘 다 떠 있으면** 바로 앱 내 브라우저에서 `navigate`로 `http://localhost:4000/<경로>`(예: `/premium/lucky`)를 연다. 다른 채팅이 띄운 서버여도 같은 폴더라 HMR로 수정이 반영된다.
+  - **안 떠 있는 것만 켠다.** `preview_start`로 이름을 주어 띄운다 — saju-be-monorepo 세션이면 `api`(`npm run start:local`, 8080)와 `app-web`(`npm --prefix ../saju-app run web`, 4000), saju-app 세션이면 `web`(4000). API는 saju-be-monorepo의 `.claude/launch.json` 에 있다. Bash로 서버를 띄우지 않는다.
+  - `preview_start`가 "다른 채팅의 서버가 포트를 쓰는 중"이라고 하면 이미 떠 있다는 뜻이니 `navigate`로 연다.
 - `resize_window` 375×812로 맞추고 잰다(콘텐츠 폭 327, 좌우 24). 끝나면 `preset: desktop`으로 되돌린다.
 - 수치는 스크린샷 눈대중이 아니라 `javascript_tool`로 `getBoundingClientRect()`와 `getComputedStyle()`(fontSize·fontWeight·lineHeight·letterSpacing·color)을 읽어 표로 비교한다. 요소는 `[aria-label="…"]`나 textContent로 찾는다.
 - 유료 화면은 잠겨 있으면 본문이 안 보인다. 사용자가 허락했으면 로컬(dev) 계정의 알로 열어서 확인한다(잠금 패널 "N으로 전체 보기" → 시트 "N으로 열기"). 쓴 알은 보고에 적는다.
