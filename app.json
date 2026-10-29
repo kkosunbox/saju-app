@@ -17,7 +17,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "운Pick",
-        "CFBundleName": "운Pick"
+        "CFBundleName": "운Pick",
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
       },
       "usesAppleSignIn": true
     },
@@ -66,11 +67,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
-          "dark": {
-            "image": "./assets/splash-icon.png",
-            "backgroundColor": "#121418"
-          }
+          "backgroundColor": "#3DB9FE"
         }
       ],
       "expo-iap",

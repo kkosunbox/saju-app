@@ -22,6 +22,15 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
   const finished = useRef(false);
   const [touched, setTouched] = useState(false);
   const plate = useRef<ViewInstance>(null);
+  const scratching = useRef(false);
+  const setScratching = (on: boolean) => {
+    if (scratching.current === on) return;
+    scratching.current = on;
+    onScratching?.(on);
+  };
+  // 긁는 도중 다 걷히면 손을 떼기 전에 덮개가 사라져 Release가 오지 않는다 — 스크롤이 잠긴 채 남지 않게 풀어 준다
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (scratching.current) onScratching?.(false); }, []);
 
   // 웹에서 마우스로 긁으면 끌기가 글자 선택으로 번져 화면 글자가 칠해진다 — 누르는 순간 선택을 막는다
   useEffect(() => {
@@ -64,7 +73,7 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
     onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
       const { locationX: x, locationY: y } = e.nativeEvent;
-      onScratching?.(true);
+      setScratching(true);
       setTouched(true);
       setStrokes(s => [...s, `M${x.toFixed(1)} ${y.toFixed(1)} l0.1 0`]);
       mark(x, y);
@@ -74,8 +83,8 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
       setStrokes(s => s.length ? [...s.slice(0, -1), `${s[s.length - 1]} L${x.toFixed(1)} ${y.toFixed(1)}`] : s);
       mark(x, y);
     },
-    onResponderRelease: () => onScratching?.(false),
-    onResponderTerminate: () => onScratching?.(false),
+    onResponderRelease: () => setScratching(false),
+    onResponderTerminate: () => setScratching(false),
   };
 
   return (
