@@ -40,6 +40,10 @@
         "companyName": "PetBridgeCore Co., Ltd.",
         "language": "ko",
         "appName": "운Pick"
+      },
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
       }
     },
     "store-test": {
