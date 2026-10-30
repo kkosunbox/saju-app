@@ -1,151 +1,115 @@
 import React, { forwardRef } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Mascot, { ArtName, Logo } from './Mascot';
-import Icon from './Icon';
+import { Image, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdrop';
+import { Logo } from './Mascot';
 import CharacterArt from './CharacterArt';
-import TalismanPaper, { PAPER_H, PAPER_W } from './TalismanPaper';
 import TodayShareCard from './TodayShareCard';
 import { ShareSpec } from '../services/share/shareSpecs';
-import { parseISO } from '../utils/date';
+import { formatKoreanDate } from '../utils/date';
+import { sansW } from '../theme/typography';
 
-/**
- * 공유 카드 — 인스타 스토리 비율(9:16). 홈과 같은 언어로:
- * 하늘색 그라디언트 위 로고 · 흰 말풍선에 결과 한 줄 · 둥실 뜬 마스코트 · 회색 숫자 칸 ·
- * 가려 둔 "잠긴 이야기"로 호기심을 남기고, 마지막 질문으로 앱에 부른다.
- * 오늘의 부적은 말풍선·마스코트 자리에 부적 종이를 그대로 담는다.
- * 모드(다크)와 상관없이 늘 밝은 카드. 캡처(html2canvas · view-shot)에서도 나오도록 View·Text·Image·그라디언트만 쓴다.
- */
-const C = { ink: '#222222', sub: '#4F4F4F', mute: '#777777', card: '#F5F6F8', line: '#ECEEF2', accent: '#28B2FE', blue: '#4392F7', dark: '#1D212D' };
-
-/** 웹에서 한국어가 단어 중간에서 끊기지 않게 */
+export const CARD_W = STORY_WIDTH;
+export const CARD_H = STORY_HEIGHT;
+// Web Text does not implement adjustsFontSizeToFit; keep long dynamic results inside their slots.
+const fit = (text: string, base: number, width: number, tracking = -0.05) => {
+  const units = Array.from(text).reduce((n, c) => n + (/\s/.test(c) ? 0.3 : c.charCodeAt(0) <= 255 ? 0.6 : 1), 0);
+  return Math.min(base, Math.floor(width / Math.max(1, units + text.length * tracking)));
+};
+const EXTRA = Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-ExtraBold' };
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
+// Figma's 110 × 110 illustration slots, including each source image's crop transform.
+const ART = {
+  Monthly: { source: require('../../assets/figma/share/monthly.png'), x: -118.5, y: -8.18, w: 329.24, h: 107.6 },
+  PastLife: { source: require('../../assets/figma/share/pastlife.png'), x: -222.14, y: -8.18, w: 329.24, h: 107.6 },
+  ThemeCareer: { source: require('../../assets/figma/share/career.png'), x: -14.68, y: -9.15, w: 124.2, h: 124.2 },
+  SajuDeep: { source: require('../../assets/figma/share/saju.png'), x: -26.09, y: -19.29, w: 152.18, h: 152.18 },
+  Theme: { source: require('../../assets/figma/share/love.png'), x: -26.3, y: -14.07, w: 142.85, h: 142.85 },
+  NewYear: { source: require('../../assets/figma/share/newyear.png'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
+  Life: { source: require('../../assets/figma/share/life.png'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
+  Lucky: { source: require('../../assets/figma/share/lucky.png'), x: -28.18, y: -26.36, w: 155.55, h: 155.55 },
+  ThemeMoney: { source: require('../../assets/figma/share/money.png'), x: -31.76, y: -31.15, w: 167.22, h: 167.22 },
+  MbtiMatch: { source: require('../../assets/figma/share/mbti.png'), x: -173.46, y: -74.08, w: 356.07, h: 444.52 },
+};
 
-/** 가림막 막대 너비 — 글자처럼 보이게 길이를 섞는다 */
-const BARS = [64, 40, 88, 28, 52, 36];
-
-/** 관점 한자 → 마스코트 포즈 (나머지는 기본 마스코트) */
-const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜: 'pose-thai', 性: 'pose-mbti', 血: 'pose-blood', 符: 'talisman' };
-
-export const CARD_W = 320;
-const PAPER_SCALE = 0.8;
-
-const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(({ spec, today }, ref) => {
+/** Story image only: all content comes from the existing result; no private birth details. */
+const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(function ShareCard({ spec, today }, ref) {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
-  const { y, m, d } = parseISO(today);
-  const longHead = spec.headline.length > 18;
+  const gold = !!spec.talisman;
+  const art = ART[spec.route as keyof typeof ART] ?? ART.SajuDeep;
+  const detail = spec.detail ?? (spec.big ? { label: spec.big.label, value: `${spec.big.value}${spec.big.unit ?? ''}` } : undefined);
+  const longTitle = spec.route === 'Life' || spec.route === 'Theme' || spec.headline.length > 13;
+  const titleSize = fit(spec.headline, longTitle ? 24 : 32, 261);
+  const detailSize = detail ? fit(detail.value, 24, 255) : 24;
+  const multilineTitle = titleSize < 20;
+  const multilineDetail = detailSize < 18;
+  const compactStats = gold || spec.route === 'Life' || spec.route === 'Lucky';
+  // Keep a row's values the same size. Let the actual text height determine centering;
+  // a length estimate must never move a one-line value to the top of a two-line slot.
+  const statFits = spec.stats.map(([, value], i) => fit(value, compactStats ? 16 : 18, gold ? 255 * ([1.1, 0.55, 1.35][i] ?? 1) / 3 - 6 : 79));
+  const statFontSize = Math.max(14, Math.min(compactStats ? 16 : 18, ...statFits));
   return (
-    <View ref={ref} collapsable={false} style={s.card}>
-      <LinearGradient colors={['#15ABFE', '#C8EBFF', '#FFFFFF']} locations={[0, 0.5, 1]} style={s.sky} />
-
-      {/* 제호 */}
-      <View style={s.mast}>
-        <Logo height={37} />
-        <Text style={s.date}>{y}.{String(m).padStart(2, '0')}.{String(d).padStart(2, '0')}</Text>
-      </View>
-      <View style={s.kind}><Text style={s.kindText}>{spec.kind}</Text></View>
-
-      {/* 결과 말풍선 */}
-      {spec.talisman ? (
-        <View style={s.spacer}>
-          <View style={s.paper}><View style={s.paperScale}><TalismanPaper data={spec.talisman} today={today} /></View></View>
+    <View ref={ref} collapsable={false} style={s.card} testID="share-card">
+      <ShareCardBackdrop gold={gold} />
+      <View style={s.logo}><Logo height={49} /></View>
+      <Text style={[s.date, gold && { color: '#5D0000' }]}>{formatKoreanDate(today)}</Text>
+      {spec.talisman ? <>
+        <View style={s.hanjaBox}><Text style={s.hanja} numberOfLines={1} adjustsFontSizeToFit>{spec.talisman.hanja}</Text></View>
+        <Text style={s.mantra} numberOfLines={2} adjustsFontSizeToFit>{spec.talisman.mantra}</Text>
+        <View style={s.chipRow}><View style={s.chip}><Text style={s.chipText}>{spec.talisman.nickname} · 오늘의 {spec.talisman.keyword}</Text></View></View>
+      </> : <>
+        <View style={s.artSlot}>
+          {spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} resizeMode="stretch" accessible={false} />}
         </View>
-      ) : <>
-      <View style={s.bubble}>
-        <Text style={s.eyebrow} numberOfLines={1}>{spec.eyebrow}</Text>
-        <Text style={[longHead ? s.headSm : s.head, KEEP]} numberOfLines={3}>{spec.headline}</Text>
-        {spec.sub ? <Text style={[s.sub, KEEP]} numberOfLines={spec.big ? 1 : 2}>{spec.sub}</Text> : null}
-        <View style={s.tail} />
-      </View>
-
-      {/* 남는 높이에는 마스코트 */}
-      <View style={s.spacer}>
-        {spec.pillar ? <CharacterArt hanja={spec.pillar} size={96} /> : <Mascot name={POSE[spec.seal] ?? 'mascot'} size={72} />}
-      </View>
+        <Text style={s.eyebrow} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
+        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
+        {detail ? <>
+          <Text style={s.detailLabel} numberOfLines={1} adjustsFontSizeToFit>{detail.label}</Text>
+          <Text style={[s.detailValue, { fontSize: detailSize, letterSpacing: -detailSize * 0.05 }, multilineDetail && s.multilineDetail]} numberOfLines={multilineDetail ? 2 : 1} adjustsFontSizeToFit>{detail.value}</Text>
+        </> : null}
+        {spec.sub ? <Text style={[s.line, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
       </>}
-
-      {spec.big ? (
-        <View style={s.big}>
-          <Text style={s.bigVal}>{spec.big.value}<Text style={s.bigUnit}>{spec.big.unit}</Text></Text>
-          <Text style={s.bigLabel}>{spec.big.label}</Text>
-        </View>
-      ) : null}
-
-      {/* 숫자 칸 */}
-      <View style={s.stats}>
-        {spec.stats.map(([k, v], i) => (
-          <View key={k} style={[s.stat, i > 0 && { borderLeftWidth: 1, borderLeftColor: C.line }]}>
-            <Text style={s.statK} numberOfLines={1}>{k}</Text>
-            <Text style={[s.statV, v.length > 7 ? { fontSize: 12, lineHeight: 20 } : v.length > 5 ? { fontSize: 14 } : null]} numberOfLines={1}>{v}</Text>
+      <View style={s.stats} testID="share-stats">
+        {spec.stats.map(([label, value], i) => <View key={label} style={[s.stat, gold && { flex: [1.1, 0.55, 1.35][i] ?? 1 }]}>
+          <View style={s.statValueBox}>
+            <Text style={[s.statValue, { fontSize: statFontSize, lineHeight: statFontSize > 14 ? 21 : 15 }]} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
           </View>
-        ))}
+          <Text style={[s.statLabel, { fontSize: Math.max(10, fit(label, 12, 79, -0.04)) }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+        </View>)}
       </View>
-
-      {/* 잠긴 이야기 */}
-      {spec.teaser ? (
-        <View style={s.teaser}>
-          <View style={s.teaserHead}>
-            <View style={s.lock}><Icon name="lock" size={12} color={C.accent} strokeWidth={2.2} /></View>
-            <Text style={s.teaserLabel} numberOfLines={1}>{spec.teaser}</Text>
-            <Text style={s.teaserOpen}>운Pick에서 확인</Text>
-          </View>
-          <View style={s.bars}>
-            {BARS.map((w, i) => <View key={i} style={[s.bar, { width: w, opacity: 0.5 + (i % 3) * 0.12 }]} />)}
-          </View>
-        </View>
-      ) : null}
-
-      {/* 질문 */}
-      <View style={s.foot}>
-        <Text style={[s.hook, KEEP]} numberOfLines={2}>{spec.hook}</Text>
-        <View style={s.footRow}>
-          <Text style={s.url}>생일만 넣으면 30초 · 운Pick</Text>
-          <Text style={s.cta}>내 결과 보기 →</Text>
-        </View>
-      </View>
+      <Text style={[s.hook, spec.hook.length > 15 && s.longHook, KEEP]} numberOfLines={2}>{spec.hook}</Text>
+      <Text style={s.url}>생일만 넣으면 30초 · 운픽</Text>
+      <View style={s.cta}><Text style={s.ctaText}>나도 뽑아보기</Text></View>
     </View>
   );
 });
-
-ShareCard.displayName = 'ShareCard';
-
 export default ShareCard;
 
 const s = StyleSheet.create({
-  card: { width: CARD_W, aspectRatio: 9 / 16, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18, overflow: 'hidden', backgroundColor: '#FFFFFF' },
-  sky: { position: 'absolute', top: 0, left: 0, right: 0, height: 300 },
-  mast: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  date: { fontSize: 11, fontWeight: '600', color: '#FFFFFF', letterSpacing: 0.2 },
-  kind: { alignSelf: 'flex-start', marginTop: 14, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.9)' },
-  kindText: { fontSize: 11, fontWeight: '700', color: C.blue },
-  bubble: { marginTop: 10, padding: 16, borderRadius: 14, backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
-  tail: { position: 'absolute', left: 36, bottom: -6, width: 12, height: 12, borderRadius: 2, backgroundColor: '#FFFFFF', transform: [{ rotate: '45deg' }] },
-  eyebrow: { fontSize: 12, fontWeight: '600', color: C.mute },
-  head: { fontSize: 26, lineHeight: 33, fontWeight: '800', letterSpacing: -1, marginTop: 6, color: C.ink },
-  headSm: { fontSize: 20, lineHeight: 27, fontWeight: '800', letterSpacing: -0.8, marginTop: 6, color: C.ink },
-  sub: { fontSize: 12, lineHeight: 18, marginTop: 6, color: C.sub },
-  spacer: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  // 부적 종이(263×412)를 카드 안에 맞게 줄인다 — 가운데 기준으로 줄어드니 남는 만큼 당겨 둔다
-  paper: { width: PAPER_W * PAPER_SCALE, height: PAPER_H * PAPER_SCALE, borderRadius: 32 * PAPER_SCALE, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 5 },
-  paperScale: { position: 'absolute', left: (PAPER_W * PAPER_SCALE - PAPER_W) / 2, top: (PAPER_H * PAPER_SCALE - PAPER_H) / 2, transform: [{ scale: PAPER_SCALE }] },
-  big: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  bigVal: { fontSize: 44, lineHeight: 48, fontWeight: '800', letterSpacing: -1.5, color: C.ink },
-  bigUnit: { fontSize: 16, fontWeight: '600', letterSpacing: 0, color: C.mute },
-  bigLabel: { fontSize: 11, fontWeight: '700', paddingBottom: 8, color: C.mute },
-  stats: { flexDirection: 'row', marginTop: 8, borderRadius: 12, backgroundColor: C.card },
-  stat: { flex: 1, paddingVertical: 8, paddingHorizontal: 10 },
-  statK: { fontSize: 11, fontWeight: '600', color: C.mute },
-  statV: { fontSize: 16, lineHeight: 20, fontWeight: '700', marginTop: 2, color: C.ink },
-  teaser: { marginTop: 10, borderRadius: 12, borderWidth: 1, borderColor: C.accent, padding: 10, backgroundColor: '#FFFFFF' },
-  teaserHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lock: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#EAF7FF', alignItems: 'center', justifyContent: 'center' },
-  teaserLabel: { flex: 1, fontSize: 12, fontWeight: '700', color: C.ink },
-  teaserOpen: { fontSize: 11, fontWeight: '700', color: C.accent },
-  bars: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
-  bar: { height: 8, borderRadius: 4, backgroundColor: C.dark },
-  foot: { marginTop: 12 },
-  hook: { fontSize: 17, lineHeight: 24, fontWeight: '800', letterSpacing: -0.6, color: C.ink },
-  footRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  url: { fontSize: 11, fontWeight: '600', color: C.mute },
-  cta: { fontSize: 11, fontWeight: '800', color: C.blue },
+  card: { width: CARD_W, height: CARD_H, borderRadius: 20, overflow: 'hidden', backgroundColor: '#8ACAFF' },
+  logo: { position: 'absolute', left: 20, top: 9 },
+  date: { ...sansW('500'), position: 'absolute', left: 36, right: 36, top: 72, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center', color: '#777777' },
+  artSlot: { position: 'absolute', left: 100, top: 106, width: 110, height: 110, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  eyebrow: { ...sansW('700'), position: 'absolute', left: 28, right: 28, top: 230, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#28B2FE' },
+  headline: { ...EXTRA, position: 'absolute', left: 25, right: 25, top: 252, fontSize: 32, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center', color: '#000000' },
+  multilineTitle: { top: 248, fontSize: 20, lineHeight: 24, height: 48, letterSpacing: -1 },
+  multilineDetail: { top: 314, fontSize: 18, lineHeight: 22, height: 44, letterSpacing: -0.9 },
+  detailLabel: { ...sansW('600'), position: 'absolute', left: 28, right: 28, top: 297, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#777777' },
+  detailValue: { ...EXTRA, position: 'absolute', left: 28, right: 28, top: 316, fontSize: 24, lineHeight: 30, letterSpacing: -1.2, textAlign: 'center', color: '#1FA6FD' },
+  line: { ...sansW('600'), position: 'absolute', left: 26, right: 26, top: 362, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#777777' },
+  stats: { position: 'absolute', left: 28, top: 398, width: 255, height: 61, flexDirection: 'row', borderBottomLeftRadius: 25, borderBottomRightRadius: 25, backgroundColor: '#FFFFFF' },
+  stat: { flex: 1, height: 61, alignItems: 'center', paddingHorizontal: 3 },
+  statValueBox: { position: 'absolute', left: 3, right: 3, top: 4, height: 30, justifyContent: 'center' },
+  statValue: { ...EXTRA, maxWidth: '100%', fontSize: 18, lineHeight: 21, letterSpacing: -0.72, textAlign: 'center', color: '#000000' },
+  statLabel: { ...sansW('600'), position: 'absolute', top: 34, left: 3, right: 3, fontSize: 12, lineHeight: 14, letterSpacing: -0.48, textAlign: 'center', color: '#777777' },
+  hook: { ...EXTRA, position: 'absolute', left: 24, top: 482, width: 164, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: '#000000' },
+  longHook: { top: 470 },
+  url: { ...sansW('500'), position: 'absolute', left: 24, top: 508, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: '#000000' },
+  cta: { position: 'absolute', right: 24, top: 485, height: 36, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 5, backgroundColor: '#1D212D' },
+  ctaText: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.26, color: '#EDEDED' },
+  hanjaBox: { position: 'absolute', left: 92, top: 144, width: 127, height: 115, justifyContent: 'center', alignItems: 'center' },
+  hanja: { ...sansW('700'), fontSize: 96, lineHeight: 115, letterSpacing: -4.8, color: '#BC3827' },
+  mantra: { ...sansW('700'), position: 'absolute', left: 28, right: 28, top: 302, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, textAlign: 'center', color: '#000000' },
+  chipRow: { position: 'absolute', left: 28, right: 28, top: 332, alignItems: 'center' },
+  chip: { borderWidth: 0.5, borderColor: '#BC3827', borderRadius: 24, paddingHorizontal: 8, paddingVertical: 4 },
+  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#BC3827', opacity: 0.8 },
 });

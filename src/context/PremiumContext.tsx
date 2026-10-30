@@ -12,7 +12,7 @@ import { useApp } from './AppContext';
 import { Item, PACKS, fmtP, ro, titleOfKey } from '../services/premium/catalog';
 import { Amount, Coin } from '../components/Amount';
 import { pointsApi, pointsKeys } from '../services/server/pointsApi';
-import { listReadings, readingsKey } from '../services/server/premiumApi';
+import { listReadings, readingsKey } from '../services/server/premiumReadings';
 import { ApiError } from '../api/client';
 import { queryClient } from '../api/query';
 import PrimaryButton from '../components/PrimaryButton';

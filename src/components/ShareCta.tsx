@@ -23,9 +23,9 @@ export default function ShareCta({ item, spec, style }: { item?: Item; spec?: Sh
       <ImageBackground source={ART.shareBanner} style={s.banner} imageStyle={s.fill} resizeMode="stretch">
         <View style={{ flex: 1 }}>
           <Text style={s.bannerTitle}>결과를 카드로 공유하기</Text>
-          <Text style={s.bannerSub}>핵심만 담고 궁금한 부분은 가려줘요</Text>
+          <Text style={s.bannerSub}>나의 운세를 친구에게 전해 보세요</Text>
         </View>
-        <Icon name="download" size={24} color={BANNER_INK} />
+        <Icon name="external" size={24} color={BANNER_INK} />
       </ImageBackground>
     </PressableScale>
   );
@@ -43,13 +43,13 @@ const s = StyleSheet.create({
 });
 
 /** 유료 화면 상단 오른쪽 공유 아이콘 — 열람한 사람에게만 보인다 */
-export function ShareIconButton({ item, spec, download = false }: { item?: Item; spec?: ShareSpec | null; download?: boolean }) {
+export function ShareIconButton({ item, spec }: { item?: Item; spec?: ShareSpec | null }) {
   const nav = useNavigation();
   const { owned } = usePremium();
   if (!spec || (item && !owned(item.key))) return null;
   return (
     <PressableScale onPress={() => nav.navigate('Share', { spec })} scaleTo={0.9} accessibilityLabel="결과를 카드로 공유하기" style={{ width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' }}>
-      <Icon name={download ? 'download' : 'external'} size={24} strokeWidth={2} color={colors.purple} />
+      <Icon name="external" size={24} strokeWidth={2} color={colors.ink} />
     </PressableScale>
   );
 }

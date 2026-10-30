@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { StyleProp, Text, View, ViewStyle } from 'react-native';
 import PressableScale from './PressableScale';
 import Icon from './Icon';
 import { fonts, txt, sansW } from '../theme/typography';
@@ -28,9 +28,9 @@ export function HeadTitle({ title, caption, variant = 'default' }: { title: stri
 }
 
 /** action 이 있으면 오른쪽 끝에 › 버튼 (라벨은 읽어 주기용, showAction 이면 › 앞에 글로도 보인다) */
-export default function SectionHeader({ title, caption, action, onAction, first, showAction, variant = 'default' }: { title: string; caption?: string; action?: string; onAction?(): void; first?: boolean; showAction?: boolean; variant?: 'default' | 'figma' }) {
+export default function SectionHeader({ title, caption, action, onAction, first, showAction, variant = 'default', style }: { title: string; caption?: string; action?: string; onAction?(): void; first?: boolean; showAction?: boolean; variant?: 'default' | 'figma'; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={{ marginTop: first ? 8 : 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+    <View style={[{ marginTop: first ? 8 : 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, style]}>
       <View style={{ flex: 1 }}><HeadTitle title={title} caption={caption} variant={variant} /></View>
       {action ? (
         <PressableScale onPress={onAction} hitSlop={12} scaleTo={0.9} accessibilityLabel={action} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>

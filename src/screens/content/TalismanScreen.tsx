@@ -4,6 +4,8 @@ import { Image as AssetImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import Screen from '../../components/Screen';
+import Icon from '../../components/Icon';
+import { ShareIconButton } from '../../components/ShareCta';
 import ShareActions from '../../components/ShareActions';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
@@ -129,9 +131,9 @@ export default function TalismanScreen() {
     <Screen
       title="오늘의 부적" titleStyle={s.screenTitle} back scrollEnabled={!scratching}
       contentStyle={s.content}
-      right={canSave || busy ? (
-        <PressableScale onPress={save} disabled={busy} style={s.save} accessibilityLabel="부적 이미지 저장" accessibilityState={{ disabled: busy, busy }}>
-          {busy ? <ActivityIndicator size="small" color={colors.ink} /> : <AssetImage source={require('../../../assets/figma/talisman/download.svg')} style={s.downloadIcon} contentFit="contain" tintColor={colors.ink} />}
+      right={mine ? (!sealed ? <ShareIconButton spec={spec} /> : undefined) : canSave || busy ? (
+        <PressableScale onPress={sendGift} disabled={busy} style={s.save} accessibilityLabel="선물 부적 공유하기" accessibilityState={{ disabled: busy, busy }}>
+          {busy ? <ActivityIndicator size="small" color={colors.ink} /> : <Icon name="external" size={24} color={colors.ink} />}
         </PressableScale>
       ) : undefined}
       footer={mine ? undefined : (
@@ -229,7 +231,6 @@ const s = StyleSheet.create({
   content: { paddingTop: 3 },
   screenTitle: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0 },
   save: { width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
-  downloadIcon: { width: 24, height: 24 },
   compare: { marginTop: 16, marginBottom: -16 },
   // 금빛 카드 (Figma 운픽_14_2) — 다크 모드에서도 그림처럼 밝게 둔다
   frame: { alignSelf: 'center', width: FRAME_W, height: FRAME_H, marginTop: 24, borderRadius: 20, backgroundColor: '#FDFCF5', ...SHADOW },

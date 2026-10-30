@@ -5,6 +5,7 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
+import { ShareIconButton } from '../../components/ShareCta';
 import BrandMark from '../../components/BrandMark';
 import Mascot from '../../components/Mascot';
 import CharacterArt, { artOfName } from '../../components/CharacterArt';
@@ -46,7 +47,7 @@ export default function CharacterScreen() {
   const wrap = (node: React.ReactNode) => (drawn ? <Reveal>{node}</Reveal> : node);
 
   return (
-    <Screen title="나의 사주 캐릭터" back>
+    <Screen title="나의 사주 캐릭터" back right={<ShareIconButton spec={characterSpec(u, c)} />}>
       <FriendCompare route="Character" spec={characterSpec(u, c)} />
       {wrap(
       <View ref={card} collapsable={false} style={s.card}>

@@ -10,6 +10,10 @@ import { usePremium } from '../../context/PremiumContext';
 import { PurposeKey, SajuFull, SajuProfile } from '../../types/premium';
 import { ReadingView } from '../../types/reading';
 import { toSajuFull } from '../premium/helpers';
+import { readingsKey } from './premiumReadings';
+
+export { listReadings, readingsKey } from './premiumReadings';
+export type { ReadingListItem } from './premiumReadings';
 
 export type ThemeKind = 'love' | 'money' | 'career';
 export type PremiumRef =
@@ -93,11 +97,6 @@ export function usePremiumContent<T>(ref: PremiumRef) {
 }
 
 const READING_POLL_MS = 3000;
-
-export interface ReadingListItem { contentKey: string; status: 'writing' | 'done' | 'failed'; completedAt: string | null; updatedAt: string }
-export const readingsKey = ['readings'] as const;
-export const listReadings = async (): Promise<ReadingListItem[]> =>
-  (await call<{ items: ReadingListItem[] }>(api.GET('/v1/premium/readings'))).items;
 
 /**
  * The AI reading of an opened content. While the server is writing, polls its status (the server

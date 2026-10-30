@@ -290,7 +290,7 @@ export default function HomeScreen() {
     { k: 'tal', art: 'talisman', title: '오늘의 부적', sub: tal?.keyword ?? '…', go: () => nav.navigate('Talisman') },
     { k: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: match ? `${match.nickname} · ${match.score}점` : '…', go: () => nav.navigate('MbtiMatch') },
     { k: 'char', art: 'tiger', pillar: ch?.hanja, title: '사주 캐릭터', sub: ch?.name ?? '…', go: () => nav.navigate('Character') },
-    { k: 'past', art: 'pastLife', title: '전생 테스트', sub: pl?.title ?? '…', go: () => nav.navigate('PastLife') },
+    { k: 'past', art: 'pastLife', title: '전생테스트', sub: pl?.title ?? '…', go: () => nav.navigate('PastLife') },
     { k: 'inv', art: 'friends', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
   ] as Free[]).map((x): Free => {
     const o = opened[x.k as keyof typeof opened];
@@ -494,22 +494,29 @@ export default function HomeScreen() {
             />
           </View>
 
-          <SectionHeader title="무료로 즐기기" caption={COPY.friend} action="콘텐츠 전체 보기" onAction={() => nav.navigate('Tabs', { screen: 'Content' })} />
+          <View style={s.freeHeader}>
+            <Text style={s.freeHeading} accessibilityRole="header">무료로 즐기기</Text>
+            <View style={s.freeDivider} />
+            <Text style={s.freeCaption}>{COPY.friend}</Text>
+            <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} hitSlop={12} scaleTo={0.9} accessibilityLabel="콘텐츠 전체 보기" style={s.freeMore}>
+              <Icon name="chevronRight" size={20} color={colors.inkMute} />
+            </PressableScale>
+          </View>
         </View>
         <HScroll contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 12 }}>
           {FREE.map(x => (
-            <PressableScale key={x.k} onPress={x.go} style={s.freeCard} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
+            <PressableScale key={x.k} onPress={x.go} style={[s.freeCard, x.k === 'tal' ? s.freeTalisman : x.k === 'mbti' ? s.freeMbti : x.k === 'char' ? s.freeCharacter : x.k === 'past' ? s.freePast : s.freeInvite]} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
               <View style={s.freeTop}>
                 {/* 뽑기 전 찰떡 MBTI는 결과 대신 MBTI 카드 그림 */}
                 {/* 뽑은 사주 캐릭터는 내 캐릭터 그림 (뽑기 전엔 결과를 숨기려고 공용 그림) */}
-                {x.pillar && !x.sealed && artOfPillar(x.pillar) ? <CharacterArt hanja={x.pillar} size={48} />
-                  : x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={44} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
+                {x.pillar && !x.sealed && artOfPillar(x.pillar) ? <View style={s.freeCharacterArt}><CharacterArt hanja={x.pillar} size={48} /></View>
+                  : x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={x.k === 'char' ? 48 : 39} style={x.k === 'char' ? s.freeCharacterArt : x.k !== 'tal' ? [s.freeInsetArt, (x.k === 'past' || x.k === 'inv') && s.freeLastArt] : undefined} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
               </View>
               {/* 뽑기 전 표시는 카드 오른쪽 위 — NEW는 그 아래에 */}
-              {x.sealed ? <View style={s.freeQ}><Text style={s.freeQText}>?</Text></View> : null}
+              {x.sealed ? <View style={[s.freeQ, x.k === 'mbti' && s.freeQDark]}><Text style={s.freeQText}>?</Text></View> : null}
               {x.isNew ? <View style={[s.freeNew, x.sealed && { top: 40 }]}><Text style={s.freeNewText}>NEW</Text></View> : null}
-              <Text style={s.freeTitle}>{x.title}</Text>
-              <Text style={[s.freeSub, x.sealed && s.freeSubSealed]} numberOfLines={1}>{x.sub}</Text>
+              <Text style={[s.freeTitle, x.k === 'mbti' && s.freeTitleDark]}>{x.title}</Text>
+              <Text style={[s.freeSub, x.k === 'mbti' && s.freeSubDark]} numberOfLines={1}>{x.sub}</Text>
             </PressableScale>
           ))}
         </HScroll>
@@ -614,15 +621,30 @@ const s = StyleSheet.create({
   linkText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, flexShrink: 1 },
 
   freeCard: { width: 116, height: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  freeTop: { height: 44, justifyContent: 'center' },
-  freeBig: { fontSize: 24, fontWeight: '700', color: colors.inkSub, letterSpacing: -0.5 },
+  freeHeader: { marginTop: 32, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  freeHeading: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0, color: colors.ink, includeFontPadding: false },
+  freeDivider: { width: 1, height: 14, backgroundColor: '#999999' },
+  freeCaption: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, flexShrink: 1, includeFontPadding: false },
+  freeMore: { marginLeft: 'auto' },
+  freeTalisman: { backgroundImage: isDark ? undefined : 'linear-gradient(221.36886913927867deg, #FFD277 33.96%, #FDFCF5 62.549%, #FFE399 95.265%)' },
+  freeMbti: { backgroundColor: '#1D212D' },
+  freeCharacter: { backgroundColor: isDark ? colors.card : '#DCE5F8' },
+  freePast: { backgroundColor: isDark ? colors.card : '#F2EEFB' },
+  freeInvite: { backgroundColor: isDark ? colors.card : '#F0F6FF' },
+  freeTop: { height: 39, marginBottom: 8, justifyContent: 'center' },
+  freeInsetArt: { marginLeft: -3 },
+  freeLastArt: { transform: [{ translateY: -1 }] },
+  freeCharacterArt: { position: 'absolute', left: -3, top: -8 },
+  freeBig: { ...sansW('700'), fontSize: 24, color: '#FFFFFF', letterSpacing: -0.5 },
   freeQ: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
   freeQText: { fontSize: 12, fontWeight: '800', color: colors.white },
+  freeQDark: { backgroundColor: colors.accent },
   freeNew: { position: 'absolute', top: 16, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },
   freeNewText: { fontSize: 9, fontWeight: '800', color: colors.white, letterSpacing: 0.3 },
-  freeSubSealed: { color: colors.accent, fontWeight: '700' },
-  freeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5, marginTop: 6 },
-  freeSub: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.6, marginTop: 2 },
+  freeTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },
+  freeTitleDark: { color: '#FFFFFF' },
+  freeSub: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: isDark ? colors.inkSub : '#555555', letterSpacing: -0.65, marginTop: 4, includeFontPadding: false },
+  freeSubDark: { color: '#999999' },
 
   grid: { gap: 16 },
   gridRow: { flexDirection: 'row', gap: 20 },

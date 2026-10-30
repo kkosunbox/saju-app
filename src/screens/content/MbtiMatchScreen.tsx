@@ -7,7 +7,8 @@ import ScoreBar from '../../components/ScoreBar';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import { Logo } from '../../components/Mascot';
-import HeaderPoints from '../../components/HeaderPoints';
+import { PointPill } from '../../components/HeaderPoints';
+import { ShareIconButton } from '../../components/ShareCta';
 import { SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -49,7 +50,7 @@ export default function MbtiMatchScreen() {
   }
 
   return (
-    <Screen title="찰떡 MBTI" back right={<HeaderPoints onSave={() => nav.navigate('Share', { spec: mbtiSpec(u, q.data) })} saveLabel="스토리 카드 만들기" />}>
+    <Screen title="찰떡 MBTI" back right={<><PointPill /><ShareIconButton spec={mbtiSpec(u, q.data)} /></>}>
       <FriendCompare route="MbtiMatch" spec={mbtiSpec(u, q.data)} />
       {/* 결과 카드 */}
       {wrap(

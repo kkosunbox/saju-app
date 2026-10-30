@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
+import { ShareIconButton } from '../../components/ShareCta';
 import FriendCompare from '../../components/FriendCompare';
 import MemoryReveal from '../../components/MemoryReveal';
 import Reveal from '../../components/Reveal';
@@ -64,7 +65,7 @@ export default function PastLifeScreen() {
 
   return (
     // key: 기록을 연 뒤 새 화면처럼 맨 위부터 보이게
-    <Screen key="result" title="전생 테스트" back contentStyle={s.content}>
+    <Screen key="result" title="전생 테스트" back contentStyle={s.content} right={<ShareIconButton spec={spec} />}>
       <FriendCompare route="PastLife" spec={spec} />
       {drawn ? <Reveal>{record}</Reveal> : record}
 

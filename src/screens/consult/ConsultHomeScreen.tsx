@@ -8,9 +8,9 @@ import Screen from '../../components/Screen';
 import Icon from '../../components/Icon';
 import { PointPill } from '../../components/HeaderPoints';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import Mascot from '../../components/Mascot';
 import BottomSheet from '../../components/BottomSheet';
 import SectionHeader from '../../components/SectionHeader';
 import { useApp } from '../../context/AppContext';
@@ -28,6 +28,7 @@ import WorryMarquee from './WorryMarquee';
 
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
 const TODAY_IMG = require('../../../assets/images/consult-today.webp');
+const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 
 /** 오늘의 기운 카드 바탕 — 밝은 화면은 디자인의 구름 그림, 어두운 화면은 같은 하늘색 결의 그라데이션 */
 function TodayCard({ children }: { children: React.ReactNode }) {
@@ -117,7 +118,7 @@ export default function ConsultHomeScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
-            <Mascot size={80} />
+            <Image source={CONSULT_MASCOT} style={s.mascot} contentFit="cover" />
             <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}편하게 얘기해 주시면 사주로 같이 살펴볼게요.</Text>
           </View>
           {fortune && fortuneOpened ? (
@@ -203,8 +204,9 @@ const FOOTER_FADE = [`${colors.cream}00`, colors.cream] as const;
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 24 },
-  intro: { alignItems: 'center', gap: 12, marginTop: 8 },
-  greet: { fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
+  intro: { alignItems: 'center', marginTop: 8 },
+  mascot: { width: 215, height: 144 },
+  greet: { marginTop: -7, fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
   today: { gap: 5, minHeight: 72, marginTop: 28, padding: 16, borderRadius: radius.lg, overflow: 'hidden' },
   todayImg: { width: '100%', height: '100%', borderRadius: radius.lg }, // 웹은 크기를 안 주면 그림 원래 크기로 그린다
   // 네이티브는 그림이 이미 카드를 꽉 채운다. 100%를 주면 카드 안쪽 여백을 뺀 크기로 줄어 왼쪽 위에만 깔린다

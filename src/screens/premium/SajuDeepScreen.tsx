@@ -78,7 +78,7 @@ export default function SajuDeepScreen() {
   const spec = F ? sajuDeepSpec(u, F) : null;
 
   return (
-    <Screen title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} download />}>
+    <Screen title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
       <Text style={s.profileTitle}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
       <Text style={s.profileMeta}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>

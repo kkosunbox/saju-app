@@ -3,7 +3,6 @@ import { AccessibilityInfo, Animated, Easing, PanResponder, Platform, StyleSheet
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../../components/PressableScale';
 import { colors } from '../../theme/colors';
-import { SCREEN_PX } from '../../theme/typography';
 import { useScreenLive } from '../../utils/motion';
 
 const SPEED = 0.025; // px/ms — 천천히 흘러간다
@@ -117,7 +116,7 @@ export default function WorryMarquee({ items, onPick, reverse }: { items: string
 const WEB_DRAG = { userSelect: 'none', cursor: 'grab' } as object;
 
 const s = StyleSheet.create({
-  clip: { marginHorizontal: -SCREEN_PX, overflow: 'hidden' },
+  clip: { overflow: 'hidden' },
   track: { flexDirection: 'row' },
   fade: { position: 'absolute', top: 0, bottom: 0, width: FADE },
   row: { flexDirection: 'row', gap: 16, paddingRight: 16 },

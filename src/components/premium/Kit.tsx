@@ -1,6 +1,7 @@
 /**
  * 프리미엄 콘텐츠 공용 UI 조각 — HTML 미리보기의 card/hero/tip/toc/lock 등과 1:1 대응.
  */
+import { Image as AssetImage } from 'expo-image';
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Image, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle, type ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -79,10 +80,10 @@ export function HeadRow({ item, caption }: { item?: Item | null; caption: string
 }
 
 /* ---------- 글 ---------- */
-export function SubHead({ title, caption, first }: { title: string; caption?: string; first?: boolean }) {
+export function SubHead({ title, caption, first, variant = 'default' }: { title: string; caption?: string; first?: boolean; variant?: 'default' | 'figma' }) {
   return (
     <View style={{ marginTop: first ? 12 : 32, marginBottom: 16 }}>
-      <HeadTitle title={title} caption={caption} />
+      <HeadTitle title={title} caption={caption} variant={variant} />
     </View>
   );
 }
@@ -113,12 +114,22 @@ export function SoftCard({ children, style }: { children: React.ReactNode; style
 }
 
 /** 체크/주의 표시가 붙은 한 줄 */
-export function ActRow({ ok = true, children, icon }: { ok?: boolean; children: React.ReactNode; icon?: 'check' | 'sparkle' | 'close' }) {
-  const tone = ok ? colors.success : colors.thai;
-  const name = icon ?? (ok ? 'check' : 'sparkle');
+export function ActRow({ ok = true, children, icon, variant = 'default' }: { ok?: boolean; children: React.ReactNode; icon?: 'check' | 'sparkle' | 'close'; variant?: 'default' | 'figma' }) {
+  const signal = icon === 'sparkle';
+  const source = signal ? require('../../../assets/compatibility/signal.svg')
+    : ok ? require('../../../assets/compatibility/check.svg')
+    : require('../../../assets/compatibility/caution.svg');
+  const size = signal ? 20 : 22;
   return (
     <View style={s.actRow}>
-      <View style={[s.mark, { backgroundColor: ok ? colors.okBg : colors.careBg }]}><Icon name={name} size={14} color={tone} strokeWidth={2.4} /></View>
+      {variant === 'figma' ? (
+        // 아이콘만 교체한다. 원래 24px 칸을 유지해야 본문 시작점과 줄바꿈이 움직이지 않는다.
+        <View style={[s.mark, { flexShrink: 0 }]}>
+          <AssetImage source={source} style={{ width: size, height: size }} contentFit="contain" accessible={false} />
+        </View>
+      ) : (
+        <View style={[s.mark, { backgroundColor: ok ? colors.okBg : colors.careBg }]}><Icon name={icon ?? (ok ? 'check' : 'sparkle')} size={14} color={ok ? colors.success : colors.thai} strokeWidth={2.4} /></View>
+      )}
       <Text style={{ flex: 1, fontSize: 15, lineHeight: 22, color: colors.ink }}>{children}</Text>
     </View>
   );

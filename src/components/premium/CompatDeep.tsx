@@ -18,7 +18,7 @@ import { parseISO, weekdayOf } from '../../utils/date';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { isPrivateInvite } from '../../services/server/compatApi';
 import { colors, isDark } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { radius, sansW, txt } from '../../theme/typography';
 
 const EK = (e: keyof typeof ELEMENT_INFO) => ELEMENT_INFO[e].ko;
 const AXES = ['에너지', '정보', '판단', '생활'];
@@ -61,7 +61,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
       <ReadingBanner reading={reading} onRetry={onRetry} />
       <Card style={{ marginTop: 16 }}>{bond ? <><Text style={txt.h3}>{bond.headline}</Text><Para>{bond.summary}</Para></> : pending(4)}</Card>
 
-      <SubHead title="두 사람 한눈에" caption={privatePartner ? '상대 프로필은 비공개로 보호해요' : undefined} />
+      <SubHead variant="figma" title="두 사람 한눈에" caption={privatePartner ? '상대 프로필은 비공개로 보호해요' : undefined} />
       <View style={s.table}>
         <View style={s.tRow}>
           <View style={s.tL} />
@@ -79,11 +79,11 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         ))}
       </View>
 
-      <SubHead title="사주로 본 인연" />
-      {tags.length ? <View style={s.chips}>{tags.map((t, i) => <View key={t} style={[s.tag, { backgroundColor: i % 2 ? colors.mbtiBg : colors.workBg }]}><Text style={s.tagText}>{t}</Text></View>)}</View> : null}
+      <SubHead variant="figma" title="사주로 본 인연" />
+      {tags.length ? <View style={s.chips}>{tags.map((t, i) => <View key={t} style={[s.tag, { backgroundColor: isDark ? (i % 2 ? colors.mbtiBg : colors.workBg) : (i % 2 ? '#DEF4FF' : '#E7F0FF') }]}><Text style={s.tagText}>{t}</Text></View>)}</View> : null}
       {bond || writing ? <Card style={{ marginTop: tags.length ? 16 : 0, padding: 16 }}>{bond ? <Text style={s.body}>{bond.bond}</Text> : pending(4)}</Card> : null}
 
-      <SubHead title="서로에게 어떤 사람일까" />
+      <SubHead variant="figma" title="서로에게 어떤 사람일까" />
       <Card style={{ padding: 16, gap: 16 }}>
         <View>
           <Text style={s.whoLine}><Text style={s.whoName}>{nmA}</Text> 님에게 <Text style={s.whoName}>{nmB}</Text> 님은? <Text style={s.whoTg}>{TG[D.tenGodMeToPartner]}</Text></Text>
@@ -99,14 +99,14 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         </View>
       </Card>
 
-      <SubHead title="네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
+      <SubHead variant="figma" title="네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
       {theirMbti
         ? (
           <View style={s.axes}>
             {AXES.map((x, i) => {
               const same = u.mbti[i] === theirMbti[i];
               return (
-                <View key={x} style={[s.axis, { backgroundColor: same ? colors.okBg : colors.careBg }]}>
+                <View key={x} style={[s.axis, { backgroundColor: isDark ? (same ? colors.okBg : colors.careBg) : (same ? '#E6F6EC' : '#FFF2DB') }]}>
                   <Text style={[s.axisText, { color: same ? OK_INK : CARE_INK }]}>{`${x} ${u.mbti[i]}×${theirMbti[i]}`}</Text>
                 </View>
               );
@@ -116,7 +116,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         : <Text style={txt.caption}>{privatePartner ? '상대의 개인 성향 정보는 공개하지 않고, 두 사람의 궁합을 풀이해요.' : `${nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.`}</Text>}
       {bond || writing ? <Card style={{ marginTop: 16, padding: 16 }}>{bond ? <Text style={s.body}>{bond.views}</Text> : pending(3)}</Card> : null}
 
-      <SubHead title="분야별 궁합 풀이" />
+      <SubHead variant="figma" title="분야별 궁합 풀이" />
       <Card style={{ padding: 16, gap: 24 }}>
         {scoreRows.map(([k, t, v]) => {
           const f = fields?.[k];
@@ -130,7 +130,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         })}
       </Card>
 
-      <SubHead title="부딪히기 쉬운 순간" />
+      <SubHead variant="figma" title="부딪히기 쉬운 순간" />
       {together ? together.frictions.map((f, i) => (
         <Card key={i} style={{ marginTop: i ? 12 : 0, padding: 16 }}>
           <Text style={s.title}>{f.title}</Text>
@@ -142,15 +142,15 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         </Card>
       )) : <Card>{pending(5)}</Card>}
 
-      <SubHead title="서로를 위한 조언" />
-      <Segmented<'me' | 'partner'> options={[{ key: 'me' as const, label: `${nmA}님께` }, { key: 'partner' as const, label: `${nmB}님께` }]} value={adviceFor} onChange={setAdviceFor} />
+      <SubHead variant="figma" title="서로를 위한 조언" />
+      <Segmented<'me' | 'partner'> variant="figma" options={[{ key: 'me' as const, label: `${nmA}님께` }, { key: 'partner' as const, label: `${nmB}님께` }]} value={adviceFor} onChange={setAdviceFor} />
       <Card style={{ marginTop: 16, padding: 16 }}>
         <Text style={s.title}>{advice.who}님을 위한 조언</Text>
         {advice.text ? <Text style={[s.body, { marginTop: 4 }]}>{advice.text}</Text> : pending(3)}
       </Card>
       {together ? <Card style={{ marginTop: 12, padding: 16 }}><Text style={[s.title, { marginBottom: 4 }]}>오래 가는 법</Text>{together.lasting.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card> : null}
 
-      <SubHead title="앞으로 30일, 둘에게 좋은 날" />
+      <SubHead variant="figma" title="앞으로 30일, 둘에게 좋은 날" />
       <View style={{ flexDirection: 'row', gap: 16 }}>
         {D.goodDays.map(g => (
           <View key={g.iso} style={s.goodDay}>
@@ -167,29 +167,29 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  title: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
-  body: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  title: { ...sansW('700'), lineHeight: 17, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
+  body: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   table: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card },
-  tRow: { height: 42, flexDirection: 'row', alignItems: 'center', paddingRight: 10 },
-  tLine: { borderTopWidth: 1, borderTopColor: colors.line },
-  tL: { width: 82, textAlign: 'center' },
+  tRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', paddingRight: 14 },
+  tLine: { minHeight: 43, borderTopWidth: 1, borderTopColor: colors.lineStrong },
+  tL: { width: 89, paddingRight: 7, textAlign: 'center' },
   tCol: { flex: 1, textAlign: 'center' },
   tHead: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   tMid: { width: 0, alignItems: 'center', overflow: 'visible' },
   face: { width: 20, height: 20, borderRadius: 10 },
-  tLabel: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
-  tV: { fontSize: 13, lineHeight: 18, fontWeight: '600', letterSpacing: -0.65, color: colors.ink },
-  tUnknown: { color: colors.inkMute, fontWeight: '500' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tLabel: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: isDark ? colors.ink : '#000000' },
+  tV: { ...sansW('600'), fontSize: 13, lineHeight: 18, fontWeight: '600', letterSpacing: -0.65, color: isDark ? colors.ink : '#000000' },
+  tUnknown: { ...sansW('500'), color: colors.inkMute, fontWeight: '500' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tag: { height: 32, paddingHorizontal: 16, borderRadius: 30, justifyContent: 'center' },
-  tagText: { fontSize: 14, fontWeight: '500', color: colors.ink, opacity: 0.8 },
-  whoLine: { fontSize: 13, fontWeight: '500', letterSpacing: -0.52, color: colors.inkMute },
-  whoName: { fontSize: 18, fontWeight: '600', letterSpacing: -0.9, color: colors.ink },
-  whoTg: { fontSize: 13, fontWeight: '700', color: colors.purpleSoft },
+  tagText: { ...sansW('500'), fontSize: 14, fontWeight: '500', color: colors.ink, opacity: 0.8 },
+  whoLine: { ...sansW('500'), fontSize: 13, fontWeight: '500', letterSpacing: -0.52, color: colors.inkMute },
+  whoName: { ...sansW('600'), fontSize: 18, fontWeight: '600', letterSpacing: -0.9, color: colors.ink },
+  whoTg: { ...sansW('700'), fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: -0.65, color: isDark ? colors.purpleSoft : '#3D79D4' },
   axes: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   axis: { flexBasis: '45%', flexGrow: 1, height: 44, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  axisText: { fontSize: 16, fontWeight: '600', letterSpacing: -0.8 },
+  axisText: { ...sansW('600'), fontSize: 16, fontWeight: '600', letterSpacing: -0.8 },
   goodDay: { flex: 1, height: 63, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? colors.loveBg : '#FFE7E7', borderRadius: radius.lg },
-  goodDate: { fontSize: 18, fontWeight: '700', letterSpacing: -0.72, color: colors.blood },
-  goodWeek: { fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  goodDate: { ...sansW('700'), fontSize: 18, fontWeight: '700', letterSpacing: -0.72, color: colors.blood },
+  goodWeek: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
 });

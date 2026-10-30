@@ -4,7 +4,7 @@ import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Hero, Para, SubHead, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Para, SubHead, heroTxt, scoreColor } from '../../components/premium/Kit';
 import { Image } from 'expo-image';
 import { Closing, InfoRows, SajuIcon, SajuIconName } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
@@ -22,6 +22,23 @@ import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { themeSpec } from '../../services/share/shareSpecs';
+import { Logo } from '../../components/Mascot';
+
+const THEME_BANNER: Record<ThemeKind, number> = {
+  love: require('../../../assets/figma/theme/love-hero.png'),
+  money: require('../../../assets/figma/theme/money-hero.png'),
+  career: require('../../../assets/figma/theme/career-hero.png'),
+};
+
+function ThemeHero({ kind, children }: { kind: ThemeKind; children: React.ReactNode }) {
+  return (
+    <View style={s.hero}>
+      <Image source={THEME_BANNER[kind]} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+      <View style={s.heroLogo}><Logo height={30.5} /></View>
+      {children}
+    </View>
+  );
+}
 
 export default function ThemeScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Theme'>>();
@@ -40,29 +57,26 @@ export default function ThemeScreen() {
   let hero: React.ReactNode = <BodyState error={preview.isError} />;
   if (top?.kind === 'love') {
     hero = (
-      <Hero>
+      <ThemeHero kind={kind}>
         <Text style={heroTxt.eyebrow}>나의 연애 스타일</Text>
         <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.st}</Text>
         <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>흔히 {u.bloodType}형은 {top.blood}.</Text>
-      </Hero>
+      </ThemeHero>
     );
   } else if (top?.kind === 'money') {
     hero = (
-      <Hero style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-        <Text style={{ fontSize: 40, color: colors.moon, fontWeight: '700' }}>{top.t.emoji}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={heroTxt.eyebrow}>나의 돈 성향</Text>
-          <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.t.name}</Text>
-          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>{top.t.desc}</Text>
-        </View>
-      </Hero>
+      <ThemeHero kind={kind}>
+        <Text style={heroTxt.eyebrow}>나의 돈 성향</Text>
+        <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.t.name}</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 4 }}>{top.t.desc}</Text>
+      </ThemeHero>
     );
   } else if (top?.kind === 'career') {
     hero = (
-      <Hero>
+      <ThemeHero kind={kind}>
         <Text style={heroTxt.eyebrow}>나에게 맞는 일</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{top.jobs.map((j, i) => <DarkChip key={j} gold={i < 2}>{j}</DarkChip>)}</View>
-      </Hero>
+      </ThemeHero>
     );
   }
 
@@ -291,6 +305,8 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
 }
 
 const s = StyleSheet.create({
+  hero: { minHeight: 140, marginTop: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0B193D', paddingHorizontal: 16, paddingTop: 44, paddingBottom: 20 },
+  heroLogo: { position: 'absolute', top: 12, left: 16 },
   mtile: { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6, borderRadius: radius.lg },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   // 용신 업종: 섹션 왼쪽 끝에서 6 들여 놓는다 (Figma x 30)

@@ -37,8 +37,8 @@ import { BirthPlace, BloodType, CompatibilityResult, Gender, MBTI, PartnerInput,
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
 import { colors, gradients, isDark } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
-import ShareCta from '../components/ShareCta';
+import { radius, sansW, txt } from '../theme/typography';
+import ShareCta, { ShareIconButton } from '../components/ShareCta';
 import { compatSpec, crushSpec } from '../services/share/shareSpecs';
 import { useInviteShare } from '../services/share/useInviteShare';
 
@@ -204,7 +204,7 @@ export default function CompatibilityScreen() {
   if (result) {
     const rel = RELATIONSHIP_INFO[result.relationship];
     return (
-      <Screen largeTitle="우리 둘의 궁합" onBack={() => setResult(null)}>
+      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={() => setResult(null)} right={<ShareIconButton spec={compatSpec(user, result)} />}>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={29} /></View>
           <View style={s.pair}>
@@ -217,11 +217,11 @@ export default function CompatibilityScreen() {
           <Text style={s.heroSummary}>{result.summary}</Text>
         </ImageBackground>
 
-        <SectionHeader title="분야별 궁합" />
+        <SectionHeader title="분야별 궁합" variant="figma" style={{ marginTop: 18 }} />
         <Card style={{ padding: 12, gap: 16 }}>
           {BARS.map((b, i) => (
             <View key={b.k} style={s.barRow}>
-              <View style={s.barIco}><SolidIcon name={b.icon} size={b.icon === 'coins' ? 15 : 17} color={b.c} /></View>
+              <View style={s.barIco}><SolidIcon name={b.icon} size={b.icon === 'coins' ? 15 : b.icon === 'heart' ? 18 : 16} color={b.c} /></View>
               <View style={{ flex: 1, gap: 8 }}>
                 <View style={s.barHead}>
                   <Text style={s.barLabel}>{rel.bars[b.k]}</Text>
@@ -235,7 +235,7 @@ export default function CompatibilityScreen() {
 
         <ShareCta spec={compatSpec(user, result)} style={{ marginTop: 12 }} />
 
-        <SectionHeader title="관점별 풀이" />
+        <SectionHeader title="관점별 풀이" variant="figma" />
         <View style={{ gap: 16 }}>
           {result.points.map(p => (
             <Card key={p.title} style={s.point}>
@@ -261,9 +261,9 @@ export default function CompatibilityScreen() {
           </>
         ) : null}
 
-        <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" onPress={() => setResult(null)} style={{ marginTop: 24 }} />
+        <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" size="medium" labelStyle={{ ...sansW('600'), fontSize: 14, letterSpacing: 0, color: colors.ink }} onPress={() => setResult(null)} style={{ marginTop: 24 }} />
         {result.id != null ? (
-          <PressableScale onPress={() => setConfirmDelete(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 16 }}>
+          <PressableScale onPress={() => setConfirmDelete(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 12 }}>
             <Text style={s.deleteLink}>{result.target.nickname}님 정보 지우기</Text>
           </PressableScale>
         ) : null}
@@ -446,7 +446,7 @@ function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number
   if (!content.open) return <LockedCard item={item} />;
   return (
     <>
-      <SectionHeader title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
+      <SectionHeader variant="figma" title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
       {content.data ? <CompatDeep u={u} r={r} D={content.data.data} reading={reading} onRetry={retry} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
     </>
   );
@@ -461,7 +461,7 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
   if (!content.data) return <BodyState error={content.isError} onRetry={() => content.refetch()} />;
   return (
     <>
-      <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} />
+      <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} shareAction={<ShareIconButton spec={crushSpec(u, r, content.data.data)} />} />
       <ShareCta spec={crushSpec(u, r, content.data.data)} />
     </>
   );
@@ -506,26 +506,26 @@ const s = StyleSheet.create({
   pickOn: { backgroundColor: colors.navy },
   pickText: { fontSize: 13, fontWeight: '600', letterSpacing: -0.26, color: colors.ink },
   newBadge: { fontSize: 10, fontWeight: '800', color: colors.white, backgroundColor: colors.accent, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, overflow: 'hidden' },
-  deleteLink: { fontSize: 13, fontWeight: '600', color: colors.inkMute, textDecorationLine: 'underline' },
-  error: { color: colors.danger, fontSize: 12, marginTop: 6 },
+  deleteLink: { ...sansW('700'), fontSize: 12, lineHeight: 20, fontWeight: '700', letterSpacing: -0.48, color: colors.inkMute, textDecorationLine: 'underline' },
+  error: { ...sansW('400'), color: colors.danger, fontSize: 12, marginTop: 6 },
   // 히어로 색은 밤하늘 그림 위라 화면 모드와 상관없이 고정
   avatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.white },
-  avatarText: { fontSize: 14, fontWeight: '700', color: '#000000', letterSpacing: -0.7 },
+  avatarText: { ...sansW('700'), fontSize: 14, fontWeight: '700', color: '#000000', letterSpacing: -0.7 },
   hero: { borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.heroBg, paddingTop: 26, paddingBottom: 18, paddingHorizontal: 24, alignItems: 'center' },
   // ImageBackground 는 크기를 안 주면 웹에서 그림 원래 크기로 그린다
   fill: { width: '100%', height: '100%' },
-  heroLogo: { position: 'absolute', left: 16, top: 12 },
+  heroLogo: { position: 'absolute', left: 12, top: 6 },
   halo: { width: 78, height: 78, alignItems: 'center', justifyContent: 'center', marginTop: 11, marginBottom: 19 },
-  haloScore: { fontSize: 32, lineHeight: 34, fontWeight: '600', letterSpacing: -1.6, color: colors.white, fontVariant: ['tabular-nums'] },
-  haloLabel: { fontSize: 10, fontWeight: '600', letterSpacing: -0.5, color: colors.white },
+  haloScore: { ...sansW('600'), fontSize: 32, lineHeight: 34, fontWeight: '600', letterSpacing: -1.6, color: colors.white, fontVariant: ['tabular-nums'] },
+  haloLabel: { ...sansW('600'), fontSize: 10, fontWeight: '600', letterSpacing: -0.5, color: colors.white },
   pair: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pairNames: { color: '#DDDDDD', fontSize: 13, lineHeight: 18, letterSpacing: -0.65, marginTop: 6 },
-  heroSummary: { color: colors.white, fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: -0.65, textAlign: 'center' },
+  pairNames: { ...sansW('400'), color: '#DDDDDD', fontSize: 13, lineHeight: 18, letterSpacing: -0.65, marginTop: 6 },
+  heroSummary: { ...sansW('700'), color: colors.white, fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: -0.65, textAlign: 'center' },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   barIco: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  barLabel: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink, fontVariant: ['tabular-nums'] },
+  barLabel: { ...sansW('700'), lineHeight: 17, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink, fontVariant: ['tabular-nums'] },
   point: { padding: 16, borderRadius: radius.sm },
-  pointTitle: { flexShrink: 1, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
-  pointText: { marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  pointTitle: { ...sansW('700'), flexShrink: 1, lineHeight: 17, fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
+  pointText: { ...sansW('400'), marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
 });
