@@ -43,7 +43,7 @@ export default function ThemeScreen() {
       <Hero>
         <Text style={heroTxt.eyebrow}>나의 연애 스타일</Text>
         <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.st}</Text>
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>{u.bloodType}형답게 {top.blood}.</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>흔히 {u.bloodType}형은 {top.blood}.</Text>
       </Hero>
     );
   } else if (top?.kind === 'money') {
