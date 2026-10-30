@@ -1,4 +1,4 @@
-"""홈 화면 아이콘(apple-touch-icon · manifest 아이콘)을 public/ 에 만든다. 공유 미리보기는 디자인한 public/og-v4.png.
+"""홈 화면 아이콘(apple-touch-icon · manifest 아이콘)을 public/ 에 만든다. 공유 미리보기는 디자인한 public/og-v5.png.
 실행: /usr/bin/python3 -E scripts/make-web-images.py"""
 from PIL import Image
 

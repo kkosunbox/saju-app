@@ -59,12 +59,12 @@ export default function Root({ children, pathname = '/' }: PropsWithChildren<{ p
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content={BRAND.name} />
         <meta property="og:locale" content="ko_KR" />
-        <meta property="og:image" content={`${SITE_URL}/og-v4.png`} />
+        <meta property="og:image" content={`${SITE_URL}/og-v5.png`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${BRAND.name} — ${BRAND.slogan}`} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={`${SITE_URL}/og-v4.png`} />
+        <meta name="twitter:image" content={`${SITE_URL}/og-v5.png`} />
         {/* 네이버 서치어드바이저 소유확인 (Google은 DNS TXT 레코드) */}
         <meta name="naver-site-verification" content="c6e00275211265c4ab02d8421ae1bfa179e70866" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

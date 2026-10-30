@@ -49,7 +49,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
  * 앱 시작 화면 (네이티브 전용). 라이트·다크와 상관없이 아이콘과 같은 하늘색.
  * 네이티브 런치 스크린과 같은 자리에 같은 그림을 그린 뒤 그걸 내리고 이어받는다:
  * 하늘이 아이콘처럼 아래로 밝아지는 동안 워드마크가 떠오르고, 가운데 마스코트가 움찔했다가
- * 통통 뛰어 작아지며 워드마크의 말풍선 안으로 쏙 들어가 앉는다 — 마스코트가 둘 보이지 않게 로고가 마스코트를 받는다.
+ * 곧장 날아가며 작아져 워드마크의 말풍선 안으로 쏙 들어가 앉는다 — 마스코트가 둘 보이지 않게 로고가 마스코트를 받는다.
  * 말풍선에 닿기 전에 로고 속 크기가 되어 그대로 앉고, 앉은 뒤엔 튕기거나 크기가 바뀌지 않는다.
  * 부팅이 끝나면 화면 전체가 앞으로 번지듯 걷히고 그 아래 첫 화면이 드러난다.
  * 동작 줄이기에선 처음부터 완성된 워드마크를 보여 주고 서서히 사라진다.
@@ -146,8 +146,8 @@ export default function LaunchSplash({ ready, settled, onIntroDone }: { ready: b
         style={{
           transform: [
             { translateX: fly.interpolate({ inputRange: [0, 1], outputRange: [0, FLY.x] }) },
-            // 위로 한 번 뛰었다가 말풍선으로 내려앉는다
-            { translateY: fly.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, FLY.y - 56, FLY.y] }) },
+            // 말풍선까지 곧장 날아간다
+            { translateY: fly.interpolate({ inputRange: [0, 1], outputRange: [0, FLY.y] }) },
             // 말풍선에 닿기 전에 로고 속 크기가 된다 — 큰 채로 내려앉으면 말풍선 밖으로 삐져나온다
             { scale: fly.interpolate({ inputRange: [0, 0.5, 0.8, 1], outputRange: [1, FLY.scale * 1.8, FLY.scale, FLY.scale] }) },
             { scaleX: squash.interpolate({ inputRange: [0.86, 1], outputRange: [1.08, 1] }) },

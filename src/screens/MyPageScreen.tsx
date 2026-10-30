@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Appearance, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, DevSettings, Platform, StyleSheet, Text, View } from 'react-native';
+import * as Updates from 'expo-updates';
 import { useNavigation } from '@/navigation/compat';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -14,6 +15,8 @@ import { SOCIAL_LABEL } from '../components/auth/socialLabels';
 import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
 import Segmented from '../components/Segmented';
+import BottomSheet from '../components/BottomSheet';
+import PrimaryButton from '../components/PrimaryButton';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
 import { useOpened } from '../services/content/opened';
@@ -28,6 +31,13 @@ import { shadow, txt } from '../theme/typography';
 import appJson from '../../app.json';
 
 const HOURS = [7, 8, 9];
+const THEME_LABEL: Record<ThemePref, string> = { system: '시스템', light: '라이트', dark: '다크' };
+
+/** 색은 앱 시작 때 정해지므로(colors.ts) 모드를 바꾸면 앱을 다시 불러와 적용한다 */
+async function reloadApp() {
+  if (Platform.OS === 'web') { location.reload(); return; }
+  try { await Updates.reloadAsync(); } catch { DevSettings.reload(); }
+}
 
 function Row({ icon, label, value, last, right }: { icon: 'user' | 'mail'; label: string; value?: string; last?: boolean; right?: React.ReactNode }) {
   return (
@@ -61,6 +71,7 @@ export default function MyPageScreen() {
   const { points, ownedCount, toast } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [theme, setTheme] = useState<ThemePref>(readThemePrefSync());
+  const [themeAsk, setThemeAsk] = useState<ThemePref | null>(null);
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
   const [deleteArm, setDeleteArm] = useState(false);
@@ -115,13 +126,7 @@ export default function MyPageScreen() {
         variant="figma"
         options={[{ key: 'system', label: '시스템', renderIcon: () => <FigmaAsset name="system" /> }, { key: 'light', label: '라이트', renderIcon: on => <FigmaAsset name="sun" tint={on ? colors.ink : '#808080'} /> }, { key: 'dark', label: '다크', renderIcon: on => <FigmaAsset name="moon" tint={on ? colors.ink : '#808080'} /> }]}
         value={theme}
-        onChange={async t => {
-          setTheme(t);
-          await saveThemePref(t);
-          if (Platform.OS === 'web') { location.reload(); return; }
-          Appearance.setColorScheme?.(t === 'system' ? 'unspecified' : t);
-          toast('앱을 다시 열면 모든 화면에 적용돼요');
-        }}
+        onChange={t => { if (t !== theme) setThemeAsk(t); }}
       />
 
       <ProfileHeading title="알림" />
@@ -213,11 +218,27 @@ export default function MyPageScreen() {
 
       <Disclaimer />
       <BusinessFooter style={{ marginTop: 28 }} />
+
+      <BottomSheet visible={!!themeAsk} onClose={() => setThemeAsk(null)}>
+        {themeAsk && <View>
+          <Text style={[txt.caption, s.center]}>화면 모드</Text>
+          <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{THEME_LABEL[themeAsk]} 모드로 바꿀까요?</Text>
+          <Text style={[txt.small, s.center, { marginTop: 4, marginBottom: 18 }]}>바꾼 모드를 모든 화면에 적용하려면{'\n'}앱을 잠깐 다시 불러와요</Text>
+          <PrimaryButton label="지금 적용하기" onPress={async () => { await saveThemePref(themeAsk); reloadApp(); }} />
+          <PrimaryButton label="다음에 앱을 열 때 적용" variant="soft" onPress={async () => {
+            setTheme(themeAsk);
+            setThemeAsk(null);
+            await saveThemePref(themeAsk);
+            toast('다음에 앱을 열면 적용돼요');
+          }} style={{ marginTop: 8 }} />
+        </View>}
+      </BottomSheet>
     </Screen>
   );
 }
 
 const s = StyleSheet.create({
+  center: { textAlign: 'center' },
   cardWrap: { borderRadius: 12, backgroundColor: colors.heroBg },
   card: { borderRadius: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, minHeight: 120 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 13 },

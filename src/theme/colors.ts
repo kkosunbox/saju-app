@@ -9,8 +9,9 @@ import { Appearance } from 'react-native';
 import { readThemePrefSync } from './themePref';
 
 const pref = readThemePrefSync();
-// 키보드·알림창 같은 네이티브 UI도 고른 모드를 따르게 한다(시스템 다크 + 앱 라이트일 때 섞이지 않게)
-if (pref !== 'system') Appearance.setColorScheme?.(pref);
+// 키보드·알림창 같은 네이티브 UI도 고른 모드를 따르게 한다(시스템 다크 + 앱 라이트일 때 섞이지 않게).
+// 모드를 바꿔 JS만 다시 불러오면 네이티브 쪽 설정이 남아 있으므로 시스템도 명시적으로 되돌린다
+Appearance.setColorScheme?.(pref === 'system' ? 'unspecified' : pref);
 export const isDark = pref === 'dark' ? true : pref === 'light' ? false : Appearance.getColorScheme() === 'dark';
 
 const light = {
