@@ -67,7 +67,7 @@ export async function captureInvite() {
     try {
       const o = dec(rc);
       if (RESULT_ROUTES.includes(o.c)) {
-        const fr: FriendResult = { c: o.c, k: String(o.k ?? '').slice(0, 20), n: String(o.n).slice(0, 12), h: String(o.h).slice(0, 40) };
+        const fr: FriendResult = { c: o.c, k: String(o.k ?? '').slice(0, 20), n: String(o.n).slice(0, 12), h: String(o.h).slice(0, 40), at: Date.now() };
         await AsyncStorage.setItem(FRIEND, JSON.stringify(fr));
       }
     } catch { /* 잘못된 링크는 무시 */ }
@@ -78,15 +78,21 @@ export async function captureInvite() {
 /* ---------- 친구 결과 링크 (공유 → 비교 → 답장 공유) ---------- */
 /** 결과 링크로 열 수 있는 화면 (그 외 값은 무시) */
 export const RESULT_ROUTES = ['MbtiMatch', 'Character', 'Talisman', 'PastLife', 'Spouse', 'Life', 'SajuDeep', 'NewYear', 'Monthly', 'Lucky', 'Theme', 'ThemeMoney', 'ThemeCareer', 'Home', 'Compatibility'];
-export interface FriendResult { c: string; k: string; n: string; h: string; seen?: boolean }
+export interface FriendResult { c: string; k: string; n: string; h: string; seen?: boolean; at?: number }
 const FRIEND = 'onulna:friendResult';
+/** 친구 결과는 받은 지 하루가 지나면 버린다 (로그인 화면·비교 카드에 계속 남지 않게) */
+const FRIEND_TTL = 24 * 60 * 60 * 1000;
 
 /** 내 결과를 담은 링크 — c: 열 화면, k: 콘텐츠 이름, n: 보낸 사람, h: 결과 한 줄 */
 export function resultUrl(r: FriendResult) {
   return `${appUrl()}/?r=${encodeURIComponent(enc({ c: r.c, k: r.k, n: r.n, h: r.h.slice(0, 40) }))}`;
 }
 export async function getFriendResult(): Promise<FriendResult | null> {
-  try { return JSON.parse((await AsyncStorage.getItem(FRIEND)) ?? 'null'); } catch { return null; }
+  let f: FriendResult | null;
+  try { f = JSON.parse((await AsyncStorage.getItem(FRIEND)) ?? 'null'); } catch { return null; }
+  // 시각이 없는 건 만료를 넣기 전에 저장된 것이라 함께 버린다
+  if (f && Date.now() - (f.at ?? 0) > FRIEND_TTL) { await clearFriendResult(); return null; }
+  return f;
 }
 export const clearFriendResult = () => AsyncStorage.removeItem(FRIEND);
 /** 홈 알림을 한 번 눌렀으면 다시 띄우지 않는다 (비교 카드는 닫을 때까지 유지) */

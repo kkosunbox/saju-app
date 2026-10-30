@@ -7,6 +7,7 @@ import { api, call } from '../../api/client';
 import { IS_WEB, setTokens } from '../../api/tokens';
 import type { SocialProvider } from '../../components/auth/socialLabels';
 import { storage } from '../storage/storageService';
+import { clearFriendResult } from '../share/linkShare';
 
 /** How the account signs in: email · password, or a linked social account. */
 export type LoginMethod = 'email' | SocialProvider;
@@ -24,6 +25,8 @@ export interface LoginPayload { accessToken: string; refreshToken?: string }
 export async function keep(payload: LoginPayload, isGuest: boolean, method?: LoginMethod) {
   await setTokens({ accessToken: payload.accessToken, refreshToken: payload.refreshToken ?? '', isGuest });
   if (method) await storage.setLastLogin(method);
+  // 가입을 권하던 친구 결과 카드는 로그인하면 할 일을 다 했다
+  if (!isGuest) await clearFriendResult().catch(() => {});
 }
 
 export const authApi = {

@@ -136,7 +136,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
           <Text style={s.title}>{f.title}</Text>
           <Text style={[s.body, { marginTop: 4 }]}>{f.text}</Text>
           <SoftCard style={{ marginTop: 12, padding: 12, backgroundColor: colors.surface, borderRadius: radius.sm }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>이렇게 말해 보세요</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>이렇게 풀어 보세요</Text>
             <Text style={[s.body, { marginTop: 4 }]}>{f.say}</Text>
           </SoftCard>
         </Card>

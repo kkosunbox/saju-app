@@ -33,7 +33,7 @@ import appJson from '../../app.json';
 const HOURS = [7, 8, 9];
 const THEME_LABEL: Record<ThemePref, string> = { system: '시스템', light: '라이트', dark: '다크' };
 
-/** 색은 앱 시작 때 정해지므로(colors.ts) 모드를 바꾸면 앱을 다시 불러와 적용한다 */
+/** 색은 앱 시작 때 정해지므로(colors.ts) 모드를 바꾸면 앱을 다시 불러와 적용한다. 앱은 안내 시트를 거치고 웹은 바로 새로고침 */
 async function reloadApp() {
   if (Platform.OS === 'web') { location.reload(); return; }
   try { await Updates.reloadAsync(); } catch { DevSettings.reload(); }
@@ -68,9 +68,9 @@ function ProfileRow({ icon, label, value, last }: { icon: ProfileAssetName; labe
 
 export default function MyPageScreen() {
   const { user, fortune, account, signOut, deleteAccount } = useApp();
-  const { points, ownedCount, toast } = usePremium();
+  const { points, ownedCount } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
-  const [theme, setTheme] = useState<ThemePref>(readThemePrefSync());
+  const [theme] = useState<ThemePref>(readThemePrefSync());
   const [themeAsk, setThemeAsk] = useState<ThemePref | null>(null);
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
@@ -126,7 +126,12 @@ export default function MyPageScreen() {
         variant="figma"
         options={[{ key: 'system', label: '시스템', renderIcon: () => <FigmaAsset name="system" /> }, { key: 'light', label: '라이트', renderIcon: on => <FigmaAsset name="sun" tint={on ? colors.ink : '#808080'} /> }, { key: 'dark', label: '다크', renderIcon: on => <FigmaAsset name="moon" tint={on ? colors.ink : '#808080'} /> }]}
         value={theme}
-        onChange={t => { if (t !== theme) setThemeAsk(t); }}
+        onChange={async t => {
+          if (t === theme) return;
+          if (Platform.OS !== 'web') { setThemeAsk(t); return; }
+          await saveThemePref(t);
+          reloadApp();
+        }}
       />
 
       <ProfileHeading title="알림" />
@@ -223,14 +228,9 @@ export default function MyPageScreen() {
         {themeAsk && <View>
           <Text style={[txt.caption, s.center]}>화면 모드</Text>
           <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{THEME_LABEL[themeAsk]} 모드로 바꿀까요?</Text>
-          <Text style={[txt.small, s.center, { marginTop: 4, marginBottom: 18 }]}>바꾼 모드를 모든 화면에 적용하려면{'\n'}앱을 잠깐 다시 불러와요</Text>
-          <PrimaryButton label="지금 적용하기" onPress={async () => { await saveThemePref(themeAsk); reloadApp(); }} />
-          <PrimaryButton label="다음에 앱을 열 때 적용" variant="soft" onPress={async () => {
-            setTheme(themeAsk);
-            setThemeAsk(null);
-            await saveThemePref(themeAsk);
-            toast('다음에 앱을 열면 적용돼요');
-          }} style={{ marginTop: 8 }} />
+          <Text style={[txt.small, s.center, { marginTop: 4, marginBottom: 18 }]}>모든 화면에 적용하려면 앱이 다시 시작돼요</Text>
+          <PrimaryButton label="다시 시작하기" onPress={async () => { await saveThemePref(themeAsk); reloadApp(); }} />
+          <PrimaryButton label="취소" variant="soft" onPress={() => setThemeAsk(null)} style={{ marginTop: 8 }} />
         </View>}
       </BottomSheet>
     </Screen>

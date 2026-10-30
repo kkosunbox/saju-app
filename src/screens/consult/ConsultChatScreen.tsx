@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +10,6 @@ import Icon from '../../components/Icon';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import { BodyState, Coin, LockCard } from '../../components/premium/Kit';
-import GradientBorder from '../../components/GradientBorder';
 import BottomSheet from '../../components/BottomSheet';
 import LoadingScreen from '../../components/LoadingScreen';
 import { useApp } from '../../context/AppContext';
@@ -21,13 +21,18 @@ import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, consultApi, co
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
-import { fonts, radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
+import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
 import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const INPUT_MAX = 110;
+const LOCK_ICON = require('../../../assets/figma/consult/lock-closed.svg');
+const LOCKED_DAY_ICON = require('../../../assets/figma/consult/locked-day.svg');
+const SEND_ARROW = require('../../../assets/figma/consult/send-arrow.svg');
+const HEADLINE_BACKGROUND = require('../../../assets/figma/consult/headline-background.svg');
+const LOCK_COIN = require('../../../assets/figma/consult/coin.png');
 
 const SEND_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '답변을 만들지 못했어요. 다시 물어봐 주세요',
@@ -76,14 +81,14 @@ function PendingChat({ askKey }: { askKey?: string }) {
   const toTab = () => nav.navigate('Tabs', { screen: 'Consult' });
   if (!ask) {
     return (
-      <Screen title="고민 상담" back>
+      <Screen title="고민상담" titleStyle={s.chatTitle} back>
         <Text style={[txt.body, { textAlign: 'center', marginTop: 40 }]}>상담 화면을 다시 열어 주세요.</Text>
         <PrimaryButton label="상담 탭으로" variant="soft" onPress={toTab} style={{ marginTop: 20 }} />
       </Screen>
     );
   }
   return (
-    <Screen title="고민 상담" back sky>
+    <Screen title="고민상담" titleStyle={s.chatTitle} back sky>
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
@@ -120,7 +125,7 @@ function Chat({ id }: { id: number }) {
   if (q.isPending) return <LoadingScreen />;
   const e = q.data;
   if (!e?.answer) {
-    return <Screen title="고민 상담" back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
+    return <Screen title="고민상담" titleStyle={s.chatTitle} back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
   }
   const C = catOf(e.topic);
   const cost = status.data?.cost ?? 100;
@@ -207,11 +212,11 @@ function Chat({ id }: { id: number }) {
       <View style={s.inputRow}>
         <TextInput
           ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW}
-          placeholder={e.locked ? '어떤 고민이든 편하게 말씀해주세요' : '이어서 물어보세요'} placeholderTextColor={isDark ? colors.inkMute : '#999999'}
+          placeholder="이어서 물어보세요" placeholderTextColor={isDark ? colors.inkMute : '#999999'}
           style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
         />
-        <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (!input.trim() || sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
-          <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M16 10l-4-4-4 4M12 6v12" stroke={colors.white} strokeWidth={2} strokeLinecap="round" fill="none" /></Svg>
+        <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
+          <Image source={SEND_ARROW} style={s.sendArrow} contentFit="contain" />
         </PressableScale>
       </View>
       <Text style={s.footCap}>
@@ -228,7 +233,7 @@ function Chat({ id }: { id: number }) {
   );
 
   return (
-    <Screen title="고민 상담" back sky scroll={false}>
+    <Screen title="고민상담" titleStyle={s.chatTitle} back sky scroll={false}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
@@ -236,8 +241,11 @@ function Chat({ id }: { id: number }) {
 
         <Counselor>
           <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
-          <View style={s.headline}><Text style={s.headlineV}>{e.answer.headline}</Text></View>
           <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
+          <View style={s.headline}>
+            {!isDark ? <Image source={HEADLINE_BACKGROUND} style={StyleSheet.absoluteFill} contentFit="fill" /> : null}
+            <Text style={s.headlineV}>{e.answer.headline}</Text>
+          </View>
           {full ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
@@ -345,40 +353,39 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
     `${hours}시간 동안 ${limit}번 이어 묻기`,
   ];
   return (
-    <GradientBorder outer={{ marginTop: 24 }} style={s.locked}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={s.lockIco}><Icon name="lock" size={18} color={colors.accent} /></View>
+    <View style={s.locked}>
+      <View style={s.lockHead}>
+        <View style={s.lockIco}><Image source={LOCK_ICON} style={s.lockImage} contentFit="contain" /></View>
         <Text style={[s.lockTitle, { flex: 1 }]}>나머지 답이 기다리고 있어요</Text>
       </View>
       {T ? (
         <View style={s.peek}>
           <View style={s.peekRow}>
             <Text style={s.peekK}>이번 달 흐름</Text>
-            <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{T.modeLabel}</Text></View>
+            <View style={[s.peekChip, s.peekMode]}><Text style={s.peekChipText}>{T.modeLabel}</Text></View>
           </View>
-          <View style={s.peekRow}>
+          <View style={[s.peekRow, { marginTop: 6 }]}>
             <Text style={s.peekK}>고민과 이어진 기운</Text>
-            <View style={[s.fact, { backgroundColor: colors.accentSoft }]}><Text style={s.factT}>{T.relatedStarName}</Text></View>
+            <View style={[s.peekChip, { minWidth: 70, alignItems: 'center', marginTop: 1 }]}><Text style={s.peekChipText}>{T.relatedStarName}</Text></View>
           </View>
           <Text style={[s.peekK, { marginTop: 6 }]}>앞으로 3개월 · 가장 풀리는 달은?</Text>
           <View style={s.peekBars}>
-            {T.months.map(m => (
-              <View key={m} style={s.peekBarCol}>
+            {T.months.map((m, i) => (
+              <View key={m} style={[s.peekBarCol, { flex: 84 + i }]}>
                 <Text style={s.peekBarV}>?</Text>
-                <View style={[s.peekBarW, s.peekBar]} />
-                <Text style={txt.caption}>{m}</Text>
+                <Text style={s.peekMonth}>{m}</Text>
               </View>
             ))}
           </View>
-          <Text style={[s.peekK, { marginTop: 6 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Text style={[s.peekK, { marginTop: 3 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
+          <View style={s.peekDays}>
             {Array.from({ length: T.goodDayCount }, (_, i) => (
-              <View key={i} style={s.peekDayBox}><Icon name="lock" size={14} color={colors.inkMute} /></View>
+              <View key={i} style={[s.peekDayBox, { flex: 84 + i }]}><Image source={LOCKED_DAY_ICON} style={s.lockImage} contentFit="contain" /></View>
             ))}
           </View>
         </View>
       ) : null}
-      <View style={{ gap: 10, marginTop: 12, paddingLeft: 22 }}>
+      <View style={s.lockList}>
         {rows.map(r => (
           <View key={r} style={s.lockRow}>
             <View style={s.lockDot} />
@@ -386,9 +393,14 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
           </View>
         ))}
       </View>
-      <PrimaryButton small label={`${cost}${ro(cost)} 전부 열기`} icon={<Coin size={16} />} onPress={onUnlock} style={{ marginTop: 16 }} />
-      <Balance cost={cost} points={points} />
-    </GradientBorder>
+      <PressableScale onPress={onUnlock} haptic style={s.lockUnlock} accessibilityLabel={`${cost}알로 전부 열기`}>
+        <View style={s.lockUnlockInner}>
+          <Image source={LOCK_COIN} style={s.lockCoin} contentFit="contain" />
+          <Text style={s.lockUnlockText}>{cost}알로 전부 열기</Text>
+        </View>
+      </PressableScale>
+      <Text style={s.lockBalance}>보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}</Text>
+    </View>
   );
 }
 
@@ -508,6 +520,8 @@ function TrendIcon() {
 }
 
 const s = StyleSheet.create({
+  chatTitle: { ...sansW('600'), fontSize: 18, lineHeight: 22, letterSpacing: 0, color: INK },
+  sendArrow: { width: 24, height: 24, transform: [{ rotate: '-90deg' }] },
   content: { paddingHorizontal: SCREEN_PX, paddingBottom: 24 },
   // 위 선 1px 포함 입력칸까지 12
   footer: { paddingHorizontal: SCREEN_PX, paddingTop: 11, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: isDark ? colors.line : '#EDEDED' },
@@ -517,32 +531,42 @@ const s = StyleSheet.create({
   footCap: { ...sansW('600'), fontSize: 11, lineHeight: 17, letterSpacing: -0.44, color: colors.inkMute, textAlign: 'center', marginTop: 8 },
   eyebrow: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginTop: 4 },
   direct: { padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
-  directV: { ...sansW('700'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
-  headline: { padding: 12, borderRadius: radius.lg, backgroundColor: isDark ? colors.accentSoft : '#E3F3FF' },
-  headlineV: { ...sansW('700'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
+  directV: { ...sansW('600'), fontSize: 14, lineHeight: 24, color: INK, letterSpacing: -0.7 },
+  headline: { marginRight: 8, padding: 12, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.accentSoft },
+  headlineV: { ...sansW('600'), fontSize: 14, lineHeight: 24, color: INK, letterSpacing: -0.7 },
   fact: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.card },
   factT: { fontSize: 12, fontWeight: '700', color: colors.ink },
-  replyText: { fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.5 },
-  locked: { padding: 12 },
-  lockIco: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  lockTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
-  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  replyText: { ...sansW('400'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.7, marginRight: 5 },
+  // Figma 288:5104 — 375px 화면에서 카드 327×459, 안쪽 패널 295×226.
+  locked: { marginTop: 24, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, paddingTop: 11, paddingHorizontal: 15, paddingBottom: 18, backgroundColor: colors.cream },
+  lockHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: -4 },
+  lockIco: { width: 30, height: 30, borderRadius: 15, backgroundColor: isDark ? colors.accentSoft : '#D1F0FF', alignItems: 'center', justifyContent: 'center' },
+  lockImage: { width: 20, height: 20 },
+  lockTitle: { ...sansW('600'), fontSize: 14, lineHeight: 17, color: INK, letterSpacing: -0.7 },
+  lockList: { marginTop: 10, paddingHorizontal: 8 },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  lockText: { fontSize: 13, color: colors.ink, letterSpacing: -0.5, flex: 1 },
-  peek: { gap: 8, marginTop: 14, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
-  peekRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  peekK: { fontSize: 12, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.5 },
-  peekBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, height: 76 },
-  // 점수는 잠겨 있으니 막대는 모두 같은 높이로 (실제 흐름처럼 보이지 않게)
-  peekBar: { height: 36, backgroundColor: colors.lineStrong },
+  lockText: { ...sansW('400'), fontSize: 13, lineHeight: 24, color: INK, letterSpacing: -0.65, flex: 1 },
+  peek: { marginTop: 9, padding: 12, borderRadius: 12, backgroundColor: isDark ? colors.accentSoft : '#F3FBFF' },
+  peekRow: { minHeight: 24, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  peekK: { ...sansW('400'), fontSize: 13, lineHeight: 24, color: INK, letterSpacing: -0.65 },
+  peekChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 24, backgroundColor: colors.accent },
+  peekMode: { backgroundColor: isDark ? colors.heroBg : '#000000' },
+  peekChipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: colors.white },
+  peekBars: { flexDirection: 'row', gap: 8, marginTop: 5 },
+  peekDays: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  lockUnlock: { marginTop: 16, borderRadius: 8, backgroundColor: colors.navy },
+  lockUnlockInner: { height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  lockCoin: { width: 17, height: 16 },
+  lockUnlockText: { ...sansW('500'), fontSize: 14, lineHeight: 17, letterSpacing: 0, color: colors.white },
+  lockBalance: { ...sansW('600'), fontSize: 11, lineHeight: 17, letterSpacing: -0.44, color: colors.inkMute, textAlign: 'center', marginTop: 8 },
   cliffLine: { height: 12, borderRadius: 6, backgroundColor: colors.lineStrong },
   pendingQ: { alignSelf: 'center', maxWidth: '90%', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
   pendingQText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
-  // 미리보기(잠김) 막대
-  peekBarCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  peekBarV: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
-  peekBarW: { width: '50%', borderRadius: 6 },
-  peekDayBox: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.surface },
+  peekBarCol: { flex: 1, height: 40, alignItems: 'center', paddingTop: 5, borderRadius: 8, backgroundColor: colors.surface, gap: 4 },
+  peekBarV: { ...sansW('600'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
+  peekMonth: { ...sansW('400'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
+  peekDayBox: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.surface },
   // 전체 답 (Figma 운픽_2_2)
   box: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   headRow8: { flexDirection: 'row', alignItems: 'center', gap: 8 },

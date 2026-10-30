@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Animated, AppState, Pressable, StyleSheet, Text } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import ResultMascot from './ResultMascot';
 import { getResultMascot, MASCOT_LABELS, type MascotPose, type MascotScores } from '../utils/resultMascot';
 import MascotPolish from './MascotPolish';
@@ -13,8 +13,10 @@ import { useMascotPlay } from './useMascotPlay';
 
 const SIZE = 103;
 const RING = 136;
-const R = RING / 2 - 4;
+const R = RING / 2 - 7;
 const C = 2 * Math.PI * R;
+// 한 바퀴의 이음새에서도 점 간격이 같도록 원주를 48등분한다.
+const DOT_SPACING = C / 48;
 const HOLD_MS = 900;
 const HINT_H = 36; // 안내 알약 + 위 여백
 /** 화면을 열거나 앱으로 돌아왔을 때 이 확률로 졸고 있다 */
@@ -29,6 +31,7 @@ const DOZE_CHANCE = 0.15;
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
  */
 export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, pose, scores }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; pose?: MascotPose | null; scores?: MascotScores }) {
+  const ringId = `draw-ring-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const reduced = useReducedMotion();
   const playful = !sealed && !busy;
   const play = useMascotPlay(playful, reduced);
@@ -105,7 +108,7 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
     if (!sealed || reduced) return;
     setHolding(true);
     p.stopAnimation(v => {
-      Animated.timing(p, { toValue: 1, duration: HOLD_MS * (1 - v), useNativeDriver: false }).start(({ finished }) => { if (finished) burst(); });
+      Animated.timing(p, { toValue: 1, duration: HOLD_MS * (1 - v), easing: t => t, useNativeDriver: false }).start(({ finished }) => { if (finished) burst(); });
     });
   };
   const pressOut = () => {
@@ -119,6 +122,10 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
   const scaleX = p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] });
   const scaleY = p.interpolate({ inputRange: [0, 1], outputRange: [1, 0.9] });
   const dash = p.interpolate({ inputRange: [0, 1], outputRange: [C, 0] });
+  const dotsOpacity = p.interpolate({ inputRange: [0, 0.25, 1], outputRange: isDark ? [0.45, 0.18, 0.1] : [0.36, 0.12, 0.06] });
+  // 0%에서 둥근 선 끝이 점으로 남지 않게, 누르기 시작할 때만 살며시 드러낸다.
+  const progressOpacity = p.interpolate({ inputRange: [0, 0.04, 1], outputRange: [0, 1, 1] });
+  const glowOpacity = p.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 0.08, 0.12] });
 
   const body = (
     <Animated.View style={{ transform: [{ scaleX }, { scaleY }] }}>
@@ -131,54 +138,75 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
   );
 
   return (
-    <Animated.View style={[s.wrap, { transform: [{ translateY: y }] }]}>
-      {/*
-        뽑기 전후로 같은 Pressable을 그대로 둔다. 마스코트를 다시 그리면 옛 뷰가 떨어지는 순간
-        Animated 값에 붙은 뷰가 없어져 진행 중이던 애니메이션이 멈추고, 눌린 모양(납작) 그대로 굳는다.
-      */}
-      <Pressable
-        onPressIn={pressIn}
-        onPressOut={pressOut}
-        onPress={playful ? poke : sealed && reduced ? burst : undefined}
-        disabled={busy}
-        // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
-        accessibilityRole="button"
-        accessibilityState={{ disabled: busy }}
-        accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : pose ? MASCOT_LABELS[pose] : getResultMascot(scores).label}
-        accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
-        accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
-        onAccessibilityAction={sealed ? burst : undefined}
-        style={s.hit}
-      >
-        {sealed ? (
-          <Animated.View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Svg width={RING} height={RING} pointerEvents="none">
-            <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={isDark ? colors.white : colors.accent} strokeOpacity={isDark ? 0.55 : 0.45} strokeWidth={4} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
-            <AnimatedCircle
-              cx={RING / 2} cy={RING / 2} r={R}
-              stroke={colors.accent} strokeWidth={5} fill="none" strokeLinecap="round"
-              strokeDasharray={`${C} ${C}`} strokeDashoffset={dash}
-              transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
-            />
-          </Svg>
+    <Animated.View style={[s.wrap, {
+      // 말풍선 아래로 나온 꼬리·그림자(32px)와, 위로 뜨는 링의 여유를 따로 확보한다.
+      // 안내가 접힐 때 여백도 함께 줄인다. 뽑기 전후 모두 말풍선과의 간격을 10px 더 둔다.
+      marginTop: hintO.interpolate({ inputRange: [0, 1], outputRange: [-4, 42] }),
+      marginBottom: hintO.interpolate({ inputRange: [0, 1], outputRange: [4, 20] }),
+    }]}>
+      <Animated.View style={[s.floating, { transform: [{ translateY: y }] }]}>
+        {/*
+          뽑기 전후로 같은 Pressable을 그대로 둔다. 마스코트를 다시 그리면 옛 뷰가 떨어지는 순간
+          Animated 값에 붙은 뷰가 없어져 진행 중이던 애니메이션이 멈추고, 눌린 모양(납작) 그대로 굳는다.
+        */}
+        <Pressable
+          onPressIn={pressIn}
+          onPressOut={pressOut}
+          onPress={playful ? poke : sealed && reduced ? burst : undefined}
+          disabled={busy}
+          // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy }}
+          accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : pose ? MASCOT_LABELS[pose] : getResultMascot(scores).label}
+          accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
+          accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
+          onAccessibilityAction={sealed ? burst : undefined}
+          style={s.hit}
+        >
+          {sealed ? (
+            <Animated.View style={StyleSheet.absoluteFill} pointerEvents="none">
+              <Svg width={RING} height={RING} pointerEvents="none">
+                <Defs>
+                  <LinearGradient id={ringId} x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor={isDark ? '#B7E6FF' : '#A2DFFF'} />
+                    <Stop offset="0.55" stopColor={isDark ? '#75CCFF' : '#59C3FB'} />
+                    <Stop offset="1" stopColor={colors.accent} />
+                  </LinearGradient>
+                </Defs>
+                <AnimatedCircle cx={RING / 2} cy={RING / 2} r={R} stroke={isDark ? '#A2DFFF' : '#69C6F5'} strokeOpacity={dotsOpacity} strokeWidth={1.8} strokeDasharray={`0.1 ${DOT_SPACING - 0.1}`} strokeLinecap="round" fill="none" />
+                <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={colors.accent} strokeOpacity={0.05} strokeWidth={1} fill="none" />
+                <AnimatedCircle
+                  cx={RING / 2} cy={RING / 2} r={R}
+                  stroke={colors.accent} strokeOpacity={glowOpacity} strokeWidth={7} fill="none" strokeLinecap="round"
+                  strokeDasharray={`${C} ${C}`} strokeDashoffset={dash}
+                  transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+                />
+                <AnimatedCircle
+                  cx={RING / 2} cy={RING / 2} r={R}
+                  stroke={`url(#${ringId})`} strokeOpacity={progressOpacity} strokeWidth={2.5} fill="none" strokeLinecap="round"
+                  strokeDasharray={`${C} ${C}`} strokeDashoffset={dash}
+                  transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+                />
+              </Svg>
+            </Animated.View>
+          ) : null}
+          {/* 그림자는 바닥에 남는다 — 둥실 뜨면 작고 옅어지고, 꾹 누르면 옆으로 퍼진다 */}
+          {/* p(JS)와 y(네이티브)는 한 노드에 섞을 수 없어 칸을 나눈다 */}
+          <Animated.View style={[s.shadowBox, { transform: [{ scaleX: p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }]} pointerEvents="none">
+            <MascotShadow size={SIZE} style={{
+              opacity: y.interpolate({ inputRange: [-6, 0], outputRange: [0.7, 1] }),
+              transform: [
+                { translateY: Animated.multiply(y, -1) },
+                { scaleX: y.interpolate({ inputRange: [-6, 0], outputRange: [0.86, 1] }) },
+              ],
+            }} />
           </Animated.View>
-        ) : null}
-        {/* 그림자는 바닥에 남는다 — 둥실 뜨면 작고 옅어지고, 꾹 누르면 옆으로 퍼진다 */}
-        {/* p(JS)와 y(네이티브)는 한 노드에 섞을 수 없어 칸을 나눈다 */}
-        <Animated.View style={[s.shadowBox, { transform: [{ scaleX: p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }]} pointerEvents="none">
-          <MascotShadow size={SIZE} style={{
-            opacity: y.interpolate({ inputRange: [-6, 0], outputRange: [0.7, 1] }),
-            transform: [
-              { translateY: Animated.multiply(y, -1) },
-              { scaleX: y.interpolate({ inputRange: [-6, 0], outputRange: [0.86, 1] }) },
-            ],
-          }} />
-        </Animated.View>
-        {body}
-      </Pressable>
-      <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
-        <Animated.View style={[s.hint, { opacity: hintO }]}>
-          <Text style={s.hintText}>{busy ? '행운을 반짝반짝 닦는 중…' : !sealed ? '반짝! 오늘의 운세 준비 완료' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+          {body}
+        </Pressable>
+        <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
+          <Animated.View style={[s.hint, { opacity: hintO }]}>
+            <Text style={s.hintText}>{busy ? '행운을 반짝반짝 닦는 중…' : !sealed ? '반짝! 오늘의 운세 준비 완료' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+          </Animated.View>
         </Animated.View>
       </Animated.View>
     </Animated.View>
@@ -186,8 +214,8 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
 }
 
 const s = StyleSheet.create({
-  // 뽑은 뒤(안내 접힘) 말풍선 ↔ 마스코트 ↔ 점수 링 여백이 같게
-  wrap: { alignSelf: 'center', alignItems: 'center', marginTop: 10, marginBottom: 20 },
+  wrap: { alignSelf: 'center', alignItems: 'center' },
+  floating: { alignItems: 'center' },
   hit: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   // ResultMascot과 같은 칸을 링 가운데에 둔다
   shadowBox: { position: 'absolute', left: (RING - SIZE * 1.08) / 2, top: (RING - SIZE) / 2, width: SIZE * 1.08, height: SIZE },

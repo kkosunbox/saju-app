@@ -14,7 +14,7 @@ import { usePremium } from '../../context/PremiumContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
-import { fonts, radius, SCREEN_PX, shadow, txt } from '../../theme/typography';
+import { fonts, radius, SCREEN_PX, shadow, txt, sansW } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
 import { ART, MascotPeek } from '../Mascot';
 import GradientBorder from '../GradientBorder';
@@ -36,11 +36,12 @@ export function Pill({ children, tone = 'default', style }: { children: React.Re
 }
 
 /** 남색 알약 가격 "◎ 300" — small은 '곧 오픈' 카드처럼 좁은 자리용 */
-export function CostPill({ cost, small }: { cost: number; small?: boolean }) {
+export function CostPill({ cost, small, variant = 'default' }: { cost: number; small?: boolean; variant?: 'default' | 'figma' }) {
+  const figma = variant === 'figma';
   return (
-    <View style={[s.cost, small && s.costSmall]}>
-      <Coin size={small ? 11 : 14} />
-      <Text style={[s.costText, small && s.costTextSmall]}>{cost.toLocaleString('ko-KR')}</Text>
+    <View style={[s.cost, small && s.costSmall, figma && s.figmaCost]}>
+      {figma ? <Image source={ART.mascot} style={{ width: 13, height: 12 }} resizeMode="contain" /> : <Coin size={small ? 11 : 14} />}
+      <Text style={[s.costText, small && s.costTextSmall, figma && s.figmaCostText]}>{cost.toLocaleString('ko-KR')}</Text>
     </View>
   );
 }
@@ -49,15 +50,15 @@ export const FREE_BLUE = '#00A3FF';
 export const OWNED_GREEN = '#00A220';
 
 /** 테두리만 있는 작은 태그 — 무료(파랑) · 보유(초록) */
-export function LineTag({ label, color = FREE_BLUE }: { label: string; color?: string }) {
-  return <View style={[s.lineTag, { borderColor: color }]}><Text style={[s.lineTagText, { color }]}>{label}</Text></View>;
+export function LineTag({ label, color = FREE_BLUE, variant = 'default' }: { label: string; color?: string; variant?: 'default' | 'figma' }) {
+  return <View style={[s.lineTag, { borderColor: color }, variant === 'figma' && s.figmaLineTag]}><Text style={[s.lineTagText, { color }, variant === 'figma' && s.figmaLineTagText]}>{label}</Text></View>;
 }
 
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
-export function PriceTag({ item, small }: { item: Item; small?: boolean }) {
+export function PriceTag({ item, small, variant = 'default' }: { item: Item; small?: boolean; variant?: 'default' | 'figma' }) {
   const { owned } = usePremium();
-  if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} />;
-  return <CostPill cost={item.cost} small={small} />;
+  if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} variant={variant} />;
+  return <CostPill cost={item.cost} small={small} variant={variant} />;
 }
 
 /** 화면 상단: 열람 중 / 미리보기 */
@@ -404,6 +405,10 @@ const s = StyleSheet.create({
   costSmall: { gap: 2, paddingRight: 6, paddingVertical: 2 },
   costText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.white },
   costTextSmall: { fontSize: 10, lineHeight: 14 },
+  figmaCost: { height: 18, minWidth: 45, gap: 2, paddingLeft: 5, paddingRight: 6, paddingVertical: 3 },
+  figmaCostText: { ...sansW('700'), fontSize: 10, lineHeight: 12, letterSpacing: 0, includeFontPadding: false },
+  figmaLineTag: { paddingVertical: 2, borderWidth: 0.5, opacity: 1 },
+  figmaLineTagText: { ...sansW('600'), lineHeight: 14, letterSpacing: 0, opacity: 0.8, includeFontPadding: false },
   // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 테두리 · 줄높이를 정하고 전체를 옅게 한다
   lineTag: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, opacity: 0.85 },
   lineTagText: { fontSize: 12, lineHeight: 16, fontWeight: '600' },

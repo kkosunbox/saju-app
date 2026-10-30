@@ -1,0 +1,423 @@
+{
+  "fileKey": "UysuMZUuHQV8ZHcec0R4X0",
+  "screen": "288:2354",
+  "background": "288:2641",
+  "assets": {
+    "clouds.png": {
+      "node": "288:2355",
+      "slot": [
+        0,
+        22,
+        375,
+        406
+      ],
+      "contentFit": "fill"
+    },
+    "score-bubble.svg": {
+      "node": "288:2380",
+      "slot": [
+        43,
+        163,
+        290,
+        101
+      ],
+      "runtimeBody": [
+        290,
+        82
+      ],
+      "exportOutset": [
+        9,
+        5,
+        9,
+        13
+      ]
+    },
+    "consult-base.svg": {
+      "node": "288:2579",
+      "slot": [
+        24,
+        1161,
+        327,
+        110
+      ]
+    },
+    "spouse-base.svg": {
+      "node": "288:2481",
+      "slot": [
+        24,
+        1705,
+        327,
+        110
+      ]
+    },
+    "free-mbti.png": {
+      "node": "288:2675",
+      "slot": [
+        168,
+        962,
+        39,
+        39
+      ]
+    },
+    "free-talisman.png": {
+      "node": "288:2571",
+      "slot": [
+        40,
+        963,
+        39,
+        39
+      ]
+    },
+    "analysis-sheet.png": {
+      "nodes": [
+        "288:2520",
+        "288:2528",
+        "288:2536",
+        "288:2544"
+      ],
+      "runtime": "HomeAnalysisArt; original Figma crop transforms"
+    },
+    "promo-mascot.png": {
+      "nodes": [
+        "288:2578",
+        "288:2580",
+        "288:2482"
+      ],
+      "runtime": "HomePromoArt; original Figma crop transforms"
+    },
+    "nav-home.svg": {
+      "node": "288:2362",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "nav-consult.svg": {
+      "node": "288:2365",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "nav-content.svg": {
+      "node": "288:2368",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "nav-compatibility.svg": {
+      "node": "288:2371",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "nav-my.svg": {
+      "node": "288:2376",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "download.svg": {
+      "node": "288:2435",
+      "slot": [
+        24,
+        24
+      ]
+    },
+    "chevron-left-16.svg": {
+      "node": "288:2440",
+      "slot": [
+        16,
+        16
+      ]
+    },
+    "chevron-left-20.svg": {
+      "node": "288:2501",
+      "slot": [
+        20,
+        20
+      ]
+    },
+    "category-love-0.svg": {
+      "node": "288:2393",
+      "intrinsicSize": [
+        12.0,
+        11.0
+      ]
+    },
+    "category-money-0.svg": {
+      "node": "288:2424",
+      "intrinsicSize": [
+        11.0,
+        5.64927
+      ]
+    },
+    "category-money-1.svg": {
+      "node": "288:2425",
+      "intrinsicSize": [
+        10.9084,
+        4.87382
+      ]
+    },
+    "category-money-2.svg": {
+      "node": "288:2426",
+      "intrinsicSize": [
+        10.924,
+        4.70814
+      ]
+    },
+    "category-work-0.svg": {
+      "node": "288:2402",
+      "intrinsicSize": [
+        12.9891,
+        7.40559
+      ]
+    },
+    "category-work-1.svg": {
+      "node": "288:2403",
+      "intrinsicSize": [
+        13.0,
+        5.70231
+      ]
+    },
+    "category-relationship-0.svg": {
+      "node": "288:2412",
+      "intrinsicSize": [
+        10.3504,
+        5.34521
+      ]
+    },
+    "category-relationship-1.svg": {
+      "node": "288:2413",
+      "intrinsicSize": [
+        5.3858,
+        4.96033
+      ]
+    },
+    "category-relationship-2.svg": {
+      "node": "288:2414",
+      "intrinsicSize": [
+        5.17673,
+        4.54097
+      ]
+    },
+    "category-relationship-3.svg": {
+      "node": "288:2415",
+      "intrinsicSize": [
+        4.40814,
+        4.14841
+      ]
+    }
+  },
+  "overlays": {
+    "sky": {
+      "node": "288:2356",
+      "slot": [
+        0,
+        0,
+        375,
+        296
+      ]
+    },
+    "bottomFade": {
+      "node": "288:2640",
+      "slot": [
+        0,
+        326,
+        375,
+        122
+      ]
+    }
+  },
+  "statusBarHeight": 44,
+  "typography": {
+    "hello": [
+      24,
+      800,
+      29,
+      -0.96
+    ],
+    "date": [
+      14,
+      500,
+      17,
+      -0.56
+    ],
+    "totalScore": [
+      32,
+      700,
+      38,
+      -1.28
+    ],
+    "summary": [
+      16,
+      600,
+      19,
+      -0.64
+    ],
+    "delta": [
+      12,
+      600,
+      14,
+      -0.48
+    ],
+    "keyword": [
+      13,
+      600,
+      18,
+      -0.65
+    ],
+    "categoryScore": [
+      24,
+      700,
+      29,
+      -0.96
+    ],
+    "categoryLabel": [
+      14,
+      600,
+      17,
+      -0.56
+    ],
+    "story": [
+      13,
+      400,
+      18,
+      -0.65
+    ],
+    "action": [
+      12,
+      600,
+      32,
+      -0.48
+    ],
+    "section": [
+      18,
+      600,
+      21,
+      0
+    ],
+    "sectionCaption": [
+      13,
+      500,
+      18,
+      -0.65
+    ],
+    "tileLabel": [
+      13,
+      500,
+      18,
+      -0.65
+    ],
+    "tileHeadline": [
+      14,
+      700,
+      20,
+      -0.56
+    ],
+    "promoTitle": [
+      16,
+      700,
+      18,
+      -0.8
+    ],
+    "promoDescription": [
+      13,
+      400,
+      18,
+      -0.65
+    ],
+    "promoCta": [
+      13,
+      700,
+      18,
+      -0.65
+    ]
+  },
+  "typographyColumns": [
+    "fontSize",
+    "fontWeight",
+    "lineHeight",
+    "letterSpacing"
+  ],
+  "layout": {
+    "screenPadding": 24,
+    "keywordPadding": [
+      10,
+      6
+    ],
+    "keywordGap": 8,
+    "ringSize": 64,
+    "ringInnerSize": 56,
+    "ringLabelGap": 8,
+    "cardPadding": 16,
+    "freeCard": [
+      116,
+      118
+    ],
+    "freeCardGap": 12,
+    "analysisTileHeight": 140,
+    "analysisColumnGap": 20,
+    "analysisRowGap": 16,
+    "sectionTopGap": 32,
+    "sectionBottomGap": 16,
+    "promoHeight": 110,
+    "periodLinkHeight": 48,
+    "bottomTabHeightWithoutSafeArea": 80,
+    "storyPadding": [
+      16,
+      16,
+      16,
+      11
+    ],
+    "analysisTileWidthAt375": 154,
+    "analysisGridWidthAt375": 328,
+    "badgeHeight": 18,
+    "navItemWidth": 50,
+    "navGapAt375": 20,
+    "navContentWidthAt375": 330,
+    "categoryLabelGap": 6
+  },
+  "verification": {
+    "viewport": [
+      375,
+      812
+    ],
+    "method": "Browser getBoundingClientRect and getComputedStyle; Figma status bar 44px replaced by actual safe area",
+    "checked": [
+      "sealed and revealed fortune",
+      "score delta",
+      "long lucky values",
+      "action tab switching",
+      "lucky reason expansion",
+      "free cards",
+      "analysis tiles",
+      "promo cards",
+      "bottom navigation"
+    ],
+    "nativeDeviceTested": false,
+    "darkModeTested": false,
+    "paidPointsUsed": 0,
+    "preserved": "Dynamic copy, scores, prices, actions, additional cards, additional navigation and footer remain.",
+    "date": "2026-10-31",
+    "viewports": [
+      [
+        375,
+        812
+      ],
+      [
+        430,
+        900
+      ]
+    ],
+    "fontAttributeChecks": 228,
+    "fontAttributeFailures": 0,
+    "colorChecks": 24,
+    "colorFailures": 0,
+    "missingRenderedImages": 0,
+    "report": "docs/design-audits/home-288-2354.md"
+  }
+}

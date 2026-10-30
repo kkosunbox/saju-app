@@ -1,6 +1,6 @@
 /**
  * 화면 모드 설정(시스템 · 라이트 · 다크). 고른 적이 없으면 라이트.
- * 색은 앱 시작 때 한 번 정해지므로(colors.ts) 저장값을 동기로 읽어야 한다. 바꾸면 안내 시트를 거쳐 앱을 다시 불러온다(MyPageScreen).
+ * 색은 앱 시작 때 한 번 정해지므로(colors.ts) 저장값을 동기로 읽어야 한다. 바꾸면 앱을 다시 불러온다(앱은 안내 시트를 거침, MyPageScreen).
  * 웹은 localStorage, 네이티브는 SecureStore의 동기 API를 쓴다.
  */
 import { Platform } from 'react-native';

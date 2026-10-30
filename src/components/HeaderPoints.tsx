@@ -1,12 +1,14 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@/navigation/compat';
 import PressableScale from './PressableScale';
 import Icon from './Icon';
-import { Coin } from './premium/Kit';
+import { ART } from './Mascot';
 import { usePremium } from '../context/PremiumContext';
 import { colors } from '../theme/colors';
 import { radius } from '../theme/typography';
+import { profileType } from '../theme/profileDesign';
 
 /** 상단 오른쪽: 내 포인트 알약(누르면 지갑) */
 export function PointPill() {
@@ -14,7 +16,9 @@ export function PointPill() {
   const { points } = usePremium();
   return (
     <PressableScale onPress={() => nav.navigate('Wallet')} style={s.pill} scaleTo={0.94} accessibilityLabel={`내 알 ${points}개`}>
-      <Coin size={16} />
+      <View style={{ width: 16, height: 16 }}>
+        <Image source={ART.mascot} style={{ width: 16, height: 15, marginTop: 1 }} contentFit="cover" accessible={false} />
+      </View>
       <Text style={s.text}>{points.toLocaleString('ko-KR')}</Text>
     </PressableScale>
   );
@@ -36,5 +40,5 @@ export default function HeaderPoints({ onSave, saveLabel = '공유하기', color
 
 const s = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingLeft: 6, paddingRight: 6, borderRadius: radius.pill, backgroundColor: colors.heroBg },
-  text: { fontSize: 14, fontWeight: '800', color: colors.white, letterSpacing: -0.56 },
+  text: { ...profileType(14, '800', 17, -0.56, colors.white) },
 });

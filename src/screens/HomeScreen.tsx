@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Animated, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import { Animated, Platform, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import Svg, { ClipPath, Defs, G, LinearGradient as SvgGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
@@ -12,7 +13,6 @@ import AnalysisTile from '../components/AnalysisTile';
 import ActionTabs from '../components/ActionTabs';
 import SectionHeader from '../components/SectionHeader';
 import PressableScale from '../components/PressableScale';
-import Icon from '../components/Icon';
 import Reveal from '../components/Reveal';
 import HomeSkeleton from '../components/Skeleton';
 import Disclaimer from '../components/Disclaimer';
@@ -23,8 +23,7 @@ import DrawMascot from '../components/DrawMascot';
 import AnimatedNumber from '../components/AnimatedNumber';
 import PromoCard from '../components/PromoCard';
 import HScroll from '../components/HScroll';
-import CharacterArt, { artOfPillar } from '../components/CharacterArt';
-import { CategoryGlyph } from '../components/CategoryIcon';
+import { HomeCategoryGlyph, HomeFreeArt, HomeOutlineIcon } from '../components/home/HomeDesignAssets';
 import { PointPill } from '../components/HeaderPoints';
 import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
@@ -58,6 +57,8 @@ const MASCOT_PREVIEWS = [
 ] as const;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
+// Figma 각 분야 라벨 그룹의 링 중심 대비 위치(375px 프레임).
+const CATEGORY_LABEL_OFFSET = { love: 0, money: 0.5, work: -0.5, relationship: 0.5 } as const;
 const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '혈액형 한마디까지 엮는 중…', '오늘의 이야기를 쓰는 중…'];
 
 /** 말풍선 안에서 차례로 바뀌는 '풀어보는 중' 문구 (마지막 문구에서 멈춘다) */
@@ -75,7 +76,7 @@ const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', w
 const TAG_MAX_CHARS = 12;
 const TAG_FONT = 13;
 /** 키워드 글자색과, 글자 위로만 훑고 지나가는 빛 */
-const TAG_INK = isDark ? '#7CC4EE' : '#45ABE6';
+const TAG_INK = isDark ? '#7CC4EE' : '#28B2FE';
 const TAG_GLINT = isDark ? '#EAF7FF' : '#D2EEFF';
 const GLINT_W = 26;
 /** SVG 글자도 앱 글꼴(Pretendard SemiBold)로 — 원래 글자 자리와 폭이 맞게 */
@@ -97,7 +98,7 @@ function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animat
         <Svg width={box.width} height={box.height} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
             <ClipPath id={`${id}-clip`}>
-              <SvgText x={0} y={box.height / 2 + TAG_FONT * 0.36} fontSize={TAG_FONT} fontFamily={TAG_FACE.fontFamily} fontWeight={TAG_FACE.fontWeight} letterSpacing={-0.5}>{`#${label}`}</SvgText>
+              <SvgText x={0} y={box.height / 2 + TAG_FONT * 0.36} fontSize={TAG_FONT} fontFamily={TAG_FACE.fontFamily} fontWeight={TAG_FACE.fontWeight} letterSpacing={-0.65}>{`#${label}`}</SvgText>
             </ClipPath>
             <SvgGradient id={`${id}-glint`} x1="0" y1="0" x2="1" y2="0">
               <Stop offset="0" stopColor={TAG_GLINT} stopOpacity={0} />
@@ -153,8 +154,6 @@ export default function HomeScreen() {
   const [showInvite, setShowInvite] = useState(false);
   const tal = useFreeContent('talisman').data;
   const match = useFreeContent('mbti-match').data?.best[0];
-  const ch = useFreeContent('character').data;
-  const pl = useFreeContent('past-life').data;
   // 오늘의 운세는 마스코트를 꾹 눌러 뽑은 뒤, 풀이가 다 써지면 한 번에 펼친다
   const draw = useFortuneDraw();
   const [luckOpen, setLuckOpen] = useState(false);
@@ -222,8 +221,9 @@ export default function HomeScreen() {
   const safeTop = webSafeTop(insets.top);
   // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바).
   // 상단 바(상태바 + 로고 줄)까지는 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 한다
-  const skyH = 296 + safeTop;
-  const skyHold = safeTop + 56;
+  // Figma 좌표에는 상태바 44px이 포함되어 있다. 실제 safe area로 치환한다.
+  const skyH = (isDark ? 296 : 252) + safeTop;
+  const skyHold = safeTop + (isDark ? 56 : 0);
   // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
   const onScrollTopBar = useWebTopBar([
     [0, gradients.sky[0]], [skyHold, gradients.sky[0]], [skyH * 0.48, gradients.sky[1]], [skyH * 0.88, gradients.sky[2]],
@@ -236,8 +236,8 @@ export default function HomeScreen() {
   };
   const top = (
     <View style={[s.topBar, { marginTop: safeTop }]}>
-      <Logo height={50} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, flexShrink: 1, marginLeft: 12 }}>
+      <Logo height={55} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1, marginLeft: 12 }}>
         {DEV_TOOLS && draw.opened ? (
           <View style={s.devControls}>
             <PressableScale onPress={resetDraw} hitSlop={4} scaleTo={0.9} style={s.devReset} accessibilityLabel="오늘의 운세 뽑기 전으로 되돌리기 (테스트용)">
@@ -250,18 +250,35 @@ export default function HomeScreen() {
         ) : null}
         <PointPill />
         <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
-          <Icon name="share" size={24} color={colors.ink} />
+          <HomeOutlineIcon name="download" size={24} color={isDark ? colors.ink : '#000000'} />
         </PressableScale>
       </View>
     </View>
   );
   const sky = (
-    <LinearGradient
-      pointerEvents="none"
-      colors={[gradients.sky[0], ...gradients.sky]}
-      locations={[0, (400 + skyHold) / (400 + skyH), (400 + skyH * 0.48) / (400 + skyH), (400 + skyH * 0.88) / (400 + skyH)]}
-      style={[s.sky, { height: 400 + skyH }]}
-    />
+    <View pointerEvents="none" style={[s.skyBackdrop, { height: 404 + safeTop }]}>
+      {!isDark && (
+        <Image
+          source={require('../../assets/figma/home/clouds.png')}
+          contentFit="fill"
+          accessible={false}
+          style={[s.clouds, { top: safeTop - 22 }]}
+        />
+      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={isDark ? [gradients.sky[0], ...gradients.sky] : ['#15ABFE', '#15ABFE', 'rgba(200,235,255,0.55)', 'rgba(255,255,255,0)']}
+        locations={[0, (400 + skyHold) / (400 + skyH), (400 + (isDark ? skyH * 0.48 : safeTop - 44 + 296 * 0.47596)) / (400 + skyH), (400 + (isDark ? skyH * 0.88 : safeTop - 44 + 296 * 0.88262)) / (400 + skyH)]}
+        style={[s.sky, { height: 400 + skyH }]}
+      />
+      {!isDark && (
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.55)', '#FFFFFF']}
+          locations={[0.11738, 0.52404, 1]}
+          style={[s.cloudFade, { top: 282 + safeTop }]}
+        />
+      )}
+    </View>
   );
 
   // 스켈레톤과 본 화면이 따로 그리면 운세가 오는 순간 시트가 다시 올라오니 본 화면에서만 연다
@@ -285,19 +302,19 @@ export default function HomeScreen() {
   const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.blood.tags]);
 
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
-  type Free = { k: string; art?: ArtName; pillar?: string; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
+  type Free = { k: string; art?: ArtName; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
   const FREE = ([
     { k: 'tal', art: 'talisman', title: '오늘의 부적', sub: tal?.keyword ?? '…', go: () => nav.navigate('Talisman') },
-    { k: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: match ? `${match.nickname} · ${match.score}점` : '…', go: () => nav.navigate('MbtiMatch') },
-    { k: 'char', art: 'tiger', pillar: ch?.hanja, title: '사주 캐릭터', sub: ch?.name ?? '…', go: () => nav.navigate('Character') },
-    { k: 'past', art: 'pastLife', title: '전생테스트', sub: pl?.title ?? '…', go: () => nav.navigate('PastLife') },
+    { k: 'mbti', art: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: '잘맞는 유형은?', go: () => nav.navigate('MbtiMatch') },
+    { k: 'char', art: 'tiger', title: '사주 캐릭터', sub: '나의 캐릭터는?', go: () => nav.navigate('Character') },
+    { k: 'past', art: 'pastLife', title: '전생테스트', sub: '나의 전생은?', go: () => nav.navigate('PastLife') },
     { k: 'inv', art: 'friends', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
   ] as Free[]).map((x): Free => {
     const o = opened[x.k as keyof typeof opened];
     if (!o) return x;
     if (!o.ready) return { ...x, sub: '…' };
     // 부적은 날마다 새로 뽑아서 'NEW'
-    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal', sub: x.k === 'tal' ? '오늘 부적 받기' : '눌러서 뽑기' };
+    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' ? '잘맞는 유형은?' : '눌러서 뽑기' };
   });
   const spouseOwned = owned(ITEMS.spouse().key);
 
@@ -345,7 +362,7 @@ export default function HomeScreen() {
                 </Text>
                 <Text style={txt.small} numberOfLines={1}>둘의 궁합 {arrived[0].total}점 · 눌러서 결과 보기</Text>
               </View>
-              <Icon name="chevronRight" size={18} color={colors.inkMute} />
+              <HomeOutlineIcon name="chevronRight" size={18} color={colors.inkMute} />
             </PressableScale>
           ) : null}
 
@@ -356,7 +373,7 @@ export default function HomeScreen() {
                 <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 &apos;{friend.k}&apos; 결과가 도착했어요</Text>
                 <Text style={txt.small} numberOfLines={1}>{friend.h} · 나도 해보고 비교하기</Text>
               </View>
-              <Icon name="chevronRight" size={18} color={colors.inkMute} />
+              <HomeOutlineIcon name="chevronRight" size={18} color={colors.inkMute} />
             </PressableScale>
           ) : null}
 
@@ -364,7 +381,8 @@ export default function HomeScreen() {
           <View style={!draw.ready && { opacity: 0 }}>
           <Reveal delay={90}>
             <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} disabled={hidden} style={s.bubbleWrap} scaleTo={0.98} accessibilityLabel={sealed ? '오늘의 운세가 도착했어요. 아래 마스코트를 꾹 눌러 뽑아 보세요' : reading ? '오늘의 운세를 풀어보는 중이에요' : `오늘의 종합운 ${f.totalScore}점.${scoreDeltaLabel(f.totalScore, yesterday?.totalScore)} ${f.summary} 종합 풀이 보기`}>
-              <Animated.View style={[s.bubble, shadow.hero, { transform: [{ scale: pop }] }]}>
+              <Animated.View style={[s.bubble, isDark && shadow.hero, { transform: [{ scale: pop }] }]}>
+                {!isDark && <Image source={require('../../assets/figma/home/score-bubble.svg')} style={s.bubbleArt} contentFit="fill" accessible={false} />}
                 {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
                   : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
                   : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
@@ -373,11 +391,11 @@ export default function HomeScreen() {
                   : (
                     <View style={s.bubbleBody}>
                       <Text style={[s.bubbleText, { flex: 0 }]} numberOfLines={3}>{f.summary}</Text>
-                      <ScoreDeltaText now={f.totalScore} before={yesterday?.totalScore} />
+                      <ScoreDeltaText now={f.totalScore} before={yesterday?.totalScore} style={[s.bubbleDelta, !isDark && { color: f.totalScore > (yesterday?.totalScore ?? f.totalScore) ? '#DD2828' : '#3D79D4' }]} />
                     </View>
                   )}
               </Animated.View>
-              <View style={s.tail} />
+              {isDark && <View style={s.tail} />}
             </PressableScale>
             <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} pose={mascotOverride?.pose} scores={hidden ? undefined : f} />
             {!hidden && later(300, (
@@ -400,13 +418,13 @@ export default function HomeScreen() {
                   {hidden ? (
                     <View style={s.ringSealed}><Text style={s.ringQ}>?</Text></View>
                   ) : (
-                    <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={20} delay={drawn ? 450 + i * 140 : 250 + i * 80}>
+                    <ScoreRing score={f[c]} size={64} stroke={3} color={RING[c]} track="transparent" inner={colors.card} textColor={colors.inkSub} fontSize={24} innerSize={56} inset={0} gradientEndColor={isDark ? undefined : "#F1F1F1"} numberStyle={s.ringNumber} delay={drawn ? 450 + i * 140 : 250 + i * 80}>
                       {/* 어제 대비 칩: 숫자 밑에 작게, 링이 다 차오른 뒤 톡 */}
-                      <ScoreDelta now={f[c]} before={yesterday?.[c]} delay={(drawn ? 450 + i * 140 : 250 + i * 80) + 1100} small />
+                      <ScoreDelta now={f[c]} before={yesterday?.[c]} delay={(drawn ? 450 + i * 140 : 250 + i * 80) + 1100} small style={s.ringDeltaWrap} textStyle={[s.ringDelta, !isDark && { color: f[c] > (yesterday?.[c] ?? f[c]) ? '#DD2828' : '#3D79D4' }]} />
                     </ScoreRing>
                   )}
-                  <View style={s.ringLabel}>
-                    <CategoryGlyph category={c} size={13} />
+                  <View style={[s.ringLabel, { transform: [{ translateX: CATEGORY_LABEL_OFFSET[c] }] }]}>
+                    <HomeCategoryGlyph category={c} />
                     <Text style={s.ringText}>{t.short}</Text>
                   </View>
                 </PressableScale>
@@ -426,7 +444,7 @@ export default function HomeScreen() {
               <Text style={s.todayTitle}>오늘의 운세</Text>
               <PressableScale onPress={() => nav.navigate('CombinedAnalysis')} hitSlop={10} scaleTo={0.95} style={s.todayMore} accessibilityLabel="종합 풀이 보기">
                 <Text style={s.todayMoreText}>종합풀이</Text>
-                <Icon name="chevronRight" size={16} color={colors.inkMute} />
+                <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />
               </PressableScale>
             </View>
             <Text style={s.todayStory}>{f.storyBrief || f.summary}</Text>
@@ -437,11 +455,11 @@ export default function HomeScreen() {
               style={s.luckyBox}
               accessibilityLabel={luckOpen ? '행운 근거 접기' : '행운 근거 보기'}
             >
-              <View style={s.lucky}>
-                <View style={s.luck}>
+              <View style={[s.lucky, f.luckyReasons && s.luckyExpandable]}>
+                <View style={[s.luck, s.luckColor]}>
                   <Text style={s.luckK}>컬러</Text>
                   <View style={[s.swatch, { backgroundColor: f.luckyColorHex }]} />
-                  <Text style={s.luckV} numberOfLines={1}>{f.luckyColor}</Text>
+                  <Text style={[s.luckV, s.luckColorValue]} numberOfLines={1}>{f.luckyColor}</Text>
                 </View>
                 <View style={s.luck}>
                   <Text style={s.luckK}>숫자</Text>
@@ -452,8 +470,8 @@ export default function HomeScreen() {
                   <Text style={s.luckV} numberOfLines={1}>{f.luckyTime.replace('~', ' - ')}</Text>
                 </View>
                 {f.luckyReasons ? (
-                  <View style={luckOpen ? s.luckChevronOpen : undefined}>
-                    <Icon name="chevronDown" size={14} color={colors.inkMute} />
+                  <View style={[s.luckChevron, luckOpen && s.luckChevronOpen]}>
+                    <HomeOutlineIcon name="chevronDown" size={16} color={colors.inkMute} />
                   </View>
                 ) : null}
               </View>
@@ -474,32 +492,15 @@ export default function HomeScreen() {
 
           {hidden ? null : later(1050, (
             <View style={{ marginTop: 16 }}>
-              <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
+              <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
             </View>
           ))}
-          <PressableScale onPress={() => nav.navigate('Fortune')} style={s.link} scaleTo={0.98} accessibilityLabel="기간별 운세 보기">
-            <Text style={s.linkText}>이번 주 · 이번 달 · 올해 운세 흐름 보기</Text>
-            <Icon name="chevronRight" size={16} color={colors.ink} />
-          </PressableScale>
-
-          <View style={{ marginTop: 16 }}>
-            <PromoCard
-              tone="lime"
-              title="오늘 마음에 걸리는 일 있나요?"
-              desc="저한테 편하게 얘기해 주세요. 도움이 될 거예요."
-              cta={consultFreeLeft > 0 ? '무료 티켓 사용 →' : `${consultCost} · 상담 시작하기 →`}
-              coin={consultFreeLeft <= 0}
-              onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
-              accessibilityLabel="고민 상담하기"
-            />
-          </View>
-
           <View style={s.freeHeader}>
             <Text style={s.freeHeading} accessibilityRole="header">무료로 즐기기</Text>
-            <View style={s.freeDivider} />
+            <View style={s.freeDivider}><View style={s.freeDividerLine} /></View>
             <Text style={s.freeCaption}>{COPY.friend}</Text>
             <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} hitSlop={12} scaleTo={0.9} accessibilityLabel="콘텐츠 전체 보기" style={s.freeMore}>
-              <Icon name="chevronRight" size={20} color={colors.inkMute} />
+              <HomeOutlineIcon name="chevronRight" size={20} color={colors.inkMute} />
             </PressableScale>
           </View>
         </View>
@@ -508,9 +509,8 @@ export default function HomeScreen() {
             <PressableScale key={x.k} onPress={x.go} style={[s.freeCard, x.k === 'tal' ? s.freeTalisman : x.k === 'mbti' ? s.freeMbti : x.k === 'char' ? s.freeCharacter : x.k === 'past' ? s.freePast : s.freeInvite]} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
               <View style={s.freeTop}>
                 {/* 뽑기 전 찰떡 MBTI는 결과 대신 MBTI 카드 그림 */}
-                {/* 뽑은 사주 캐릭터는 내 캐릭터 그림 (뽑기 전엔 결과를 숨기려고 공용 그림) */}
-                {x.pillar && !x.sealed && artOfPillar(x.pillar) ? <View style={s.freeCharacterArt}><CharacterArt hanja={x.pillar} size={48} /></View>
-                  : x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={x.k === 'char' ? 48 : 39} style={x.k === 'char' ? s.freeCharacterArt : x.k !== 'tal' ? [s.freeInsetArt, (x.k === 'past' || x.k === 'inv') && s.freeLastArt] : undefined} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
+                {x.k === 'tal' || x.k === 'mbti' || x.k === 'char' || x.k === 'past' || x.k === 'inv' ? <HomeFreeArt kind={x.k} />
+                  : x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={39} style={x.k !== 'tal' ? [s.freeInsetArt, (x.k === 'past' || x.k === 'inv') && s.freeLastArt] : undefined} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
               </View>
               {/* 뽑기 전 표시는 카드 오른쪽 위 — NEW는 그 아래에 */}
               {x.sealed ? <View style={[s.freeQ, x.k === 'mbti' && s.freeQDark]}><Text style={s.freeQText}>?</Text></View> : null}
@@ -522,7 +522,25 @@ export default function HomeScreen() {
         </HScroll>
 
         <View style={{ paddingHorizontal: SCREEN_PX }}>
-          <SectionHeader title="4가지 관점" caption="오늘의 운세는 이렇게 만들어져요" action="종합 풀이 보기" onAction={openCombined} />
+          <PressableScale onPress={() => nav.navigate('Fortune')} style={[s.link, { marginTop: 32 }]} scaleTo={0.98} accessibilityLabel="기간별 운세 보기">
+            <Text style={[s.linkText, s.periodLinkText]}>이번 주 · 이번 달 · 올해 운세 흐름 보기</Text>
+            <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />
+          </PressableScale>
+
+          <View style={{ marginTop: 16 }}>
+            <PromoCard
+              variant="figma"
+              tone="lime"
+              title="오늘 마음에 걸리는 일 있나요?"
+              desc="털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요"
+              cta={consultFreeLeft > 0 ? `오늘 무료 상담 ${consultFreeLeft}번 남음 →` : `${consultCost} · 상담 시작하기 →`}
+              coin={consultFreeLeft <= 0}
+              onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
+              accessibilityLabel="고민 상담하기"
+            />
+          </View>
+
+          <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 79 }} title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={openCombined} />
           <View style={s.grid}>
             <View style={s.gridRow}>
               <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
@@ -534,8 +552,10 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <SectionHeader title="더 깊이 보기" caption={COPY.deeper} />
+          <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 87 }} title="더 깊이 보기" caption={COPY.deeper} />
           <PromoCard
+            variant="figma"
+            badgePlacement="inline"
             tone="gold"
             isNew
             title="미래 배우자 리포트"
@@ -547,11 +567,11 @@ export default function HomeScreen() {
           />
           <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} style={s.link} scaleTo={0.98}>
             <Text style={s.linkText}>평생운 · 신년운세 · 월별운세 · 테마 운세 · 길일</Text>
-            <Icon name="chevronRight" size={16} color={colors.ink} />
+            <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />
           </PressableScale>
 
           <Text style={s.tomorrow}>{COPY.tomorrow}</Text>
-          <Disclaimer compact />
+          <Disclaimer compact mt={17} />
           <BusinessFooter style={{ marginTop: 28 }} />
         </View>
       </ScrollView>
@@ -563,78 +583,93 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
+  skyBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
+  clouds: { position: 'absolute', left: 0, width: '100%', height: 406 },
+  cloudFade: { position: 'absolute', left: 0, right: 0, height: 122 },
   sky: { position: 'absolute', top: -400, left: 0, right: 0 },
   overscrollTop: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%' },
   devControls: { flexDirection: 'row', flexWrap: 'wrap', flexShrink: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   devReset: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
-  hello: { ...txt.title, marginTop: 8 },
-  date: { fontSize: 14, fontWeight: '500', color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.5, marginTop: 6 },
+  hello: { ...sansW('800'), ...(Platform.OS !== 'web' && { fontFamily: 'Pretendard-ExtraBold' }), fontSize: 24, lineHeight: 29, letterSpacing: -0.96, color: colors.ink, includeFontPadding: false },
+  date: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.56, marginTop: 7, includeFontPadding: false },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.accent },
   noticeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
 
-  bubbleWrap: { marginTop: 20, marginHorizontal: 19 },
-  bubble: { flexDirection: 'row', alignItems: 'center', gap: 24, minHeight: 72, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 14, backgroundColor: colors.cream },
-  bubbleBody: { flex: 1, gap: 4 },
-  bubbleScore: { fontSize: 32, fontWeight: '600', color: colors.ink, letterSpacing: -1.3, fontVariant: ['tabular-nums'] },
-  bubbleText: { flex: 1, fontSize: 16, lineHeight: 19, fontWeight: '600', color: colors.ink, letterSpacing: -0.6 },
-  mascotTags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: -12, marginBottom: 16, paddingHorizontal: SCREEN_PX },
-  // 해시태그 칩: 흰 바탕 + 얇은 테두리 + 옅은 푸른 그림자 (다크는 같은 느낌을 면 색으로만)
+  bubbleWrap: { marginTop: 10, marginHorizontal: 19 },
+  bubble: { flexDirection: 'row', alignItems: 'center', gap: 24, minHeight: 82, paddingVertical: 13, paddingHorizontal: 24, borderRadius: 24, backgroundColor: isDark ? colors.cream : 'transparent' },
+  bubbleArt: { position: 'absolute', top: -5, left: -9, right: -9, bottom: -32 },
+  bubbleBody: { flex: 1, gap: 4, paddingRight: 5 },
+  bubbleScore: { ...sansW('700'), fontSize: 32, lineHeight: 38, minWidth: 40, textAlign: 'center', color: colors.ink, letterSpacing: -1.28, fontVariant: ['tabular-nums'], includeFontPadding: false },
+  bubbleText: { ...sansW('600'), flex: 1, fontSize: 16, lineHeight: 19, color: colors.ink, letterSpacing: -0.64, includeFontPadding: false },
+  bubbleDelta: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: -0.48, includeFontPadding: false },
+  mascotTags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: -12, marginBottom: 20, paddingHorizontal: 0 },
+  // Figma 키워드 칩: 흰 바탕, 10×6 패딩, 옅은 하늘색 그림자
   tagChip: {
-    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
-    backgroundColor: isDark ? colors.surface : 'rgba(255,255,255,0.7)',
-    borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
-    shadowColor: '#1E8FD6', shadowOpacity: isDark ? 0 : 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: isDark ? 0 : 2,
+    borderRadius: 24, paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: isDark ? colors.surface : '#FFFFFF',
+    borderWidth: isDark ? 1 : 0, borderColor: 'rgba(255,255,255,0.06)',
+    shadowColor: '#28B2FE', shadowOpacity: isDark ? 0 : 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 4 }, elevation: isDark ? 0 : 2,
   },
-  mascotTag: { fontSize: TAG_FONT, fontWeight: '600', color: TAG_INK, letterSpacing: -0.5 },
+  mascotTag: { ...sansW('600'), fontSize: TAG_FONT, lineHeight: 18, color: TAG_INK, letterSpacing: -0.65, includeFontPadding: false },
   tail: { position: 'absolute', left: 52, bottom: -7, width: 16, height: 16, borderRadius: 3, backgroundColor: colors.cream, transform: [{ rotate: '45deg' }] },
 
   ringSealed: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.line },
   ringQ: { fontSize: 24, fontWeight: '700', color: colors.inkMute },
-  todaySealed: { alignItems: 'center', paddingVertical: 22 },
+  todaySealed: { alignItems: 'center', paddingTop: 22, paddingBottom: 22 },
   sealedText: { fontSize: 13, lineHeight: 19, color: colors.inkMute, letterSpacing: -0.5, textAlign: 'center', marginTop: 8 },
-  rings: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingHorizontal: 6 },
-  ringCell: { alignItems: 'center', gap: 4 },
+  rings: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingLeft: 6, paddingRight: 5 },
+  ringCell: { alignItems: 'center', gap: 8 },
+  ringNumber: { ...sansW('700'), fontSize: 24, lineHeight: 29, letterSpacing: -0.96, includeFontPadding: false },
+  ringDeltaWrap: { marginTop: -2 },
+  ringDelta: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: -0.48, includeFontPadding: false },
   ringLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ringText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5 },
+  ringText: { ...sansW('600'), width: 24, fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },
 
-  today: { marginTop: 24, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  todayHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  todayTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  today: { marginTop: 24, padding: 16, paddingBottom: 11, borderRadius: radius.lg, backgroundColor: colors.card },
+  todayHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  todayTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },
   todayMore: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  todayMoreText: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
-  todayStory: { fontSize: 14, lineHeight: 21, color: colors.ink, letterSpacing: -0.5, marginTop: 8 },
-  luckyBox: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
-  lucky: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  todayMoreText: { ...sansW('500'), minWidth: 47, textAlign: 'right', fontSize: 13, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.52, includeFontPadding: false },
+  todayStory: { ...sansW('400'), fontSize: 13, lineHeight: 18, color: isDark ? colors.ink : '#000000', letterSpacing: -0.65, marginTop: 8, includeFontPadding: false },
+  luckyBox: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.xs, backgroundColor: colors.surface },
+  lucky: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, rowGap: 8 },
+  luckyExpandable: { paddingRight: 18 },
+  luckChevron: { position: 'absolute', right: 0, top: 0 },
   luckChevronOpen: { transform: [{ rotate: '180deg' }] },
   luckWhy: { gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   luckWhyRow: { flexDirection: 'row', gap: 8 },
   luckWhyK: { width: 28, fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.5 },
   luckWhyV: { flex: 1, fontSize: 12, lineHeight: 18, color: colors.inkSub, letterSpacing: -0.5 },
-  luck: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  luckK: { fontSize: 13, fontWeight: '500', color: colors.inkMute, letterSpacing: -0.5 },
-  luckV: { fontSize: 13, fontWeight: '500', color: colors.ink, letterSpacing: -0.5, flexShrink: 1 },
+  luck: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  luckColor: { gap: 6 },
+  luckColorValue: { marginLeft: -1 },
+  luckK: { ...sansW('500'), fontSize: 13, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.52, includeFontPadding: false },
+  luckV: { ...sansW('500'), fontSize: 13, lineHeight: 16, color: colors.ink, letterSpacing: -0.52, includeFontPadding: false },
   swatch: { width: 16, height: 16, borderRadius: 8 },
 
   link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, height: 48, paddingHorizontal: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  linkText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, flexShrink: 1 },
+  linkText: { ...sansW('600'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, flexShrink: 1, includeFontPadding: false },
+
+  // Figma의 AUTO 행간 텍스트는 높이 16px 고정 칸 안에 놓여 있다.
+  periodLinkText: { height: 16 },
 
   freeCard: { width: 116, height: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  freeHeader: { marginTop: 32, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  freeHeading: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0, color: colors.ink, includeFontPadding: false },
-  freeDivider: { width: 1, height: 14, backgroundColor: '#999999' },
+  freeHeader: { marginTop: 16, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  freeHeading: { ...sansW('600'), minWidth: 98, fontSize: 18, lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000', includeFontPadding: false },
+  freeDivider: { width: 0, height: 14 },
+  freeDividerLine: { position: 'absolute', left: -0.5, width: 1, height: 14, backgroundColor: '#999999' },
   freeCaption: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, flexShrink: 1, includeFontPadding: false },
   freeMore: { marginLeft: 'auto' },
   freeTalisman: { backgroundImage: isDark ? undefined : 'linear-gradient(221.36886913927867deg, #FFD277 33.96%, #FDFCF5 62.549%, #FFE399 95.265%)' },
   freeMbti: { backgroundColor: '#1D212D' },
-  freeCharacter: { backgroundColor: isDark ? colors.card : '#DCE5F8' },
+  freeCharacter: { backgroundColor: isDark ? colors.card : '#DFE9FF' },
   freePast: { backgroundColor: isDark ? colors.card : '#F2EEFB' },
   freeInvite: { backgroundColor: isDark ? colors.card : '#F0F6FF' },
   freeTop: { height: 39, marginBottom: 8, justifyContent: 'center' },
   freeInsetArt: { marginLeft: -3 },
   freeLastArt: { transform: [{ translateY: -1 }] },
-  freeCharacterArt: { position: 'absolute', left: -3, top: -8 },
   freeBig: { ...sansW('700'), fontSize: 24, color: '#FFFFFF', letterSpacing: -0.5 },
   freeQ: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
   freeQText: { fontSize: 12, fontWeight: '800', color: colors.white },
@@ -646,7 +681,7 @@ const s = StyleSheet.create({
   freeSub: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: isDark ? colors.inkSub : '#555555', letterSpacing: -0.65, marginTop: 4, includeFontPadding: false },
   freeSubDark: { color: '#999999' },
 
-  grid: { gap: 16 },
+  grid: { gap: 16, marginRight: -1 },
   gridRow: { flexDirection: 'row', gap: 20 },
-  tomorrow: { fontSize: 14, fontWeight: '700', color: '#838383', textAlign: 'center', marginTop: 32, letterSpacing: -0.5 },
+  tomorrow: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: '#838383', textAlign: 'center', marginTop: 26, letterSpacing: -0.56, includeFontPadding: false },
 });

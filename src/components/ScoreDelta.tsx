@@ -10,7 +10,7 @@ export { scoreDeltaLabel };
  * 어제 대비 표시: 바탕 없이 오르면 빨강 +4, 내리면 파랑 −4 (하이픈 대신 +와 폭이 같은 빼기 기호). prefix는 칩 안 앞쪽 글자 ('어제보다').
  * delay를 주면 그만큼 기다렸다가 톡 튀어나온다 (점수 카운트업이 끝난 뒤).
  */
-export default function ScoreDelta({ now, before, delay, prefix, small, style }: { now: number; before?: number | null; delay?: number; prefix?: string; small?: boolean; style?: StyleProp<ViewStyle> }) {
+export default function ScoreDelta({ now, before, delay, prefix, small, style, textStyle }: { now: number; before?: number | null; delay?: number; prefix?: string; small?: boolean; style?: StyleProp<ViewStyle>; textStyle?: StyleProp<TextStyle> }) {
   const d = scoreDelta(now, before);
   const reduced = useReducedMotion();
   const [pop] = useState(() => new Animated.Value(delay == null ? 1 : 0));
@@ -26,7 +26,7 @@ export default function ScoreDelta({ now, before, delay, prefix, small, style }:
       style={[s.chip, small && s.chipSmall, { opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }, style]}
       importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
     >
-      <Animated.Text style={[s.text, small && s.textSmall, { color: up ? colors.danger : colors.work }]}>{prefix ? <Animated.Text style={s.prefix}>{prefix} </Animated.Text> : null}{up ? '+' : '\u2212'}{Math.abs(d)}</Animated.Text>
+      <Animated.Text style={[s.text, small && s.textSmall, { color: up ? colors.danger : colors.work }, textStyle]}>{prefix ? <Animated.Text style={s.prefix}>{prefix} </Animated.Text> : null}{up ? '+' : '\u2212'}{Math.abs(d)}</Animated.Text>
     </Animated.View>
   );
 }

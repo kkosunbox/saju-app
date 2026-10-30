@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deviceKey } from '../storage/storageService';
 import { useApp } from '../../context/AppContext';
+import { DEV_TOOLS } from '../../utils/devTools';
 
 export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
 const DAILY: OpenKind[] = ['fortune', 'talisman'];
@@ -41,7 +42,7 @@ function save(uid: string, kind: OpenKind, stamp: string | undefined) {
 /**
  * ready: 저장된 값을 읽었는지 (읽기 전엔 봉인도 결과도 그리지 않는다 — 깜빡임 방지)
  * opened: 이미 뽑았는지 (운세·부적은 오늘 날짜로) · open(): 뽑았다고 기록 (홈 타일도 같이 바뀐다)
- * reset(): 뽑은 기록을 지워 다시 뽑기 전으로 (테스트용)
+ * reset(): 다시 뽑기 전으로 (테스트용). 오늘의 운세는 서버 기록보다 우선하는 기기별 초기화 도장을 둔다.
  */
 export function useOpened(kind: OpenKind) {
   const { user, today, fortune, fortuneError } = useApp();
@@ -60,12 +61,16 @@ export function useOpened(kind: OpenKind) {
   }, [uid]);
 
   const open = useCallback(() => { if (uid) save(uid, kind, stamp); }, [uid, kind, stamp]);
-  const reset = useCallback(() => { if (uid) save(uid, kind, undefined); }, [uid, kind]);
+  const reset = useCallback(() => {
+    if (uid) save(uid, kind, kind === 'fortune' && DEV_TOOLS ? `reset:${stamp}` : undefined);
+  }, [uid, kind, stamp]);
   const local = daily ? stamps?.[kind] === stamp : !!stamps?.[kind];
   if (kind !== 'fortune') return { ready: !!stamps, opened: local, open, reset };
   // 오늘의 운세는 서버도 뽑았는지 기억한다 (다른 기기에서 뽑았으면 여기서도 뽑은 것) — 운세가 오기 전엔 봉인을 그리지 않는다
   const server = !!fortune?.drawn && fortune.date === today;
-  return { ready: !!stamps && (local || !!fortune || !!fortuneError), opened: local || server, open, reset };
+  // 테스트 초기화는 이 기기·오늘에만 적용한다. 새로고침에도 유지되고, open()이 오늘 도장으로 덮어쓰면 해제된다.
+  const resetToday = DEV_TOOLS && stamps?.fortune === `reset:${stamp}`;
+  return { ready: !!stamps && (local || !!fortune || !!fortuneError), opened: !resetToday && (local || server), open, reset };
 }
 
 /** 결과 화면에 다른 길(알림·링크·기간별 운세)로 먼저 들어왔으면 그걸로 뽑은 셈 */

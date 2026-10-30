@@ -29,12 +29,14 @@ export default function Segmented<T extends string>({ options, value, onChange, 
             key={o.key}
             style={s.item}
             accessibilityRole="tab"
+            accessibilityLabel={o.sub ? `${o.label} ${o.sub}` : o.label}
             accessibilityState={{ selected: on }}
             onPress={() => { if (!on) { Haptics.selectionAsync().catch(() => {}); onChange(o.key); } }}
           >
-            <View style={[s.content, variant === 'figma' && { gap: 4 }]}>
+            <View style={[s.content, variant === 'figma' && { gap: 4, width: '100%' }]}>
               {o.renderIcon?.(on)}
-              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? (isDark ? colors.ink : '#252525') : '#808080')]}>{o.label}{o.sub ? <Text style={s.sub}> {o.sub}</Text> : null}</Text>
+              <Text style={[s.label, on && s.labelOn, variant === 'figma' && profileType(14, on ? '700' : '500', 17, 0, on ? (isDark ? colors.ink : '#252525') : '#808080')]}>{o.label}{variant !== 'figma' && o.sub ? <Text style={s.sub}> {o.sub}</Text> : null}</Text>
+              {variant === 'figma' && o.sub ? <Text style={[s.sub, { position: 'absolute', right: 8 }]}>{o.sub}</Text> : null}
             </View>
           </Pressable>
         );

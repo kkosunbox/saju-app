@@ -248,9 +248,10 @@ export default function MascotPolish({ busy, reduced, size, variant = 'original'
             <ClothFrame key={index} source={source} index={index} motion={pose} />
           ))}
         </Animated.View>
-        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0} size={size * 0.3} left={size * 0.88} top={size * 0.02} />
-        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.07} size={size * 0.19} left={-size * 0.06} top={size * 0.77} />
-        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.13} size={size * 0.12} left={size * 0.12} top={size * 0.28} />
+        {/* 왼쪽 위 · 오른쪽 아래 · 왼쪽 아래 — 오른쪽 위 하트 소품과 겹치지 않게. 링(DrawMascot RING) 밖으로 나가면 아래 콘텐츠에 가려진다 */}
+        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0} size={size * 0.3} left={-size * 0.18} top={size * 0.08 + 10} />
+        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.07} size={size * 0.19} left={size * 1.03} top={size * 0.82} />
+        <Sparkle phase={phase} cloth={cloth} finish={finish} delay={0.13} size={size * 0.12} left={-size * 0.06} top={size * 0.92} />
       </View>
     </View>
   );

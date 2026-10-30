@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
-import { Animated, Text, View } from 'react-native';
+import { Animated, StyleProp, Text, TextStyle, View } from 'react-native';
 import Svg, { Circle, CircleProps, Defs, LinearGradient, Stop } from 'react-native-svg';
 import AnimatedNumber from './AnimatedNumber';
 import { useReducedMotion, motion } from '../utils/motion';
@@ -25,6 +25,11 @@ interface Props {
   /** 링 안쪽을 채우는 원 색 (디자인의 점수 동그라미) */
   inner?: string;
   fontSize?: number;
+  numberStyle?: StyleProp<TextStyle>;
+  /** 디자인에 원 안쪽 크기가 따로 지정된 경우 */
+  innerSize?: number;
+  inset?: number;
+  gradientEndColor?: string;
   /** 스크린리더 문구 (기본 'N점') */
   accessibilityLabel?: string;
   /** 숫자 아래에 작게 붙이는 것 (어제 대비 칩 등) */
@@ -34,14 +39,14 @@ interface Props {
 /** 위에서부터 차오르는 점수 링(진한 색 → 옅은 회색 그라디언트) + 숫자 카운트업 */
 export default function ScoreRing({
   score, size = 132, stroke = 9, color = '#D9B872', track = 'rgba(255,255,255,0.14)',
-  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize, accessibilityLabel, children,
+  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize, numberStyle, innerSize, inset = 2, gradientEndColor, accessibilityLabel, children,
 }: Props) {
   const reduced = useReducedMotion();
   // React 19.1의 useId는 «r0» 형식 → SVG url(#id)에 쓸 수 없는 문자를 모두 제거
   const gid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const startsFinished = !animate || reduced;
   const progress = useRef(new Animated.Value(startsFinished ? score : 0)).current;
-  const r = (size - stroke) / 2 - 2;
+  const r = (size - stroke) / 2 - inset;
   const c = 2 * Math.PI * r;
 
   useEffect(() => {
@@ -61,10 +66,10 @@ export default function ScoreRing({
         <Defs>
           <LinearGradient id={`ring${gid}`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={color} stopOpacity={1} />
-            <Stop offset="1" stopColor={color} stopOpacity={0.12} />
+            <Stop offset="1" stopColor={gradientEndColor ?? color} stopOpacity={gradientEndColor ? 1 : 0.12} />
           </LinearGradient>
         </Defs>
-        {inner ? <Circle cx={size / 2} cy={size / 2} r={r - stroke / 2 - 2} fill={inner} /> : null}
+        {inner ? <Circle cx={size / 2} cy={size / 2} r={innerSize != null ? innerSize / 2 : r - stroke / 2 - 2} fill={inner} /> : null}
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
         <AnimatedCircle
           cx={size / 2} cy={size / 2} r={r}
@@ -76,7 +81,7 @@ export default function ScoreRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={{ fontFamily: fonts.serif, fontSize: fontSize ?? size * 0.32, fontWeight: '700', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }} />
+      <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={[{ fontFamily: fonts.serif, fontSize: fontSize ?? size * 0.32, fontWeight: '700', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }, numberStyle]} />
       {label ? <Text style={{ fontSize: 12, fontWeight: '600', color: textColor, opacity: 0.75, marginTop: -2 }}>{label}</Text> : null}
       {children}
     </View>
