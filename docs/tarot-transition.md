@@ -22,7 +22,7 @@
 
 1. 서버의 nullable 프로필 컬럼과 API를 먼저 반영한다. SQL은 서버 저장소의 `scripts/sql/20261031-tarot-profile.sql`에 있다. 현재 dev/prod 설정의 schema sync도 같은 변경을 적용한다.
 2. 신규·기존·게스트 전환 프로필과 기존 구매 기록을 데브에서 확인한다. 특히 새 null 프로필을 이전 앱에서 여는 경우는 기기 검증이 필요하다.
-3. 웹과 앱을 갱신한다. 앱 배포 전 fingerprint를 확인한다. 이번 작업에는 app.json의 소개 문구 변경도 포함되어 있다.
+3. 웹과 앱을 갱신한다. 앱 배포 전 fingerprint를 확인한다. app.json의 description은 기존 내부 테스트 빌드와 동일하게 유지한다. 소개 문구만 바꿔도 fingerprint가 달라지므로, 네이티브 소개 문구 변경은 다음 새 빌드 때 반영한다. 앱 화면·웹 소개·AI 풀이에는 타로를 사용한다.
 4. production OTA는 별도 명시적인 요청이 있을 때만 진행한다.
 
 ## 검증
