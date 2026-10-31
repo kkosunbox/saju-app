@@ -30,6 +30,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const INPUT_MAX = 110;
 const LOCK_ICON = require('../../../assets/figma/consult/lock-closed.svg');
 const LOCKED_DAY_ICON = require('../../../assets/figma/consult/locked-day.svg');
+const LOCKED_WEEKDAY = require('../../../assets/figma/consult/locked-weekday.png');
 const SEND_ARROW = require('../../../assets/figma/consult/send-arrow.svg');
 const HEADLINE_BACKGROUND = require('../../../assets/figma/consult/headline-background.svg');
 const LOCK_COIN = require('../../../assets/figma/consult/coin.png');
@@ -380,7 +381,10 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
           <Text style={[s.peekK, { marginTop: 3 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
           <View style={s.peekDays}>
             {Array.from({ length: T.goodDayCount }, (_, i) => (
-              <View key={i} style={[s.peekDayBox, { flex: 84 + i }]}><Image source={LOCKED_DAY_ICON} style={s.lockImage} contentFit="contain" /></View>
+              <View key={i} style={[s.peekDayBox, { flex: 84 + i }]}>
+                <Image source={LOCKED_WEEKDAY} style={s.peekDayText} contentFit="contain" accessible={false} />
+                <Image source={LOCKED_DAY_ICON} style={s.lockImage} contentFit="contain" />
+              </View>
             ))}
           </View>
         </View>
@@ -566,6 +570,7 @@ const s = StyleSheet.create({
   peekBarCol: { flex: 1, height: 40, alignItems: 'center', paddingTop: 5, borderRadius: 8, backgroundColor: colors.surface, gap: 4 },
   peekBarV: { ...sansW('600'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
   peekMonth: { ...sansW('400'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
+  peekDayText: { position: 'absolute', top: 5, width: 47, height: 28 },
   peekDayBox: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.surface },
   // 전체 답 (Figma 운픽_2_2)
   box: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },

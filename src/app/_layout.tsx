@@ -118,15 +118,13 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="past-life" />
           <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         </Stack.Protected>
-        {/* 로그인·약관: 프로필 입력 전(이미 계정이 있는 사람)과 후 모두 */}
-        <Stack.Protected guard={onboarded} redirectTo={home}>
-          <Stack.Screen name="login/index" />
-          <Stack.Screen name="login/email" />
-          <Stack.Screen name="signup" />
-          <Stack.Screen name="signup-terms" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="find-password" />
-          <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        </Stack.Protected>
+        {/* 로그인·약관: 온보딩에서 프로필 입력을 거치지 않고 바로 열 수 있다 */}
+        <Stack.Screen name="login/index" />
+        <Stack.Screen name="login/email" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="signup-terms" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="find-password" />
+        <Stack.Screen name="login/social/[provider]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
             보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
         <Stack.Screen name="invite/[token]" />

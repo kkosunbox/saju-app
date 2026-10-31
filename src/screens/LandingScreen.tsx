@@ -59,7 +59,7 @@ export default function LandingScreen() {
   const insets = useSafeAreaInsets();
   const safeTop = webSafeTop(insets.top);
   const start = () => { completeOnboarding(); };
-  const login = async () => { await completeOnboarding(); router.push('/login'); };
+  const login = () => router.push('/login');
 
   // 떠 있는 버튼: 히어로가 지나가면 보이고, 마지막 버튼이 화면에 들어오면 숨긴다
   const [heroH, setHeroH] = useState(0);

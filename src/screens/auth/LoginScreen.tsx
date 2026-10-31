@@ -8,6 +8,7 @@ import BottomSheet from '../../components/BottomSheet';
 import Icon from '../../components/Icon';
 import { SocialCircle } from '../../components/auth/AuthKit';
 import { usePremium } from '../../context/PremiumContext';
+import { useApp } from '../../context/AppContext';
 import { SocialProvider } from '../../components/auth/socialLabels';
 import { getFriendResult, getPendingInvite } from '../../services/share/linkShare';
 import { storage } from '../../services/storage/storageService';
@@ -22,6 +23,11 @@ const PROVIDERS: SocialProvider[] = (['kakao', 'naver', 'apple', 'google'] as co
 export default function LoginScreen() {
   const nav = useNavigation();
   const { toast } = usePremium();
+  const { onboarded, completeOnboarding } = useApp();
+  // 로그인 화면이 열린 뒤 완료 처리해야 온보딩의 보호 경로가 프로필 입력으로 먼저 보내지 않는다.
+  useEffect(() => {
+    if (!onboarded) void completeOnboarding();
+  }, [onboarded, completeOnboarding]);
   const [help, setHelp] = useState(false);
   // 친구가 보낸 결과·궁합 초대 링크로 들어왔다면 가입 전에 먼저 보여준다
   const [gift, setGift] = useState<{ who: string; what: string; line: string } | null>(null);

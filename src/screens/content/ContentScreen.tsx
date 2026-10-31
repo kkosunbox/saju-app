@@ -67,8 +67,7 @@ export default function ContentScreen() {
   const [soonAll, setSoonAll] = useState(false);
   useEffect(() => { loadNotify().then(setNotify); }, []);
   if (!user) return null;
-  const bOwned = owned(BUNDLE.key);
-  const bundle = bOwned ? BUNDLE : bundleFor(owned);
+  const bundle = owned(BUNDLE.key) ? null : bundleFor(owned);
 
 
   const FREE: [ArtName, string, string, () => void][] = [
@@ -137,15 +136,11 @@ export default function ContentScreen() {
           <MascotPeek width={112} top={7.5} opacity={0.55} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 18 }}>
             <Text style={s.bundleT}>인생 패키지</Text>
-            <View style={[s.bundleTag, bOwned && s.bundleTagOwned]}><Text style={[s.bundleTagText, bOwned && s.bundleTagOwnedText]}>{bOwned ? '보유 중' : '21% 할인'}</Text></View>
+            <View style={s.bundleTag}><Text style={s.bundleTagText}>21% 할인</Text></View>
           </View>
           <Text style={s.bundleD}>{bundle.desc}</Text>
-          {bOwned ? null : (
-            <>
-              <Text style={s.bundleOrig}>{fmtN(bundle.orig!)}알</Text>
-              <PrimaryButton label={`${fmtN(bundle.cost)}알로 전부 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={s.bundleButton} labelStyle={s.bundleButtonText} small />
-            </>
-          )}
+          <Text style={s.bundleOrig}>{fmtN(bundle.orig!)}알</Text>
+          <PrimaryButton label={`${fmtN(bundle.cost)}알로 전부 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={s.bundleButton} labelStyle={s.bundleButtonText} small />
         </GradientBorder>
       )}
 
@@ -237,8 +232,6 @@ const s = StyleSheet.create({
   bundleTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: colors.seal },
   bundleTagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, color: colors.seal, letterSpacing: 0 },
   // 보유 중 — Figma 칩: 0.5 테두리 · 좌우 4
-  bundleTagOwned: { paddingHorizontal: 4, borderWidth: 0.5, borderColor: '#FF6F35' },
-  bundleTagOwnedText: { color: '#FF6F35' },
   bundleD: { ...sansW('400'), fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65, marginTop: 8, paddingRight: 64 },
   bundleOrig: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, textDecorationLine: 'line-through', marginTop: 4 },
   bundleButton: { marginTop: 12, marginHorizontal: -4 },
