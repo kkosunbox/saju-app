@@ -63,6 +63,21 @@ export interface AnalysisResult {
   scoreBias: { love: number; money: number; work: number; relationship: number }; // -10 ~ +10
   /** 점성술만: 서양 · 인도 · 태국 각각의 풀이 (예전에 저장된 운세에는 없다) */
   systems?: AstroSystemReading[];
+  /** 혈액형만: 속설을 사주로 판정한 결과와 오늘의 모드 (예전에 저장된 운세에는 없다) */
+  blood?: BloodReading;
+}
+
+/** 혈액형 페이지 (server: blood-reading.ts) — 혈액형은 속설로만 다루고, 판정은 사주가 한다 */
+export interface BloodReading {
+  type: BloodType;
+  /** "O형은 대범하다" */
+  saying: string;
+  verdict: '꽤 맞아요' | '반만 맞아요' | '사주는 반대예요';
+  reason: string;
+  /** 오늘 기운에 맞는 모드 (내 혈액형과 다를 수 있다) */
+  todayMode: BloodType;
+  todayEnergy: string;
+  modes: { type: BloodType; mode: string; does: string }[];
 }
 
 export interface AstroSystemReading {

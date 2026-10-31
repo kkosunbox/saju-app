@@ -26,13 +26,14 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
   const setScratching = (on: boolean) => {
     if (scratching.current === on) return;
     scratching.current = on;
+    lockSelection(on);
     onScratching?.(on);
   };
-  // 긁는 도중 다 걷히면 손을 떼기 전에 덮개가 사라져 Release가 오지 않는다 — 스크롤이 잠긴 채 남지 않게 풀어 준다
+  // 긁는 도중 다 걷히면 손을 떼기 전에 덮개가 사라져 Release가 오지 않는다 — 스크롤·선택이 잠긴 채 남지 않게 풀어 준다
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => () => { if (scratching.current) onScratching?.(false); }, []);
+  useEffect(() => () => { if (scratching.current) { lockSelection(false); onScratching?.(false); } }, []);
 
-  // 웹에서 마우스로 긁으면 끌기가 글자 선택으로 번져 화면 글자가 칠해진다 — 누르는 순간 선택을 막는다
+  // 웹에서 긁으면 끌기가 글자 선택으로 번져 화면 글자가 칠해진다 — 누르는 순간 선택·끌기·길게 누르기 메뉴를 막는다
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const el = plate.current as unknown as HTMLElement | null;
@@ -40,9 +41,13 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
     const noSelect = (e: Event) => e.preventDefault();
     el.addEventListener('mousedown', noSelect);
     el.addEventListener('dragstart', noSelect);
+    el.addEventListener('selectstart', noSelect);
+    el.addEventListener('contextmenu', noSelect);
     return () => {
       el.removeEventListener('mousedown', noSelect);
       el.removeEventListener('dragstart', noSelect);
+      el.removeEventListener('selectstart', noSelect);
+      el.removeEventListener('contextmenu', noSelect);
     };
   }, []);
 
@@ -122,7 +127,19 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
 const NO_PAN = (Platform.OS === 'web' ? { touchAction: 'none' } : {}) as object;
 
 // 웹에서 긁을 때 글자가 선택되지 않게 — RN 타입은 userSelect를 Text 스타일에만 둔다
-const NO_SELECT = { userSelect: 'none' } as object;
+const NO_SELECT = { userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as object;
+
+/** 웹: 긁는 동안 손가락이 덮개 밖으로 나가도 화면 글자가 선택되지 않게 문서 전체의 선택을 잠근다 */
+const blockSelect = (e: Event) => e.preventDefault();
+function lockSelection(on: boolean) {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  const body = document.body.style as CSSStyleDeclaration & { webkitUserSelect: string };
+  body.userSelect = body.webkitUserSelect = on ? 'none' : '';
+  if (on) {
+    document.getSelection()?.removeAllRanges();
+    document.addEventListener('selectstart', blockSelect);
+  } else document.removeEventListener('selectstart', blockSelect);
+}
 
 const s = StyleSheet.create({
   hint: { position: 'absolute', left: 0, right: 0, bottom: 28, alignItems: 'center' },

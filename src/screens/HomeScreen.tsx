@@ -301,7 +301,7 @@ export default function HomeScreen() {
   const a = fortune.analyses;
   const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.blood.tags]);
 
-  // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다 (뽑기 전엔 '?' 봉인)
+  // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다
   type Free = { k: string; art?: ArtName; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
   const FREE = ([
     { k: 'tal', art: 'talisman', title: '오늘의 부적', sub: tal?.keyword ?? '…', go: () => nav.navigate('Talisman') },
@@ -492,7 +492,7 @@ export default function HomeScreen() {
 
           {hidden ? null : later(1050, (
             <View style={{ marginTop: 16 }}>
-              <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
+              <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
             </View>
           ))}
           <View style={s.freeHeader}>
@@ -513,8 +513,7 @@ export default function HomeScreen() {
                   : x.art || x.sealed ? <Mascot name={x.art ?? 'mbti'} size={39} style={x.k !== 'tal' ? [s.freeInsetArt, (x.k === 'past' || x.k === 'inv') && s.freeLastArt] : undefined} /> : <Text style={s.freeBig} numberOfLines={1}>{x.big}</Text>}
               </View>
               {/* 뽑기 전 표시는 카드 오른쪽 위 — NEW는 그 아래에 */}
-              {x.sealed ? <View style={[s.freeQ, x.k === 'mbti' && s.freeQDark]}><Text style={s.freeQText}>?</Text></View> : null}
-              {x.isNew ? <View style={[s.freeNew, x.sealed && { top: 40 }]}><Text style={s.freeNewText}>NEW</Text></View> : null}
+              {x.isNew ? <View style={s.freeNew}><Text style={s.freeNewText}>NEW</Text></View> : null}
               <Text style={[s.freeTitle, x.k === 'mbti' && s.freeTitleDark]}>{x.title}</Text>
               <Text style={[s.freeSub, x.k === 'mbti' && s.freeSubDark]} numberOfLines={1}>{x.sub}</Text>
             </PressableScale>
@@ -671,9 +670,6 @@ const s = StyleSheet.create({
   freeInsetArt: { marginLeft: -3 },
   freeLastArt: { transform: [{ translateY: -1 }] },
   freeBig: { ...sansW('700'), fontSize: 24, color: '#FFFFFF', letterSpacing: -0.5 },
-  freeQ: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
-  freeQText: { fontSize: 12, fontWeight: '800', color: colors.white },
-  freeQDark: { backgroundColor: colors.accent },
   freeNew: { position: 'absolute', top: 16, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },
   freeNewText: { fontSize: 9, fontWeight: '800', color: colors.white, letterSpacing: 0.3 },
   freeTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },

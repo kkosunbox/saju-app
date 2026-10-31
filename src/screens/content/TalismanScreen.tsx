@@ -157,7 +157,7 @@ export default function TalismanScreen() {
             <Path d="M10 17.4C7.5 15.1 2.2 14.5 0 14.5C2 12.2 6.2 11.3 10 11.1L12 11V18Z" fill="#FFFFFF" />
           </Svg>
           <View style={s.bubble}>
-            <Text style={s.bubbleText} numberOfLines={2} adjustsFontSizeToFit>
+            <Text style={s.bubbleText}>
               {u.nickname}님,{'\n'}
               {sealed ? '오늘의 부적을 긁어 열어 보세요!' : <>오늘은 <Text style={s.bubbleStrong}>{t.keyword} ({t.hanja})</Text> 부적이 딱이에요!</>}
             </Text>
@@ -237,7 +237,7 @@ const s = StyleSheet.create({
   frameBg: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 20 },
   mascot: { position: 'absolute', left: 29, top: 21, width: 53, height: 53 },
   tail: { position: 'absolute', left: 89, top: 18 },
-  bubble: { position: 'absolute', left: 98, top: 18, width: 187, height: 58, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+  bubble: { position: 'absolute', left: 98, top: 18, width: 187, minHeight: 58, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center', borderRadius: 12, backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   bubbleText: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: '#222222' },
   bubbleStrong: { ...sansW('800'), color: '#BC3827' },
   paperWrap: { position: 'absolute', left: 24, top: 108, width: W, height: H, borderRadius: 32, ...SHADOW },
