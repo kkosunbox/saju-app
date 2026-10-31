@@ -3,19 +3,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
 import ScoreRing from '../components/ScoreRing';
-import Card from '../components/Card';
 import Seal from '../components/Seal';
 import SectionHeader from '../components/SectionHeader';
 import Stars from '../components/Stars';
 import ScoreDelta, { scoreDeltaLabel } from '../components/ScoreDelta';
 import Disclaimer from '../components/Disclaimer';
-import Icon from '../components/Icon';
 import { useApp } from '../context/AppContext';
 import { AlmanacHero, Figure, Ledger } from '../components/Almanac';
 import { ACTION_NOTE } from '../data/keywords';
 import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, categoryTheme, colors } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -34,7 +31,9 @@ export default function CategoryDetailScreen() {
   const score = f[params.category];
   const yesterday = fortune.yesterdayScores?.[params.category];
   const a = fortune.analyses;
-  const contributions = [a.saju, a.thai, a.mbti, a.blood].map(x => ({ key: x.source, v: x.scoreBias[params.category] }));
+  const contributions = (['saju', 'thai', 'mbti', 'tarot'] as const)
+    .filter(key => f.viewpointImpacts || a[key])
+    .map(key => ({ key, v: f.viewpointImpacts?.[key][params.category] ?? a[key]!.scoreBias[params.category] }));
   const maxAbs = Math.max(8, ...contributions.map(c => Math.abs(c.v)));
 
   return (
@@ -53,7 +52,7 @@ export default function CategoryDetailScreen() {
         </View>
       </AlmanacHero>
 
-      <Figure title="관점별 영향" caption="이 분야 점수를 움직인 정도">
+      <Figure title="관점별 영향" caption={f.viewpointImpacts ? '각 관점 반영 전후의 점수 차이 · 합산하지 않아요' : '이전에 계산된 운세의 관점별 신호예요'}>
         <View style={{ gap: 14 }}>
           {contributions.map(c => {
             const at = analysisTheme[c.key];

@@ -10,5 +10,5 @@ export default function GuideRoute() {
 
 // 웹 정적 렌더링: 경로별 HTML을 미리 만든다.
 export function generateStaticParams() {
-  return GUIDE_SLUGS.map((topic) => ({ topic }));
+  return [...GUIDE_SLUGS, 'blood'].map((topic) => ({ topic }));
 }

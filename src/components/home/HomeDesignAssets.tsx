@@ -87,7 +87,8 @@ const ANALYSIS = {
   blood: { right: 10, top: 51, width: 64, height: 56, x: -1.3025, y: -1.1083, w: 2.3546, h: 2.0411 },
 } as const;
 
-export function HomeAnalysisArt({ source }: { source: keyof typeof ANALYSIS }) {
+export function HomeAnalysisArt({ source }: { source: keyof typeof ANALYSIS | 'tarot' }) {
+  if (source === 'tarot') return <View style={{ position: 'absolute', right: 8, top: 45, width: 56, height: 70, transform: [{ rotate: '12deg' }] }} pointerEvents="none"><Image source={require('../../../assets/tarot/back.webp')} style={{ width: 56, height: 70 }} contentFit="contain" accessible={false} /></View>;
   const a = ANALYSIS[source];
   return (
     <View style={{ position: 'absolute', right: a.right, top: a.top, width: a.width, height: a.height, overflow: 'hidden' }} pointerEvents="none">

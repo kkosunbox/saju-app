@@ -75,7 +75,7 @@ export const stage12 = (ds: number, b: number) => { const st = JS_START[ds]; ret
 
 /* ---------- 결과 읽기 ---------- */
 export function axisVerdict(a: CrossAxis) {
-  const vals = Object.values(a.v);
+  const vals = [a.v.saju, a.v.thai, a.v.mbti];
   const pos = vals.filter(v => v > 0).length, neg = vals.filter(v => v < 0).length;
   return { pos, neg, verdict: pos > neg ? a.pos : neg > pos ? a.neg : '균형' };
 }

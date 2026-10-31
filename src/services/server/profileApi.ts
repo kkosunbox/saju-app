@@ -37,7 +37,7 @@ const toUser = (accountId: number, p: ProfileDto): User => ({
   gender: p.gender,
   mbti: p.mbti,
   mbtiUnknown: p.mbtiIsEstimated,
-  bloodType: p.bloodType,
+  bloodType: p.bloodType ?? null,
   interests: p.interests,
   concern: p.concern ?? undefined,
   occupation: p.occupation ?? undefined,
@@ -60,7 +60,7 @@ export interface ProfileInput {
   gender: User['gender'];
   /** null = 모름 → the server estimates it from the chart. */
   mbti: MBTI | null;
-  bloodType: User['bloodType'];
+  bloodType?: User['bloodType'];
   interests?: Interest[];
   concern?: string | null;
   occupation?: string | null;
@@ -77,7 +77,6 @@ export const inputOf = (u: User): ProfileInput => ({
   birthPlaceId: u.birthPlace?.id ?? null,
   gender: u.gender,
   mbti: u.mbtiUnknown ? null : u.mbti,
-  bloodType: u.bloodType,
   interests: u.interests ?? [],
   concern: u.concern ?? null,
   occupation: u.occupation ?? null,

@@ -4,6 +4,7 @@
  * keeps the guest's data on the server (upgrade or merge).
  */
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
 import { storage } from '../services/storage/storageService';
 import { Account, authApi } from '../services/server/authApi';
@@ -109,7 +110,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshFortune = useCallback(async () => {
     if (!user) return;
-    setToday(todayISO());
+    const targetDate = todayISO();
+    setToday(targetDate);
+    setFortune(current => current?.date === targetDate ? current : null);
     setFortuneLoading(true);
     setFortuneError(null);
     try {
@@ -122,6 +125,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
+
+  // An open app also rolls over at KST midnight; returning from the background checks immediately.
+  useEffect(() => {
+    if (!user) return;
+    let lastDate = todayISO();
+    const checkDate = () => {
+      const next = todayISO();
+      if (next === lastDate) return;
+      lastDate = next;
+      void refreshFortune();
+    };
+    const timer = setInterval(checkDate, 30_000);
+    const subscription = NativeAppState.addEventListener('change', state => { if (state === 'active') checkDate(); });
+    return () => { clearInterval(timer); subscription.remove(); };
+  }, [user, refreshFortune]);
 
   // 날짜별로 한 번만 요청한다 — 서버가 실패를 돌려줘도 다음에 앱을 열 때 다시
   const drawing = useRef<string | null>(null);

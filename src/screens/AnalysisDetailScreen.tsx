@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
+import TarotExperience from '../components/tarot/TarotExperience';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
 import { AlmanacHero, Figure, Ledger, Quote } from '../components/Almanac';
@@ -16,31 +17,31 @@ import { BRANCHES, ELEMENT_INFO, Element, STEMS } from '../data/sajuData';
 import { THAI_DAYS, ThaiDay, WEEKDAY_TO_THAI } from '../data/thaiData';
 import { Pillar } from '../types/content';
 import { AXES, MBTI_INFO } from '../data/mbtiData';
-import { AstroSystemReading, BloodReading, BloodType, User } from '../types';
+import { AstroSystemReading, User } from '../types';
 import { weekdayOf } from '../utils/date';
-import { useFortuneDraw } from '../services/content/opened';
 
-const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', blood: '血型 · 혈액형' } as const;
+const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', tarot: 'TAROT · 타로' } as const;
 const NOTE: Record<string, string> = {
   saju: '한국천문연구원 음양력 자료와 절기 시각으로 세운 만세력이에요. 태어난 시각은 서울 기준으로 보정해요.',
   thai: '서양은 태양 별자리와 오늘의 달, 인도는 달 라시(시데리얼)에서 본 오늘 달의 자리, 태국은 태어난 요일의 수호 행성으로 풀어요.',
   mbti: 'MBTI는 예측이 아닌 성향 분석이에요.',
-  blood: '혈액형 성격론은 과학적 근거가 없는 재미 콘텐츠예요. 그래서 운Pick은 속설을 사주로 한 번 더 따져 봐요.',
 };
 
 /** 4가지 관점 상세 — 책력 한 장 + 관점별 도해 + 풀이 + 장부형 분석 */
 export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
   const { fortune, user, today } = useApp();
-  useFortuneDraw(); // 관점은 뽑기 전에도 볼 수 있으니 들어왔다고 뽑은 셈으로 치지 않는다
   const nav = useNavigation();
-  if (!fortune || !user) return null;
+  if (!user) return null;
+  if (params.source === 'tarot' || params.source === 'blood') return <TarotExperience key={today} reading={fortune?.analyses.tarot?.tarot} />;
+  if (!fortune) return null;
   const a = fortune.analyses[params.source];
+  if (!a) return null;
   const t = analysisTheme[params.source];
 
   return (
     <Screen title={t.label} back>
-      <AlmanacHero tone={t} kicker={KICKER[a.source]} seal={t.emoji} eyebrow={t.sub} title={a.headline} today={today} tags={a.tags.map(tag => KEYWORDS[tag].label)}>
+      <AlmanacHero tone={t} kicker={KICKER[params.source]} seal={t.emoji} eyebrow={t.sub} title={a.headline} today={today} tags={a.tags.map(tag => KEYWORDS[tag].label)}>
         <Quote label="오늘의 풀이" text={a.description} tone={t.color} />
       </AlmanacHero>
 
@@ -48,7 +49,6 @@ export default function AnalysisDetailScreen() {
       {a.source === 'thai' && a.systems ? <AstroSystems systems={a.systems} u={user} today={today} tone={t.color} /> : null}
       {a.source === 'thai' && !a.systems && user.natal ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
       {a.source === 'mbti' ? <MbtiFigure u={user} focus={a.details[2]?.value ?? ''} tone={t.color} /> : null}
-      {a.source === 'blood' ? (a.blood ? <BloodPage r={a.blood} name={user.nickname} tone={t.color} /> : <BloodFigure b={user.bloodType} tone={t.color} />) : null}
 
       {a.systems ? null : (
         <>
@@ -185,58 +185,6 @@ function MbtiFigure({ u, focus, tone }: { u: User; focus: string; tone: string }
   );
 }
 
-/* ---------- 혈액형: 속설 판정 + 오늘의 모드 ---------- */
-function BloodPage({ r, name, tone }: { r: BloodReading; name: string; tone: string }) {
-  return (
-    <>
-      <Figure title="혈액형 속설, 사주로 따져 보기" caption="혈액형이 아니라 사주가 판정해요">
-        <Text style={s.saying}>“{r.saying}”</Text>
-        <Text style={s.sayingQ}>{name}님한테는요?</Text>
-        <View style={[s.verdict, { backgroundColor: tone }]}>
-          <Text style={s.verdictT}>{r.verdict}</Text>
-        </View>
-        <Text style={s.reason}>{r.reason}</Text>
-      </Figure>
-      <Figure title="오늘의 혈액형 모드" caption={r.todayEnergy}>
-        <View style={s.modes}>
-          {r.modes.map(m => {
-            const today = m.type === r.todayMode;
-            return (
-              <View key={m.type} style={[s.mode, today && { backgroundColor: tone, borderColor: tone }]}>
-                <View style={s.modeHead}>
-                  <Text style={[s.modeType, today && s.modeOn]}>{m.type}형</Text>
-                  {m.type === r.type ? <Text style={[s.modeMe, today ? { color: tone, backgroundColor: '#FBF4E8' } : { backgroundColor: tone }]}>나</Text> : null}
-                </View>
-                <Text style={[s.modeName, today && s.modeOn]}>{m.mode}</Text>
-                <Text style={[s.modeDoes, today && { color: 'rgba(251,244,232,0.85)' }]}>{m.does}</Text>
-              </View>
-            );
-          })}
-        </View>
-        <Text style={[s.figNote, { borderLeftColor: tone }]}>
-          {r.todayMode === r.type ? `오늘은 ${r.type}형 모드가 맞는 날이라 평소 스타일 그대로 가도 좋아요.` : `오늘은 ${r.todayMode}형 모드가 맞는 날이에요. 내 혈액형과 달라도 하루쯤 빌려 써 보세요.`}
-        </Text>
-      </Figure>
-    </>
-  );
-}
-
-/** 예전에 저장된 운세 (속설 판정이 없을 때) */
-function BloodFigure({ b, tone }: { b: BloodType; tone: string }) {
-  return (
-    <Figure title="나의 혈액형">
-      <View style={s.bloodRow}>
-        {(['A', 'B', 'O', 'AB'] as BloodType[]).map(x => (
-          <View key={x} style={[s.blood, x === b ? { backgroundColor: tone, borderColor: tone } : null]}>
-            <Text style={[s.bloodT, x === b && { color: '#FBF4E8' }]}>{x}</Text>
-            <Text style={[s.bloodS, x === b && { color: 'rgba(251,244,232,0.8)' }]}>형</Text>
-          </View>
-        ))}
-      </View>
-    </Figure>
-  );
-}
-
 const s = StyleSheet.create({
   astroHead: { ...sansW('700'), fontSize: 16, lineHeight: 23, color: colors.ink, letterSpacing: -0.3 },
   astroDesc: { fontSize: 14, lineHeight: 21, color: colors.inkSub, marginTop: 6 },
@@ -268,21 +216,4 @@ const s = StyleSheet.create({
   axisL: { width: 16, textAlign: 'center', fontFamily: fonts.serif, fontSize: 17, fontWeight: '700', color: colors.inkMute },
   axisTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
   axisFill: { position: 'absolute', top: 0, bottom: 0, width: '58%', borderRadius: 4 },
-  saying: { fontFamily: fonts.serif, fontSize: 22, lineHeight: 30, fontWeight: '700', color: colors.ink, textAlign: 'center', marginTop: 4 },
-  sayingQ: { fontSize: 13, color: colors.inkMute, textAlign: 'center', marginTop: 4 },
-  verdict: { alignSelf: 'center', marginTop: 12, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
-  verdictT: { ...sansW('700'), fontSize: 15, color: '#FBF4E8', letterSpacing: -0.3 },
-  reason: { fontSize: 14, lineHeight: 22, color: colors.inkSub, marginTop: 14 },
-  modes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mode: { width: '48%', flexGrow: 1, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },
-  modeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modeType: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '700', color: colors.inkSub },
-  modeOn: { color: '#FBF4E8' },
-  modeMe: { ...sansW('700'), fontSize: 11, color: '#FBF4E8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-  modeName: { ...sansW('700'), fontSize: 14, color: colors.ink, marginTop: 4 },
-  modeDoes: { fontSize: 12, lineHeight: 17, color: colors.inkMute, marginTop: 2 },
-  bloodRow: { flexDirection: 'row', gap: 8 },
-  blood: { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', paddingVertical: 16, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },
-  bloodT: { fontFamily: fonts.serif, fontSize: 24, fontWeight: '700', color: colors.inkMute },
-  bloodS: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginLeft: 2 },
 });

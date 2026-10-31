@@ -33,7 +33,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '../api/query';
 import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
-import { BirthPlace, BloodType, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
+import { BirthPlace, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
 import { colors, gradients, isDark } from '../theme/colors';
@@ -50,10 +50,9 @@ const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; i
 ];
 /** 두 사람 카드 바탕 — 옅은 하늘이 가운데서 밝아진다 */
 const PAIR_SKY = isDark ? [colors.accentSoft, colors.card, colors.accentSoft] as const : ['#D0EEFE', '#EFF9FF', '#CBECFE'] as const;
-const BLOOD_TYPES: BloodType[] = ['A', 'B', 'O', 'AB'];
 
 /** 아는 것만: "ENFP · A형" / 하나도 모르면 null */
-const traitsOf = (p: PartnerInput): string | null => [p.mbti, p.bloodType && `${p.bloodType}형`].filter(Boolean).join(' · ') || null;
+const traitsOf = (p: PartnerInput): string | null => [p.mbti].filter(Boolean).join(' · ') || null;
 /** 저장된 상대 이름 옆 생일 (양력, 1998.07.01). 공개 동의 없이 본 예전 초대 궁합은 없다 */
 const birthOf = (p: PartnerInput): string | null => p.birthDate ? p.birthDate.replaceAll('-', '.') : null;
 
@@ -61,7 +60,7 @@ function Label({ children }: { children: string }) {
   return <Text style={s.fieldLabel}>{children}</Text>;
 }
 
-/** 낮은 선택 버튼 (성별 · 혈액형) — 고르면 남색 */
+/** 낮은 선택 버튼 (성별) — 고르면 남색 */
 function Pick({ label, selected, onPress }: { label: string; selected: boolean; onPress(): void }) {
   return (
     <PressableScale onPress={onPress} haptic scaleTo={0.95} style={[s.pick, selected && s.pickOn]} accessibilityRole="radio" accessibilityState={{ selected }}>
@@ -117,7 +116,6 @@ export default function CompatibilityScreen() {
   const [showPlace, setShowPlace] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [mbti, setMbti] = useState<MBTI | null>(null);
-  const [blood, setBlood] = useState<BloodType | null>(null);
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [showMbti, setShowMbti] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -129,7 +127,7 @@ export default function CompatibilityScreen() {
 
   const { ok: dateOk, iso: birthISO } = checkBirth(birth, calendar);
   const timeOk = sijin !== 0 || !!jasi;
-  // MBTI·혈액형은 모르면 비워 둔다 (궁합에서 빠진다)
+  // MBTI는 모르면 비워 둔다 (궁합에서 빠진다)
   const ok = !!relationship && !!name.trim() && dateOk && !!gender && timeOk;
   // 버튼이 왜 안 눌리는지 — 하나라도 채우기 시작하면 남은 칸을 알려 준다
   const missing = [
@@ -168,7 +166,7 @@ export default function CompatibilityScreen() {
       isLeapMonth: calendar === 'lunar' && leap,
       birthTime: sijin === null ? null : sijinTime(sijin, jasi),
       birthPlace: place,
-      gender: gender!, mbti, bloodType: blood,
+      gender: gender!, mbti, bloodType: null,
     });
   };
 
@@ -294,7 +292,7 @@ export default function CompatibilityScreen() {
         <View style={s.pairTile}>
           <View style={[s.pairSeal, { backgroundColor: colors.accent }]}><Text style={[s.pairSealText, { color: colors.white }]}>{user.nickname.slice(0, 1)}</Text></View>
           <Text style={s.pairName} numberOfLines={1}>{user.nickname}</Text>
-          <Text style={s.pairSub} numberOfLines={1}>{user.mbti} · {user.bloodType}형</Text>
+          <Text style={s.pairSub} numberOfLines={1}>{user.mbti}</Text>
         </View>
         <View style={s.pairMid}><Mascot name="friends" size={58} /></View>
         <View style={s.pairTile}>
@@ -423,14 +421,8 @@ export default function CompatibilityScreen() {
           )}
         </View>
 
-        <View>
-          <Label>혈액형 (선택)</Label>
-          <View style={[s.row, { gap: 11 }]}>
-            {BLOOD_TYPES.map(b => <Pick key={b} label={`${b}형`} selected={blood === b} onPress={() => setBlood(blood === b ? null : b)} />)}
-            <Pick label="모름" selected={!blood} onPress={() => setBlood(null)} />
-          </View>
-        </View>
-        {!mbti || !blood ? <Text style={[txt.small, { marginTop: -4 }]}>모르는 정보는 빼고 사주로 봐요.</Text> : null}
+
+        {!mbti ? <Text style={[txt.small, { marginTop: -4 }]}>모르는 정보는 빼고 사주로 봐요.</Text> : null}
       </Card>
       <Disclaimer compact />
       {inviteShareSheet}

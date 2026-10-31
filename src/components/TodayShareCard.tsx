@@ -44,7 +44,7 @@ const TodayShareCard = forwardRef<ViewInstance, { data: TodayCardData; today: st
           <View style={s.mascot}>
             <Image source={data.pose ? POSES[data.pose] : ART.mascot} style={[s.art, getMascotFrame(data.pose ?? 'original', MASCOT_SIZE)]} resizeMode="contain" />
           </View>
-          <Text style={[s.row, s.owner]} numberOfLines={1}>{data.nickname}님의 오늘 칭호</Text>
+          <Text style={[s.row, s.owner]} numberOfLines={1}>{data.nickname}님은 오늘</Text>
           <Text style={[s.row, s.title]} numberOfLines={1} adjustsFontSizeToFit>{data.title}</Text>
           <Text style={[s.row, s.yearLabel]}>올해 나의 날 중</Text>
           <Text style={[s.row, s.percent]}>상위 {data.topPercent}%</Text>

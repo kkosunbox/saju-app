@@ -7,7 +7,7 @@ import { Element, TenGodGroup } from '../data/sajuData';
 import { Pillar } from './content';
 
 export type Cat = 'love' | 'money' | 'work' | 'relationship';
-export type SrcKey = 'saju' | 'thai' | 'mbti' | 'blood';
+export type SrcKey = 'saju' | 'thai' | 'mbti' | 'blood' | 'tarot';
 export type SinsalKey = 'gwiin' | 'munchang' | 'dohwa' | 'yeokma' | 'hwagae' | 'yangin' | 'goegang' | 'baekho';
 export type StrengthLevel = '극약' | '신약' | '중화' | '신강' | '극강';
 export interface SajuChart { year: Pillar; month: Pillar; day: Pillar; hour: Pillar | null }
@@ -38,7 +38,7 @@ export interface SajuFull {
   sinsal: SinsalKey[]; gE: Record<TenGodGroup, Element>; spouseGrp: TenGodGroup; dayStage: number;
 }
 
-export interface CrossAxis { name: string; pos: string; neg: string; v: Record<SrcKey, number> }
+export interface CrossAxis { name: string; pos: string; neg: string; v: Record<Exclude<SrcKey, 'tarot'>, number> }
 export interface Daeun { age: number; p: Pillar; rel: TenGodGroup; relB: TenGodGroup; score: number }
 export interface DaeunTable { fwd: boolean; start: number; list: Daeun[] }
 

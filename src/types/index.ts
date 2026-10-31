@@ -27,7 +27,8 @@ export interface User {
   mbti: MBTI;
   /** 가입 때 MBTI를 건너뛰어 사주로 추정한 값이면 true */
   mbtiUnknown?: boolean;
-  bloodType: BloodType;
+  /** Legacy profiles only; no longer collected. */
+  bloodType: BloodType | null;
   occupation?: string;
   interests?: Interest[];
   concern?: string;
@@ -53,7 +54,7 @@ export type KeywordTag =
   | 'intuition' | 'learning';
 
 export interface AnalysisResult {
-  source: 'saju' | 'thai' | 'mbti' | 'blood';
+  source: 'saju' | 'thai' | 'mbti' | 'blood' | 'tarot';
   title: string;
   emoji: string;
   headline: string; // 한 줄 결과
@@ -65,6 +66,7 @@ export interface AnalysisResult {
   systems?: AstroSystemReading[];
   /** 혈액형만: 속설을 사주로 판정한 결과와 오늘의 모드 (예전에 저장된 운세에는 없다) */
   blood?: BloodReading;
+  tarot?: TarotReading;
 }
 
 /** 혈액형 페이지 (server: blood-reading.ts) — 혈액형은 속설로만 다루고, 판정은 사주가 한다 */
@@ -92,6 +94,7 @@ export interface AstroSystemReading {
 
 /** AI(또는 규칙 엔진)가 반드시 반환해야 하는 JSON 구조 */
 export interface CombinedFortune {
+  viewpointImpacts?: Record<'saju' | 'thai' | 'mbti' | 'tarot', Record<'love' | 'money' | 'work' | 'relationship', number>>;
   totalScore: number;
   summary: string;
   keywords: string[];
@@ -117,10 +120,16 @@ export interface CombinedFortune {
   luckyReasons?: { color: string; number: string; time: string };
 }
 
+export interface TarotReading {
+  id: number; key: string; name: string; englishName: string; keyword: string; message: string; meaning: string; action: string; caution: string; question: string; tags: KeywordTag[];
+  orientation: 'upright'; deckVersion: 'major-v1'; scope: 'daily' | 'relationship' | 'theme' | 'year';
+}
+
 export interface DailyFortune {
+  viewpointsVersion?: 'legacy' | 'tarot-v1';
   userId: string;
   date: string;
-  analyses: { saju: AnalysisResult; thai: AnalysisResult; mbti: AnalysisResult; blood: AnalysisResult };
+  analyses: { saju: AnalysisResult; thai: AnalysisResult; mbti: AnalysisResult; blood: AnalysisResult; tarot?: AnalysisResult };
   combined: CombinedFortune;
   engine: 'rule' | 'ai';
   /** 문장이 아직 규칙 엔진 것이고, 뽑으면 AI가 다시 쓴다 (점수·요약은 그대로). */
@@ -159,6 +168,7 @@ export interface PartnerInput {
 }
 
 export interface CompatibilityResult {
+  tarot?: TarotReading;
   /** Server record id (궁합 기록). */
   id?: number;
   /** invite: made from an invite link — no partner details. */
@@ -177,7 +187,7 @@ export interface CompatibilityResult {
   money: number;
   summary: string;
   /** kind: 풀이의 근거 (상대 MBTI·혈액형을 모르면 zodiac(띠)이 대신하거나 빠진다) */
-  points: { title: string; text: string; kind?: 'saju' | 'zodiac' | 'mbti' | 'blood' }[];
+  points: { title: string; text: string; kind?: 'saju' | 'thai' | 'zodiac' | 'mbti' | 'blood' | 'tarot' }[];
   createdAt: string;
 }
 

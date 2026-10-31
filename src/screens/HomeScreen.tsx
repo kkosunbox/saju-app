@@ -4,7 +4,7 @@ import { Animated, Platform, RefreshControl, ScrollView, StyleProp, StyleSheet, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import Svg, { ClipPath, Defs, G, LinearGradient as SvgGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { ClipPath, Defs, G, LinearGradient as SvgGradient, Rect, RectProps, Stop, Text as SvgText } from 'react-native-svg';
 import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { NativeStackNavigationProp } from '@/navigation/compat';
 import { useApp } from '../context/AppContext';
@@ -59,7 +59,7 @@ const MASCOT_PREVIEWS = [
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 // Figma 각 분야 라벨 그룹의 링 중심 대비 위치(375px 프레임).
 const CATEGORY_LABEL_OFFSET = { love: 0, money: 0.5, work: -0.5, relationship: 0.5 } as const;
-const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '혈액형 한마디까지 엮는 중…', '오늘의 이야기를 쓰는 중…'];
+const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '오늘의 타로 카드를 펼치는 중…', '오늘의 이야기를 쓰는 중…'];
 
 /** 말풍선 안에서 차례로 바뀌는 '풀어보는 중' 문구 (마지막 문구에서 멈춘다) */
 function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {
@@ -81,7 +81,14 @@ const TAG_GLINT = isDark ? '#EAF7FF' : '#D2EEFF';
 const GLINT_W = 26;
 /** SVG 글자도 앱 글꼴(Pretendard SemiBold)로 — 원래 글자 자리와 폭이 맞게 */
 const TAG_FACE = sansW('600');
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
+// Animated injects an Android-only prop that SVG forwards to the DOM on web.
+const GlintRect = React.forwardRef<Rect, RectProps & { collapsable?: boolean }>(function GlintRect(props, ref) {
+  if (Platform.OS !== 'web') return <Rect {...props} ref={ref} />;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { collapsable, ...svgProps } = props;
+  return <Rect {...svgProps} ref={ref} />;
+});
+const AnimatedRect = Animated.createAnimatedComponent(GlintRect);
 
 /** 글자 모양으로 잘라낸 안에서만 빛 줄기가 지나간다 — 한 줄기가 칩을 하나씩 관통하도록 칩마다 sweep 구간을 늦춘다 */
 function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animated.Value; index: number; count: number }) {
@@ -299,7 +306,7 @@ export default function HomeScreen() {
   }
   const f = fortune.combined;
   const a = fortune.analyses;
-  const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.blood.tags]);
+  const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.tarot?.tags ?? []]);
 
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다
   type Free = { k: string; art?: ArtName; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
@@ -436,7 +443,7 @@ export default function HomeScreen() {
           {hidden ? (
             <View style={[s.today, s.todaySealed]}>
               <Text style={s.todayTitle}>오늘의 운세</Text>
-              <Text style={s.sealedText}>{reading ? '네 가지 관점을 엮어\n오늘의 이야기를 쓰고 있어요' : '뽑으면 오늘의 이야기와\n행운의 컬러 · 숫자 · 시간이 나와요'}</Text>
+              <Text style={s.sealedText}>{reading ? '네 가지 관점을 엮어\n오늘의 이야기를 쓰고 있어요' : '오늘의 타로 카드와 이야기,\n행운의 컬러 · 숫자 · 시간을 뽑아요'}</Text>
             </View>
           ) : later(900, (
           <View style={s.today}>
@@ -547,7 +554,7 @@ export default function HomeScreen() {
             </View>
             <View style={s.gridRow}>
               <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              <AnalysisTile analysis={a.blood} onPress={() => nav.navigate('AnalysisDetail', { source: 'blood' })} />
+              {a.tarot ? <AnalysisTile analysis={a.tarot} onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })} /> : null}
             </View>
           </View>
 

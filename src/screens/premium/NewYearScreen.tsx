@@ -45,7 +45,7 @@ export default function NewYearScreen() {
 
   return (
     <Screen title="신년운세" back right={<ShareIconButton item={item} spec={spec} />}>
-      <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti} · ${u.bloodType}형`} />
+      <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti}`} />
       <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} />
       {top && idiom ? (
         <Hero style={{ alignItems: 'center', paddingVertical: 24 }}>

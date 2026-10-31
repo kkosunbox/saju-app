@@ -30,7 +30,7 @@ export const UPCOMING: ContentEntry[] = [
   { key: 'marryAge', title: '나의 결혼 나이', art: 'soon-marryAge', tier: 'free', status: 'soon',
     hook: '나는 몇 살에 결혼할까?', desc: '대운으로 본 결혼 적령기 · 결혼 상대를 만나는 장소 한 줄',
     viral: '숫자 하나라 스토리 카드로 올리기 좋음 · 미래 배우자 리포트로 이어짐' },
-  { key: 'tarot', title: '오늘의 타로 한 장', art: 'soon-tarot', tier: 'free', status: 'soon',
+  { key: 'tarot', title: '오늘의 타로 한 장', art: 'soon-tarot', tier: 'free', status: 'live', route: '/analysis/tarot',
     hook: '오늘 나에게 온 카드는?', desc: '매일 한 장 · 사주 기운과 겹쳐 본 오늘의 메시지',
     viral: '매일 바뀌어서 재방문 · 출석 체크와 묶기 좋음' },
   { key: 'dream', title: '꿈해몽', art: 'soon-dream', tier: 'premium', cost: 50, status: 'soon',

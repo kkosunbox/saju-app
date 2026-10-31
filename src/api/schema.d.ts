@@ -698,7 +698,7 @@ export interface paths {
         get: operations["FortuneProfileController_getMyProfile_v1"];
         /**
          * 내 운세 프로필 저장 (생성·수정)
-         * @description 횟수 제한 없이 수정할 수 있습니다. 사주 입력값(생년월일·시간·양음력·윤달·출생지·성별·MBTI·혈액형·야자시)이 바뀌면 version이 올라갑니다. 이미 뽑은 것(오늘 운세·열어 본 유료/무료 콘텐츠)은 만들 때의 프로필 그대로 남고, 바뀐 프로필은 다음 날 운세와 새로 여는 콘텐츠부터 반영됩니다. mbti를 비우면 사주로 추정합니다.
+         * @description 횟수 제한 없이 수정할 수 있습니다. 사주 입력값(생년월일·시간·양음력·윤달·출생지·성별·MBTI·야자시)이 바뀌면 version이 올라갑니다. 이미 뽑은 것(오늘 운세·열어 본 유료/무료 콘텐츠)은 만들 때의 프로필 그대로 남고, 바뀐 프로필은 다음 날 운세와 새로 여는 콘텐츠부터 반영됩니다. mbti를 비우면 사주로 추정합니다.
          */
         put: operations["FortuneProfileController_upsertMyProfile_v1"];
         post?: never;
@@ -743,7 +743,7 @@ export interface paths {
         put?: never;
         /**
          * 궁합 보기 (상대 정보 직접 입력)
-         * @description 내 운세 프로필과 상대 정보로 궁합을 계산해 기록에 저장합니다. 상대 생일은 음력도 됩니다. 상대 MBTI를 모르면 null → 사주로 추정합니다. 게스트도 쓸 수 있습니다. 같은 상대(생일·시간·성별·MBTI·혈액형이 모두 같음)를 다시 넣으면 기존 기록을 새 결과로 갱신해 돌려줍니다 (열어 둔 심층 궁합·속마음 유지).
+         * @description 내 운세 프로필과 상대 정보로 궁합을 계산해 기록에 저장합니다. 상대 생일은 음력도 됩니다. 상대 MBTI를 모르면 null → 사주로 추정합니다. 게스트도 쓸 수 있습니다. 같은 상대(생일·시간·성별·MBTI이 모두 같음)를 다시 넣으면 기존 기록을 새 결과로 갱신해 돌려줍니다 (열어 둔 심층 궁합·속마음 유지).
          */
         post: operations["CompatibilityController_create_v1"];
         delete?: never;
@@ -804,7 +804,7 @@ export interface paths {
         put?: never;
         /**
          * 친구 궁합 초대 링크 만들기
-         * @description 선택한 관계의 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 링크를 연 친구가 공개에 동의하면 서로의 생년월일·MBTI·혈액형이 상대에게 보입니다. 운세 프로필이 있어야 합니다.
+         * @description 선택한 관계의 살아 있는 링크가 있으면 그것을, 없으면 새로 만들어 줍니다(30일 유효, 여러 친구가 사용 가능). 링크에는 무작위 토큰만 들어가고 생년월일은 들어가지 않습니다. 링크를 연 친구가 공개에 동의하면 서로의 생년월일·MBTI이 상대에게 보입니다. 운세 프로필이 있어야 합니다.
          */
         post: operations["CompatibilityInviteController_createOrGet_v1"];
         delete?: never;
@@ -865,7 +865,7 @@ export interface paths {
         put?: never;
         /**
          * 초대 링크로 궁합 보기
-         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(isNew = true). shareProfile = true(공개 동의)면 양쪽 기록의 partner에 상대의 생년월일·태어난 시간·출생지·MBTI·혈액형이 들어가고, 아니면 이름만 남습니다(partner = null). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계는 초대한 사람이 링크 생성 시 선택한 값을 사용합니다. 내 링크를 내가 열면 INVITATION_OWN.
+         * @description 내 운세 프로필(게스트 가능)과 초대한 사람의 궁합을 계산해 내 기록에 저장합니다. 초대한 사람의 기록에도 같은 두 사람의 궁합이 내 이름으로 새로 들어갑니다(isNew = true). shareProfile = true(공개 동의)면 양쪽 기록의 partner에 상대의 생년월일·태어난 시간·출생지·MBTI이 들어가고, 아니면 이름만 남습니다(partner = null). 같은 링크를 다시 열면 양쪽 기록을 새로 만들지 않고 갱신합니다. 관계는 초대한 사람이 링크 생성 시 선택한 값을 사용합니다. 내 링크를 내가 열면 INVITATION_OWN.
          */
         post: operations["CompatibilityInviteController_accept_v1"];
         delete?: never;
@@ -2086,7 +2086,7 @@ export interface components {
         };
         AnalysisResultDto: {
             /** @enum {string} */
-            source: "saju" | "thai" | "mbti" | "blood";
+            source: "saju" | "thai" | "mbti" | "blood" | "tarot";
             title: string;
             emoji: string;
             headline: string;
@@ -2098,6 +2098,10 @@ export interface components {
             scoreBias: components["schemas"]["CategoryNumbersDto"];
             /** @description 점성술(thai)만: 서양 · 인도 · 태국 풀이. 예전에 저장된 운세에는 없음 */
             systems?: components["schemas"]["AstroSystemReadingDto"][];
+            /** @description 혈액형(blood)만: 속설을 사주로 판정한 결과와 오늘의 모드. 예전에 저장된 운세에는 없음 */
+            blood?: components["schemas"]["BloodReadingDto"];
+            /** @description 타로 카드와 정방향 메시지 (major-v1) */
+            tarot?: components["schemas"]["TarotReadingDto"];
         };
         DailyAnalysesDto: {
             saju: components["schemas"]["AnalysisResultDto"];
@@ -2105,6 +2109,7 @@ export interface components {
             thai: components["schemas"]["AnalysisResultDto"];
             mbti: components["schemas"]["AnalysisResultDto"];
             blood: components["schemas"]["AnalysisResultDto"];
+            tarot?: components["schemas"]["AnalysisResultDto"];
         };
         CategoryTextsDto: {
             love: string;
@@ -2124,6 +2129,8 @@ export interface components {
             time: string;
         };
         CombinedFortuneDto: {
+            /** @description 각 관점 제외 전후의 분야 점수 차이. 합산 값이 아님 */
+            viewpointImpacts?: components["schemas"]["ViewpointImpactsDto"];
             totalScore: number;
             summary: string;
             keywords: string[];
@@ -2170,6 +2177,8 @@ export interface components {
             yearTopPercent: number;
         };
         DailyFortuneDto: {
+            /** @enum {string} */
+            viewpointsVersion: "legacy" | "tarot-v1";
             date: string;
             /**
              * @description ai: AI가 문장을 씀, rule: 규칙 엔진 문장
@@ -2291,8 +2300,11 @@ export interface components {
             mbti: string;
             /** @description 사주로 추정한 MBTI면 true → 화면에 "(추정)" 표시 */
             mbtiIsEstimated: boolean;
-            /** @enum {string} */
-            bloodType: "A" | "B" | "O" | "AB";
+            /**
+             * @deprecated
+             * @enum {string|null}
+             */
+            bloodType: "A" | "B" | "O" | "AB" | null;
             interests: ("love" | "money" | "work" | "relationship" | "health" | "study")[];
             concern: string | null;
             occupation: string | null;
@@ -2339,8 +2351,11 @@ export interface components {
              * @example ENFP
              */
             mbti?: string | null;
-            /** @enum {string} */
-            bloodType: "A" | "B" | "O" | "AB";
+            /**
+             * @deprecated
+             * @enum {string|null}
+             */
+            bloodType?: "A" | "B" | "O" | "AB" | null;
             interests?: ("love" | "money" | "work" | "relationship" | "health" | "study")[];
             /** @description 요즘 고민 */
             concern?: string | null;
@@ -2373,12 +2388,13 @@ export interface components {
             title: string;
             text: string;
             /**
-             * @description 풀이의 근거. 상대 MBTI·혈액형을 모르면 그 자리에 zodiac(띠)이 오거나 빠짐
+             * @description 풀이의 근거. tarot는 두 사람의 관계를 돌아보는 카드 메시지
              * @enum {string}
              */
-            kind?: "saju" | "zodiac" | "mbti" | "blood";
+            kind?: "saju" | "thai" | "zodiac" | "mbti" | "blood" | "tarot";
         };
         CompatibilityResultDto: {
+            tarot?: components["schemas"]["TarotReadingDto"];
             /**
              * @description 관계 도입 전 결과에는 없음 (= lover)
              * @enum {string}
@@ -2484,14 +2500,14 @@ export interface components {
             relationship: "lover" | "friend" | "family" | "work";
             /** @description 초대한 사람의 운세 프로필 이름 */
             inviterNickname: string;
-            /** @description 궁합을 보면(공개 동의) 서로의 생년월일·MBTI·혈액형이 보이는 링크인지. false는 공개 안내 전에 만든 링크라 서로 비공개 */
+            /** @description 궁합을 보면(공개 동의) 서로의 생년월일·MBTI이 보이는 링크인지. false는 공개 안내 전에 만든 링크라 서로 비공개 */
             sharesProfile: boolean;
             /** Format: date-time */
             expiresAt: string;
         };
         AcceptCompatibilityInviteRequest: {
             /**
-             * @description 서로의 생년월일·태어난 시간·출생지·MBTI·혈액형 공개에 동의. true면 양쪽 기록에 상대 정보가 들어가 심층 궁합·속마음을 그대로 볼 수 있어요. 빠지거나 false면 예전처럼 서로 비공개(partner = null)
+             * @description 서로의 생년월일·태어난 시간·출생지·MBTI 공개에 동의. true면 양쪽 기록에 상대 정보가 들어가 심층 궁합·속마음을 그대로 볼 수 있어요. 빠지거나 false면 예전처럼 서로 비공개(partner = null)
              * @default false
              */
             shareProfile: boolean;
@@ -2825,6 +2841,56 @@ export interface components {
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
+        };
+        BloodModeDto: {
+            /** @enum {string} */
+            type: "A" | "B" | "O" | "AB";
+            /** @example 대범 모드 */
+            mode: string;
+            does: string;
+        };
+        BloodReadingDto: {
+            /** @enum {string} */
+            type: "A" | "B" | "O" | "AB";
+            /** @example O형은 대범하다 */
+            saying: string;
+            /** @enum {string} */
+            verdict: "꽤 맞아요" | "반만 맞아요" | "사주는 반대예요";
+            /** @description 사주로 본 판정 이유 */
+            reason: string;
+            /**
+             * @description 오늘 기운에 맞는 모드
+             * @enum {string}
+             */
+            todayMode: "A" | "B" | "O" | "AB";
+            /** @example 돈과 결과가 눈앞에 보이는 날 */
+            todayEnergy: string;
+            modes: components["schemas"]["BloodModeDto"][];
+        };
+        TarotReadingDto: {
+            id: number;
+            key: string;
+            name: string;
+            englishName: string;
+            keyword: string;
+            message: string;
+            meaning: string;
+            action: string;
+            caution: string;
+            question: string;
+            tags: string[];
+            /** @enum {string} */
+            orientation: "upright";
+            /** @enum {string} */
+            deckVersion: "major-v1";
+            /** @enum {string} */
+            scope: "daily" | "relationship" | "theme" | "year";
+        };
+        ViewpointImpactsDto: {
+            saju: components["schemas"]["CategoryNumbersDto"];
+            thai: components["schemas"]["CategoryNumbersDto"];
+            mbti: components["schemas"]["CategoryNumbersDto"];
+            tarot: components["schemas"]["CategoryNumbersDto"];
         };
     };
     responses: never;

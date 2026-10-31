@@ -4,6 +4,7 @@ import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdro
 import { Logo } from './Mascot';
 import CharacterArt from './CharacterArt';
 import TodayShareCard from './TodayShareCard';
+import TarotCard from './tarot/TarotCard';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
 import { sansW } from '../theme/typography';
@@ -58,7 +59,7 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(f
         <View style={s.chipRow}><View style={s.chip}><Text style={s.chipText}>{spec.talisman.nickname} · 오늘의 {spec.talisman.keyword}</Text></View></View>
       </> : <>
         <View style={s.artSlot}>
-          {spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} resizeMode="stretch" accessible={false} />}
+          {spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} resizeMode="stretch" accessible={false} />}
         </View>
         <Text style={s.eyebrow} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
         <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>

@@ -19,13 +19,13 @@ import { analysisTheme, CategoryKey, categoryTheme, colors, gradients } from '..
 import { fonts, radius, shadow, txt } from '../theme/typography';
 import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 
-const SOURCES = ['saju', 'thai', 'mbti', 'blood'] as const;
-const POSE = { saju: 'pose-saju', thai: 'pose-thai', mbti: 'pose-mbti', blood: 'pose-blood' } as const;
+const SOURCES = ['saju', 'thai', 'mbti', 'tarot'] as const;
+const POSE = { saju: 'pose-saju', thai: 'pose-thai', mbti: 'pose-mbti', tarot: 'soon-tarot' } as const;
 const SOURCE_LINE: Record<(typeof SOURCES)[number], string> = {
   saju: '태어난 날의 네 기둥과 오늘의 일진이 만나는 자리',
   thai: '서양 · 인도 · 태국, 세 갈래 별점이 오늘 건네는 힌트',
   mbti: '지금의 성향이 오늘의 흐름을 어떻게 받는지',
-  blood: '기질 한마디로 보는 오늘의 컨디션',
+  tarot: '카드 한 장으로 생각해보는 오늘의 선택',
 };
 /** 예시 화면의 점수 — 홈의 분야별 링과 같은 색 */
 const SAMPLE: { k: CategoryKey; score: number; ring: string }[] = [
@@ -35,7 +35,7 @@ const SAMPLE: { k: CategoryKey; score: number; ring: string }[] = [
   { k: 'relationship', score: 71, ring: '#06C755' },
 ];
 const STEPS: [string, string][] = [
-  ['몇 가지만 답해요', '생년월일 · 태어난 시간 · 성별 · 혈액형 · MBTI. 모르는 건 건너뛰어도 돼요.'],
+  ['몇 가지만 답해요', '생년월일 · 태어난 시간 · 성별 · MBTI. 모르는 건 건너뛰어도 돼요.'],
   ['마스코트를 꾹 눌러 뽑아요', '그날의 기운을 닮은 젤리가 찾아오고, 네 가지 관점이 읽은 오늘의 운이 한 번에 펼쳐져요.'],
   ['친구와 나눠요', '결과를 스토리 카드로 만들고, 친구 결과와 나란히 비교해요.'],
 ];
@@ -95,7 +95,7 @@ export default function LandingScreen() {
           </View>
           <View style={{ marginTop: 12 }}><MascotCarousel size={150} /></View>
           <Text style={[txt.title, s.headline]} accessibilityRole="header">{COPY.ask.replace('어떤 운을 ', '어떤 운을\n')}</Text>
-          <Text style={[txt.body, s.lead]}>사주 · 별자리 · MBTI · 혈액형, 네 가지로 읽는 오늘.{'\n'}1분이면 나오고, 가입하지 않아도 돼요.</Text>
+          <Text style={[txt.body, s.lead]}>사주 · 별자리 · MBTI · 타로, 네 가지로 읽는 오늘.{'\n'}1분이면 나오고, 가입하지 않아도 돼요.</Text>
           <PrimaryButton label={CTA} onPress={start} style={{ marginTop: 20 }} />
         </LinearGradient>
         </View>
@@ -149,7 +149,7 @@ export default function LandingScreen() {
               </View>
             ))}
           </Card>
-          <Text style={[txt.small, { marginTop: 10 }]}>네 관점이 같은 말을 할수록 그날의 흐름이 또렷해져요. 그래서 한 가지 점보다 덜 들쭉날쭉해요.</Text>
+          <Text style={[txt.small, { marginTop: 10 }]}>타고난 바탕과 오늘의 흐름, 나의 성향과 카드의 메시지를 함께 읽어요.</Text>
 
           <Text style={s.h}>무료로 즐기기</Text>
           <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>

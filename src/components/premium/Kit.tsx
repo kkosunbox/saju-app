@@ -149,7 +149,7 @@ export function ViewRow({ k, children }: { k: SrcKey; children: React.ReactNode 
   );
 }
 export function ViewsCard({ views, style }: { views: Partial<Record<SrcKey, React.ReactNode>>; style?: StyleProp<ViewStyle> }) {
-  const keys = (['saju', 'thai', 'mbti', 'blood'] as SrcKey[]).filter(k => views[k] !== undefined);
+  const keys = (['saju', 'thai', 'mbti', 'tarot'] as SrcKey[]).filter(k => !!views[k]);
   return (
     <Card style={[{ paddingVertical: 8, paddingHorizontal: 16 }, style]}>
       {keys.map((k, i) => <View key={k} style={i ? s.topLine : null}><ViewRow k={k}>{views[k]}</ViewRow></View>)}

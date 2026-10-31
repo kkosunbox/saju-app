@@ -21,6 +21,7 @@ const SOURCES: Record<SourceKey, { icon: number; color: string }> = {
   saju: { icon: require('../../assets/figma/combined/saju.svg'), color: '#FE8828' },
   thai: { icon: require('../../assets/figma/combined/thai.svg'), color: '#61AA4D' },
   mbti: { icon: require('../../assets/figma/combined/mbti.svg'), color: '#2885FE' },
+  tarot: { icon: require('../../assets/tarot/icon.svg'), color: '#7960A3' },
   blood: { icon: require('../../assets/figma/combined/blood.svg'), color: '#E54D4D' },
 };
 const STORIES = [
@@ -36,7 +37,7 @@ export default function CombinedAnalysisScreen() {
   if (!fortune) return null;
   if (fortuneWriting) return <LoadingScreen title={TITLE} message="네 가지 관점을 엮어 오늘의 이야기를 쓰고 있어요" />;
   const f = fortune.combined;
-  const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, fortune.analyses.blood];
+  const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, ...(fortune.analyses.tarot ? [fortune.analyses.tarot] : [])];
   const common = new Set(f.commonKeywords);
   const sections = f.storySections?.length ? f.storySections : [{ title: '오늘의 이야기', body: f.combinedStory }];
   const tags = f.commonKeywords.length ? f.commonKeywords : f.keywords.slice(0, 1);
@@ -97,7 +98,7 @@ export default function CombinedAnalysisScreen() {
 
       <SectionHeader variant="figma" title="그래서 오늘은" />
       <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
-      <Text style={[txt.caption, s.caption]}>사주 · 점성술 · MBTI · 혈액형을 겹쳐 읽은 풀이예요</Text>
+      <Text style={[txt.caption, s.caption]}>{fortune.viewpointsVersion === 'legacy' ? '종합 풀이는 뽑았을 당시의 관점으로 보관되어 있어요. 타로는 오늘의 카드로 함께 확인해보세요.' : '사주 · 점성술 · MBTI · 타로를 겹쳐 읽은 풀이예요'}</Text>
       <Disclaimer compact />
     </Screen>
   );

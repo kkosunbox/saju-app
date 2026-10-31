@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
+import TarotCard from '../../components/tarot/TarotCard';
+import { TarotReading } from '../../types';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Para, SubHead, heroTxt, scoreColor } from '../../components/premium/Kit';
@@ -60,7 +62,7 @@ export default function ThemeScreen() {
       <ThemeHero kind={kind}>
         <Text style={heroTxt.eyebrow}>나의 연애 스타일</Text>
         <Text style={[heroTxt.summ, { fontSize: 20 }]}>{top.st}</Text>
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>흔히 {u.bloodType}형은 {top.blood}.</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.82)', marginTop: 6 }}>사주와 MBTI로 읽는 나의 관계 스타일</Text>
       </ThemeHero>
     );
   } else if (top?.kind === 'money') {
@@ -82,7 +84,7 @@ export default function ThemeScreen() {
 
   return (
     <Screen title="테마 운세" back right={<ShareIconButton item={item} spec={spec} />}>
-      <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti} · ${u.bloodType}형`} />
+      <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti}`} />
       {hero}
       {!content.open ? <LockGate key={item.key} item={item} />
         : data && F ? <ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} />
@@ -94,6 +96,7 @@ export default function ThemeScreen() {
 }
 
 interface ThemeDetails {
+  tarot?: TarotReading;
   years: { year: number; pillar: Pillar; group: string; score: number }[];
   months: { y: number; m: number; score: number }[];
   periods: { age: number; pillar: Pillar; group: string; score: number }[];
@@ -299,6 +302,13 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
           <Text style={s.moneyNote}>투자·대출 등 금전 결정은 운세가 아닌 전문가 상담을 바탕으로 해주세요.</Text>
         </>
       ) : null}
+      {D.tarot ? <>
+        <SubHead title={`${no()} · 이 주제의 타로`} caption="평생 성향과 별개로, 지금 생각해볼 선택" />
+        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+          <TarotCard reading={D.tarot} width={88} />
+          <View style={{ flex: 1 }}><Text style={txt.h3}>{D.tarot.name}</Text><Para>{D.tarot.message}</Para><Para>{D.tarot.action}</Para></View>
+        </View>
+      </> : null}
       {core ? <Closing title="마지막 한마디" top={3} style={{ marginTop: kind === 'career' ? 32 : 16 }}>{core.closing}</Closing> : null}
     </>
   );

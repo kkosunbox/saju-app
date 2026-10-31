@@ -32,6 +32,7 @@ export function defaultItem(key: Exclude<PremiumKey, 'lounge'>, today: string): 
 /** 친구 결과 링크의 화면 이름 → 이동 */
 export function openFriendRoute(nav: Nav, c: string) {
   if (c === 'Home' || c === 'Compatibility') return nav.navigate('Tabs', { screen: c });
+  if (c === 'Tarot') return nav.navigate('AnalysisDetail', { source: 'tarot' });
   if (c === 'Theme') return nav.navigate('Theme', { kind: 'love' });
   if (c === 'ThemeMoney') return nav.navigate('Theme', { kind: 'money' });
   if (c === 'ThemeCareer') return nav.navigate('Theme', { kind: 'career' });

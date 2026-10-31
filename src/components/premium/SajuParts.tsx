@@ -24,6 +24,7 @@ const ICONS = {
   thai: require('../../../assets/figma/saju/thai.svg'),
   mbti: require('../../../assets/figma/saju/mbti.svg'),
   blood: require('../../../assets/figma/saju/blood.svg'),
+  tarot: require('../../../assets/tarot/icon.svg'),
   // 신년운세 분야 아이콘
   pulse: require('../../../assets/figma/new-year/health.svg'),
   study: require('../../../assets/figma/new-year/study.svg'),
@@ -42,7 +43,7 @@ export function SajuIcon({ name }: { name: SajuIconName }) {
   return <View style={{ width: name.startsWith('luck-') ? 16 : 20, height: name.startsWith('luck-') ? 16 : 20, alignItems: 'center', justifyContent: 'center' }}><Image source={ICONS[name]} style={{ width, height }} contentFit="contain" /></View>;
 }
 
-export const SOURCE_TONES: Record<SrcKey, string> = { saju: '#FE8828', thai: '#61AA4D', mbti: '#2885FE', blood: '#E54D4D' };
+export const SOURCE_TONES: Record<SrcKey, string> = { saju: '#FE8828', thai: '#61AA4D', mbti: '#2885FE', blood: '#E54D4D', tarot: '#7960A3' };
 export function SourceMark({ source }: { source: SrcKey }) {
   return <View style={[s.sourceMark, { borderColor: SOURCE_TONES[source] }]}><SajuIcon name={source} /></View>;
 }
@@ -80,7 +81,7 @@ export function Closing({ children, title = '평생 기억할 한마디', top, s
 export function InfoRows({ rows, rowStyle }: { rows: [SajuIconName, string, string][]; rowStyle?: StyleProp<ViewStyle> }) {
   return <View style={s.table}>{rows.map(([icon, label, value], i) => <View key={label} style={[s.infoRow, rowStyle, i > 0 && s.topLine]}><SajuIcon name={icon} /><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>)}</View>;
 }
-const SOURCE_LABEL = { saju: '사주', thai: '점성술', mbti: 'MBTI', blood: '혈액형' };
+const SOURCE_LABEL = { saju: '사주', thai: '점성술', mbti: 'MBTI', blood: '혈액형', tarot: '타로' };
 export function ViewRow({ k, children }: { k: SrcKey; children: React.ReactNode }) {
   return <View style={s.viewRow}><SourceMark source={k} /><Text style={s.sourceLabel}>{SOURCE_LABEL[k]}</Text><Text style={[s.body, { flex: 1 }]}>{children}</Text></View>;
 }

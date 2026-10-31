@@ -45,7 +45,6 @@ function ProfileEditForm({ user }: { user: User }) {
   const { saveUser } = useApp();
   const { toast } = usePremium();
   const [nickname, setNickname] = useState(user.nickname);
-  const [blood, setBlood] = useState(user.bloodType);
   const [gender, setGender] = useState(user.gender);
   const [mbti, setMbti] = useState(user.mbtiUnknown ? null : user.mbti);
   const [calendar, setCalendar] = useState<CalendarType>(user.calendarType ?? 'solar');
@@ -78,7 +77,7 @@ function ProfileEditForm({ user }: { user: User }) {
     Keyboard.dismiss();
     const input: ProfileInput = {
       ...inputOf(user),
-      nickname: nickname.trim(), bloodType: blood, gender, mbti,
+      nickname: nickname.trim(), gender, mbti,
       calendarType: calendar, birthDate: date.iso, isLeapMonth: calendar === 'lunar' && leap,
       birthTime: timeMode === 'unknown' ? null : timeMode === 'exact' ? fmtTime(exact) : sijinTime(sijin!, jasi),
       birthPlaceId: place?.id ?? null,
@@ -112,12 +111,6 @@ function ProfileEditForm({ user }: { user: User }) {
             <View>
               <Text style={s.label}>이름</Text>
               <TextField variant="profile" accessibilityLabel="이름 또는 닉네임" value={nickname} onChangeText={setNickname} maxLength={12} placeholder="이름 또는 닉네임" />
-            </View>
-            <View>
-              <Text style={s.label}>혈액형</Text>
-              <View style={s.row}>
-                {(['A', 'B', 'O', 'AB'] as const).map(type => <OptionChip key={type} variant="profile" style={s.choice} label={`${type}형`} selected={blood === type} onPress={() => setBlood(type)} />)}
-              </View>
             </View>
             <View>
               <Text style={s.label}>성별</Text>

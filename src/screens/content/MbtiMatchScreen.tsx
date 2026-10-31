@@ -125,7 +125,7 @@ export default function MbtiMatchScreen() {
 
       <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })} style={s.cta} scaleTo={0.98}>
         <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>특정한 사람과의 궁합이 궁금하다면?</Text>
-        <Text style={[txt.small, { marginTop: 2 }]}>사주 · 점성술 · 혈액형까지 함께 보는 궁합 보러 가기 →</Text>
+        <Text style={[txt.small, { marginTop: 2 }]}>사주 · 점성술 · 타로까지 함께 보는 궁합 보러 가기 →</Text>
       </PressableScale>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>MBTI 궁합은 재미로 보는 성향 조합이에요.</Text>
     </Screen>

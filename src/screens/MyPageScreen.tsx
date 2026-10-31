@@ -92,7 +92,7 @@ export default function MyPageScreen() {
             <View style={s.avatar}><Text style={s.avatarText}>{user.nickname.slice(0, 1)}</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={s.name}>{user.nickname}</Text>
-              <Text style={s.meta}>{MBTI_INFO[user.mbti].nickname} {user.mbti} · {user.bloodType}형</Text>
+              <Text style={s.meta}>{MBTI_INFO[user.mbti].nickname} {user.mbti}</Text>
             </View>
             <View style={s.heroMascot}><MbtiArt type={user.mbti} size={46} /></View>
           </View>
@@ -113,7 +113,6 @@ export default function MyPageScreen() {
       <ProfileHeading title="내 프로필" action="프로필 수정" onAction={() => router.push('/profile-edit')} />
       <View style={s.profileGroup}>
         <ProfileRow icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''}`} />
-        <ProfileRow icon="blood" label="혈액형" value={`${user.bloodType}형`} />
         <ProfileRow icon="calendar" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
         <ProfileRow icon="time" label="출생시간" value={user.birthTime ?? '모름'} />
         <ProfileRow icon="pin" label="태어난 지역" value={user.birthPlace ? placeLabel(user.birthPlace) : '모름'} />

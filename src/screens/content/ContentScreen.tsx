@@ -72,6 +72,7 @@ export default function ContentScreen() {
 
 
   const FREE: [ArtName, string, string, () => void][] = [
+    ['soon-tarot', '오늘의 타로', '오늘 나에게 온 카드 한 장', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],

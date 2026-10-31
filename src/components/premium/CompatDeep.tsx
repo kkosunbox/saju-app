@@ -53,7 +53,6 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   const table: [string, string, string, boolean?][] = [
     ...rows.map(([l, f]): [string, string, string] => [l, f(A), B ? f(B) : '비공개']),
     ['MBTI', u.mbti, privatePartner ? '비공개' : p.mbti ?? '모름', !p.mbti],
-    ['혈액형', `${u.bloodType}형`, privatePartner ? '비공개' : p.bloodType ? `${p.bloodType}형` : '모름', !p.bloodType],
   ];
 
   return (
@@ -99,7 +98,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         </View>
       </Card>
 
-      <SubHead variant="figma" title="네 관점으로 본 두 사람" caption="MBTI · 혈액형 · 태국 요일" />
+      <SubHead variant="figma" title="네 관점으로 본 두 사람" caption="MBTI · 점성술 · 관계의 타로" />
       {theirMbti
         ? (
           <View style={s.axes}>

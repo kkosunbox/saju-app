@@ -57,7 +57,7 @@ export default function InvitePicker({ invite, onDone, onDecline, replace }: { i
       {invite.sharesProfile ? (
         <>
           <Text style={[txt.caption, { textAlign: 'center', marginTop: 20 }]}>
-            궁합을 보면 {invite.inviterNickname}님과 서로의 생년월일·태어난 시간·출생지·MBTI·혈액형이 공개되고,{'\n'}
+            궁합을 보면 {invite.inviterNickname}님과 서로의 생년월일·태어난 시간·출생지·MBTI이 공개되고,{'\n'}
             {invite.inviterNickname}님의 궁합 탭에도 둘의 궁합이 저장돼요.
           </Text>
           <PrimaryButton label={busy ? '궁합 보는 중…' : '공개에 동의하고 궁합 보기'} onPress={pick} disabled={busy} style={{ marginTop: 12 }} />

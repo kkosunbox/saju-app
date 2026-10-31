@@ -53,7 +53,6 @@ export const compatApi = {
         birthPlaceId: partner.birthPlace?.id ?? null,
         gender: partner.gender,
         mbti: partner.mbti,
-        bloodType: partner.bloodType,
       } as never,
     }));
     return toResult(userId, dto);

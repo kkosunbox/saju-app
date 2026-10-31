@@ -2,7 +2,7 @@
  * 공유 카드 데이터 — 콘텐츠마다 핵심 결과 · 강조 한 줄 · 지표 · 질문으로 함축한다.
  * 생년월일 같은 개인 정보는 카드에 넣지 않는다.
  */
-import { CombinedFortune, CompatibilityResult, ShareCard, User } from '../../types';
+import { CombinedFortune, CompatibilityResult, ShareCard, User, TarotReading } from '../../types';
 import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
@@ -41,6 +41,7 @@ export interface ShareSpec {
   short: string;
   /** 오늘의 부적: 스토리 카드에 부적 종이를 그대로 그린다 */
   talisman?: TalismanPaperData;
+  tarot?: TarotReading;
   /** 오늘의 운세: 칭호 · 올해 상위 % 카드로 그린다 */
   today?: TodayCardData;
 }
@@ -74,10 +75,10 @@ export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null):
   if (card) {
     const pct = `상위 ${card.yearTopPercent}%`;
     return {
-      kind: '오늘의 운세', seal: '日', eyebrow: `${u.nickname}님의 오늘 칭호`,
+      kind: '오늘의 운세', seal: '日', eyebrow: `${u.nickname}님은 오늘`,
       headline: card.title, sub: card.line, stats: [],
       hook: '너는 오늘 상위 몇 %?',
-      text: `${u.nickname}님의 오늘 칭호는 '${card.title}'${ieyo(card.title)}.\n${seeMine('오늘 운세')}`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
+      text: `${u.nickname}님은 오늘 '${card.title}'${ieyo(card.title)}.\n${seeMine('오늘 운세')}`, file: 'woonpick-today', route: 'Home', short: `${card.title} · ${pct}`,
       today: {
         nickname: u.nickname, total: f.totalScore, title: card.title, line: card.line, topPercent: card.yearTopPercent, pose: getResultMascot(f).pose,
         scores: [['연애', String(f.love)], ['재물', String(f.money)], ['직장', String(f.work)], ['관계', String(f.relationship)]],
@@ -243,7 +244,7 @@ export function themeSpec(u: User, kind: 'love' | 'money' | 'career', data: Them
     const L = data as ThemeLove;
     return {
       kind: '연애·결혼운', seal: '緣', eyebrow: `${u.nickname}님의 연애 스타일`,
-      headline: L.st, sub: `${u.bloodType}형답게 ${L.blood}`,
+      headline: L.st, sub: '사주와 MBTI로 읽는 나의 관계 스타일',
       detail: { label: '연애운이 좋은 달', value: L.ms.slice(0, 2).map(x => `${x.y}년 ${x.m}월`).join(' · ') || '—' },
       stats: [['연애운 강한 달', L.ms.map(x => x.m).sort((a, b) => a - b).join('·') + '월'], ['잘 맞는 MBTI', L.types[0]], ['인연의 해', L.yrs[0] ? `${L.yrs[0].yy}` : '—']],
       teaser: '결혼 흐름이 들어오는 시기',
@@ -289,3 +290,9 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
   };
 }
 
+
+export function tarotSpec(u: User, card: TarotReading): ShareSpec {
+  return { kind: '오늘의 타로', seal: '✦', eyebrow: `${u.nickname}님에게 온 카드`, headline: card.name, sub: card.message,
+    detail: { label: '카드의 키워드', value: card.keyword }, stats: [['카드', `${card.id}`], ['방향', '정방향'], ['덱', '메이저 22장']],
+    hook: '오늘 당신에게 온 카드는?', text: `${u.nickname}님의 오늘의 타로는 ${card.name}.\n${card.message}`, file: 'woonpick-tarot', route: 'Tarot', short: `${card.name} · ${card.keyword}`, tarot: card };
+}

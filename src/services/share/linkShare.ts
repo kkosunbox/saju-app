@@ -77,7 +77,7 @@ export async function captureInvite() {
 
 /* ---------- 친구 결과 링크 (공유 → 비교 → 답장 공유) ---------- */
 /** 결과 링크로 열 수 있는 화면 (그 외 값은 무시) */
-export const RESULT_ROUTES = ['MbtiMatch', 'Character', 'Talisman', 'PastLife', 'Spouse', 'Life', 'SajuDeep', 'NewYear', 'Monthly', 'Lucky', 'Theme', 'ThemeMoney', 'ThemeCareer', 'Home', 'Compatibility'];
+export const RESULT_ROUTES = ['Tarot', 'MbtiMatch', 'Character', 'Talisman', 'PastLife', 'Spouse', 'Life', 'SajuDeep', 'NewYear', 'Monthly', 'Lucky', 'Theme', 'ThemeMoney', 'ThemeCareer', 'Home', 'Compatibility'];
 export interface FriendResult { c: string; k: string; n: string; h: string; seen?: boolean; at?: number }
 const FRIEND = 'onulna:friendResult';
 /** 친구 결과는 받은 지 하루가 지나면 버린다 (로그인 화면·비교 카드에 계속 남지 않게) */

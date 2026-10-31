@@ -1,6 +1,6 @@
 /**
  * 뽑았는지(열어 봤는지) — 결과를 들어가자마자 보여주지 않고, 한 번 뽑게 한 다음부터 바로 보여준다.
- * 오늘의 운세·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
+ * 오늘의 운세·타로·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
  * 뽑은 결과는 서버가 그때의 프로필로 고정해 두므로 프로필을 바꿔도 다시 뽑지 않는다.
  * 이 기기에만 저장한다 (기기를 바꾸면 한 번 더 뽑는 정도는 괜찮다). 오늘의 운세만은 서버도 뽑았는지 기억해서 다른 기기에서도 뽑은 상태로 보인다.
  */
@@ -10,8 +10,8 @@ import { deviceKey } from '../storage/storageService';
 import { useApp } from '../../context/AppContext';
 import { DEV_TOOLS } from '../../utils/devTools';
 
-export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
-const DAILY: OpenKind[] = ['fortune', 'talisman'];
+export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
+const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman'];
 
 /** 사용자별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } — 종류마다 한 칸이라 쌓이지 않는다 */
 type Stamps = Partial<Record<OpenKind, string>>;
@@ -90,4 +90,15 @@ export function useFortuneDraw() {
   const pending = !!fortune?.textsPending || fortune?.drawn === false;
   useEffect(() => { if (o.opened && pending) drawFortune(); }, [o.opened, pending, drawFortune]);
   return o;
+}
+
+/** Fortune reveals include tarot, while a tarot-only reveal never opens or requests the fortune. */
+export function useTarotDraw() {
+  const tarot = useOpened('tarot');
+  const fortune = useOpened('fortune');
+  return {
+    ...tarot,
+    ready: tarot.ready && fortune.ready,
+    opened: tarot.opened || fortune.opened,
+  };
 }

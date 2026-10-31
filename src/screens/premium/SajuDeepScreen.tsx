@@ -20,7 +20,6 @@ import {
 import { BRANCHES, ELEMENT_INFO, STEMS, TenGodGroup } from '../../data/sajuData';
 import { THAI_DAYS } from '../../data/thaiData';
 import { MBTI_INFO } from '../../data/mbtiData';
-import { BLOOD_INFO } from '../../data/bloodData';
 import { analysisTheme, colors, isDark } from '../../theme/colors';
 import { fonts, sansW, txt } from '../../theme/typography';
 import { Pillar } from '../../types/content';
@@ -294,7 +293,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </Card>
       ) : writing ? <Card style={{ marginTop: 12 }}><PartPending writing /></Card> : null}
 
-      <SubHead title="09 · 네 관점 교차 분석" caption="사주 · 점성술 · MBTI · 혈액형이 같은 말을 할 때" />
+      <SubHead title="09 · 세 관점 성향 분석" caption="사주 · 점성술 · MBTI로 읽는 타고난 성향" />
       <Card style={{ gap: 16 }}>
         {data.axes.map(a => {
           const { pos, neg, verdict } = axisVerdict(a);
@@ -302,13 +301,13 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
             <View key={a.name}>
               <View style={s.between}>
                 <Text style={s.axName}>{a.name}</Text>
-                <Text style={s.verdict}>{verdict + (verdict !== '균형' ? ' · ' + Math.max(pos, neg) + '/4' : '')}</Text>
+                <Text style={s.verdict}>{verdict + (verdict !== '균형' ? ' · ' + Math.max(pos, neg) + '/3' : '')}</Text>
               </View>
               <View style={s.axrow}>
                 <Text style={s.axEnd}>{a.neg}</Text>
                 <View style={s.axline}>
-                  {(['saju', 'thai', 'mbti', 'blood'] as SrcKey[]).map((k, ki) => (
-                    <View key={k} style={[s.axdot, { left: `${Math.min(88, Math.max(12, 50 + a.v[k] * 34 + (ki - 1.5) * 7))}%` }]} accessibilityLabel={analysisTheme[k].label}>
+                  {(['saju', 'thai', 'mbti'] as const).map((k, ki) => (
+                    <View key={k} style={[s.axdot, { left: `${Math.min(88, Math.max(12, 50 + a.v[k] * 34 + (ki - 1) * 7))}%` }]} accessibilityLabel={analysisTheme[k].label}>
                       <SourceMark source={k} />
                     </View>
                   ))}
@@ -321,7 +320,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
       </Card>
       {structure ? <Para mt={16} style={{ lineHeight: 20 }}>{structure.crossView}</Para> : <PartPending writing={writing} lines={3} />}
       <Card style={{ marginTop: 16, paddingVertical: 0, paddingHorizontal: 10 }}>
-        {([['saju', `${per.core} (${me.ko}${EK(me.element)})`], ['thai', THAI_DAYS[thaiDay(u)].trait], ['mbti', `${MBTI_INFO[u.mbti].nickname} · ${MBTI_INFO[u.mbti].strength}`], ['blood', BLOOD_INFO[u.bloodType].trait]] as [SrcKey, string][]).map(([k, t], i) => (
+        {([['saju', `${per.core} (${me.ko}${EK(me.element)})`], ['thai', THAI_DAYS[thaiDay(u)].trait], ['mbti', `${MBTI_INFO[u.mbti].nickname} · ${MBTI_INFO[u.mbti].strength}`]] as [SrcKey, string][]).map(([k, t], i) => (
           <View key={k} style={i ? s.topLine : null}><ViewRow k={k}>{t}</ViewRow></View>
         ))}
       </Card>
