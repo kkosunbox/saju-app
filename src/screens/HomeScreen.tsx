@@ -21,7 +21,8 @@ import ScoreRing from '../components/ScoreRing';
 import Mascot, { ArtName, Logo } from '../components/Mascot';
 import DrawMascot from '../components/DrawMascot';
 import AnimatedNumber from '../components/AnimatedNumber';
-import PromoCard from '../components/PromoCard';
+import PromoSlot, { TrackedPromoCard } from '../components/PromoSlot';
+import { isNewYearSeason, promosOf } from '../services/promo/promos';
 import HScroll from '../components/HScroll';
 import { HomeCategoryGlyph, HomeFreeArt, HomeOutlineIcon } from '../components/home/HomeDesignAssets';
 import { PointPill } from '../components/HeaderPoints';
@@ -155,7 +156,7 @@ export default function HomeScreen() {
   const consultStatus = useConsultStatus(!!account).data;
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const consultCost = consultStatus?.cost ?? 100;
-  const { owned, toast } = usePremium();
+  const { owned, toast, points } = usePremium();
   const { sendInvite, inviteShareSheet } = useInviteShare();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [showInvite, setShowInvite] = useState(false);
@@ -534,7 +535,8 @@ export default function HomeScreen() {
           </PressableScale>
 
           <View style={{ marginTop: 16 }}>
-            <PromoCard
+            <TrackedPromoCard
+              screen="home" item="consult"
               variant="figma"
               tone="lime"
               title="오늘 마음에 걸리는 일 있나요?"
@@ -559,7 +561,8 @@ export default function HomeScreen() {
           </View>
 
           <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 87 }} title="더 깊이 보기" caption={COPY.deeper} />
-          <PromoCard
+          <TrackedPromoCard
+            screen="home" item="spouse"
             variant="figma"
             badgePlacement="inline"
             tone="gold"
@@ -568,9 +571,11 @@ export default function HomeScreen() {
             desc="어떤 사람을, 언제, 어디서 만나게 될까?"
             owned={spouseOwned}
             coin={!spouseOwned}
-            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost} · 리포트 열기 →`}
+            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost} · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
             onPress={() => nav.navigate('Spouse')}
           />
+          {/* 11월 ~ 1월: 다음 해(1월은 올해) 신년운세 */}
+          {isNewYearSeason(today) ? <View style={{ marginTop: 16 }}><PromoSlot screen="home" promo={promosOf(nav, today).newyear} tone="sky" variant="figma" teaser /></View> : null}
           <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} style={s.link} scaleTo={0.98}>
             <Text style={s.linkText}>평생운 · 신년운세 · 월별운세 · 테마 운세 · 길일</Text>
             <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />

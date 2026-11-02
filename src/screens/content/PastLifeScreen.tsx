@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { usePromoTrack } from '../../components/PromoSlot';
 import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
@@ -113,11 +114,19 @@ export default function PastLifeScreen() {
         <Text style={s.body}>태어난 해의 띠로 시대와 장소를, 사주 일간의 오행과 MBTI 성향으로 신분을 정해요. 사주의 일주에서 장면과 재능, 과제와 인연의 단서를 가져와 이야기를 덧붙였어요. 처음 펼칠 때의 프로필로 간직하는 창작 이야기예요. 실제 전생이나 역사적 사실을 확인한 결과는 아니에요.</Text>
       </View>
 
-      <PressableScale onPress={() => router.push('/spouse')} style={s.cta} scaleTo={0.98}>
-        <View style={s.ctaCopy}><Text style={s.ctaTitle}>이번 생에는 누구를 만날까?</Text><Text style={s.ctaSub}>미래 배우자 이야기 · 첫 화면 무료</Text></View>
-        <Icon name="chevronRight" size={16} color={colors.inkMute} />
-      </PressableScale>
+      <SpouseCta />
     </Screen>
+  );
+}
+
+/** 미래 배우자로 이어지는 줄 (Figma 디자인 그대로, 노출·클릭만 기록) */
+function SpouseCta() {
+  const onPress = usePromoTrack('past_life', 'spouse', () => router.push('/spouse'));
+  return (
+    <PressableScale onPress={onPress} style={s.cta} scaleTo={0.98}>
+      <View style={s.ctaCopy}><Text style={s.ctaTitle}>이번 생에는 누구를 만날까?</Text><Text style={s.ctaSub}>미래 배우자 이야기 · 첫 화면 무료</Text></View>
+      <Icon name="chevronRight" size={16} color={colors.inkMute} />
+    </PressableScale>
   );
 }
 

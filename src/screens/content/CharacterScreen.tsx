@@ -3,7 +3,6 @@ import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
-import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import BrandMark from '../../components/BrandMark';
@@ -21,11 +20,13 @@ import FriendCompare from '../../components/FriendCompare';
 import PillarSlot from '../../components/PillarSlot';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
+import PromoSlot from '../../components/PromoSlot';
+import { promosOf } from '../../services/promo/promos';
 
 /** 무료: 일주(60갑자)로 보는 나의 사주 캐릭터 */
 export default function CharacterScreen() {
   const nav = useNavigation();
-  const { user: u } = useApp();
+  const { user: u, today } = useApp();
   const card = useRef<ViewInstance>(null);
   const q = useFreeContent('character');
   const draw = useOpened('character');
@@ -83,10 +84,7 @@ export default function CharacterScreen() {
         </View>
       </Card>
 
-      <PressableScale onPress={() => nav.navigate('SajuDeep')} style={s.cta} scaleTo={0.98}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>내 사주를 더 깊이 알고 싶다면</Text>
-        <Text style={[txt.small, { marginTop: 2 }]}>원국표 · 오행 · 신살 · 재물 · 연애까지, 상세 사주 해석 보러 가기 →</Text>
-      </PressableScale>
+      <View style={s.cta}><PromoSlot screen="character" promo={promosOf(nav, today).sajuDeep} tone="mint" title="내 사주를 더 깊이 알고 싶다면" /></View>
     </Screen>
   );
 }
@@ -106,5 +104,5 @@ const s = StyleSheet.create({
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
   chipText: { color: colors.white, fontSize: 12, fontWeight: '600' },
   foot: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 18 },
-  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.card },
+  cta: { marginTop: 24 },
 });

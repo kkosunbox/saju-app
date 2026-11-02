@@ -3,16 +3,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
 import TarotExperience from '../components/tarot/TarotExperience';
+import PromoSlot from '../components/PromoSlot';
+import { isNewYearSeason, promosOf } from '../services/promo/promos';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
 import { AlmanacHero, Figure, Ledger, Quote } from '../components/Almanac';
 import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
-import { analysisTheme, colors } from '../theme/colors';
+import { analysisTheme, colors, isDark } from '../theme/colors';
 import { fonts, radius, sansW } from '../theme/typography';
 import { KEYWORDS } from '../data/keywords';
 import { LockCard } from '../components/premium/Kit';
 import { ITEMS } from '../services/premium/catalog';
+import { ART } from '../components/Mascot';
 import { BRANCHES, ELEMENT_INFO, Element, STEMS } from '../data/sajuData';
 import { THAI_DAYS, ThaiDay, WEEKDAY_TO_THAI } from '../data/thaiData';
 import { Pillar } from '../types/content';
@@ -26,6 +29,12 @@ const NOTE: Record<string, string> = {
   thai: '서양은 태양 별자리와 오늘의 달, 인도는 달 라시(시데리얼)에서 본 오늘 달의 자리, 태국은 태어난 요일의 수호 행성으로 풀어요.',
   mbti: 'MBTI는 예측이 아닌 성향 분석이에요.',
 };
+// 번호 동그라미 · 해시태그 색 — 관점 색보다 밝게(피그마). 다크 모드는 관점 색 그대로
+const ACCENT: Record<string, string> = { saju: '#F68F1A', thai: '#F3A011', mbti: colors.mbti };
+const accentOf = (src: string, tone: string) => (isDark ? tone : ACCENT[src] ?? tone);
+// 원국표 · 오행 분포의 오행 색 (피그마). 나머지 화면은 ELEMENT_INFO 색을 그대로 쓴다
+const EL_HEX: Partial<Record<Element, string>> = isDark ? {} : { wood: '#5FB8A8', earth: '#FCBD51', water: '#3D79D4' };
+const elHex = (e: Element) => EL_HEX[e] ?? ELEMENT_INFO[e].hex;
 
 /** 4가지 관점 상세 — 책력 한 장 + 관점별 도해 + 풀이 + 장부형 분석 */
 export default function AnalysisDetailScreen() {
@@ -38,6 +47,7 @@ export default function AnalysisDetailScreen() {
   const a = fortune.analyses[params.source];
   if (!a) return null;
   const t = analysisTheme[params.source];
+  const accent = accentOf(params.source, t.color);
 
   return (
     <Screen title={t.label} back>
@@ -46,20 +56,23 @@ export default function AnalysisDetailScreen() {
       </AlmanacHero>
 
       {a.source === 'saju' && user.natal ? <SajuFigure u={user} day={fortune.dayPillar ?? null} tone={t.color} /> : null}
-      {a.source === 'thai' && a.systems ? <AstroSystems systems={a.systems} u={user} today={today} tone={t.color} /> : null}
+      {a.source === 'thai' && a.systems ? <AstroSystems systems={a.systems} u={user} today={today} tone={accent} /> : null}
       {a.source === 'thai' && !a.systems && user.natal ? <ThaiFigure u={user} today={today} tone={t.color} /> : null}
       {a.source === 'mbti' ? <MbtiFigure u={user} focus={a.details[2]?.value ?? ''} tone={t.color} /> : null}
 
       {a.systems ? null : (
         <>
           <SectionHeader title="분석 내용" />
-          <Ledger rows={a.details.map(d => [d.label, d.value] as [string, string])} tone={t.color} />
+          <Ledger rows={a.details.map(d => [d.label, d.value] as [string, string])} tone={accent} />
         </>
       )}
 
       {a.source === 'saju' ? (
-        <LockCard mt={12} title="상세 사주 해석 보기" desc="원국표 · 오행 분포 · 나의 본성 · 올해와 이달의 흐름" item={ITEMS.sajuDeep()} onPress={() => nav.navigate('SajuDeep')} />
+        <LockCard mt={16} art={ART['premium-sajuDeep']} title="상세 사주 해석 보기" desc="원국표 · 오행 분포 · 나의 본성 · 올해와 이달의 흐름" item={ITEMS.sajuDeep()} onPress={() => nav.navigate('SajuDeep')} />
       ) : null}
+      {/* 점성술은 한 해의 흐름(시즌에는 신년운세), MBTI는 상대의 마음으로 */}
+      {a.source === 'thai' ? <View style={{ marginTop: 24 }}><PromoSlot screen="analysis_thai" promo={promosOf(nav, today)[isNewYearSeason(today) ? 'newyear' : 'life']} tone="mint" teaser /></View> : null}
+      {a.source === 'mbti' ? <View style={{ marginTop: 24 }}><PromoSlot screen="analysis_mbti" promo={promosOf(nav, today).crush} tone="lime" title="MBTI로 그 사람의 마음이 궁금하다면" /></View> : null}
       <Text style={s.note}>{NOTE[a.source]}</Text>
       <Disclaimer compact />
     </Screen>
@@ -80,8 +93,8 @@ function SajuFigure({ u, day, tone }: { u: User; day: Pillar | null; tone: strin
             <Text style={[s.pLabel, l === '일' && { color: tone }]}>{l}주{l === '일' ? ' · 나' : ''}</Text>
             {p ? (
               <>
-                <Text style={[s.pHan, { color: ELEMENT_INFO[STEMS[p.stem].element].hex }]}>{STEMS[p.stem].hanja}</Text>
-                <Text style={[s.pHan, { color: ELEMENT_INFO[BRANCHES[p.branch].element].hex }]}>{BRANCHES[p.branch].hanja}</Text>
+                <Text style={[s.pHan, { color: elHex(STEMS[p.stem].element) }]}>{STEMS[p.stem].hanja}</Text>
+                <Text style={[s.pHan, { color: elHex(BRANCHES[p.branch].element) }]}>{BRANCHES[p.branch].hanja}</Text>
               </>
             ) : <Text style={s.pUnknown}>미상</Text>}
           </View>
@@ -89,12 +102,12 @@ function SajuFigure({ u, day, tone }: { u: User; day: Pillar | null; tone: strin
       </View>
       <Text style={s.subTitle}>오행 분포</Text>
       <View style={s.elBar}>
-        {EL_ORDER.filter(e => cnt[e] > 0).map(e => <View key={e} style={{ flex: cnt[e] / total, backgroundColor: ELEMENT_INFO[e].hex }} />)}
+        {EL_ORDER.filter(e => cnt[e] > 0).map(e => <View key={e} style={{ flex: cnt[e] / total, backgroundColor: elHex(e) }} />)}
       </View>
       <View style={s.elLegend}>
         {EL_ORDER.map(e => (
           <View key={e} style={s.elItem}>
-            <Text style={[s.elHan, { color: ELEMENT_INFO[e].hex }]}>{ELEMENT_INFO[e].hanja}</Text>
+            <Text style={[s.elHan, { color: elHex(e) }]}>{ELEMENT_INFO[e].hanja}</Text>
             <Text style={[s.elCnt, cnt[e] === 0 && { color: colors.danger }]}>{cnt[e]}</Text>
           </View>
         ))}
@@ -113,12 +126,10 @@ function AstroSystems({ systems, u, today, tone }: { systems: AstroSystemReading
         <Figure key={x.system} title={x.title} caption={ASTRO_CAPTION[x.system]}>
           <Text style={s.astroHead}>{x.headline}</Text>
           <Text style={s.astroDesc}>{x.description}</Text>
-          <View style={s.astroTags}>
-            {x.tags.map(tag => <Text key={tag} style={[s.astroTag, { color: tone }]}>#{KEYWORDS[tag].label}</Text>)}
-          </View>
-          {x.system === 'thai' && u.natal ? <View style={{ marginTop: 16 }}><ThaiWeek u={u} today={today} tone={tone} /></View> : null}
-          <View style={{ marginTop: 14 }}>
-            <Ledger rows={x.details.map(d => [d.label, d.value] as [string, string])} tone={tone} />
+          <Text style={[s.astroTags, { color: tone }]}>{x.tags.map(tag => `#${KEYWORDS[tag].label}`).join(', ')}</Text>
+          {x.system === 'thai' && u.natal ? <View style={s.weekCard}><ThaiWeek u={u} today={today} tone={tone} /></View> : null}
+          <View style={{ marginTop: 12 }}>
+            <Ledger flat rows={x.details.map(d => [d.label, d.value] as [string, string])} tone={tone} />
           </View>
         </Figure>
       ))}
@@ -188,19 +199,19 @@ function MbtiFigure({ u, focus, tone }: { u: User; focus: string; tone: string }
 const s = StyleSheet.create({
   astroHead: { ...sansW('700'), fontSize: 16, lineHeight: 23, color: colors.ink, letterSpacing: -0.3 },
   astroDesc: { fontSize: 14, lineHeight: 21, color: colors.inkSub, marginTop: 6 },
-  astroTags: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  astroTag: { fontSize: 12, fontWeight: '700' },
+  astroTags: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, marginTop: 8 },
+  weekCard: { marginTop: 8, borderRadius: radius.lg, backgroundColor: colors.cream, paddingVertical: 10, paddingHorizontal: 8 },
   note: { fontSize: 12, color: colors.inkMute, textAlign: 'center', marginTop: 16 },
   pillars: { flexDirection: 'row', gap: 8 },
   pillar: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.cream },
   pLabel: { fontSize: 12, fontWeight: '700', color: colors.inkMute },
-  pHan: { fontFamily: fonts.serif, fontSize: 26, lineHeight: 34, fontWeight: '700', marginTop: 2 },
+  pHan: { ...sansW('600'), fontSize: 20, lineHeight: 34, letterSpacing: -0.8, marginTop: 2 },
   pUnknown: { fontSize: 12, color: colors.inkMute, marginTop: 24, marginBottom: 20 },
   subTitle: { fontSize: 12, fontWeight: '700', color: colors.inkSub, marginTop: 18, marginBottom: 8 },
-  elBar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
+  elBar: { flexDirection: 'row', height: 9, borderRadius: 4.5, overflow: 'hidden', gap: 2 },
   elLegend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   elItem: { alignItems: 'center', flex: 1 },
-  elHan: { fontFamily: fonts.serif, fontSize: 17, fontWeight: '700' },
+  elHan: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52 },
   elCnt: { fontSize: 12, fontWeight: '700', color: colors.inkSub, marginTop: 1 },
   week: { flexDirection: 'row', justifyContent: 'space-between' },
   day: { alignItems: 'center', flex: 1, gap: 5 },

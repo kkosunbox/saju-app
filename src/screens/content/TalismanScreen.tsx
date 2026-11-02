@@ -26,6 +26,9 @@ import Segmented from '../../components/Segmented';
 import TextField from '../../components/TextField';
 import { GIFT_TALISMANS } from '../../content/giftTalismans';
 import { useOpened } from '../../services/content/opened';
+import PromoSlot from '../../components/PromoSlot';
+import { useNavigation } from '@/navigation/compat';
+import { promosOf } from '../../services/promo/promos';
 
 const LUCK_ICONS = {
   color: require('../../../assets/figma/talisman/color.svg'),
@@ -55,6 +58,7 @@ function usePreparedCard(ref: RefObject<ViewInstance | null>, ready: boolean, fi
 /** 무료: 매일 바뀌는 오늘의 부적 + 친구에게 보내는 선물 부적 */
 export default function TalismanScreen() {
   const { user: u, today } = useApp();
+  const nav = useNavigation();
   const { toast, rewardShare } = usePremium();
   const card = useRef<ViewInstance>(null);
   const giftCard = useRef<ViewInstance>(null);
@@ -192,6 +196,8 @@ export default function TalismanScreen() {
             ))}
           </View>
           <Text style={s.tip}>휴대폰 배경화면으로 저장해 두고 하루를 시작해 보세요.</Text>
+          {/* 오늘의 행운 다음은 중요한 날을 고르는 길일 찾기 */}
+          <View style={{ marginTop: 24 }}><PromoSlot screen="talisman" promo={promosOf(nav, today).lucky} tone="gold" title="중요한 일, 좋은 날에 하고 싶다면" /></View>
         </>}
       </> : <>
         <View style={s.form}>

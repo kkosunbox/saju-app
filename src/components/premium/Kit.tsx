@@ -299,13 +299,20 @@ export function BodyState({ error, onRetry }: { error?: boolean; onRetry?(): voi
 }
 
 /** 다른 화면에서 프리미엄 콘텐츠로 들어가는 카드 */
-export function LockCard({ title, desc, item, onPress, mt = 24 }: { title: string; desc: string; item: Item; onPress(): void; mt?: number }) {
+/** 유료 콘텐츠로 이어지는 회색 카드 — (그림) + 제목 · 보유/가격 · › + 한 줄 설명 */
+export function LockCard({ title, desc, item, onPress, mt = 24, art }: { title: string; desc: string; item: Item; onPress(): void; mt?: number; art?: number }) {
   return (
-    <Card onPress={onPress} style={{ marginTop: mt }} accessibilityLabel={title}>
-      <View style={s.between}><PriceTag item={item} /><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
-      <Text style={[txt.h3, { marginTop: 10 }]}>{title}</Text>
-      <Text style={[txt.small, { marginTop: 4 }]}>{desc}</Text>
-    </Card>
+    <PressableScale onPress={onPress} style={[s.lockCard, { marginTop: mt }]} scaleTo={0.98} accessibilityLabel={title}>
+      {art ? <Image source={art} style={s.lockArt} resizeMode="contain" /> : null}
+      <View style={{ flex: 1 }}>
+        <View style={s.lockHead}>
+          <Text style={s.lockTitle} numberOfLines={1}>{title}</Text>
+          <PriceTag item={item} variant="figma" />
+          <Icon name="chevronRight" size={16} color={colors.ink} strokeWidth={2} />
+        </View>
+        <Text style={s.lockDesc}>{desc}</Text>
+      </View>
+    </PressableScale>
   );
 }
 
@@ -399,6 +406,11 @@ export function FortuneCalendar({ days, first, today, sel, best, onSelect }: { d
 const s = StyleSheet.create({
   row4: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  lockCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radius.lg, backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 16 },
+  lockArt: { width: 36, height: 34 },
+  lockHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lockTitle: { ...sansW('600'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, flexShrink: 1 },
+  lockDesc: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -1.04, color: colors.inkMute, marginTop: 3 },
   pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
   pillText: { fontSize: 12, fontWeight: '800', color: colors.purple },
   cost: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 5, paddingRight: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.heroBg },

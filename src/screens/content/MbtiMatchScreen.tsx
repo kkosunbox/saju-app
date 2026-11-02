@@ -22,11 +22,13 @@ import MbtiDeck from '../../components/MbtiDeck';
 import MbtiArt from '../../components/MbtiArt';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
+import PromoSlot from '../../components/PromoSlot';
+import { promosOf } from '../../services/promo/promos';
 
 /** 무료: 나와 가장 잘 맞는 MBTI */
 export default function MbtiMatchScreen() {
   const nav = useNavigation();
-  const { user: u } = useApp();
+  const { user: u, today } = useApp();
   const card = useRef<ViewInstance>(null);
   const [showAll, setShowAll] = useState(false);
   const q = useFreeContent('mbti-match');
@@ -123,10 +125,7 @@ export default function MbtiMatchScreen() {
         <PressableScale onPress={() => setShowAll(v => !v)} hitSlop={8}><Text style={s.more}>{showAll ? '접기' : '전체 16개 보기'}</Text></PressableScale>
       </Card>
 
-      <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })} style={s.cta} scaleTo={0.98}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink }}>특정한 사람과의 궁합이 궁금하다면?</Text>
-        <Text style={[txt.small, { marginTop: 2 }]}>사주 · 점성술 · 타로까지 함께 보는 궁합 보러 가기 →</Text>
-      </PressableScale>
+      <View style={s.cta}><PromoSlot screen="mbti_match" promo={promosOf(nav, today).crush} tone="lime" title="특정한 사람과의 궁합이 궁금하다면?" /></View>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 16 }]}>MBTI 궁합은 재미로 보는 성향 조합이에요.</Text>
     </Screen>
   );
@@ -150,5 +149,5 @@ const s = StyleSheet.create({
   topScore: { fontSize: 16, fontWeight: '700', color: colors.ink, letterSpacing: -0.6 },
   together: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: colors.mbti, letterSpacing: -0.6, marginTop: 8 },
   more: { fontSize: 13, color: colors.purpleSoft, fontWeight: '600', textAlign: 'center' },
-  cta: { marginTop: 24, padding: 18, borderRadius: radius.lg, backgroundColor: colors.card },
+  cta: { marginTop: 24 },
 });

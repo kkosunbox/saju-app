@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { RouteProp, useRoute } from '@/navigation/compat';
+import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
 import ScoreRing from '../components/ScoreRing';
 import Seal from '../components/Seal';
@@ -15,11 +15,14 @@ import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, categoryTheme, colors } from '../theme/colors';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 import LoadingScreen from '../components/LoadingScreen';
+import PromoSlot from '../components/PromoSlot';
+import { PROMO_OF_CATEGORY, promosOf } from '../services/promo/promos';
 
 const KICKER = { love: '緣分 · 연애운', money: '財物 · 재물운', work: '事業 · 직장운', relationship: '人和 · 관계운' } as const;
 
 export default function CategoryDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
+  const nav = useNavigation();
   const { fortune, today, fortuneWriting } = useApp();
   useMarkOpened('fortune');
   useFortuneDraw();
@@ -78,6 +81,13 @@ export default function CategoryDetailScreen() {
         [`행운의 시간 ${f.luckyTime}`, '중요한 연락이나 결정은 이 시간대에 잡아 보세요.'],
         ...(score < 66 ? [[`오늘은 피하기 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
       ]} />
+
+      {/* 같은 분야를 더 깊이 보는 유료 콘텐츠 하나 — 점수가 낮은 날은 '아쉽다면'으로 */}
+      <SectionHeader title="더 깊이 보기" />
+      <PromoSlot
+        screen={`category_${params.category}`} promo={promosOf(nav, today)[PROMO_OF_CATEGORY[params.category]]} tone="mint" teaser
+        title={score < 66 ? (params.category === 'relationship' ? '사람 때문에 고민이라면' : `오늘 ${t.label}이 아쉽다면`) : undefined}
+      />
       <Disclaimer compact />
     </Screen>
   );

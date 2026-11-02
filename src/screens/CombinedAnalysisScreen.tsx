@@ -13,6 +13,9 @@ import { KEYWORDS } from '../data/keywords';
 import { parseISO, weekdayOf } from '../utils/date';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
 import LoadingScreen from '../components/LoadingScreen';
+import PromoSlot from '../components/PromoSlot';
+import { useNavigation } from '@/navigation/compat';
+import { promosOf } from '../services/promo/promos';
 
 const INK = isDark ? colors.ink : '#000000';
 const TITLE = '오늘의 운세 · 종합풀이';
@@ -32,6 +35,7 @@ const STORIES = [
 
 export default function CombinedAnalysisScreen() {
   const { fortune, today, fortuneWriting } = useApp();
+  const nav = useNavigation();
   useMarkOpened('fortune');
   useFortuneDraw();
   if (!fortune) return null;
@@ -99,6 +103,12 @@ export default function CombinedAnalysisScreen() {
       <SectionHeader variant="figma" title="그래서 오늘은" />
       <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
       <Text style={[txt.caption, s.caption]}>{fortune.viewpointsVersion === 'legacy' ? '종합 풀이는 뽑았을 당시의 관점으로 보관되어 있어요. 타로는 오늘의 카드로 함께 확인해보세요.' : '사주 · 점성술 · MBTI · 타로를 겹쳐 읽은 풀이예요'}</Text>
+
+      {/* 쉬어 가는 날은 고민 상담, 힘이 실리는 날은 이달의 좋은 날 */}
+      <SectionHeader variant="figma" title="더 깊이 보기" />
+      {f.totalScore < 66
+        ? <PromoSlot screen="combined" promo={promosOf(nav, today).consult} tone="mint" title="마음에 걸리는 일이 있다면" />
+        : <PromoSlot screen="combined" promo={promosOf(nav, today).monthly} tone="gold" teaser />}
       <Disclaimer compact />
     </Screen>
   );

@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName } from './Mascot';
-import { colors } from '../theme/colors';
+import { colors, isDark } from '../theme/colors';
 import { fonts, radius, sansW } from '../theme/typography';
 import { parseISO, weekdayOf } from '../utils/date';
 
@@ -12,6 +12,8 @@ import { parseISO, weekdayOf } from '../utils/date';
  * tone: 관점·분야 고유색(color) / 바탕색(bg). seal: 관점·분야 한자 — 마스코트 포즈를 고르는 데 쓴다.
  */
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
+// 목록 카드 테두리·구분선 (다크 모드는 선 토큰)
+const LEDGER_LINE = isDark ? colors.line : '#E8E8E8';
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const POSE: Record<string, ArtName> = { 命: 'pose-saju', 星: 'pose-thai', 曜: 'pose-thai', 性: 'pose-mbti', 血: 'pose-blood' };
 
@@ -47,12 +49,13 @@ export function AlmanacHero({ tone, kicker, seal, eyebrow, title, today, tags, c
   );
 }
 
-/** 목록 — 번호 동그라미 + 작은 라벨 + 굵은 값 */
-export function Ledger({ rows, tone }: { rows: [string, string][]; tone: string }) {
+/** 목록 — 번호 동그라미 + 작은 라벨 + 굵은 값. 흰 카드에 옅은 테두리, flat 이면 회색 도해 카드 안이라 테두리 없이.
+ *  테두리(1)는 피그마처럼 상자 안쪽으로 치므로 그만큼 안쪽 여백을 줄인다 */
+export function Ledger({ rows, tone, flat }: { rows: [string, string][]; tone: string; flat?: boolean }) {
   return (
-    <View style={s.ledger}>
+    <View style={[s.ledger, flat && { borderWidth: 0 }]}>
       {rows.map(([k, v], i) => (
-        <View key={k} style={[s.lrow, i > 0 && s.ldash]}>
+        <View key={k} style={[s.lrow, i > 0 && s.ldash, !flat && { paddingLeft: 15 }, !flat && i === 0 && { paddingTop: 11 }, !flat && i === rows.length - 1 && { paddingBottom: 11 }]}>
           <View style={[s.lnum, { backgroundColor: tone }]}><Text style={s.lnumT}>{i + 1}</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={s.lk}>{k}</Text>
@@ -102,13 +105,13 @@ const s = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
   tag: { borderWidth: 0.5, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: colors.cream },
   tagText: { fontSize: 12, fontWeight: '600' },
-  ledger: { borderRadius: radius.lg, backgroundColor: colors.card, paddingHorizontal: 16, paddingVertical: 4 },
-  lrow: { flexDirection: 'row', gap: 14, paddingVertical: 14 },
-  ldash: { borderTopWidth: 1, borderTopColor: colors.line },
-  lnum: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  lnumT: { fontSize: 12, fontWeight: '700', color: colors.white },
-  lk: { fontSize: 12, fontWeight: '600', color: colors.inkMute },
-  lv: { ...sansW('600'), fontSize: 15, lineHeight: 22, color: colors.ink, letterSpacing: -0.5, marginTop: 3 },
+  ledger: { borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: LEDGER_LINE, overflow: 'hidden' },
+  lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  ldash: { borderTopWidth: 1, borderTopColor: LEDGER_LINE },
+  lnum: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  lnumT: { ...sansW('700'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: colors.white },
+  lk: { ...sansW('500'), fontSize: 10, lineHeight: 12, letterSpacing: -0.5, color: colors.inkMute },
+  lv: { ...sansW('600'), fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65, marginTop: 2 },
   quote: { flexDirection: 'row', gap: 14, marginTop: 14, paddingVertical: 4 },
   qbar: { width: 3, borderRadius: 2 },
   qlabel: { fontSize: 12, fontWeight: '700' },

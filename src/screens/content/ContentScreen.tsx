@@ -18,7 +18,7 @@ import { colors, gradients, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, shadow, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
-import PromoCard from '../../components/PromoCard';
+import { TrackedPromoCard } from '../../components/PromoSlot';
 import GradientBorder from '../../components/GradientBorder';
 import { COPY } from '../../content/copy';
 import { Period } from '../../types';
@@ -151,12 +151,14 @@ export default function ContentScreen() {
 
       <ContentHeading title="지금 가장 많이 보는" caption="새로 나온 프리미엄 콘텐츠" />
       <View style={{ gap: 16 }}>
-        <PromoCard
+        <TrackedPromoCard
+          screen="content" item="spouse"
           tone="gold" variant="figma" isNew title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
-          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · 리포트 열기 →`}
+          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
           onPress={() => nav.navigate('Spouse')}
         />
-        <PromoCard
+        <TrackedPromoCard
+          screen="content" item="crush"
           tone="lime" variant="figma" isNew title="그 사람의 속마음" desc="궁합을 본 뒤 상대의 마음 온도와 연락하기 좋은 날까지"
           coin cta={`${ITEMS.crush(0, '').cost}알 · 궁합 보러 가기 →`}
           onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })}

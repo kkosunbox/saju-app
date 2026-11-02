@@ -7,13 +7,12 @@ import Segmented from '../components/Segmented';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScoreRing from '../components/ScoreRing';
 import ResultMascot from '../components/ResultMascot';
-import PromoCard, { PROMO_TONE } from '../components/PromoCard';
-import { usePremium } from '../context/PremiumContext';
+import { PROMO_TONE } from '../components/PromoCard';
+import PromoSlot from '../components/PromoSlot';
+import { PROMO_OF_CATEGORY, PromoKey, isNewYearSeason, promosOf } from '../services/promo/promos';
 import CategoryRow from '../components/CategoryRow';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
-import { ITEMS } from '../services/premium/catalog';
-import { parseISO } from '../utils/date';
 import { useApp } from '../context/AppContext';
 import { useQuery } from '@tanstack/react-query';
 import { fortuneApi } from '../services/server/fortuneApi';
@@ -30,9 +29,6 @@ const TABS: { key: Period; label: string }[] = [
 const CHART_H = 120;
 const TONES: (keyof typeof PROMO_TONE)[] = ['mint', 'lime', 'gold'];
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
-/** 목록에 가격만 보여주기 위한 대표 상품 */
-const CONSULT_ITEM = { ...ITEMS.consult('preview'), title: '고민 상담 1회' };
-const CRUSH_ITEM = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
 
 function FlowBar({ label, score, best, index }: { label: string; score: number; best: boolean; index: number }) {
   const reduced = useReducedMotion();
@@ -58,7 +54,6 @@ export default function FortuneScreen() {
   useMarkOpened('fortune');
   useFortuneDraw();
   const nav = useNavigation();
-  const { owned } = usePremium();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
   const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
   const periodQuery = useQuery({
@@ -75,25 +70,15 @@ export default function FortuneScreen() {
   const summary = tab === 'daily' ? f.summary : period?.summary ?? (periodQuery.error ? '불러오지 못했어요. 잠시 후 다시 시도해 주세요.' : '불러오는 중…');
   const bestScore = period ? Math.max(...period.flow.map(x => x.score)) : 0;
 
-  // 이 기간에 가장 약한 분야를 먼저 추천하고, 기간에 맞는 유료 콘텐츠를 덧붙인다
+  // 이 기간에 가장 약한 분야를 먼저 추천하고, 기간에 맞는 유료 콘텐츠를 덧붙인다 (신년운세 시즌에는 오늘 탭에도 신년운세)
   const scoreOf = (k: CategoryKey) => (tab === 'daily' ? f[k] : period?.cats[k].score ?? 0);
   const weak = CATS.reduce((a, b) => (scoreOf(b) < scoreOf(a) ? b : a));
-  const { y: ty, m: tm } = parseISO(today);
-  const R = {
-    love: { key: 'theme-love', title: `${label} 연애운이 아쉽다면`, desc: '연애·결혼 운세 · 잘 맞는 사람 · 인연이 오는 해', item: ITEMS.theme('love'), go: () => nav.navigate('Theme', { kind: 'love' }) },
-    money: { key: 'theme-money', title: `${label} 재물운이 아쉽다면`, desc: '재물 운세 · 돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), go: () => nav.navigate('Theme', { kind: 'money' }) },
-    work: { key: 'theme-career', title: `${label} 직장운이 아쉽다면`, desc: '직업·적성 운세 · 커리어 상승기 · 이직 타이밍', item: ITEMS.theme('career'), go: () => nav.navigate('Theme', { kind: 'career' }) },
-    relationship: { key: 'consult', title: '사람 때문에 고민이라면', desc: '고민 상담 · 하루 5번 무료 · 사주가 익명으로 답해요', item: CONSULT_ITEM, go: () => nav.navigate('Tabs', { screen: 'Consult' }) },
-    consult: { key: 'consult', title: '고민 상담', desc: '하루 5번 무료 · 결론부터 · 이어서 물어보기', item: CONSULT_ITEM, go: () => nav.navigate('Tabs', { screen: 'Consult' }) },
-    lucky: { key: 'lucky', title: '길일 찾기', desc: '이사 · 계약 · 고백 · 면접하기 좋은 날 TOP 5', item: ITEMS.lucky('move', today), go: () => nav.navigate('Lucky') },
-    crush: { key: 'crush', title: '그 사람의 속마음', desc: '마음 온도 · 연인 가능성 · 연락하기 좋은 날', item: CRUSH_ITEM, go: () => nav.navigate('Tabs', { screen: 'Compatibility' }) },
-    monthly: { key: 'monthly', title: `${tm}월 상세운세`, desc: '운세 달력 · 주차별 흐름 · 좋은 날 활용법 · 이달의 미션', item: ITEMS.monthly(ty, tm), go: () => nav.navigate('Monthly') },
-    newyear: { key: 'newyear', title: `${ty}년 신년운세`, desc: '올해의 사자성어 · 분야별 6대 운세 · 12개월 하나하나', item: ITEMS.newyear(ty), go: () => nav.navigate('NewYear') },
-    life: { key: 'life', title: '평생운 · 10년 대운', desc: '인생 그래프 · 황금기와 위기 · 앞으로 10년', item: ITEMS.life(), go: () => nav.navigate('Life') },
-    spouse: { key: 'spouse', title: '미래 배우자 리포트', desc: '어떤 사람을, 언제, 어디서 만나게 될까?', item: ITEMS.spouse(), go: () => nav.navigate('Spouse') },
+  const P = promosOf(nav, today);
+  const WEAK_TITLE: Record<CategoryKey, string> = { love: `${label} 연애운이 아쉽다면`, money: `${label} 재물운이 아쉽다면`, work: `${label} 직장운이 아쉽다면`, relationship: '사람 때문에 고민이라면' };
+  const BY_TAB: Record<Period, PromoKey[]> = {
+    daily: isNewYearSeason(today) ? ['newyear', 'consult'] : ['consult', 'spouse'], weekly: ['lucky', 'crush'], monthly: ['monthly', 'lucky'], yearly: ['newyear', 'life'],
   };
-  const BY_TAB: Record<Period, (keyof typeof R)[]> = { daily: ['consult', 'spouse'], weekly: ['lucky', 'crush'], monthly: ['monthly', 'lucky'], yearly: ['newyear', 'life'] };
-  const recs = [R[weak], ...BY_TAB[tab].map(k => R[k])].filter((r, i, a) => a.findIndex(x => x.key === r.key) === i).slice(0, 3);
+  const recs = [PROMO_OF_CATEGORY[weak], ...BY_TAB[tab]].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
 
   return (
     <Screen title="운세" back>
@@ -144,17 +129,9 @@ export default function FortuneScreen() {
 
       <SectionHeader title="더 깊이 보기" caption={`${label}의 흐름에 맞춰 골랐어요`} />
       <View style={{ gap: 16 }}>
-        {recs.map((r, i) => {
-          const have = owned(r.item.key);
-          const verb = r.key === 'consult' ? '상담 시작하기' : '자세히 보기';
-          return (
-            <PromoCard
-              key={r.key} tone={TONES[i % TONES.length]} title={r.title} desc={r.desc}
-              owned={have} coin={!have} cta={have ? '다시보기 →' : `${r.item.cost} · ${verb} →`}
-              onPress={r.go}
-            />
-          );
-        })}
+        {recs.map((k, i) => (
+          <PromoSlot key={k} screen={`fortune_${tab}`} promo={P[k]} tone={TONES[i % TONES.length]} title={i === 0 ? WEAK_TITLE[weak] : undefined} teaser />
+        ))}
       </View>
       <Disclaimer compact />
     </Screen>
