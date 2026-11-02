@@ -48,6 +48,7 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
     const out = Easing.bezier(0.22, 1, 0.36, 1); // 빠르게 시작해 길게 멈추는 감속
     const back = Easing.bezier(0.64, 0, 0.78, 0); // out을 시간축으로 뒤집은 곡선 — 퇴장이 등장의 정확한 역재생이 된다
     const inOut = Easing.bezier(0.45, 0, 0.25, 1);
+    const soft = Easing.bezier(0.33, 0, 0.2, 1);
     const anim = Animated.sequence([
       Animated.delay(500),
       Animated.parallel([
@@ -63,8 +64,9 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
         after(220, ease(body, 520, back, 0)),
         // 몸통이 거의 사라질 즈음 알약이 받아 주고 +10 칸이 열린다
         after(620, Animated.sequence([ease(gulp, 180, out), ease(gulp, 320, inOut, 0)])),
-        after(640, ease(chip, 380, out, 1, false)),
-        after(720, ease(chipPop, 380, out)),
+        // +10 칸은 앞쪽이 확 튀지 않게 천천히 들어갔다 서서히 멈추는 곡선으로 느긋하게 연다
+        after(640, ease(chip, 620, soft, 1, false)),
+        after(820, ease(chipPop, 560, soft)),
       ]),
     ]);
     anim.start(({ finished }) => {
@@ -83,7 +85,7 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
         <PillButton points={points} onPress={goWallet} label={`내 알 ${points}개, 오늘 출석하면 10알을 받아요`}>
           <Animated.View style={{ maxWidth: lerp(chip, [0, 1], [0, 40]), opacity: chip, overflow: 'hidden' }}>
             <View style={s.chip}>
-              <Animated.Text style={[s.chipText, { opacity: chipPop, transform: [{ scale: lerp(chipPop, [0, 1], [0.7, 1]) }] }]}>+10</Animated.Text>
+              <Animated.Text style={[s.chipText, { opacity: chipPop, transform: [{ scale: lerp(chipPop, [0, 1], [0.85, 1]) }] }]}>+10</Animated.Text>
             </View>
           </Animated.View>
         </PillButton>
