@@ -7,7 +7,6 @@ import ShareCta, { ShareIconButton } from '../ShareCta';
 import SectionHeader from '../SectionHeader';
 import SolidIcon from '../SolidIcon';
 import { Logo } from '../Mascot';
-import { PointPill } from '../HeaderPoints';
 import { useApp } from '../../context/AppContext';
 import { useTarotDraw } from '../../services/content/opened';
 import { useReducedMotion } from '../../utils/motion';
@@ -38,7 +37,7 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
   }, [opened, reduced, scale]);
   const visible = ready && opened;
   const spec = visible && reading && user ? tarotSpec(user, reading) : null;
-  return <Screen title="오늘의 타로" back right={<><PointPill /><ShareIconButton spec={spec} /></>}>
+  return <Screen title="오늘의 타로" back right={<ShareIconButton spec={spec} />}>
     <ImageBackground source={HERO_BG} style={s.hero} imageStyle={s.heroImg} resizeMode="cover">
       <View style={s.logo}><Logo height={36 * 55 / 65} /></View>
       <Text style={s.date}>{today.replaceAll('-', '.')} · 하루 한 장</Text>

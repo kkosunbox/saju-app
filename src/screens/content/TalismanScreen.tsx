@@ -137,7 +137,7 @@ export default function TalismanScreen() {
       contentStyle={s.content}
       right={mine ? (!sealed ? <ShareIconButton spec={spec} /> : undefined) : canSave || busy ? (
         <PressableScale onPress={sendGift} disabled={busy} style={s.save} accessibilityLabel="선물 부적 공유하기" accessibilityState={{ disabled: busy, busy }}>
-          {busy ? <ActivityIndicator size="small" color={colors.ink} /> : <Icon name="external" size={24} color={colors.ink} />}
+          {busy ? <ActivityIndicator size="small" color={colors.ink} /> : <Icon name="external" size={24} strokeWidth={2} color={colors.ink} />}
         </PressableScale>
       ) : undefined}
       footer={mine ? undefined : (

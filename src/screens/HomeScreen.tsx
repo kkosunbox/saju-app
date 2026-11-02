@@ -25,6 +25,7 @@ import PromoSlot, { TrackedPromoCard } from '../components/PromoSlot';
 import { isNewYearSeason, promosOf } from '../services/promo/promos';
 import HScroll from '../components/HScroll';
 import { HomeCategoryGlyph, HomeFreeArt, HomeOutlineIcon } from '../components/home/HomeDesignAssets';
+import Icon from '../components/Icon';
 import { PointPill } from '../components/HeaderPoints';
 import { usePremium } from '../context/PremiumContext';
 import { ITEMS } from '../services/premium/catalog';
@@ -258,7 +259,7 @@ export default function HomeScreen() {
         ) : null}
         <PointPill attendHint />
         <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
-          <HomeOutlineIcon name="download" size={24} color={isDark ? colors.ink : '#000000'} />
+          <Icon name="external" size={24} strokeWidth={2} color={isDark ? colors.ink : '#000000'} />
         </PressableScale>
       </View>
     </View>
