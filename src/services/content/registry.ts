@@ -45,7 +45,7 @@ export const UPCOMING: ContentEntry[] = [
   { key: 'baby', title: '우리 아이 사주', art: 'soon-baby', tier: 'premium', cost: 300, status: 'soon',
     hook: '어떤 사람으로 자랄까?', desc: '타고난 기질 · 재능 · 맞는 교육 방식 · 부모와의 궁합',
     viral: '부모 커뮤니티 공유 · 객단가 높음' },
-  { key: 'pet', title: '반려동물 궁합', art: 'soon-pet', tier: 'free', status: 'soon',
+  { key: 'pet', title: '반려동물 궁합', art: 'soon-pet', tier: 'free', status: 'live', route: '/pet',
     hook: '댕냥이와 나의 궁합은?', desc: '반려동물 생일로 보는 성격 · 나와의 궁합 점수 · 함께하면 좋은 놀이',
     viral: '반려동물 사진과 함께 올리기 좋은 귀여운 결과 카드' },
   { key: 'name', title: '이름 풀이', art: 'soon-name', tier: 'premium', cost: 100, status: 'soon',

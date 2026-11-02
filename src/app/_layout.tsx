@@ -119,6 +119,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="consult/history" />
           <Stack.Screen name="consult/[id]" />
           <Stack.Screen name="past-life" />
+          <Stack.Screen name="pet" />
           <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         </Stack.Protected>
         {/* 로그인·약관: 온보딩에서 프로필 입력을 거치지 않고 바로 열 수 있다 */}

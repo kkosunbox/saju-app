@@ -29,6 +29,7 @@ const ART = {
   Life: { source: require('../../assets/figma/share/life.png'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
   Lucky: { source: require('../../assets/figma/share/lucky.png'), x: -28.18, y: -26.36, w: 155.55, h: 155.55 },
   ThemeMoney: { source: require('../../assets/figma/share/money.png'), x: -31.76, y: -31.15, w: 167.22, h: 167.22 },
+  Pet: { source: require('../../assets/images/soon-pet.webp'), x: -2.7, y: 0, w: 115.4, h: 110 },
   MbtiMatch: { source: require('../../assets/figma/share/mbti.png'), x: -173.46, y: -74.08, w: 356.07, h: 444.52 },
 };
 

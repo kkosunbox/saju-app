@@ -5,7 +5,7 @@
 import { CombinedFortune, CompatibilityResult, ShareCard, User, TarotReading } from '../../types';
 import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
-import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
+import { MbtiMatches, PastLife, Pet, SajuCharacter, Talisman } from '../../types/content';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
@@ -154,6 +154,20 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
     teaser: '이번 생에 풀어야 할 숙제',
     hook: '너는 전생에 누구였을까?',
     text: `${u.nickname}님의 전생은 '${P.title}'${ieyo(P.title)}.\n${seeMine('전생')}`, file: 'woonpick-pastlife', route: 'PastLife', short: P.title,
+  };
+}
+
+/** 반려동물 궁합 — 아이 이름과 궁합 유형만 싣는다 (생일은 넣지 않는다) */
+export function petSpec(u: User, p: Pet): ShareSpec {
+  const R = p.result;
+  return {
+    kind: '반려동물 궁합', seal: '伴', eyebrow: `${u.nickname} × ${p.name}`,
+    headline: R.type.name, sub: R.type.line,
+    big: { value: String(R.score), unit: '점', label: `${p.name}${josa(p.name, '과', '와')}의 궁합` },
+    stats: [['우리 아이는', R.pet.keywords[0]], ['행운 컬러', R.pet.luckyColor.name], ['아이의 띠', `${R.pet.animal}띠`]],
+    teaser: `${p.name}${josa(p.name, '이', '')}가 좋아할 놀이`,
+    hook: '우리 집 댕냥이와 나는 어떤 사이?',
+    text: `${u.nickname}님과 ${p.name}의 궁합은 '${R.type.name}'${ieyo(R.type.name)}.\n${seeMine('반려동물 궁합')}`, file: 'woonpick-pet', route: 'Pet', short: `${p.name} · ${R.type.name}`,
   };
 }
 

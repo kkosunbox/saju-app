@@ -46,6 +46,7 @@ export type RootStackParamList = {
   /** 상담 기록 전체 (무한 스크롤) */
   ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;
+  Pet: undefined;
   Legal: { doc: 'terms' | 'privacy' };
   /** 1:1 문의 (카테고리 + 내용) */
   Inquiry: undefined;

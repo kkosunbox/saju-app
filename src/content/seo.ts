@@ -50,6 +50,7 @@ const EXACT: Record<string, PageMeta> = {
   '/fortune': { title: '오늘의 운세' },
   '/character': { title: '사주 캐릭터' },
   '/past-life': { title: '전생' },
+  '/pet': { title: '반려동물 궁합' },
   '/mbti-match': { title: '찰떡 MBTI' },
   '/talisman': { title: '오늘의 부적' },
   '/spouse': { title: '미래 배우자' },

@@ -45,6 +45,7 @@ export const ROUTES: Record<string, string> = {
   Spouse: '/spouse',
   Consult: '/consult',
   PastLife: '/past-life',
+  Pet: '/pet',
   Legal: '/legal/[doc]',
   Inquiry: '/inquiry',
 };

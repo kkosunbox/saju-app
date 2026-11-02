@@ -1694,6 +1694,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/promo-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 유료 콘텐츠 카드 노출 · 클릭 기록
+         * @description 앱이 모아 둔 카드 노출(view)과 클릭(click)을 한 번에 최대 50개까지 저장합니다. 시각은 서버가 받은 때입니다.
+         */
+        post: operations["PromoController_record_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 반려동물과 궁합 목록
+         * @description 등록한 순서대로, 아이마다 지금 내 프로필로 계산한 궁합(result)을 함께 줍니다. 프로필이 없으면 404.
+         */
+        get: operations["PetController_list_v1"];
+        put?: never;
+        /**
+         * 반려동물 등록
+         * @description 생일이나 가족이 된 날 중 하나는 꼭 필요합니다 (1990-01-01 ~ 오늘). 한 사람에 10마리까지.
+         */
+        post: operations["PetController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 반려동물 정보 수정 (전체 바꾸기) */
+        put: operations["PetController_update_v1"];
+        post?: never;
+        /** 반려동물 지우기 */
+        delete: operations["PetController_delete_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2909,6 +2971,89 @@ export interface components {
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
+        };
+        RecordPromoEventsResponse: {
+            /** @description 저장한 이벤트 수 */
+            saved: number;
+        };
+        PromoEventItem: {
+            /**
+             * @description view · click
+             * @enum {string}
+             */
+            type: "view" | "click";
+            /**
+             * @description 화면 (fortune_daily, category_love, talisman …)
+             * @example fortune_daily
+             */
+            screen: string;
+            /**
+             * @description 열람권 키 또는 그 앞부분
+             * @example theme:love
+             */
+            item: string;
+        };
+        RecordPromoEventsRequest: {
+            events: components["schemas"]["PromoEventItem"][];
+        };
+        PetTraitsDto: {
+            /** @enum {string} */
+            energy?: "active" | "calm";
+            /** @enum {string} */
+            affection?: "clingy" | "independent";
+            /** @enum {string} */
+            courage?: "bold" | "shy";
+            /** @enum {string} */
+            appetite?: "foodie" | "picky";
+        };
+        PetDto: {
+            id: number;
+            name: string;
+            /** @enum {string} */
+            species: "dog" | "cat" | "other";
+            /** @enum {string|null} */
+            gender: "male" | "female" | null;
+            birthDate: string | null;
+            birthDateIsEstimated: boolean;
+            adoptedDate: string | null;
+            traits: components["schemas"]["PetTraitsDto"];
+            /** @description 반려동물 궁합 결과 (내 지금 프로필로 계산) */
+            result: Record<string, never>;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PetListDto: {
+            list: components["schemas"]["PetDto"][];
+        };
+        SavePetRequest: {
+            /** @description 이름 */
+            name: string;
+            /**
+             * @description dog · cat · other
+             * @enum {string}
+             */
+            species: "dog" | "cat" | "other";
+            /** @enum {string|null} */
+            gender?: "male" | "female" | null;
+            /**
+             * @description 생일 (양력). 모르면 null
+             * @example 2021-04-10
+             */
+            birthDate?: string | null;
+            /**
+             * @description 생일을 짐작해서 넣었는지
+             * @default false
+             */
+            birthDateIsEstimated: boolean;
+            /**
+             * @description 가족이 된 날. 생일을 모르면 이 날로 봐요
+             * @example 2021-06-01
+             */
+            adoptedDate?: string | null;
+            traits?: components["schemas"]["PetTraitsDto"];
+        };
+        DeletePetDto: {
+            deleted: boolean;
         };
     };
     responses: never;
@@ -8914,6 +9059,353 @@ export interface operations {
                         /** @example MEMBER_ONLY */
                         code?: string;
                         /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PromoController_record_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPromoEventsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["RecordPromoEventsResponse"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MISSING_AUTHENTICATION_TOKEN, UNAUTHORIZED, INVALID_ACCESS_TOKEN */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MISSING_AUTHENTICATION_TOKEN */
+                        code?: string;
+                        /** @example MISSING_AUTHENTICATION_TOKEN */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PetListDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST, INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST, INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DeletePetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;
