@@ -292,7 +292,8 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
 
 
 export function tarotSpec(u: User, card: TarotReading): ShareSpec {
+  const direction = card.orientation === 'reversed' ? '역방향' : '정방향';
   return { kind: '오늘의 타로', seal: '✦', eyebrow: `${u.nickname}님에게 온 카드`, headline: card.name, sub: card.message,
-    detail: { label: '카드의 키워드', value: card.keyword }, stats: [['카드', `${card.id}`], ['방향', '정방향'], ['덱', '메이저 22장']],
-    hook: '오늘 당신에게 온 카드는?', text: `${u.nickname}님의 오늘의 타로는 ${card.name}.\n${card.message}`, file: 'woonpick-tarot', route: 'Tarot', short: `${card.name} · ${card.keyword}`, tarot: card };
+    detail: { label: '카드의 키워드', value: card.keyword }, stats: [['카드', `${card.id}`], ['방향', direction], ['덱', '메이저 22장']],
+    hook: '오늘 당신에게 온 카드는?', text: `${u.nickname}님의 오늘의 타로는 ${card.name} (${direction}).\n${card.message}`, file: 'woonpick-tarot', route: 'Tarot', short: `${card.name} (${direction}) · ${card.keyword}`, tarot: card };
 }

@@ -43,7 +43,7 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
       <View style={s.logo}><Logo height={36 * 55 / 65} /></View>
       <Text style={s.date}>{today.replaceAll('-', '.')} · 하루 한 장</Text>
       <Text style={s.title}>{visible && reading ? reading.name : '오늘, 나에게 온 카드'}</Text>
-      <Text style={[s.intro, KEEP]}>{visible && reading ? `${reading.englishName} · 정방향` : '카드 한 장에서 오늘의 선택을 위한 힌트를 찾아보세요.'}</Text>
+      <Text style={[s.intro, KEEP]}>{visible && reading ? `${reading.englishName} · ${reading.orientation === 'reversed' ? '역방향' : '정방향'}` : '카드 한 장에서 오늘의 선택을 위한 힌트를 찾아보세요.'}</Text>
       <PressableScale onPress={open} disabled={!ready || opened || !reading} accessibilityLabel={visible ? '오늘의 타로 카드' : '오늘의 타로 카드 펼치기'} style={s.card}>
         <Animated.View style={[s.cardGlow, { transform: [{ perspective: 900 }, { rotateY: scale.interpolate({ inputRange: [0, 1], outputRange: ['-90deg', '0deg'] }) }] }]}>
           <TarotCard width={118} reading={reading} hidden={!visible} />

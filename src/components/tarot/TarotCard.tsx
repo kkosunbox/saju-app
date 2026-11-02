@@ -30,7 +30,8 @@ const CARDS = [
 ];
 export default function TarotCard({ reading, hidden = false, width = 200 }: { reading?: TarotReading; hidden?: boolean; width?: number }) {
   const source = hidden || !reading ? require('../../../assets/tarot/back.webp') : CARDS[reading.id] ?? require('../../../assets/tarot/back.webp');
-  return <View style={{ width, height: width * 1.5 }} accessibilityLabel={hidden || !reading ? '오늘의 타로 카드 뒷면' : `${reading.name}, 정방향`} accessible>
-    <Image source={source} style={StyleSheet.absoluteFill} contentFit="contain" accessible={false} />
+  const reversed = !hidden && reading?.orientation === 'reversed';
+  return <View style={{ width, height: width * 1.5 }} accessibilityLabel={hidden || !reading ? '오늘의 타로 카드 뒷면' : `${reading.name}, ${reversed ? '역방향' : '정방향'}`} accessible>
+    <Image source={source} style={[StyleSheet.absoluteFill, reversed && { transform: [{ rotate: '180deg' }] }]} contentFit="contain" accessible={false} />
   </View>;
 }

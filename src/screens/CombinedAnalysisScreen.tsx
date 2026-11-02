@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import Screen from '../components/Screen';
+import CategoryRow from '../components/CategoryRow';
 import ActionTabs from '../components/ActionTabs';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
@@ -20,6 +22,7 @@ import { promosOf } from '../services/promo/promos';
 const INK = isDark ? colors.ink : '#000000';
 const TITLE = '오늘의 운세 · 종합풀이';
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+const CATEGORIES = ['love', 'money', 'work', 'relationship'] as const;
 const SOURCES: Record<SourceKey, { icon: number; color: string }> = {
   saju: { icon: require('../../assets/figma/combined/saju.svg'), color: '#FE8828' },
   thai: { icon: require('../../assets/figma/combined/thai.svg'), color: '#61AA4D' },
@@ -60,6 +63,20 @@ export default function CombinedAnalysisScreen() {
         <View style={s.heroTags}>
           {tags.map(tag => <View key={tag} style={s.heroChip}><Text style={s.heroTag}>{tag}</Text></View>)}
         </View>
+      </View>
+
+      <SectionHeader variant="figma" title="오늘 분야별 운세" caption="눌러서 자세히 보기" />
+      <View style={s.categories}>
+        {CATEGORIES.map((category, i) => (
+          <CategoryRow
+            key={category}
+            category={category}
+            score={f[category]}
+            text={f.categoryTexts[category]}
+            delay={i * 80}
+            onPress={() => router.push({ pathname: '/category/[category]', params: { category } })}
+          />
+        ))}
       </View>
 
       <SectionHeader variant="figma" title="관점별 한 줄" caption="겹친 키워드는 굵게 표시됩니다." />
@@ -126,6 +143,7 @@ const s = StyleSheet.create({
   heroTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16, paddingLeft: 2 },
   heroChip: { borderWidth: 0.5, borderColor: '#FFFFFF', borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
   heroTag: { includeFontPadding: false, ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#FFFFFF', opacity: 0.8 },
+  categories: { gap: 12 },
   list: { backgroundColor: isDark ? colors.card : '#F5F6F8', borderRadius: 12, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, minHeight: 85 },
   border: { borderTopWidth: 1, borderTopColor: isDark ? colors.lineStrong : '#E8E8E8' },

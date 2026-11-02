@@ -2146,7 +2146,7 @@ export interface components {
             question: string;
             tags: string[];
             /** @enum {string} */
-            orientation: "upright";
+            orientation: "upright" | "reversed";
             /** @enum {string} */
             deckVersion: "major-v1";
             /** @enum {string} */
@@ -2168,7 +2168,7 @@ export interface components {
             systems?: components["schemas"]["AstroSystemReadingDto"][];
             /** @description 혈액형(blood)만: 속설을 사주로 판정한 결과와 오늘의 모드. 예전에 저장된 운세에는 없음 */
             blood?: components["schemas"]["BloodReadingDto"];
-            /** @description 타로 카드와 정방향 메시지 (major-v1) */
+            /** @description 타로 카드와 정·역방향 메시지 (major-v1) */
             tarot?: components["schemas"]["TarotReadingDto"];
         };
         DailyAnalysesDto: {

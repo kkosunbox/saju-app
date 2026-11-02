@@ -122,7 +122,7 @@ export interface CombinedFortune {
 
 export interface TarotReading {
   id: number; key: string; name: string; englishName: string; keyword: string; message: string; meaning: string; action: string; caution: string; question: string; tags: KeywordTag[];
-  orientation: 'upright'; deckVersion: 'major-v1'; scope: 'daily' | 'relationship' | 'theme' | 'year';
+  orientation: 'upright' | 'reversed'; deckVersion: 'major-v1'; scope: 'daily' | 'relationship' | 'theme' | 'year';
 }
 
 export interface DailyFortune {
