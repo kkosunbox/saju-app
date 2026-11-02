@@ -88,7 +88,7 @@ const ANALYSIS = {
 } as const;
 
 export function HomeAnalysisArt({ source }: { source: keyof typeof ANALYSIS | 'tarot' }) {
-  if (source === 'tarot') return <View style={{ position: 'absolute', right: 8, top: 45, width: 56, height: 70, transform: [{ rotate: '12deg' }] }} pointerEvents="none"><Image source={require('../../../assets/tarot/back.webp')} style={{ width: 56, height: 70 }} contentFit="contain" accessible={false} /></View>;
+  if (source === 'tarot') return <Image source={require('../../../assets/figma/home/analysis-tarot.webp')} style={{ position: 'absolute', right: 16, top: 55, width: 61, height: 53 }} contentFit="fill" pointerEvents="none" accessible={false} />;
   const a = ANALYSIS[source];
   return (
     <View style={{ position: 'absolute', right: a.right, top: a.top, width: a.width, height: a.height, overflow: 'hidden' }} pointerEvents="none">

@@ -101,7 +101,7 @@ export const analysisTheme: Record<SourceKey, { label: string; sub: string; emoj
   saju: { label: '사주', sub: '타고난 기운', emoji: '命', color: colors.saju, bg: colors.sajuBg, tile: isDark ? ['#3A3218', '#25221A'] : ['#FCEFA4', '#FFFADD'] },
   thai: { label: '점성술', sub: '별과 행성', emoji: '星', color: colors.thai, bg: colors.thaiBg, tile: isDark ? ['#3A2E18', '#26221A'] : ['#FFEBC2', '#FFFAEC'] },
   mbti: { label: 'MBTI', sub: '지금의 성향', emoji: '性', color: colors.mbti, bg: colors.mbtiBg, tile: isDark ? ['#18303A', '#1A2328'] : ['#C7E9F6', '#F3FCFF'] },
-  tarot: { label: '타로', sub: '오늘의 선택', emoji: '✦', color: isDark ? '#C5A6EE' : '#7960A3', bg: isDark ? '#2B2338' : '#F2EBFA', tile: isDark ? ['#332740', '#241E2E'] : ['#E8DCF6', '#F9F4FF'] },
+  tarot: { label: '타로', sub: '오늘의 선택', emoji: '✦', color: isDark ? '#C5A6EE' : '#4928DD', bg: isDark ? '#2B2338' : '#F2EBFA', tile: isDark ? ['#332740', '#241E2E'] : ['#E5D8F5', '#F7F1FF'] },
   blood: { label: '혈액형', sub: '기질 한마디', emoji: '血', color: colors.blood, bg: colors.bloodBg, tile: isDark ? ['#3A2420', '#28201E'] : ['#F6D4C7', '#FFF4F0'] },
 };
 

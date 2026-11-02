@@ -21,7 +21,7 @@ const SOURCES: Record<SourceKey, { icon: number; color: string }> = {
   saju: { icon: require('../../assets/figma/combined/saju.svg'), color: '#FE8828' },
   thai: { icon: require('../../assets/figma/combined/thai.svg'), color: '#61AA4D' },
   mbti: { icon: require('../../assets/figma/combined/mbti.svg'), color: '#2885FE' },
-  tarot: { icon: require('../../assets/tarot/icon.svg'), color: '#7960A3' },
+  tarot: { icon: require('../../assets/figma/combined/tarot.svg'), color: '#B157FB' },
   blood: { icon: require('../../assets/figma/combined/blood.svg'), color: '#E54D4D' },
 };
 const STORIES = [
