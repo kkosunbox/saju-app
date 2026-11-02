@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
-import KeywordChip from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, Hero, MonthBars, Para, Tip, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, MonthBars, Para, Tip, scoreColor } from '../../components/premium/Kit';
+import { Logo } from '../../components/Mascot';
 import { Closing, InfoRows, Para as LuckPara, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
@@ -48,13 +49,15 @@ export default function NewYearScreen() {
       <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti}`} />
       <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} />
       {top && idiom ? (
-        <Hero style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={heroTxt.eyebrow}>{y}년 {STEMS[top.yp.stem].ko}{BRANCHES[top.yp.branch].ko}년 · {top.animal}의 해</Text>
-          <Text style={{ fontSize: 30, fontWeight: '800', letterSpacing: 2, marginTop: 10, color: colors.white }}>{idiom[0]}</Text>
-          <Text style={{ fontSize: 13, color: colors.moon, marginTop: 2 }}>{idiom[1]} · {idiom[2]}</Text>
-          <View style={{ marginTop: 16 }}><ScoreRing key={y} score={top.total} size={108} stroke={8} label="올해 종합" /></View>
-          <View style={s.chips}>{top.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
-        </Hero>
+        <View style={s.hero}>
+          <Image source={require('../../../assets/figma/new-year/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+          <View style={s.heroLogo}><Logo height={LOGO_H} /></View>
+          <Text style={s.eyebrow}>{y}년 {STEMS[top.yp.stem].ko}{BRANCHES[top.yp.branch].ko}년 · {top.animal}의 해</Text>
+          <Text accessibilityRole="header" style={s.idiom}>{idiom[0]}</Text>
+          <View style={{ marginTop: 7 }}><ScoreRing key={y} score={top.total} size={96} stroke={7} label="올해 종합" /></View>
+          <Text style={s.idiomLine}>{idiom[1]} · {idiom[2]}</Text>
+          <View style={s.chips}>{top.kws.map(k => <View key={k} style={s.chip}><Text style={s.chipText}>{k}</Text></View>)}</View>
+        </View>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
         : D ? <NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} />
@@ -199,7 +202,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
       </View>
 
       <SubHead title={`07 · ${y}년 개운법`} />
-      {L ? <InfoRows rowStyle={{ paddingRight: 20 }} rows={[['luck-color', '올해의 행운 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-direction', '좋은 방향', L.dir], ['luck-items', '곁에 두면 좋은 물건', L.items]]} /> : null}
+      {L ? <InfoRows rowStyle={{ paddingRight: 20 }} rows={[['luck-color', '올해의 행운의 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-direction', '좋은 방향', L.dir], ['luck-items', '곁에 두면 좋은 물건', L.items]]} /> : null}
       {overview ? (
         <Card style={{ marginTop: 16 }}>
           <LuckPara mt={0}>{overview.luck.text}</LuckPara>
@@ -220,11 +223,26 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
 }
 
 const CAUTION_DOT = '#E54D4D';
+// Figma 운픽_16 상단 카드: 흰 로고 레터링이 28.76×16 — Logo 는 65×55 틀이라 너비에 맞춘 높이
+const LOGO_H = 28.76 / 65 * 55;
+const IDIOM_GOLD = '#F2DE6B';
+const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
 const FLAG_ICON: Record<string, string> = { zodiac: '合', dohwa: '桃', yeokma: '驛', gwiin: '貴', dayClash: '沖', dayHap: '人', samjae: '災' };
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 14 },
+  // 327×259 카드: 위 18 · 눈썹글 18 · 4 · 사자성어 26 · 7 · 링 96 · 8 · 한자줄 18 · 17 · 칩 18 · 아래 29
+  // 폭이 달라도 그림이 보이는 영역이 같게 Figma 비율(327:259)로 두고, 남는 높이는 위아래로 나눈다
+  hero: { aspectRatio: 327 / 259, minHeight: 259, marginTop: 12, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingTop: 18, paddingBottom: 29, paddingHorizontal: 16, backgroundColor: colors.heroBg },
+  heroLogo: { position: 'absolute', left: 12, top: 9 },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', textAlign: 'center', ...TIGHT },
+  // Figma 줄 높이 18은 26px 글자에 너무 낮아 26으로 두고 위 간격을 4로 줄여 글자 위치를 맞춘다
+  idiom: { ...sansW('700'), fontSize: 26, lineHeight: 26, letterSpacing: -1.3, color: colors.white, marginTop: 4, textAlign: 'center', ...TIGHT },
+  idiomLine: { ...sansW('600'), fontSize: 14, lineHeight: 18, letterSpacing: -0.7, color: IDIOM_GOLD, marginTop: 8, textAlign: 'center', ...TIGHT },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 17 },
+  // Figma 테두리 0.5는 바깥에 그려 크기에 안 들어가므로 안쪽 여백에서 그만큼 뺀다 (18 높이)
+  chip: { paddingHorizontal: 3.5, paddingVertical: 1.5, borderRadius: 5, borderWidth: 0.5, borderColor: colors.white },
+  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: colors.white, opacity: 0.8, ...TIGHT },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
