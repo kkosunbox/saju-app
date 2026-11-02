@@ -8,13 +8,13 @@ import { CategoryKey, categoryTheme, colors, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
 
 /**
- * 분야별 운세 카드 한 장: 아이콘 · 이름 · (최고의 날) · 점수 · 막대 · 한 문장.
- * expand: 눌러서 그 자리에서 펼치는 줄(주간·월간·연간)이면 ⌄, 상세 화면으로 가면 › 동그라미.
+ * 분야별 운세 카드 한 장: 아이콘 · 이름 · (최고의 날) · 점수 · 막대 · 풀이.
+ * onPress가 있으면(오늘) 한 줄만 보이고 › 동그라미로 상세 화면에 간다. 없으면(주간·월간·연간) 풀이를 다 펼쳐 둔다.
  */
-export default function CategoryRow({ category, score, text, onPress, delay, badge, lines = 1, expand, open }: { category: CategoryKey; score: number; text?: string; onPress(): void; delay?: number; badge?: string; lines?: number; expand?: boolean; open?: boolean }) {
+export default function CategoryRow({ category, score, text, onPress, delay, badge }: { category: CategoryKey; score: number; text?: string; onPress?(): void; delay?: number; badge?: string }) {
   const t = categoryTheme[category];
-  return (
-    <PressableScale onPress={onPress} style={s.row} scaleTo={0.98} accessibilityLabel={`${t.label} ${score}점`} accessibilityState={expand ? { expanded: !!open } : undefined}>
+  const body = (
+    <>
       <CategoryIcon category={category} />
       <View style={{ flex: 1, gap: 8 }}>
         <View style={s.head}>
@@ -25,15 +25,13 @@ export default function CategoryRow({ category, score, text, onPress, delay, bad
           <Text style={[s.score, { color: t.color }]}>{score}</Text>
         </View>
         <ScoreBar value={score} color={t.color} track={isDark ? colors.lineStrong : '#E2E2E2'} delay={delay} />
-        {text ? <Text style={s.text} numberOfLines={lines}>{text}</Text> : null}
+        {text ? <Text style={s.text} numberOfLines={onPress ? 1 : undefined}>{text}</Text> : null}
       </View>
-      {expand ? (
-        <View style={[s.chev, { backgroundColor: 'transparent', transform: [{ rotate: open ? '180deg' : '0deg' }] }]}><Icon name="chevronDown" size={20} color={colors.inkSub} /></View>
-      ) : (
-        <View style={s.chev}><Icon name="chevronRight" size={18} color={colors.inkSub} strokeWidth={2} /></View>
-      )}
-    </PressableScale>
+      {onPress ? <View style={s.chev}><Icon name="chevronRight" size={18} color={colors.inkSub} strokeWidth={2} /></View> : null}
+    </>
   );
+  if (!onPress) return <View style={s.row} accessible accessibilityLabel={`${t.label} ${score}점`}>{body}</View>;
+  return <PressableScale onPress={onPress} style={s.row} scaleTo={0.98} accessibilityLabel={`${t.label} ${score}점`}>{body}</PressableScale>;
 }
 
 const s = StyleSheet.create({

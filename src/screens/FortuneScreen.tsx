@@ -61,7 +61,6 @@ export default function FortuneScreen() {
   const { owned } = usePremium();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
   const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
-  const [open, setOpen] = useState<CategoryKey | null>(null);
   const periodQuery = useQuery({
     queryKey: ['period', tab, user?.id, user?.version, today],
     enabled: !!user && tab !== 'daily',
@@ -98,7 +97,7 @@ export default function FortuneScreen() {
 
   return (
     <Screen title="운세" back>
-      <Segmented<Period> options={TABS} value={tab} onChange={t => { setTab(t); setOpen(null); }} />
+      <Segmented<Period> options={TABS} value={tab} onChange={setTab} />
 
       <LinearGradient colors={gradients.skyCard} style={s.hero}>
         <View style={{ alignSelf: 'center' }}><ResultMascot scores={tab === 'daily' ? f : period ? { totalScore: period.score, love: period.cats.love.score, money: period.cats.money.score, work: period.cats.work.score, relationship: period.cats.relationship.score } : undefined} size={88} /></View>
@@ -115,7 +114,7 @@ export default function FortuneScreen() {
         </View>
       </LinearGradient>
 
-      <SectionHeader title={`${label} 분야별 운세`} caption={tab === 'daily' ? '눌러서 자세히 보기' : '눌러서 풀이 펼치기'} />
+      <SectionHeader title={`${label} 분야별 운세`} caption={tab === 'daily' ? '눌러서 자세히 보기' : undefined} />
       <View style={{ gap: 16 }}>
         {CATS.map((k, i) => {
           // 오늘 풀이(AI)가 아직이면 문장 은행 문장 대신 '쓰는 중'
@@ -126,9 +125,7 @@ export default function FortuneScreen() {
               key={`${tab}-${k}`}
               category={k} score={c.score} text={c.text} delay={i * 80}
               badge={c.best ? `${c.best} 최고` : undefined}
-              lines={tab !== 'daily' && open === k ? 4 : 1}
-              expand={tab !== 'daily'} open={open === k}
-              onPress={() => (tab === 'daily' ? nav.navigate('CategoryDetail', { category: k }) : setOpen(open === k ? null : k))}
+              onPress={tab === 'daily' ? () => nav.navigate('CategoryDetail', { category: k }) : undefined}
             />
           );
         })}
