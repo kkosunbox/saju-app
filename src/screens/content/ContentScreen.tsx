@@ -8,13 +8,13 @@ import PrimaryButton from '../../components/PrimaryButton';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
 import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services/content/registry';
-import { Coin, CostPill, LineTag, PriceTag } from '../../components/premium/Kit';
+import { CostPill, LineTag, PriceTag } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP } from '../../services/premium/catalog';
 import { useInviteShare } from '../../services/share/useInviteShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
-import { colors, isDark } from '../../theme/colors';
+import { colors, gradients, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, shadow, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
@@ -29,15 +29,18 @@ type Entry = [PremiumKey, ArtName, string, string, number];
 const PERIODS: [Period, ArtName, string, string][] = isDark
   ? [['daily', 'today', '오늘', '#3A3418'], ['weekly', 'week', '주간', '#2E3A18'], ['monthly', 'month', '월간', '#3A1E24'], ['yearly', 'year', '연간', '#2A2140']]
   : [['daily', 'today', '오늘', '#FFFADD'], ['weekly', 'week', '주간', '#F3FFC6'], ['monthly', 'month', '월간', '#FFE6EA'], ['yearly', 'year', '연간', '#F6EEFC']];
+/** 나의 인생 지도 — 운세 바로 아래 큰 카드 두 장. [화면, 그림, 제목, 설명, 그림 높이, 바탕 위 색, 테두리 그라데이션] */
+const LIFE_MAP: [...Entry, string, readonly [string, string, string]][] = [
+  ['life', 'premium-life', '평생운', '초년 · 중년 · 말년 · 10년대운', 47, '#ECDEF7', ['#C79EE8', '#E2C4F3', '#C79EE8']],
+  ['sajuDeep', 'premium-sajuDeep', '상세 사주 해석', '원국 · 오행 · 나의 본성', 56, '#D7F1FF', gradients.border],
+];
 const LIST: [string, Entry[]][] = [
-  ['나의 인생 지도', [['life', 'premium-life', '평생운', '초년 · 중년 · 말년 · 10년대운', 29], ['sajuDeep', 'premium-sajuDeep', '상세 사주 해석', '원국 · 오행 · 나의 본성', 39]]],
   ['올해와 이달', [['newyear', 'premium-newyear', '신년운세', '올해 · 새해 미리보기 · 분기 전략', 37], ['monthly', 'premium-monthly', '월별 상세운세', '달력 · 좋은 날 · 이달의 미션', 37]]],
   ['테마 운세', [
     ['theme-love', 'premium-love', '연애 · 결혼', '연애 스타일 · 인연의 해', 35], ['theme-money', 'premium-money', '재물', '돈 성향 · 재물 흐름', 37],
     ['theme-career', 'premium-career', '직업 · 적성', '맞는 일 · 커리어 상승기', 38], ['lucky', 'premium-lucky', '길일 찾기', '이사 · 계약 · 고백 · 면접', 35],
   ]],
 ];
-const FREE_BG = ['#FFDF94', '#DFE9FF', colors.heroBg, '#F2EEFB', '#F0F6FF'];
 
 /** 설명이 긴 카드는 Figma에서 자간을 더 좁혔다 (신년운세 -0.1em) */
 const TIGHT_D: Partial<Record<PremiumKey, number>> = { life: -1.04, newyear: -1.2 };
@@ -47,9 +50,9 @@ const CARD_H = 118;
 const SOON_CLIP = (SOON_PREVIEW / 2) * CARD_H + (SOON_PREVIEW / 2 - 1) * 16 - 16; // 마지막 줄은 설명 아래쪽까지만 보인다
 
 /** 섹션 높이와 다음 컴포넌트까지의 간격은 화면의 Figma 수치로 고정한다. */
-function ContentHeading({ title, caption, roomy = false }: { title: string; caption?: string; roomy?: boolean }) {
+function ContentHeading({ title, caption, roomy = false, tight = false }: { title: string; caption?: string; roomy?: boolean; tight?: boolean }) {
   return (
-    <View style={{ marginTop: title === '올해와 이달' ? 28 : 32, marginBottom: roomy ? 20 : 16 }}>
+    <View style={{ marginTop: 32, marginBottom: roomy ? 20 : tight ? 12 : 16 }}>
       <HeadTitle title={title} caption={caption} variant="figma" titleStyle={[s.sectionTitle, title === 'Coming Soon' && { letterSpacing: -0.72 }]} />
       {title === '무료로 즐기기' ? <View pointerEvents="none" style={{ position: 'absolute', right: 0, top: 0 }}><Icon name="chevronRight" size={20} color={colors.inkMute} /></View> : null}
     </View>
@@ -73,8 +76,8 @@ export default function ContentScreen() {
   const FREE: [ArtName, string, string, () => void][] = [
     ['soon-tarot', '오늘의 타로', '오늘 나에게 온 카드 한 장', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
-    ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
+    ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
@@ -102,17 +105,46 @@ export default function ContentScreen() {
         ))}
       </View>
 
+      <ContentHeading title="나의 인생 지도" tight />
+      <View style={s.grid}>
+        {LIFE_MAP.map(([k, art, t, d, h, top, edge]) => (
+          <PressableScale key={k} onPress={() => openPremium(nav, k)} style={s.lifeCell} scaleTo={0.97} accessibilityLabel={t}>
+            <GradientBorder colors={edge} style={s.life}>
+              {!isDark ? <LinearGradient colors={[top, colors.cream]} style={StyleSheet.absoluteFill} /> : null}
+              <View style={s.lifeHead}>
+                <Mascot name={art} size={h} />
+                <View style={s.price}><PriceTag item={defaultItem(k as Exclude<PremiumKey, 'lounge'>, today)} small variant="figma" /></View>
+              </View>
+              <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>
+              <View style={s.bleed}><Text style={[s.freeD, s.premiumD, TIGHT_D[k] != null && { letterSpacing: TIGHT_D[k] }]} numberOfLines={1}>{d}</Text></View>
+            </GradientBorder>
+          </PressableScale>
+        ))}
+      </View>
+
+      {bundle && (
+        <GradientBorder width={1} outer={{ marginTop: 16 }} style={s.bundle}>
+          <MascotPeek width={112} top={7.5} opacity={0.55} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 18 }}>
+            <Text style={s.bundleT}>인생 패키지</Text>
+            <View style={s.bundleTag}><Text style={s.bundleTagText}>21% 할인</Text></View>
+          </View>
+          <Text style={s.bundleD}>{bundle.desc}</Text>
+          <Text style={s.bundleOrig}>{fmtN(bundle.orig!)}알</Text>
+          <PrimaryButton label={`${fmtN(bundle.cost)}알로 전부 열기`} icon={<Mascot size={14} />} onPress={() => openUnlock(bundle)} style={s.bundleButton} labelStyle={s.bundleButtonText} small />
+        </GradientBorder>
+      )}
+
       <ContentHeading title="무료로 즐기기" caption={COPY.friend} roomy />
       <View style={s.grid}>
         {FREE.map(([art, t, d, go], i) => (
-          <PressableScale key={t} onPress={go} style={[s.free, { backgroundColor: isDark ? colors.card : FREE_BG[i] }, i === 2 && { backgroundColor: colors.heroBg }, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
-            {i === 0 && !isDark ? <LinearGradient colors={['#FFD277', '#FDFCF5', '#FFE399']} locations={[0.26461, 0.53647, 0.84757]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
+          <PressableScale key={t} onPress={go} style={[s.free, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
             <View style={s.freeHead}>
-              <Mascot name={art} size={i === 1 ? 44 : 39} />
+              <Mascot name={art} size={i === 3 ? 44 : 39} />
               <LineTag label="무료" variant="figma" />
             </View>
-            <Text style={[s.freeT, i === 2 && { color: colors.white }]}>{t}</Text>
-            <Text style={[s.freeD, { color: i === 2 ? '#999999' : isDark ? colors.inkMute : '#555555' }]}>{d}</Text>
+            <Text style={s.freeT}>{t}</Text>
+            <Text style={[s.freeD, { color: isDark ? colors.inkMute : '#555555' }]}>{d}</Text>
           </PressableScale>
         ))}
       </View>
@@ -130,19 +162,6 @@ export default function ContentScreen() {
           onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })}
         />
       </View>
-
-      {bundle && (
-        <GradientBorder width={1} outer={{ marginTop: 16 }} style={s.bundle}>
-          <MascotPeek width={112} top={7.5} opacity={0.55} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 18 }}>
-            <Text style={s.bundleT}>인생 패키지</Text>
-            <View style={s.bundleTag}><Text style={s.bundleTagText}>21% 할인</Text></View>
-          </View>
-          <Text style={s.bundleD}>{bundle.desc}</Text>
-          <Text style={s.bundleOrig}>{fmtN(bundle.orig!)}알</Text>
-          <PrimaryButton label={`${fmtN(bundle.cost)}알로 전부 열기`} icon={<Coin size={16} />} onPress={() => openUnlock(bundle)} style={s.bundleButton} labelStyle={s.bundleButtonText} small />
-        </GradientBorder>
-      )}
 
       {LIST.map(([g, items]) => (
         <View key={g}>
@@ -223,7 +242,11 @@ const s = StyleSheet.create({
   periodBox: { width: 70, height: 70, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   periodT: { ...sansW('700'), fontSize: 14, lineHeight: 17, includeFontPadding: false, color: colors.ink, letterSpacing: -0.56 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  free: { width: '47.5%', flexGrow: 1, minHeight: 118, padding: 16, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card },
+  free: { width: '47.5%', flexGrow: 1, minHeight: 118, padding: 15, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.cream, borderWidth: 1, borderColor: isDark ? colors.lineStrong : '#E8E8E8' },
+  // 인생 지도 카드 — 1px 그라데이션 테두리 · 위에서 아래로 옅어지는 바탕 · 가운데 큰 그림
+  lifeCell: { width: '47.5%', flexGrow: 1 },
+  life: { minHeight: 123, padding: 15 },
+  lifeHead: { height: 47, alignItems: 'center' },
   freeHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', height: 40 },
   freeT: { ...sansW('700'), fontSize: 14, lineHeight: 17, includeFontPadding: false, color: colors.ink, letterSpacing: -0.56, marginTop: 7 },
   freeD: { ...sansW('500'), fontSize: 13, lineHeight: 18, includeFontPadding: false, color: colors.inkMute, letterSpacing: -0.65, marginTop: 4 },
