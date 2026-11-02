@@ -255,7 +255,7 @@ export default function HomeScreen() {
             </PressableScale>
           </View>
         ) : null}
-        <PointPill />
+        <PointPill attendHint />
         <PressableScale onPress={() => fortune && nav.navigate('Share')} hitSlop={8} scaleTo={0.9} accessibilityLabel="오늘의 운세 카드 공유하기" disabled={!fortune || hidden} style={hidden && { opacity: 0.35 }}>
           <HomeOutlineIcon name="download" size={24} color={isDark ? colors.ink : '#000000'} />
         </PressableScale>
@@ -597,7 +597,7 @@ const s = StyleSheet.create({
   devControls: { flexDirection: 'row', flexWrap: 'wrap', flexShrink: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
   devReset: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
-  topBar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
+  topBar: { zIndex: 1, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
   hello: { ...sansW('800'), ...(Platform.OS !== 'web' && { fontFamily: 'Pretendard-ExtraBold' }), fontSize: 24, lineHeight: 29, letterSpacing: -0.96, color: colors.ink, includeFontPadding: false },
   date: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.56, marginTop: 7, includeFontPadding: false },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.accent },
