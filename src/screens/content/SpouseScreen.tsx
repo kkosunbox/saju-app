@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, DarkChip, HeadRow, Hero, LockGate, Para, SubHead, Tip, heroTxt } from '../../components/premium/Kit';
+import { BodyState, Bullet, HeadRow, LockGate, Para, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
@@ -20,6 +20,7 @@ import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 import LoadingScreen from '../../components/LoadingScreen';
+import { Logo } from '../../components/Mascot';
 
 /** 프리미엄: 미래 배우자 리포트 — 첫 화면은 무료로 보여주고 나머지는 잠금 */
 export default function SpouseScreen() {
@@ -42,26 +43,22 @@ export default function SpouseScreen() {
     <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} />}>
       <FriendCompare route="Spouse" spec={spec} />
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
-      <Hero style={{ alignItems: 'center', paddingVertical: 26 }}>
-        <Text style={heroTxt.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-        <Text style={[heroTxt.summ, { fontSize: 22, lineHeight: 30, textAlign: 'center', marginTop: 8 }]}>{sum.headline}</Text>
-        <View style={{ flexDirection: 'row', gap: 6, marginTop: 16 }}>
-          <DarkChip gold>{sum.mbti}</DarkChip>
-          <DarkChip>{sum.animal}띠</DarkChip>
-          <DarkChip>{sum.ageGap}</DarkChip>
+      {/* Figma 운픽_22 히어로 — 그림 카드 위 로고 · 한 줄 · 칩, 아래 회색 지수 줄 */}
+      <View style={s.hero}>
+        <Image source={require('../../../assets/figma/spouse/hero.webp')} style={s.heroArt} contentFit="cover" accessible={false} />
+        <View style={s.heroTop}><Logo height={29} /></View>
+        <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
+        <Text style={s.headline}>{sum.headline}</Text>
+        <View style={s.chips}>
+          <View style={[s.chip, { borderColor: GOLD }]}><Text style={[s.chipText, { color: GOLD, opacity: 1 }]}>{sum.mbti}</Text></View>
+          <View style={s.chip}><Text style={s.chipText}>{sum.animal}띠</Text></View>
+          <View style={s.chip}><Text style={s.chipText}>{sum.ageGap}</Text></View>
         </View>
-        <View style={s.heroLine} />
-        <View style={{ flexDirection: 'row', gap: 28 }}>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={s.heroNum}>{sum.thisYear}</Text>
-            <Text style={heroTxt.eyebrow}>올해 인연 지수</Text>
-          </View>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={s.heroNum}>{sum.bestYear}</Text>
-            <Text style={heroTxt.eyebrow}>인연이 가장 강한 해</Text>
-          </View>
-        </View>
-      </Hero>
+      </View>
+      <View style={s.stats}>
+        <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
+        <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
+      </View>
 
       {!content.open ? <LockGate item={item} />
         : R ? <SpouseBody R={R} reading={reading} onRetry={retry} />
@@ -231,6 +228,7 @@ type IconName = keyof typeof ICONS;
 const BOXED: IconName[] = ['star', 'users', 'heartBox'];
 const INK = isDark ? colors.ink : '#000000';
 const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
+const GOLD = '#FFE54A';
 
 /** 흰 바탕 둥근 네모 + 하늘색 아이콘 (회색 카드 위) */
 function IconBox({ icon, size = 31 }: { icon: IconName; size?: number }) {
@@ -268,8 +266,20 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 const barH = (v: number) => Math.max(10, (v - 34) * 1.375);
 
 const s = StyleSheet.create({
-  heroLine: { alignSelf: 'stretch', height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 18 },
-  heroNum: { fontFamily: fonts.serif, fontSize: 26, fontWeight: '600', color: colors.moon },
+  // 카드 327×168 · 로고 12 · 한 줄 44 · 제목 70 · 칩 130 (글이 길어지면 아래로 늘고 그림은 아래에 붙는다)
+  hero: { marginTop: 12, minHeight: 168, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 19 },
+  heroArt: { position: 'absolute', right: 0, bottom: 0, width: 327, height: 168 },
+  heroTop: { height: 19, flexDirection: 'row', alignItems: 'flex-start' },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 14, ...TIGHT },
+  headline: { ...sansW('700'), fontSize: 20, lineHeight: 24, letterSpacing: -1, color: colors.white, marginTop: 8, maxWidth: 210, ...TIGHT },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingLeft: 2 },
+  chip: { borderWidth: 0.5, borderColor: colors.white, borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
+  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: colors.white, opacity: 0.8, ...TIGHT },
+  // 회색 줄 327×45 · 좌우 20 · 이름표와 숫자 사이 8
+  stats: { marginTop: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.card },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statLabel: { ...sansW('500'), fontSize: 12, lineHeight: 18, letterSpacing: -0.6, color: INK, ...TIGHT },
+  statNum: { ...sansW('700'), fontSize: 24, lineHeight: 29, letterSpacing: -1.2, color: colors.accent, ...TIGHT },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   // Figma Ticker3 — 흰 바탕 · 4/8 여백 · 12 SemiBold 80%
   job: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 30, backgroundColor: colors.surface },

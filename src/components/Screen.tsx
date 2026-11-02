@@ -40,7 +40,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const floating = floatingBar && scroll;
-  const keyboard = useKeyboardShown();
+  const webKeyboard = useWebKeyboardInset();
+  const keyboard = useKeyboardShown() || webKeyboard > 0;
   // 하단 버튼은 홈 인디케이터·화면 라운딩을 피해 올린다. 탭 화면(largeTitle)은 아래 탭 바가 이미 피해 주고, 키보드가 떠 있으면 키보드 바로 위에 붙인다
   const footerBottom = largeTitle || keyboard ? 12 : Math.max(insets.bottom, 12);
   // 하단 버튼도 탭 바도 없으면 본문 끝이 안드로이드 내비게이션 바(edge-to-edge)·홈 인디케이터에 가리지 않게 그만큼 더 띄운다
@@ -67,8 +68,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : null}
       {floating ? null : bar}
-      {/* 키보드가 뜨면 본문과 하단 버튼을 키보드 위로 올린다 (이메일 입력 중에도 '다음'을 바로 누르게) */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      {/* 키보드가 뜨면 본문과 하단 버튼을 키보드 위로 올린다 (이메일 입력 중에도 '다음'을 바로 누르게). 모바일 웹은 KeyboardAvoidingView가 아무것도 하지 않아 가려진 만큼 직접 띄운다 */}
+      <KeyboardAvoidingView style={[{ flex: 1 }, webKeyboard ? { paddingBottom: webKeyboard } : null]} behavior="padding">
       {scroll ? (
         <Animated.ScrollView
           contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
@@ -105,6 +106,28 @@ export function useKeyboardShown() {
     return () => subs.forEach(sub => sub.remove());
   }, []);
   return shown;
+}
+
+/**
+ * 모바일 웹: 화면 아래를 가린 키보드 높이. Safari·Chrome은 키보드가 떠도 레이아웃 높이를 그대로 두고 보이는 영역(visualViewport)만 줄여
+ * 하단 버튼이 키보드 밑에 숨는다. 키보드에 밀려 페이지가 올라간 만큼(offsetTop)도 뺀다
+ */
+function useWebKeyboardInset() {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const vv = Platform.OS === 'web' && typeof window !== 'undefined' ? window.visualViewport : null;
+    if (!vv) return;
+    const update = () => {
+      const hidden = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      // 주소창이 접히고 펴지는 정도의 차이는 키보드로 보지 않는다
+      setInset(hidden > 80 ? hidden : 0);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, []);
+  return inset;
 }
 
 const BAR_H = 56;

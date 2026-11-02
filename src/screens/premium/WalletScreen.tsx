@@ -125,7 +125,8 @@ export default function WalletScreen() {
         <View style={s.attendIcon}><SolidIcon name="calendar" size={16} color={colors.accent} /></View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={s.attendTitle}>출석 체크</Text>
-          <Text style={s.attendSub}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : '매일 방문하고 10알을 받으세요!'}</Text>
+          {/* 받기 전에는 메인 알약의 금색 +10 칸과 같은 색으로 보상을 칠해, 그걸 누르고 온 자리임을 알아보게 */}
+          <Text style={s.attendSub}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : <>매일 방문하고 <Text style={s.attendGold}>+10알</Text>을 받으세요!</>}</Text>
         </View>
         {att ? <View style={s.coinPill}><Text style={s.coinPillText}>완료</Text></View> : <CoinPill label="10 받기" />}
       </Card>
@@ -217,6 +218,7 @@ const s = StyleSheet.create({
   attendIcon: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   attendTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: colors.ink },
   attendSub: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  attendGold: { ...sansW('700'), color: colors.heroBg, backgroundColor: colors.moon },
   sub: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 12, paddingRight: 12, minHeight: 88, backgroundColor: SUB_BG },
   crown: { width: 24, height: 24, borderRadius: 6, backgroundColor: colors.heroBg, alignItems: 'center', justifyContent: 'center' },
   subBenefit: { ...sansW('400'), fontSize: 12, lineHeight: 18, letterSpacing: -0.72, color: colors.ink },

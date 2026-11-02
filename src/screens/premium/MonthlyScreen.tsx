@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
@@ -8,9 +8,9 @@ import Icon from '../../components/Icon';
 import PressableScale from '../../components/PressableScale';
 import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
-import KeywordChip, { emojiFor } from '../../components/KeywordChip';
+import { emojiFor } from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Hero, Para, heroTxt, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Para, scoreColor } from '../../components/premium/Kit';
 import { Closing, InfoRows, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { useApp } from '../../context/AppContext';
@@ -57,16 +57,17 @@ export default function MonthlyScreen() {
       <HeadRow item={item} caption={`${sel.y}년 ${sel.m}월 1일 ~ ${daysInMonth(sel.y, sel.m)}일`} />
       <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); }} />
       {top ? (
-        <Hero style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <ScoreRing key={item.key} score={top.avg} size={104} stroke={8} label="이달 평균" />
+        <View style={s.hero}>
+          <Image source={require('../../../assets/figma/monthly/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+          <ScoreRing key={item.key} score={top.avg} size={87} stroke={6} label="이달 평균" labelStyle={s.ringLabel} />
           <View style={{ flex: 1 }}>
-            <Text style={heroTxt.eyebrow}>{u.nickname}님의 {sel.m}월 · {pText(mp)}월</Text>
+            <Text style={s.eyebrow}>{u.nickname}님의 {sel.m}월 · {pText(mp)}월</Text>
             {/* 결제 전에 보여준 문장 그대로 (AI 한 줄은 본문 01에) */}
-            <Text style={heroTxt.summ}>{top.line.headline}</Text>
+            <Text style={s.headline}>{top.line.headline}</Text>
             <Text style={s.heroSub}>{top.line.sub}</Text>
-            <View style={s.chips}>{top.kws.map(k => <KeywordChip key={k} label={k} tone="onDark" />)}</View>
+            <View style={s.chips}>{top.kws.map(k => <View key={k} style={s.chip}><Text style={s.chipText}>{k}</Text></View>)}</View>
           </View>
-        </Hero>
+        </View>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
         : R && F ? <MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} />
@@ -84,7 +85,7 @@ interface MonthDetails {
 }
 type MonthContent = MonthReport & { details: MonthDetails };
 
-const FIELDS: ['love' | 'money' | 'work' | 'relationship', SajuIconName, string][] = [['love', 'heart', '연애운'], ['money', 'database', '재물운'], ['work', 'work', '일·학업운'], ['relationship', 'people', '인간관계']];
+const FIELDS: ['love' | 'money' | 'work' | 'relationship', SajuIconName, string][] = [['love', 'heart', '연애운'], ['money', 'coins', '재물운'], ['work', 'briefcase', '일·학업운'], ['relationship', 'users', '인간관계']];
 
 /** 섹션 제목 — 이 화면 디자인은 설명 자간이 -0.07em */
 function Head(p: { title: string; caption?: string }) {
@@ -229,10 +230,21 @@ function MonthlyBody({ R, F, reading, onRetry }: { R: MonthContent; F: SajuFull;
   );
 }
 
+const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
+const HERO_SUB = '#DDDDDD';
+
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
-  heroSub: { fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.82)', marginTop: 6 },
+  // 327×152 밤하늘 카드: 링 87 (왼 24) · 20 · 글 (위 17 · 눈썹 18 · 8 · 제목 21 · 8 · 부제 36 · 8 · 칩 18 · 아래 18)
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 20, minHeight: 152, marginTop: 12, borderRadius: 12, overflow: 'hidden', paddingLeft: 24, paddingRight: 20, paddingTop: 17, paddingBottom: 18, backgroundColor: '#122047' },
+  ringLabel: { ...sansW('600'), fontSize: 10, lineHeight: 12, opacity: 0.8, marginTop: 0, ...TIGHT },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: HERO_SUB, ...TIGHT },
+  headline: { ...sansW('700'), fontSize: 18, lineHeight: 21, letterSpacing: -0.9, color: colors.white, marginTop: 8, ...TIGHT },
+  heroSub: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: HERO_SUB, marginTop: 8, ...TIGHT },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  // Figma 테두리 0.5는 바깥에 그려 크기에 안 들어가므로 안쪽 여백에서 그만큼 뺀다 (18 높이)
+  chip: { paddingHorizontal: 3.5, paddingVertical: 1.5, borderRadius: 5, borderWidth: 0.5, borderColor: colors.white },
+  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: colors.white, opacity: 0.8, ...TIGHT },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   calInfo: { marginTop: 12, backgroundColor: colors.lavenderSoft, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, gap: 3 },

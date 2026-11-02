@@ -29,6 +29,9 @@ const ICONS = {
   pulse: require('../../../assets/figma/new-year/health.svg'),
   study: require('../../../assets/figma/new-year/study.svg'),
   users: require('../../../assets/figma/new-year/people.svg'),
+  // 월별 분야 아이콘 (20 틀 그대로)
+  coins: require('../../../assets/figma/monthly/coins.svg'),
+  briefcase: require('../../../assets/figma/monthly/briefcase.svg'),
   // 재물 테마 개운법 (금색)
   'luck-color-gold': require('../../../assets/figma/theme/luck-color-gold.svg'),
   'luck-direction-gold': require('../../../assets/figma/theme/luck-direction-gold.svg'),

@@ -26,6 +26,7 @@ interface Props {
   inner?: string;
   fontSize?: number;
   numberStyle?: StyleProp<TextStyle>;
+  labelStyle?: StyleProp<TextStyle>;
   /** 디자인에 원 안쪽 크기가 따로 지정된 경우 */
   innerSize?: number;
   inset?: number;
@@ -39,7 +40,7 @@ interface Props {
 /** 위에서부터 차오르는 점수 링(진한 색 → 옅은 회색 그라디언트) + 숫자 카운트업 */
 export default function ScoreRing({
   score, size = 132, stroke = 9, color = '#D9B872', track = 'rgba(255,255,255,0.14)',
-  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize, numberStyle, innerSize, inset = 2, gradientEndColor, accessibilityLabel, children,
+  textColor = '#FFFFFF', label, delay = 150, animate = true, inner, fontSize, numberStyle, labelStyle, innerSize, inset = 2, gradientEndColor, accessibilityLabel, children,
 }: Props) {
   const reduced = useReducedMotion();
   // React 19.1의 useId는 «r0» 형식 → SVG url(#id)에 쓸 수 없는 문자를 모두 제거
@@ -82,7 +83,7 @@ export default function ScoreRing({
         />
       </Svg>
       <AnimatedNumber value={progress} initial={startsFinished ? score : 0} style={[{ fontFamily: fonts.serif, fontSize: fontSize ?? size * 0.32, fontWeight: '700', color: textColor, letterSpacing: -1, fontVariant: ['tabular-nums'] }, numberStyle]} />
-      {label ? <Text style={{ fontSize: 12, fontWeight: '600', color: textColor, opacity: 0.75, marginTop: -2 }}>{label}</Text> : null}
+      {label ? <Text style={[{ fontSize: 12, fontWeight: '600', color: textColor, opacity: 0.75, marginTop: -2 }, labelStyle]}>{label}</Text> : null}
       {children}
     </View>
   );

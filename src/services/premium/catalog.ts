@@ -79,7 +79,7 @@ export const PACKS: [number, number, number, string][] = [
  */
 export const SUBSCRIPTION = {
   productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',
-  benefits: ['매달 1,200알 적립 (9,900원 충전보다 20% 더)', '월별 상세운세 매달 무료', '출석 체크 알 2배'],
+  benefits: ['고민 상담 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
 };
 
 /** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */

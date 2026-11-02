@@ -4,6 +4,8 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import Screen from '../components/Screen';
 import CategoryRow from '../components/CategoryRow';
+import PressableScale from '../components/PressableScale';
+import Icon from '../components/Icon';
 import ActionTabs from '../components/ActionTabs';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
@@ -100,7 +102,13 @@ export default function CombinedAnalysisScreen() {
         {list.map((a, i) => {
           const source = SOURCES[a.source];
           return (
-            <View key={a.source} style={[s.item, i > 0 && s.border]}>
+            <PressableScale
+              key={a.source}
+              style={[s.item, i > 0 && s.border]}
+              scaleTo={0.98}
+              onPress={() => router.push({ pathname: '/analysis/[source]', params: { source: a.source } })}
+              accessibilityLabel={`${analysisTheme[a.source].label}: ${a.headline}. 상세 풀이 보기`}
+            >
               <View style={s.iconSlot}><Image source={source.icon} style={s.icon} contentFit="contain" /></View>
               <View style={s.itemCopy}>
                 <Text style={s.itemTitle}>{analysisTheme[a.source].label}</Text>
@@ -112,7 +120,8 @@ export default function CombinedAnalysisScreen() {
                   })}
                 </Text>
               </View>
-            </View>
+              <View style={s.itemChevron}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+            </PressableScale>
           );
         })}
       </View>
@@ -150,6 +159,7 @@ const s = StyleSheet.create({
   iconSlot: { marginTop: 12, width: 38, height: 38, borderRadius: 6, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   icon: { width: 20, height: 20 },
   itemCopy: { flex: 1, gap: 4 },
+  itemChevron: { alignSelf: 'center' },
   itemTitle: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK },
   itemHeadline: { includeFontPadding: false, ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink },
   tagText: { includeFontPadding: false, ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
