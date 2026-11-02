@@ -20,6 +20,9 @@ import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
 import { useWebSideScroll } from '@/utils/webSideScroll';
 
+// 화면 청크를 못 받으면(새 배포 뒤 예전 탭) 새로고침, 그 밖의 오류는 다시 시도 화면 — 없으면 화면 전체가 하얗게 된다
+export { default as ErrorBoundary } from '@/components/AppErrorBoundary';
+
 const AUTH_PATHS = ['/login', '/signup', '/find-password'];
 const isAuthPath = (path: string) => AUTH_PATHS.some(p => path === p || path.startsWith(`${p}/`));
 
