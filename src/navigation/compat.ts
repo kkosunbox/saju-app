@@ -4,7 +4,7 @@
  * 실제 이동은 Expo Router 경로(URL)로 한다. 웹에서는 화면마다 주소가 생긴다.
  * - 경로 세그먼트([category] 등)는 params에서 채운다.
  * - 객체 params(공유 카드 spec, 궁합 상대)는 개인정보가 URL에 남지 않도록 메모리에 두고 id만 넘긴다.
- *   (웹에서 새로고침하면 사라지므로 화면은 params가 없을 때도 동작해야 한다)
+ *   웹은 최근 것을 기기(localStorage)에도 적어 두어 새로고침해도 이어지지만, 지워졌을 수 있으니 화면은 params가 없을 때도 동작해야 한다.
  */
 import { useMemo } from 'react';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
@@ -55,6 +55,22 @@ const NUMERIC_PARAMS = new Set(['year', 'y', 'm']);
 const OBJECT_PREFIX = '@obj:';
 const objectParams = new Map<string, unknown>();
 let objectSeq = 0;
+/**
+ * 웹은 객체 params를 기기에도 적어 둔다 — 새로고침하거나 탭을 다시 열어도 같은 화면이 나오게
+ * (공유 화면이 spec을 잃고 오늘의 운세 카드로 바뀌던 문제). 최근 것만 남긴다.
+ */
+const STORED_PARAMS = 'onulna:navParams';
+const STORED_MAX = 10;
+const storage = () => (typeof window !== 'undefined' ? window.localStorage : null);
+function readStored(): [string, unknown][] {
+  try { return JSON.parse(storage()?.getItem(STORED_PARAMS) ?? '[]'); } catch { return []; }
+}
+function storeObject(id: string, value: unknown) {
+  try { storage()?.setItem(STORED_PARAMS, JSON.stringify([...readStored().filter(([k]) => k !== id), [id, value]].slice(-STORED_MAX))); } catch { /* 저장 못 하면 메모리로만 */ }
+}
+function objectParam(id: string) {
+  return objectParams.has(id) ? objectParams.get(id) : readStored().find(([k]) => k === id)?.[1];
+}
 
 type Params = Record<string, unknown> | undefined;
 
@@ -73,8 +89,10 @@ export function toHref(name: string, params?: Params): Href {
     if (path.includes(`[${key}]`)) {
       path = path.replace(`[${key}]`, encodeURIComponent(String(value)));
     } else if (typeof value === 'object') {
-      const id = `${++objectSeq}`;
+      // 새로고침하면 순번이 처음부터라 전에 적어 둔 것과 겹치지 않게 시각을 붙인다
+      const id = `${Date.now().toString(36)}${++objectSeq}`;
       objectParams.set(id, value);
+      storeObject(id, value);
       query.push(`${key}=${encodeURIComponent(OBJECT_PREFIX + id)}`);
     } else {
       query.push(`${key}=${encodeURIComponent(String(value))}`);
@@ -114,7 +132,7 @@ export function useRoute<T extends { params?: unknown } = { params: Record<strin
     Object.entries(raw).forEach(([key, value]) => {
       const text = Array.isArray(value) ? value[0] : value;
       if (text === undefined) return;
-      if (text.startsWith(OBJECT_PREFIX)) params[key] = objectParams.get(text.slice(OBJECT_PREFIX.length));
+      if (text.startsWith(OBJECT_PREFIX)) params[key] = objectParam(text.slice(OBJECT_PREFIX.length));
       else if (NUMERIC_PARAMS.has(key) && /^\d+$/.test(text)) params[key] = Number(text);
       else params[key] = text;
     });
