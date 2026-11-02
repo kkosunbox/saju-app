@@ -38,7 +38,9 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
   useEffect(() => {
     if (!show) return;
     if (attendBubbleShown) { chip.setValue(1); chipPop.setValue(1); return; }
-    attendBubbleShown = true;
+    // 끝까지 본 뒤에만 '보여 줬음'으로 친다. 메인은 운세를 불러오는 동안 스켈레톤에 알약을 그렸다가
+    // 다 불러오면 새로 그리는데, 시작할 때 표시해 두면 스켈레톤에서 잘린 말풍선 탓에 새 알약은 +10만 보여 준다
+    [body, label, gold, gulp, chip, chipPop].forEach(v => v.setValue(0));
     setBubble(true);
     const ease = (v: Animated.Value, duration: number, easing: (t: number) => number, toValue = 1, useNativeDriver = true) =>
       Animated.timing(v, { toValue, duration: reduced ? 0 : duration, easing, useNativeDriver });
@@ -65,7 +67,11 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
         after(720, ease(chipPop, 380, out)),
       ]),
     ]);
-    anim.start(({ finished }) => { if (finished) setBubble(false); });
+    anim.start(({ finished }) => {
+      if (!finished) return;
+      attendBubbleShown = true;
+      setBubble(false);
+    });
     return () => anim.stop();
   }, [show, reduced, body, label, gold, gulp, chip, chipPop]);
 
