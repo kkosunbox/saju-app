@@ -11,6 +11,8 @@ export interface Wallet {
 }
 
 export type TransactionType = 'charge' | 'grant' | 'use' | 'expire' | 'refund' | 'revoke' | 'adjust';
+/** 이용내역 필터 — in: 들어온 알(충전·적립), out: 나간 알(사용·소멸·환불·회수) */
+export type TransactionDirection = 'in' | 'out';
 export interface PointTransaction {
   id: number;
   type: TransactionType;
@@ -49,9 +51,9 @@ export const pointsApi = {
   confirmGoogle: (productId: string, purchaseToken: string) => requestData('/v1/payments/google/purchases', { productId, purchaseToken }),
   wallet: () => call<Wallet>(api.GET('/v1/points/wallet')),
 
-  /** 최신순. beforeId를 주면 그 id보다 오래된 내역 (다음 페이지) */
-  async transactions(limit = 20, beforeId?: number): Promise<PointTransaction[]> {
-    const data = await call<{ list: PointTransaction[] }>(api.GET('/v1/points/transactions', { params: { query: { limit, beforeId } } }));
+  /** 최신순. beforeId를 주면 그 id보다 오래된 내역 (다음 페이지). direction: in 들어온 알만 · out 나간 알만 */
+  async transactions(limit = 20, beforeId?: number, direction?: TransactionDirection): Promise<PointTransaction[]> {
+    const data = await call<{ list: PointTransaction[] }>(api.GET('/v1/points/transactions', { params: { query: { limit, beforeId, direction } } }));
     return data.list;
   },
 

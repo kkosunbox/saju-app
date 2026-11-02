@@ -141,6 +141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/{provider}/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 앱 소셜 로그인 (카카오 · 네이버 · 구글)
+         * @description 앱이 네이티브 SDK로 받은 토큰으로 로그인합니다. 카카오 · 네이버는 액세스 토큰, 구글은 ID 토큰을 보냅니다. 카카오는 토큰이 우리 카카오 앱에서 발급됐는지, 구글은 ID 토큰의 aud를 확인합니다. 게스트 토큰을 Authorization 헤더로 함께 보내면 웹 로그인과 같이 승격 · 병합됩니다.
+         */
+        post: operations["AuthController_loginApp_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/check-signup-email": {
         parameters: {
             query?: never;
@@ -1590,7 +1610,7 @@ export interface paths {
         put?: never;
         /**
          * 고민 상담 시작 (하루 5번 무료 미리보기, 그다음은 100P)
-         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 위기 신호가 있으면 status=crisis로 상담 전화만 안내하고 결제·저장하지 않습니다. 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
+         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
          */
         post: operations["ConsultController_ask_v1"];
         delete?: never;
@@ -1647,7 +1667,7 @@ export interface paths {
         put?: never;
         /**
          * 이어 묻기 (결제한 상담, 추가 결제 없음)
-         * @description 결제 후 24시간 동안 10번까지. 잠긴 미리보기면 403 CONTENT_LOCKED, 기한·횟수가 끝났으면 409 CONSULT_CLOSED. 위기 신호가 있으면 status=crisis(상담 전화 안내)만 돌려주고 대화에 남기지 않습니다. 성공하면 turns가 늘어난 상담 전체를 돌려줍니다.
+         * @description 결제 후 24시간 동안 10번까지. 잠긴 미리보기면 403 CONTENT_LOCKED, 기한·횟수가 끝났으면 409 CONSULT_CLOSED. 성공하면 turns가 늘어난 상담 전체를 돌려줍니다.
          */
         post: operations["ConsultController_followUp_v1"];
         delete?: never;
@@ -1751,6 +1771,10 @@ export interface components {
             code: string;
             /** @description redirect url */
             callbackUrl?: string;
+        };
+        SocialAppLoginRequest: {
+            /** @description 앱(네이티브 SDK)이 받은 토큰. 카카오 · 네이버: 액세스 토큰, 구글: ID 토큰 */
+            token: string;
         };
         CheckSignupEmailResponse: {
             /** @description 이미 가입된 이메일인지 */
@@ -2084,6 +2108,50 @@ export interface components {
             tags: string[];
             scoreBias: components["schemas"]["CategoryNumbersDto"];
         };
+        BloodModeDto: {
+            /** @enum {string} */
+            type: "A" | "B" | "O" | "AB";
+            /** @example 대범 모드 */
+            mode: string;
+            does: string;
+        };
+        BloodReadingDto: {
+            /** @enum {string} */
+            type: "A" | "B" | "O" | "AB";
+            /** @example O형은 대범하다 */
+            saying: string;
+            /** @enum {string} */
+            verdict: "꽤 맞아요" | "반만 맞아요" | "사주는 반대예요";
+            /** @description 사주로 본 판정 이유 */
+            reason: string;
+            /**
+             * @description 오늘 기운에 맞는 모드
+             * @enum {string}
+             */
+            todayMode: "A" | "B" | "O" | "AB";
+            /** @example 돈과 결과가 눈앞에 보이는 날 */
+            todayEnergy: string;
+            modes: components["schemas"]["BloodModeDto"][];
+        };
+        TarotReadingDto: {
+            id: number;
+            key: string;
+            name: string;
+            englishName: string;
+            keyword: string;
+            message: string;
+            meaning: string;
+            action: string;
+            caution: string;
+            question: string;
+            tags: string[];
+            /** @enum {string} */
+            orientation: "upright";
+            /** @enum {string} */
+            deckVersion: "major-v1";
+            /** @enum {string} */
+            scope: "daily" | "relationship" | "theme" | "year";
+        };
         AnalysisResultDto: {
             /** @enum {string} */
             source: "saju" | "thai" | "mbti" | "blood" | "tarot";
@@ -2110,6 +2178,12 @@ export interface components {
             mbti: components["schemas"]["AnalysisResultDto"];
             blood: components["schemas"]["AnalysisResultDto"];
             tarot?: components["schemas"]["AnalysisResultDto"];
+        };
+        ViewpointImpactsDto: {
+            saju: components["schemas"]["CategoryNumbersDto"];
+            thai: components["schemas"]["CategoryNumbersDto"];
+            mbti: components["schemas"]["CategoryNumbersDto"];
+            tarot: components["schemas"]["CategoryNumbersDto"];
         };
         CategoryTextsDto: {
             love: string;
@@ -2744,10 +2818,6 @@ export interface components {
             /** @description 아직 쓰기 시작하지 않았으면 null */
             reading: components["schemas"]["ReadingViewDto"] | null;
         };
-        HelpLineDto: {
-            name: string;
-            phone: string;
-        };
         ConsultTeaserDto: {
             /** @description 이번 달 이 고민을 대하는 법 (움직일 때 …) */
             modeLabel: string;
@@ -2768,16 +2838,14 @@ export interface components {
         ConsultDto: {
             id: number | null;
             /**
-             * @description preview: 오늘의 무료 미리보기 (결론만, 100P로 잠금 해제) · answered: 전체 답변 · crisis: 위기 신호 → 상담 전화 안내, 결제·저장 없음
+             * @description preview: 오늘의 무료 미리보기 (결론만, 100P로 잠금 해제) · answered: 전체 답변
              * @enum {string}
              */
-            status: "preview" | "answered" | "crisis";
+            status: "preview" | "answered";
             /** @enum {string} */
             topic: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
             /** @enum {string} */
             risk: "none" | "concern" | "crisis";
-            /** @description 위기 · 마음 건강 신호 · 나 자신 주제일 때 함께 보여 줄 상담 전화 */
-            helpLines: components["schemas"]["HelpLineDto"][] | null;
             /** @description 고민 글 (상세 조회에서만) */
             question: string | null;
             /** @description 잠겨 있으면 headline · direct · empathy · hook · followUps만. hook은 나머지 답을 가리키는 한 줄 (예전 미리보기엔 없음). followUps는 이어 물어볼 질문 3개 (예전 답변엔 없을 수 있음) */
@@ -2841,56 +2909,6 @@ export interface components {
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
-        };
-        BloodModeDto: {
-            /** @enum {string} */
-            type: "A" | "B" | "O" | "AB";
-            /** @example 대범 모드 */
-            mode: string;
-            does: string;
-        };
-        BloodReadingDto: {
-            /** @enum {string} */
-            type: "A" | "B" | "O" | "AB";
-            /** @example O형은 대범하다 */
-            saying: string;
-            /** @enum {string} */
-            verdict: "꽤 맞아요" | "반만 맞아요" | "사주는 반대예요";
-            /** @description 사주로 본 판정 이유 */
-            reason: string;
-            /**
-             * @description 오늘 기운에 맞는 모드
-             * @enum {string}
-             */
-            todayMode: "A" | "B" | "O" | "AB";
-            /** @example 돈과 결과가 눈앞에 보이는 날 */
-            todayEnergy: string;
-            modes: components["schemas"]["BloodModeDto"][];
-        };
-        TarotReadingDto: {
-            id: number;
-            key: string;
-            name: string;
-            englishName: string;
-            keyword: string;
-            message: string;
-            meaning: string;
-            action: string;
-            caution: string;
-            question: string;
-            tags: string[];
-            /** @enum {string} */
-            orientation: "upright";
-            /** @enum {string} */
-            deckVersion: "major-v1";
-            /** @enum {string} */
-            scope: "daily" | "relationship" | "theme" | "year";
-        };
-        ViewpointImpactsDto: {
-            saju: components["schemas"]["CategoryNumbersDto"];
-            thai: components["schemas"]["CategoryNumbersDto"];
-            mbti: components["schemas"]["CategoryNumbersDto"];
-            tarot: components["schemas"]["CategoryNumbersDto"];
         };
     };
     responses: never;
@@ -3139,6 +3157,71 @@ export interface operations {
                         /** @example true */
                         result?: boolean;
                         data?: components["schemas"]["SocialLoginResponse"] | components["schemas"]["TwoFactorRequiredResponse"];
+                    };
+                };
+            };
+        };
+    };
+    AuthController_loginApp_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SocialAppLoginRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["SocialLoginResponse"] | components["schemas"]["TwoFactorRequiredResponse"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
                     };
                 };
             };
@@ -5487,6 +5570,8 @@ export interface operations {
                 limit?: number;
                 /** @description 이 id보다 오래된 내역 (다음 페이지) */
                 beforeId?: number;
+                /** @description in: 들어온 알만 (충전·적립), out: 나간 알만 (사용·소멸·환불·회수). 없으면 전체 */
+                direction?: "in" | "out";
             };
             header?: never;
             path?: never;

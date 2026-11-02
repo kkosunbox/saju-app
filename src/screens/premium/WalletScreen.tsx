@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
+import SolidIcon from '../../components/SolidIcon';
 import PressableScale from '../../components/PressableScale';
 import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
 import { PACKS, PRICE_TABLE, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
-import { TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
+import { TransactionDirection, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { useStoreBilling } from '../../context/StoreBillingContext';
 import { colors, gradients } from '../../theme/colors';
@@ -24,6 +25,13 @@ const kstDate = (iso: string) => new Date(Date.parse(iso) + 9 * 3600_000).toISOS
 const SKY = '#00A3FF';
 /** 이용내역 한 번에 불러오는 개수 */
 const PAGE = 20;
+/** 정기 구독 카드 바탕 · 왕관 색 (디자인 값) */
+const SUB_BG = '#FFF5E4';
+const CROWN = '#FCBD51';
+/** 이용내역에서 빠져나간 알 숫자 색 */
+const MINUS = '#F47A7A';
+/** 이용내역 필터 — 사용은 나간 알, 적립은 들어온 알 (서버가 거른다) */
+const FILTERS = [[undefined, '전체'], ['out', '사용'], ['in', '적립']] as const satisfies readonly (readonly [TransactionDirection | undefined, string])[];
 
 /** 흰 칸 안의 알 아이콘 — 충전 상품 행 */
 function CoinBox() {
@@ -90,12 +98,15 @@ export default function WalletScreen() {
   const { account } = useApp();
   const billing = useStoreBilling();
   const { points, expiringSoon, attendedToday: att, ownedCount, attend, openCharge } = usePremium();
+  const [filter, setFilter] = useState<TransactionDirection>();
   const q = useInfiniteQuery({
-    queryKey: [...pointsKeys.transactions, account?.id],
-    queryFn: ({ pageParam }) => pointsApi.transactions(PAGE, pageParam),
+    queryKey: [...pointsKeys.transactions, account?.id, filter],
+    queryFn: ({ pageParam }) => pointsApi.transactions(PAGE, pageParam, filter),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: last => (last.length < PAGE ? undefined : last[last.length - 1].id),
     enabled: !!account,
+    // 필터를 바꾸는 동안 빈 목록 대신 직전 목록을 보여 준다
+    placeholderData: keepPreviousData,
   });
   const history = q.data?.pages.flat() ?? [];
   return (
@@ -111,7 +122,7 @@ export default function WalletScreen() {
       </Hero>
 
       <Card onPress={att ? undefined : attend} style={[s.attend, att && { opacity: 0.6 }]} accessibilityLabel="출석 체크">
-        <View style={s.attendIcon}><Icon name="calendar" size={20} color={colors.accent} strokeWidth={2} /></View>
+        <View style={s.attendIcon}><SolidIcon name="calendar" size={16} color={colors.accent} /></View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={s.attendTitle}>출석 체크</Text>
           <Text style={s.attendSub}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : '매일 방문하고 10알을 받으세요!'}</Text>
@@ -121,12 +132,14 @@ export default function WalletScreen() {
 
       <SubHead title="정기 구독" />
       <Card onPress={() => router.push('/subscribe')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 월 ${SUBSCRIPTION.won}원`}>
+        <View style={s.crown}><SolidIcon name="crown" size={16} color={CROWN} /></View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={s.attendTitle}>{SUBSCRIPTION.name}</Text>
-          <Text style={s.attendSub}>{SUBSCRIPTION.benefits[0]}</Text>
+          <Text style={[s.attendTitle, { lineHeight: 16 }]}>{SUBSCRIPTION.name}</Text>
+          {/* 혜택 한 줄을 괄호 앞에서 끊어 두 줄로 */}
+          <Text style={s.subBenefit}>{SUBSCRIPTION.benefits[0].replace(' (', '\n(')}</Text>
         </View>
         <Text style={s.won}>월 {SUBSCRIPTION.won.toLocaleString('ko-KR')}원</Text>
-        <Icon name="chevronRight" size={16} color={colors.inkMute} strokeWidth={2} />
+        <View style={s.subChevron}><Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} /></View>
       </Card>
 
       <SubHead title="알 충전하기" />
@@ -165,6 +178,16 @@ export default function WalletScreen() {
       </Card>
 
       <SubHead title="이용내역" />
+      <View style={s.filters}>
+        {FILTERS.map(([k, l]) => {
+          const on = k === filter;
+          return (
+            <PressableScale key={l} onPress={() => setFilter(k)} scaleTo={0.95} style={[s.filter, on && s.filterOn]} accessibilityLabel={`이용내역 ${l}`} accessibilityState={{ selected: on }}>
+              <Text style={[s.filterText, on && { color: colors.white }]}>{l}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
       <View style={s.history}>
         {history.length ? history.map((h, i) => (
           <View key={h.id} style={[s.historyRow, i > 0 && s.line]}>
@@ -172,17 +195,17 @@ export default function WalletScreen() {
               <Text style={s.historyLabel}>{h.label}</Text>
               <Text style={s.historyDate}>{kstDate(h.createdAt).replace(/-/g, '.')} · {TYPE_LABEL[h.type]}</Text>
             </View>
-            <CoinPill label={fmtN(Math.abs(h.amount))} sign={h.amount > 0 ? '+' : '-'} color={h.amount > 0 ? colors.white : '#BBBBBB'} />
+            <CoinPill label={fmtN(Math.abs(h.amount))} sign={h.amount > 0 ? '+' : '-'} color={h.amount > 0 ? colors.white : MINUS} />
           </View>
         )) : <Text style={[txt.body, { paddingVertical: 14 }]}>아직 이용 내역이 없어요.</Text>}
         {q.hasNextPage ? (
           <PressableScale onPress={() => q.fetchNextPage()} disabled={q.isFetchingNextPage} style={[s.more, s.line]} accessibilityLabel="이용내역 더 보기">
-            <Text style={s.moreText}>{q.isFetchingNextPage ? '불러오는 중…' : '더 보기'}</Text>
-            {q.isFetchingNextPage ? null : <Icon name="chevronDown" size={14} color={colors.inkMute} strokeWidth={2} />}
+            <Text style={s.moreText}>{q.isFetchingNextPage ? '불러오는 중…' : '더보기'}</Text>
+            {q.isFetchingNextPage ? null : <Icon name="chevronDown" size={16} color={colors.inkMute} strokeWidth={1.5} />}
           </PressableScale>
         ) : null}
       </View>
-      <Text style={[txt.caption, { textAlign: 'center', marginTop: 12, paddingHorizontal: 20 }]}>충전한 알(보너스 포함)은 5년, 출석·공유 등으로 받은 알은 1년 동안 쓸 수 있어요. 받은 알부터 먼저 쓰여요. 충전 후 7일 안에 하나도 쓰지 않았다면 환불을 요청할 수 있어요.</Text>
+      <Text style={s.notice}>충전한 알(보너스 포함)은 5년, 출석·공유 등으로 받은 알은 1년 동안 쓸 수 있어요. 받은 알부터 먼저 쓰여요. 충전 후 7일 안에 하나도 쓰지 않았다면 환불을 요청할 수 있어요.</Text>
     </Screen>
   );
 }
@@ -194,7 +217,10 @@ const s = StyleSheet.create({
   attendIcon: { width: 38, height: 38, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   attendTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: colors.ink },
   attendSub: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
-  sub: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, minHeight: 64 },
+  sub: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 12, paddingRight: 12, minHeight: 88, backgroundColor: SUB_BG },
+  crown: { width: 24, height: 24, borderRadius: 6, backgroundColor: colors.heroBg, alignItems: 'center', justifyContent: 'center' },
+  subBenefit: { ...sansW('400'), fontSize: 12, lineHeight: 18, letterSpacing: -0.72, color: colors.ink },
+  subChevron: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   coinPill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 22, paddingHorizontal: 8, borderRadius: radius.pill, backgroundColor: colors.heroBg },
   coinPillText: { ...sansW('700'), fontSize: 12, color: colors.white },
   coinBox: { width: 24, height: 24, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
@@ -213,11 +239,16 @@ const s = StyleSheet.create({
   priceName: { ...sansW('400'), flex: 1, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   priceValue: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   free: { borderWidth: 0.5, borderColor: SKY, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
+  filters: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  filter: { height: 31, paddingHorizontal: 16, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.cream },
+  filterOn: { backgroundColor: '#000000', borderColor: '#000000' },
+  filterText: { ...sansW('500'), fontSize: 14, color: colors.ink },
   history: { backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.lg, paddingHorizontal: 15 },
   historyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, gap: 8 },
   historyLabel: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   historyDate: { ...sansW('500'), fontSize: 10, lineHeight: 12, letterSpacing: -0.5, color: colors.inkMute },
-  more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12 },
-  moreText: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8 },
+  moreText: { ...sansW('500'), fontSize: 12, lineHeight: 17, letterSpacing: -0.48, color: colors.inkMute },
+  notice: { ...txt.caption, letterSpacing: -0.48, color: '#838383', textAlign: 'center', marginTop: 16, paddingHorizontal: 22 },
   line: { borderTopWidth: 1, borderTopColor: colors.lineStrong },
 });
