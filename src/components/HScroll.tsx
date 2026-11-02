@@ -5,8 +5,9 @@ import { Platform, ScrollView, StyleProp, ViewStyle, type ScrollViewInstance } f
  * 가로로 넘기는 줄. 휴대폰은 손가락으로 넘기면 되지만 데스크톱 웹은 마우스로 넘길 방법이 없어서
  * 웹에서는 마우스로 잡아 끌면 넘어가게 한다. 끌다가 놓을 때는 카드가 눌리지 않는다.
  */
-export default function HScroll({ children, contentContainerStyle, style }: { children: React.ReactNode; contentContainerStyle?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle> }) {
-  const ref = useRef<ScrollViewInstance>(null);
+export default function HScroll({ children, contentContainerStyle, style, scrollRef }: { children: React.ReactNode; contentContainerStyle?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle>; scrollRef?: React.RefObject<ScrollViewInstance | null> }) {
+  const ownRef = useRef<ScrollViewInstance>(null);
+  const ref = scrollRef ?? ownRef;
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const el = (ref.current as unknown as { getScrollableNode?(): HTMLElement } | null)?.getScrollableNode?.();
@@ -40,7 +41,7 @@ export default function HScroll({ children, contentContainerStyle, style }: { ch
       el.removeEventListener('click', onClick, true);
       el.removeEventListener('dragstart', noDrag);
     };
-  }, []);
+  }, [ref]);
   return (
     <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={style} contentContainerStyle={contentContainerStyle}>
       {children}

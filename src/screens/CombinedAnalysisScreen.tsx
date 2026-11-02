@@ -65,6 +65,22 @@ export default function CombinedAnalysisScreen() {
         </View>
       </View>
 
+      <SectionHeader variant="figma" title="오늘 나에게 맞는 이야기" />
+      <View style={s.stories}>
+        {sections.map((section, i) => {
+          const theme = STORIES[i % STORIES.length];
+          return (
+            <View key={`${i}-${section.title}`} style={[s.section, { backgroundColor: isDark ? colors.card : theme.bg }]}>
+              <View style={s.sectionHead}>
+                <Image source={theme.icon} style={s.icon} contentFit="contain" />
+                <Text style={s.sectionTitle}>{section.title}</Text>
+              </View>
+              <Text style={s.sectionBody}>{section.body}</Text>
+            </View>
+          );
+        })}
+      </View>
+
       <SectionHeader variant="figma" title="오늘 분야별 운세" caption="눌러서 자세히 보기" />
       <View style={s.categories}>
         {CATEGORIES.map((category, i) => (
@@ -96,22 +112,6 @@ export default function CombinedAnalysisScreen() {
                   })}
                 </Text>
               </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <SectionHeader variant="figma" title="오늘 나에게 맞는 이야기" />
-      <View style={s.stories}>
-        {sections.map((section, i) => {
-          const theme = STORIES[i % STORIES.length];
-          return (
-            <View key={`${i}-${section.title}`} style={[s.section, { backgroundColor: isDark ? colors.card : theme.bg }]}>
-              <View style={s.sectionHead}>
-                <Image source={theme.icon} style={s.icon} contentFit="contain" />
-                <Text style={s.sectionTitle}>{section.title}</Text>
-              </View>
-              <Text style={s.sectionBody}>{section.body}</Text>
             </View>
           );
         })}

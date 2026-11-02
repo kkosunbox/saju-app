@@ -3,7 +3,7 @@
  */
 import { Image as AssetImage } from 'expo-image';
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Image, Platform, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle, type ScrollViewInstance } from 'react-native';
+import { ActivityIndicator, Image, Platform, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle, type ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../PressableScale';
 import Card from '../Card';
@@ -18,6 +18,7 @@ import { fonts, radius, SCREEN_PX, shadow, txt, sansW } from '../../theme/typogr
 import { HeadTitle } from '../SectionHeader';
 import { ART, MascotPeek } from '../Mascot';
 import GradientBorder from '../GradientBorder';
+import HScroll from '../HScroll';
 import { Coin } from '../Amount';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
@@ -220,7 +221,7 @@ export function ChipSelect<T extends string | number>({ items, value, onChange }
   };
   useEffect(() => { scrollTo(String(value), true); }, [value]);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -SCREEN_PX, marginTop: 12 }} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 8, paddingVertical: 2 }}>
+    <HScroll scrollRef={ref} style={{ marginHorizontal: -SCREEN_PX, marginTop: 12 }} contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 8, paddingVertical: 2 }}>
       {items.map(([k, l, sub]) => {
         const on = String(k) === String(value);
         return (
@@ -233,7 +234,7 @@ export function ChipSelect<T extends string | number>({ items, value, onChange }
           </View>
         );
       })}
-    </ScrollView>
+    </HScroll>
   );
 }
 
