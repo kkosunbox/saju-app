@@ -98,7 +98,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         </View>
       </Card>
 
-      <SubHead variant="figma" title="네 관점으로 본 두 사람" caption="MBTI · 점성술 · 관계의 타로" />
+      <SubHead variant="figma" title="다른 관점으로 본 두 사람" caption="MBTI · 점성술" />
       {theirMbti
         ? (
           <View style={s.axes}>

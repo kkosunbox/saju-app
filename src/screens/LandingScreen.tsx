@@ -36,7 +36,7 @@ const SAMPLE: { k: CategoryKey; score: number; ring: string }[] = [
 ];
 const STEPS: [string, string][] = [
   ['몇 가지만 답해요', '생년월일 · 태어난 시간 · 성별 · MBTI. 모르는 건 건너뛰어도 돼요.'],
-  ['오늘의 운세를 확인해요', '사주 · 별자리 · MBTI · 타로로 읽은 오늘의 흐름과 나에게 맞는 조언을 만나보세요.'],
+  ['오늘의 운세를 확인해요', '사주 · MBTI · 타로 · 별자리로 읽은 오늘의 흐름과 나에게 맞는 조언을 만나보세요.'],
   ['친구와 나눠요', '결과를 스토리 카드로 만들고, 친구 결과와 나란히 비교해요.'],
 ];
 /** 앱 홈 · 콘텐츠 탭과 같은 그림 (그림 높이는 40칸 안에 맞춘 값) */
@@ -95,7 +95,7 @@ export default function LandingScreen() {
           </View>
           <View style={{ marginTop: 12 }}><MascotCarousel size={150} /></View>
           <Text style={[txt.title, s.headline]} accessibilityRole="header">{COPY.ask.replace('어떤 운을 ', '어떤 운을\n')}</Text>
-          <Text style={[txt.body, s.lead]}>사주 · 별자리 · MBTI · 타로, 네 가지로 읽는 오늘.{'\n'}1분이면 나오고, 가입하지 않아도 돼요.</Text>
+          <Text style={[txt.body, s.lead]}>사주 · MBTI · 타로 · 별자리, 네 가지로 읽는 오늘.{'\n'}1분이면 나오고, 가입하지 않아도 돼요.</Text>
           <PrimaryButton label={CTA} onPress={start} style={{ marginTop: 20 }} />
         </LinearGradient>
         </View>

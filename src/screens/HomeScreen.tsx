@@ -61,7 +61,7 @@ const MASCOT_PREVIEWS = [
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 // Figma 각 분야 라벨 그룹의 링 중심 대비 위치(375px 프레임).
 const CATEGORY_LABEL_OFFSET = { love: 0, money: 0.5, work: -0.5, relationship: 0.5 } as const;
-const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', '별자리 흐름을 맞춰 보는 중…', 'MBTI 성향을 겹쳐 보는 중…', '오늘의 타로 카드를 펼치는 중…', '오늘의 이야기를 쓰는 중…'];
+const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', 'MBTI 성향을 겹쳐 보는 중…', '오늘의 타로 카드를 펼치는 중…', '별자리 흐름을 맞춰 보는 중…', '오늘의 이야기를 쓰는 중…'];
 
 /** 말풍선 안에서 차례로 바뀌는 '풀어보는 중' 문구 (마지막 문구에서 멈춘다) */
 function ReadingSteps({ style }: { style: StyleProp<TextStyle> }) {

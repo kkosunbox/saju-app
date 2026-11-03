@@ -29,15 +29,18 @@ export interface Pillar { stem: number; branch: number }
 /* ---------- 반려동물 궁합 (서버 계산, GET /v1/pets) ---------- */
 export type PetSpecies = 'dog' | 'cat' | 'other';
 export interface PetTraits {
-  energy?: 'active' | 'calm';
-  affection?: 'clingy' | 'independent';
-  courage?: 'bold' | 'shy';
-  appetite?: 'foodie' | 'picky';
+  energy?: 'active' | 'middle' | 'calm';
+  affection?: 'clingy' | 'middle' | 'independent';
+  courage?: 'bold' | 'middle' | 'shy';
+  appetite?: 'foodie' | 'middle' | 'picky';
 }
 export type PetTraitAxis = keyof PetTraits;
+/** 아이가 보호자를 부르는 말 (편지에 쓴다). null이면 닉네임님 */
+export type OwnerTitle = '엄마' | '아빠' | '언니' | '누나' | '오빠' | '형' | '집사';
 export interface PetInput {
   name: string; species: PetSpecies; gender: 'male' | 'female' | null;
-  birthDate: string | null; birthDateIsEstimated: boolean; adoptedDate: string | null; traits: PetTraits;
+  birthDate: string | null; birthDateIsEstimated: boolean; adoptedDate: string | null; adoptedDateIsEstimated: boolean; traits: PetTraits;
+  ownerTitle: OwnerTitle | null;
 }
 export interface PetCompatibility {
   basis: { kind: 'birth' | 'adopted'; date: string; estimated: boolean };
@@ -52,4 +55,8 @@ export interface PetCompatibility {
   points: { kind: 'element' | 'branch' | 'zodiac' | 'fill'; title: string; text: string }[];
   fills: Element[]; play: string[]; goodDays: string[];
 }
-export interface Pet extends PetInput { id: number; result: PetCompatibility; createdAt: string }
+/** 잠긴 동안 보이는 윗부분 (GET /v1/pets) — 나머지는 pet:{id}를 알로 열면 */
+export type PetPreview = Pick<PetCompatibility, 'basis' | 'score' | 'type'> & {
+  pet: Pick<PetCompatibility['pet'], 'title' | 'stem' | 'element' | 'elementKo' | 'animal' | 'keywords' | 'persona'>;
+};
+export interface Pet extends PetInput { id: number; result: PetPreview; createdAt: string }

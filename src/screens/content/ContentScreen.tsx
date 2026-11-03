@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Icon from '../../components/Icon';
@@ -11,11 +12,11 @@ import { ContentEntry, UPCOMING, loadNotify, toggleNotify } from '../../services
 import { CostPill, LineTag, PriceTag } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
-import { BUNDLE, ITEMS, bundleFor, fmtN, fmtP } from '../../services/premium/catalog';
+import { BUNDLE, ITEMS, bundleFor, fmtN } from '../../services/premium/catalog';
 import { useInviteShare } from '../../services/share/useInviteShare';
 import { PremiumKey, defaultItem, openPremium } from '../../navigation/premium';
 import { colors, gradients, isDark } from '../../theme/colors';
-import { fonts, radius, sansW, shadow, txt } from '../../theme/typography';
+import { fonts, radius, sansW, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
 import { TrackedPromoCard } from '../../components/PromoSlot';
@@ -23,6 +24,9 @@ import GradientBorder from '../../components/GradientBorder';
 import { COPY } from '../../content/copy';
 import { Period } from '../../types';
 import { HeadTitle } from '../../components/SectionHeader';
+import { PointPill } from '../../components/HeaderPoints';
+import { parseISO } from '../../utils/date';
+import ContentBanners, { Banner } from './ContentBanners';
 
 /** [화면, 그림, 제목, 설명, 그림 높이(Figma에서 보이는 크기)] */
 type Entry = [PremiumKey, ArtName, string, string, number];
@@ -44,15 +48,13 @@ const LIST: [string, Entry[]][] = [
 
 /** 설명이 긴 카드는 Figma에서 자간을 더 좁혔다 (신년운세 -0.1em) */
 const TIGHT_D: Partial<Record<PremiumKey, number>> = { life: -1.04, newyear: -1.2 };
-/** Coming Soon 은 4줄(8개)까지만 보여주고, 마지막 줄을 흐리게 덮은 뒤 "더보기"로 펼친다 */
-const SOON_PREVIEW = 8;
 const CARD_H = 118;
-const SOON_CLIP = (SOON_PREVIEW / 2) * CARD_H + (SOON_PREVIEW / 2 - 1) * 16 - 16; // 마지막 줄은 설명 아래쪽까지만 보인다
 
 /** 섹션 높이와 다음 컴포넌트까지의 간격은 화면의 Figma 수치로 고정한다. */
-function ContentHeading({ title, caption, roomy = false, tight = false }: { title: string; caption?: string; roomy?: boolean; tight?: boolean }) {
+function ContentHeading({ title, caption, roomy = false, tight = false, top = 32 }: { title: string; caption?: string; roomy?: boolean; tight?: boolean; top?: number }) {
+  // Coming Soon 은 라틴 글자라 Figma에서 카드까지 19
   return (
-    <View style={{ marginTop: 32, marginBottom: roomy ? 20 : tight ? 12 : 16 }}>
+    <View style={{ marginTop: top, marginBottom: roomy ? 20 : tight ? 12 : title === 'Coming Soon' ? 19 : 16 }}>
       <HeadTitle title={title} caption={caption} variant="figma" titleStyle={[s.sectionTitle, title === 'Coming Soon' && { letterSpacing: -0.72 }]} />
       {title === '무료로 즐기기' ? <View pointerEvents="none" style={{ position: 'absolute', right: 0, top: 0 }}><Icon name="chevronRight" size={20} color={colors.inkMute} /></View> : null}
     </View>
@@ -67,7 +69,6 @@ export default function ContentScreen() {
   const { points, owned, openUnlock, toast } = usePremium();
   const [notify, setNotify] = useState<string[]>([]);
   const [peek, setPeek] = useState<ContentEntry | null>(null);
-  const [soonAll, setSoonAll] = useState(false);
   useEffect(() => { loadNotify().then(setNotify); }, []);
   if (!user) return null;
   const bundle = owned(BUNDLE.key) ? null : bundleFor(owned);
@@ -79,24 +80,29 @@ export default function ContentScreen() {
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
-    ['soon-pet', '반려동물 궁합', '댕냥이와 나는 어떤 사이?', () => nav.navigate('Pet')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);
   const soon = UPCOMING.filter(c => c.status === 'soon');
-  const soonFolded = !soonAll && soon.length > SOON_PREVIEW;
+  const nextYear = parseISO(today).y + 1;
+  // 배너 순서는 Figma 점 위치대로: 새해 → 평생운 → 미래 배우자
+  const BANNERS: Banner[] = [
+    { key: 'newyear', bg: require('../../../assets/figma/content/banner-newyear.webp'), title: [[`${nextYear}년, `, '#68F7F0'], ['나에게 어떤 일이 생길까?']], sub: `${nextYear}년 운세 확인하기 →`, go: () => nav.navigate('NewYear', { year: nextYear }) },
+    { key: 'life', bg: require('../../../assets/figma/content/banner-life.webp'), title: [['내 인생은 앞으로 '], ['어떻게 펼쳐질까?', '#E5DCFF']], sub: '나의 평생운 확인하기 →', go: () => openPremium(nav, 'life') },
+    { key: 'spouse', bg: require('../../../assets/figma/content/banner-spouse.webp'), title: [['나의 미래'], [' 배우자는?', '#F3C5DD']], sub: '나의 미래 배우자 확인하기 →', go: () => nav.navigate('Spouse') },
+  ];
+  // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
+  const THEME_EXTRA: [string, number, string, string, React.ReactNode, () => void][] = [
+    ['pet', require('../../../assets/figma/content/tile-pet.webp'), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
+    ['spouse', require('../../../assets/figma/content/tile-spouse.webp'), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+  ];
 
   return (
-    // 동전 마스코트가 상단 바 자리까지 올라가 있어 바를 본문 위에 띄운다 (스크롤하면 바 배경 아래로 지나간다)
-    <Screen largeTitle="콘텐츠" back sky floatingBar titleStyle={s.screenTitle}>
-      <Mascot name="coin" size={81} style={s.coinArt} />
-      <PressableScale onPress={() => nav.navigate('Wallet')} style={[s.points, shadow.hero]} scaleTo={0.98} accessibilityLabel={`내 알 ${fmtP(points)} · 알 주머니 열기`}>
-        <Mascot size={32} />
-        <Text style={s.pointsV}>{fmtN(points)}알</Text>
-        <Text style={s.pointsK} numberOfLines={1}>·  출석하고 매일 10알 받기</Text>
-      </PressableScale>
+    <Screen largeTitle="콘텐츠" back sky titleStyle={s.screenTitle} right={<PointPill attendHint quiet />}>
+      {/* 배너는 상단 바 아래 16 (Figma 100) — 바 아래 기본 여백보다 8 위 */}
+      <View style={{ marginTop: -8 }}><ContentBanners items={BANNERS} /></View>
 
-      <ContentHeading title="운세" caption="오늘부터 올해까지, 기간별 흐름" roomy />
+      <ContentHeading title="운세" caption="오늘부터 올해까지, 기간별 흐름" roomy top={19} />
       <View style={s.periods}>
         {PERIODS.map(([p, art, t, bg]) => (
           <PressableScale key={p} onPress={() => nav.navigate('Fortune', { period: p })} style={s.period} scaleTo={0.94} accessibilityLabel={`${t} 운세`}>
@@ -159,10 +165,10 @@ export default function ContentScreen() {
           onPress={() => nav.navigate('Spouse')}
         />
         <TrackedPromoCard
-          screen="content" item="crush"
-          tone="lime" variant="figma" isNew title="그 사람의 속마음" desc="궁합을 본 뒤 상대의 마음 온도와 연락하기 좋은 날까지"
-          coin cta={`${ITEMS.crush(0, '').cost}알 · 궁합 보러 가기 →`}
-          onPress={() => nav.navigate('Tabs', { screen: 'Compatibility' })}
+          screen="content" item="pet"
+          tone="lime" variant="figma" isNew title="반려동물 궁합" desc="댕냥이와 나는 어떤 사이? 성격부터 함께 놀기 좋은 날까지"
+          coin cta={`${ITEMS.pet(0, '').cost}알 · 미리보기 무료 →`} base={require('../../../assets/figma/content/promo-pet-base.webp')}
+          onPress={() => nav.navigate('Pet')}
         />
       </View>
 
@@ -180,13 +186,22 @@ export default function ContentScreen() {
                 <View style={s.bleed}><Text style={[s.freeD, s.premiumD, TIGHT_D[k] != null && { letterSpacing: TIGHT_D[k] }, k === 'newyear' && { fontSize: 12 }]} numberOfLines={1}>{d}</Text></View>
               </PressableScale>
             ))}
+            {g === '테마 운세' ? THEME_EXTRA.map(([k, img, t, d, price, go]) => (
+              <PressableScale key={k} onPress={go} style={s.soon} scaleTo={0.97} accessibilityLabel={t}>
+                <View style={s.freeHead}>
+                  <View style={s.artBox}><Image source={img} style={s.extraArt} contentFit="contain" accessible={false} /></View>
+                  <View style={s.price}>{price}</View>
+                </View>
+                <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>
+                <View style={s.bleed}><Text style={[s.freeD, s.premiumD]} numberOfLines={1}>{d}</Text></View>
+              </PressableScale>
+            )) : null}
           </View>
         </View>
       ))}
       <ContentHeading title="Coming Soon" caption="먼저 알림 받고 가장 먼저 보세요" />
-      <View style={soonFolded && s.soonClip}>
-        <View style={s.grid}>
-          {(soonFolded ? soon.slice(0, SOON_PREVIEW) : soon).map(c => (
+      <View style={s.grid}>
+          {soon.map(c => (
             <PressableScale key={c.key} onPress={() => setPeek(c)} style={s.soon} scaleTo={0.97} accessibilityLabel={`${c.title} 곧 오픈`}>
               <View style={s.freeHead}>
                 <Mascot name={c.art} size={39} />
@@ -196,16 +211,8 @@ export default function ContentScreen() {
               <View style={s.bleed}><Text style={[s.freeD, s.soonD]} numberOfLines={1}>{c.hook}</Text></View>
             </PressableScale>
           ))}
-        </View>
-        {soonFolded ? <LinearGradient colors={[colors.cream + '00', colors.cream]} locations={[0, 0.85]} style={s.soonFade} pointerEvents="none" /> : null}
       </View>
-      {soonFolded ? (
-        <PressableScale onPress={() => setSoonAll(true)} style={s.more} scaleTo={0.95} accessibilityLabel="Coming Soon 더보기">
-          <Text style={s.moreT}>더보기</Text>
-          <Icon name="chevronDown" size={12} color={colors.inkMute} />
-        </PressableScale>
-      ) : null}
-      <Disclaimer compact />
+      <Disclaimer mt={32} />
       <BottomSheet visible={!!peek} onClose={() => setPeek(null)}>
         {peek ? (
           <>
@@ -236,10 +243,6 @@ export default function ContentScreen() {
 const s = StyleSheet.create({
   screenTitle: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000', includeFontPadding: false },
   sectionTitle: { letterSpacing: 0 },
-  coinArt: { position: 'absolute', right: 49, top: 0, zIndex: 2 },
-  points: { marginTop: -1, flexDirection: 'row', alignItems: 'center', gap: 12, height: 64, paddingHorizontal: 22, borderRadius: radius.lg, backgroundColor: colors.heroBg },
-  pointsV: { ...sansW('800'), ...(Platform.OS !== 'web' ? { fontFamily: 'Pretendard-ExtraBold' } : {}), fontSize: 20, lineHeight: 24, includeFontPadding: false, color: colors.white, letterSpacing: -0.8 },
-  pointsK: { ...sansW('400'), flex: 1, fontSize: 13, lineHeight: 18, color: '#DDDDDD', letterSpacing: -0.65 },
   periods: { flexDirection: 'row', justifyContent: 'space-between' },
   period: { alignItems: 'center', gap: 7 },
   periodBox: { width: 70, height: 70, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
@@ -268,10 +271,8 @@ const s = StyleSheet.create({
   bleed: { marginRight: -12 },
   // 글꼴을 스타일시트에 둬야 웹에서 전역 자간 -0.2px에 덮이지 않는다
   premiumD: { ...sansW('500'), letterSpacing: -0.65 },
-  soonClip: { height: SOON_CLIP, overflow: 'hidden' },
-  soonFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 63 },
-  more: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -16, paddingVertical: 4, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  moreT: { ...sansW('500'), fontSize: 12, lineHeight: 17, color: colors.inkMute, letterSpacing: -0.48 },
+  // 반려동물 · 배우자 그림은 Figma에서 41×39 칸
+  extraArt: { width: 41, height: 39 },
   soon: { width: '47.5%', flexGrow: 1, minHeight: CARD_H, padding: 15, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: isDark ? colors.lineStrong : '#E8E8E8' },
   soonD: { ...sansW('500'), letterSpacing: -0.65 },
   soonT: { ...sansW('700'), fontSize: 13, lineHeight: 16, marginTop: 8, letterSpacing: -0.78 }, // 글꼴을 스타일시트에 둬야 웹에서 자간이 전역 -0.2px에 덮이지 않는다

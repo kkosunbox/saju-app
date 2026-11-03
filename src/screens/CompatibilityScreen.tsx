@@ -6,6 +6,7 @@ import { ImageBackground, ImageSourcePropType, Keyboard, StyleSheet, Text, View 
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Screen from '../components/Screen';
+import { PointPill } from '../components/HeaderPoints';
 import Card from '../components/Card';
 import OptionChip from '../components/OptionChip';
 import TextField from '../components/TextField';
@@ -142,6 +143,13 @@ export default function CompatibilityScreen() {
   // 생년월일을 다 쓰면 키보드를 내려 아래 칸이 보이게
   useEffect(() => { if (dateOk) Keyboard.dismiss(); }, [dateOk]);
 
+  const resetForm = () => {
+    setRelationship(null); setName(''); setBirth(''); setCalendar('solar'); setLeap(false);
+    setSijin(null); setJasi(null); setShowTime(false);
+    setPlace(null); setShowPlace(false);
+    setGender(null); setMbti(null); setShowMbti(false);
+  };
+
   const [busy, setBusy] = useState(false);
   /** 서버가 계산하고 내 궁합 기록에 저장한다 (상대 정보는 기록을 지우면 함께 삭제). */
   const run = async (partner: PartnerInput & { relationship: Relationship; calendarType: CalendarType; isLeapMonth: boolean }) => {
@@ -150,6 +158,8 @@ export default function CompatibilityScreen() {
     try {
       setResult(await compatApi.create(user.id, partner));
       queryClient.invalidateQueries({ queryKey: compatKeys.list });
+      // 결과가 저장됐으니 다음 상대를 위해 입력 칸을 비운다 (실패하면 고칠 수 있게 남긴다)
+      resetForm();
     } catch (e) {
       toast(e instanceof ApiError && e.code === 'INVALID_BIRTH_DATE' ? '상대의 생년월일을 확인해 주세요' : e instanceof ApiError && e.code === 'INVALID_BIRTH_PLACE' ? '상대가 태어난 곳을 다시 골라 주세요' : '궁합을 보지 못했어요. 잠시 후 다시 시도해 주세요');
     } finally {
@@ -279,7 +289,8 @@ export default function CompatibilityScreen() {
   return (
     <Screen
       largeTitle="궁합"
-      subtitle="상대의 정보로 네 가지 관점의 궁합을 봐요"
+      subtitle="상대의 정보로 세 가지 관점의 궁합을 봐요"
+      right={<PointPill attendHint quiet />}
       footer={(
         <>
           {started && missing.length ? <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>남은 칸 · {missing.join(', ')}</Text> : null}
@@ -438,7 +449,7 @@ function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number
   if (!content.open) return <LockedCard item={item} />;
   return (
     <>
-      <SectionHeader variant="figma" title="심층 궁합 리포트" caption="두 사람의 네 가지 관점을 하나로 엮은 풀이" />
+      <SectionHeader variant="figma" title="심층 궁합 리포트" caption="두 사람의 세 가지 관점을 하나로 엮은 풀이" />
       {content.data ? <CompatDeep u={u} r={r} D={content.data.data} reading={reading} onRetry={retry} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
     </>
   );

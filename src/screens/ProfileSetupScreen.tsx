@@ -52,7 +52,7 @@ function restoreTime(t: string | null | undefined): { mode: TimeMode | null; sij
   return { mode: 'exact', sijin: null, jasi: null, exact: t.replace(':', '') };
 }
 
-const LOADING_MSGS = ['오늘의 운을 고르는 중', '사주 원국을 세우는 중', '태어난 요일의 행성을 찾는 중', 'MBTI 성향을 읽는 중', '네 가지 결과를 엮는 중'];
+const LOADING_MSGS = ['오늘의 운을 고르는 중', '사주 원국을 세우는 중', 'MBTI 성향을 읽는 중', '오늘의 타로 카드를 고르는 중', '태어난 요일의 행성을 찾는 중', '네 가지 결과를 엮는 중'];
 
 /** 새로 열린 질문이 위에서 살짝 내려오며 나타난다 */
 function Reveal({ children, reduced, style }: { children: React.ReactNode; reduced: boolean; style?: StyleProp<ViewStyle> }) {

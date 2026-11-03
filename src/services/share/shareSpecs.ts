@@ -164,7 +164,7 @@ export function petSpec(u: User, p: Pet): ShareSpec {
     kind: '반려동물 궁합', seal: '伴', eyebrow: `${u.nickname} × ${p.name}`,
     headline: R.type.name, sub: R.type.line,
     big: { value: String(R.score), unit: '점', label: `${p.name}${josa(p.name, '과', '와')}의 궁합` },
-    stats: [['우리 아이는', R.pet.keywords[0]], ['행운 컬러', R.pet.luckyColor.name], ['아이의 띠', `${R.pet.animal}띠`]],
+    stats: [['우리 아이는', R.pet.keywords[0]], ['타고난 기운', `${R.pet.stem.ko}${R.pet.elementKo}`], ['아이의 띠', `${R.pet.animal}띠`]],
     teaser: `${p.name}${josa(p.name, '이', '')}가 좋아할 놀이`,
     hook: '우리 집 댕냥이와 나는 어떤 사이?',
     text: `${u.nickname}님과 ${p.name}의 궁합은 '${R.type.name}'${ieyo(R.type.name)}.\n${seeMine('반려동물 궁합')}`, file: 'woonpick-pet', route: 'Pet', short: `${p.name} · ${R.type.name}`,

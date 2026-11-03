@@ -18,52 +18,78 @@ import { checkBirth, fmtDate } from '../../components/BirthFields';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ApiError } from '../../api/client';
+import { BodyState, LockedCard } from '../../components/premium/Kit';
+import { ITEMS } from '../../services/premium/catalog';
+import { usePremiumContent, useReading } from '../../services/server/premiumApi';
+import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import PetLetter from '../../components/premium/PetLetter';
+import PetSnackBanner from '../../components/premium/PetSnackBanner';
+import { PetReading, ReadingView } from '../../types/reading';
 import { petApi, refreshPets, usePets } from '../../services/server/petApi';
 import { petSpec } from '../../services/share/shareSpecs';
 import { WEEK } from '../../services/premium/helpers';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { User } from '../../types';
-import { Pet, PetInput, PetSpecies, PetTraitAxis, PetTraits } from '../../types/content';
+import { OwnerTitle, Pet, PetCompatibility, PetInput, PetPreview, PetSpecies, PetTraitAxis, PetTraits } from '../../types/content';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
 const SPECIES: [PetSpecies, string][] = [['dog', '강아지'], ['cat', '고양이'], ['other', '그 외']];
 /** 평소 모습 4가지 — [축, 질문, [값, 라벨] 두 개] */
 const TRAITS: { [A in PetTraitAxis]: [string, [NonNullable<PetTraits[A]>, string][]] } = {
-  energy: ['에너지', [['active', '에너지 넘침'], ['calm', '느긋함']]],
-  affection: ['애정 표현', [['clingy', '애교쟁이'], ['independent', '마이웨이']]],
-  courage: ['낯선 것 앞에서', [['bold', '대담함'], ['shy', '조심성 많음']]],
-  appetite: ['식성', [['foodie', '먹보'], ['picky', '입 짧음']]],
+  energy: ['에너지', [['active', '에너지 넘침'], ['middle', '그날그날'], ['calm', '느긋함']]],
+  affection: ['애정 표현', [['clingy', '애교쟁이'], ['middle', '적당히'], ['independent', '마이웨이']]],
+  courage: ['낯선 것 앞에서', [['bold', '대담함'], ['middle', '상황 따라'], ['shy', '조심성 많음']]],
+  appetite: ['식성', [['foodie', '먹보'], ['middle', '보통'], ['picky', '입 짧음']]],
 };
 const AXES = Object.keys(TRAITS) as PetTraitAxis[];
 const OLDEST = '1990-01-01';
 
 const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d} (${WEEK[weekdayOf(iso)]})`; };
-const toDigits = (iso: string | null) => (iso ?? '').replaceAll('-', '');
 /** 받침이 있으면 a, 없으면 b (코코와 / 별이랑 → 별과) */
 const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
-const BASIS = { birth: '생일', estimated: '짐작한 생일', adopted: '가족이 된 날' } as const;
+/**
+ * 고를 수 있는 호칭 — 내 성별(프로필)과 아이 성별로 정한다. 아이 성별을 모르면 형제 호칭을 둘 다 보여 준다.
+ * (서버 OWNER_TITLES와 같은 말만 쓴다)
+ */
+function titlesFor(me: 'male' | 'female', pet: 'male' | 'female' | null): OwnerTitle[] {
+  const sibling: Record<'male' | 'female', OwnerTitle[]> = me === 'female'
+    ? { male: ['누나'], female: ['언니'] }
+    : { male: ['형'], female: ['오빠'] };
+  return [
+    me === 'female' ? '엄마' : '아빠',
+    ...(pet ? sibling[pet] : [...sibling.male, ...sibling.female]),
+    '집사',
+  ];
+}
+
+/** 결과가 무엇으로 봤는지 — 가족이 된 날은 두 번째 생일로 적고, 짐작한 생일은 적지 않는다 */
+function basisNote(name: string, basis: PetPreview['basis']): string | null {
+  const [y, m, d] = basis.date.split('-').map(Number);
+  if (basis.kind === 'adopted') return `${name}${josa(name, '이', '')}가 가족이 된 날${basis.estimated ? '' : `(${y}.${m}.${d})`}, 두 번째 생일의 기운으로 봤어요`;
+  if (basis.estimated) return null; // 짐작한 생일은 적지 않는다
+  return `${name}의 생일(${y}.${m}.${d}) 기준으로 봤어요`;
+}
 
 /** 반려동물 궁합 — 아이를 등록하면 서버가 내 사주와 아이의 생일(모르면 가족이 된 날)로 본다. */
 export default function PetScreen() {
   const { user: u } = useApp();
   const q = usePets();
   const [selected, setSelected] = useState<number | null>(null);
-  // null: 결과 보기 · 'new': 새 아이 · Pet: 그 아이 고치기
-  const [editing, setEditing] = useState<Pet | 'new' | null>(null);
+  // 새 아이 등록 화면을 연 중인지
+  const [adding, setAdding] = useState(false);
   const [fresh, setFresh] = useState<number | null>(null);
   if (!u) return null;
   if (!q.data) return <LoadingScreen title="반려동물 궁합" error={q.error} onRetry={q.refetch} />;
   const pets = q.data;
   const pet = pets.find(p => p.id === selected) ?? pets[0];
 
-  if (editing || !pet) {
-    const before = editing && editing !== 'new' ? editing : null;
+  if (adding || !pet) {
     return (
       <PetForm
-        u={u} before={before} first={!pets.length}
-        onCancel={pets.length ? () => setEditing(null) : undefined}
-        onSaved={saved => { setSelected(saved.id); setFresh(before ? null : saved.id); setEditing(null); }}
+        u={u} first={!pets.length}
+        onCancel={pets.length ? () => setAdding(false) : undefined}
+        onSaved={saved => { setSelected(saved.id); setFresh(saved.id); setAdding(false); }}
       />
     );
   }
@@ -71,22 +97,25 @@ export default function PetScreen() {
     <PetResult
       key={pet.id} u={u} pet={pet} pets={pets} revealed={fresh === pet.id}
       onPick={id => { setSelected(id); setFresh(null); }}
-      onAdd={() => setEditing('new')} onEdit={() => setEditing(pet)}
+      onAdd={() => setAdding(true)}
       onRemoved={() => setSelected(null)}
     />
   );
 }
 
 /* ---------- 결과 ---------- */
-function PetResult({ u, pet, pets, revealed, onPick, onAdd, onEdit, onRemoved }: {
+function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   u: User; pet: Pet; pets: Pet[]; revealed: boolean;
-  onPick(id: number): void; onAdd(): void; onEdit(): void; onRemoved(): void;
+  onPick(id: number): void; onAdd(): void; onRemoved(): void;
 }) {
   const { toast } = usePremium();
   const [confirm, setConfirm] = useState(false);
-  const R = pet.result;
+  const content = usePremiumContent<PetCompatibility>({ kind: 'pet', id: pet.id });
+  // 열었으면 전체 결과, 아니면 목록의 미리보기 (윗부분은 같은 값)
+  const F = content.open ? content.data?.data ?? null : null;
+  const R = F ?? pet.result;
+  const { reading, retry } = useReading<PetReading>(content);
   const spec = petSpec(u, pet);
-  const basis = BASIS[R.basis.estimated ? 'estimated' : R.basis.kind];
   const name = pet.name;
 
   const remove = async () => {
@@ -130,104 +159,48 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onEdit, onRemoved }:
 
       <FriendCompare route="Pet" spec={spec} />
       {revealed ? <Reveal>{hero}</Reveal> : hero}
-      <Text style={s.basisNote}>{name}의 {basis}({R.basis.date.replaceAll('-', '.')}) 기준으로 봤어요</Text>
+      {basisNote(name, R.basis) ? <Text style={s.basisNote}>{basisNote(name, R.basis)}</Text> : null}
 
       <Section number="01" title={`${name}의 타고난 성격`} />
       <View style={s.card}>
         <Text accessibilityRole="header" style={s.cardTitle}>{R.pet.title}</Text>
         <Text style={s.body}>{R.pet.persona}</Text>
-        <View style={s.memo}>
-          <Text style={s.memoLabel}>이 아이의 강점</Text>
-          <Text style={s.body}>{R.pet.strength}</Text>
-        </View>
-        <View style={s.colorRow}>
-          <View style={[s.swatch, { backgroundColor: R.pet.luckyColor.hex }]} />
-          <Text style={s.body}><Text style={s.bold}>행운 컬러 {R.pet.luckyColor.name}</Text> · 장난감이나 담요 색으로 골라 보세요</Text>
-        </View>
-      </View>
-
-      <Section number="02" title="사주로 본 모습 vs 실제 모습" />
-      <View style={s.card}>
-        {R.answered ? (
-          <Text style={s.cardTitle}>{R.matched === R.answered ? '사주 그대로 자라고 있어요' : R.matched ? `고른 ${R.answered}개 중 ${R.matched}개가 사주와 같아요` : '사주와는 조금 다르게 자라고 있어요'}</Text>
-        ) : (
-          <Text style={s.cardTitle}>사주로 본 {name}{josa(name, '은', '는')} 이런 아이예요</Text>
-        )}
-        <View style={{ gap: 12, marginTop: 4 }}>
-          {R.traits.map(t => (
-            <View key={t.axis} style={s.traitRow}>
-              <View style={s.traitHead}>
-                <Text style={s.traitLabel}>{t.label}</Text>
-                <View style={s.traitChips}>
-                  <View style={s.sajuChip}><Text style={s.sajuChipText}>사주 · {t.saju}</Text></View>
-                  {t.owner ? (
-                    <View style={[s.ownerChip, t.match ? s.matchChip : null]}>
-                      <Text style={[s.ownerChipText, t.match && { color: colors.white }]}>{t.match ? '✓ 같아요' : `실제 · ${t.owner}`}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-              <Text style={s.body}>{t.text}</Text>
-            </View>
-          ))}
-        </View>
-        {R.answered < AXES.length ? (
-          <PressableScale onPress={onEdit} style={s.inlineCta} scaleTo={0.98}>
-            <Text style={s.inlineCtaText}>{R.answered ? '나머지 모습도 골라서 맞춰 보기' : `${name}의 평소 모습 골라서 맞춰 보기`}</Text>
-            <Icon name="chevronRight" size={14} color={colors.accent} />
-          </PressableScale>
-        ) : null}
-      </View>
-
-      <Section number="03" title="우리 사이" />
-      <View style={{ gap: 12 }}>
-        <View style={s.card}>
-          <Text style={s.memoLabel}>{name}에게 나는</Text>
-          <Text style={s.body}>{R.meToPet}</Text>
-          <Text style={[s.memoLabel, { marginTop: 12 }]}>나에게 {name}{josa(name, '은', '는')}</Text>
-          <Text style={s.body}>{R.petToMe}</Text>
-        </View>
-        {R.points.map(p => (
-          <View key={p.kind} style={[s.card, p.kind === 'fill' && s.fill]}>
-            <Text style={s.cardTitle}>{p.title}</Text>
-            <Text style={s.body}>{p.text}</Text>
-          </View>
-        ))}
-      </View>
-
-      <Section number="04" title="함께하면 좋은 것" />
-      <View style={s.card}>
-        <Text style={s.cardTitle}>{name}{josa(name, '이', '')}가 좋아할 놀이</Text>
-        {R.play.map((p, i) => <Text key={p} style={s.listItem}>{i + 1}. {p}</Text>)}
-        {R.goodDays.length ? (
+        {F ? (
           <>
-            <Text style={[s.cardTitle, { marginTop: 16 }]}>함께 놀기 좋은 날</Text>
-            <View style={s.days}>{R.goodDays.map(d => <View key={d} style={s.day}><Text style={s.dayText}>{md(d)}</Text></View>)}</View>
+            <View style={s.memo}>
+              <Text style={s.memoLabel}>이 아이의 강점</Text>
+              <Text style={s.body}>{F.pet.strength}</Text>
+            </View>
           </>
         ) : null}
       </View>
-      <View style={[s.card, { marginTop: 12 }]}>
-        <Text style={s.cardTitle}>이렇게 챙겨 주세요</Text>
-        <Text style={s.body}>{R.pet.care}</Text>
-        <Text style={s.note}>성향을 바탕으로 한 생활 팁이에요. 건강이 걱정되면 꼭 수의사 선생님과 상담해 주세요.</Text>
-      </View>
+
+      {!content.open ? (
+        <>
+          <LockedCard item={ITEMS.pet(pet.id, name)} />
+        </>
+      ) : F ? (
+        <PetBody F={F} reading={reading} onRetry={retry} petId={pet.id} name={name} owner={pet.ownerTitle ?? `${u.nickname}님`} />
+      ) : (
+        <BodyState error={content.isError} onRetry={() => content.refetch()} />
+      )}
 
       <ShareActions spec={spec} title={`${name}${josa(name, '과', '와')}의 궁합 자랑하기`} outlined marginTop={16} />
 
       <View style={[s.card, { marginTop: 16 }]}>
         <Text accessibilityRole="header" style={s.cardTitle}>이 결과는 어떻게 만들었나요?</Text>
-        <Text style={s.body}>아이의 생일(모르면 가족이 된 날)로 년·월·일 세 기둥을 세워 타고난 기운을 보고, 내 사주의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 태어난 시간은 쓰지 않아요. 재미로 보는 콘텐츠이고, 아이의 실제 성격은 함께 지내며 알아가는 게 가장 정확해요.</Text>
+        <Text style={s.body}>아이의 생일로 년·월·일 세 기둥을 세워 타고난 기운을 보고, 내 사주의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 생일을 모르면 가족이 된 날을 두 번째 생일로 삼아 그날의 기운으로 보고, 짐작한 생일은 날짜 대신 태어난 달의 기운으로 봐요. 태어난 시간은 쓰지 않아요. 재미로 보는 콘텐츠이고, 아이의 실제 성격은 함께 지내며 알아가는 게 가장 정확해요.</Text>
       </View>
 
+      <PetSnackBanner />
+
       <View style={s.manage}>
-        <PressableScale onPress={onEdit} hitSlop={8}><Text style={s.manageLink}>{name} 정보 고치기</Text></PressableScale>
-        <Text style={s.manageDot}>·</Text>
         <PressableScale onPress={() => setConfirm(true)} hitSlop={8}><Text style={s.manageLink}>{name} 지우기</Text></PressableScale>
       </View>
       <Disclaimer compact />
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>{name} 정보를 지울까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>등록한 정보와 궁합 결과가 바로 지워져요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>등록한 정보와 궁합 결과가 바로 지워져요.{content.open ? '\n열어 둔 전체 결과도 다시 볼 수 없어요.' : ''}</Text>
         <PrimaryButton label="지우기" onPress={remove} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
@@ -235,32 +208,194 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onEdit, onRemoved }:
   );
 }
 
+/**
+ * 알로 연 뒤에 보이는 나머지 — 풀이(이 아이 이야기와 사용 설명서 · 우리 사이와 편지 · 함께하는 일상)와 계산 결과.
+ * 풀이가 쓰이는 동안은 자리만 잡아 두고, 쓰지 못하면 계산 결과의 문장으로 채운다.
+ */
+function PetBody({ F, reading, onRetry, petId, name, owner }: {
+  F: PetCompatibility; reading: ReadingView<PetReading> | null; onRetry(): void; petId: number; name: string; owner: string;
+}) {
+  const writing = reading?.status === 'writing';
+  const { portrait, bond, days } = reading?.parts ?? {};
+  const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
+  const ga = `${name}${josa(name, '이', '')}가`;
+  return (
+    <>
+      <View style={{ marginTop: 16 }}><ReadingBanner reading={reading} onRetry={onRetry} /></View>
+
+      <Section number="02" title={`${name} 이야기`} />
+      <View style={s.card}>
+        {portrait ? (
+          <>
+            <Text style={s.cardTitle}>{portrait.headline}</Text>
+            <Text style={s.body}>{portrait.story}</Text>
+          </>
+        ) : writing ? pending(5) : <Text style={s.body}>{F.pet.persona}</Text>}
+      </View>
+      {portrait ? (
+        <View style={{ gap: 12, marginTop: 12 }}>
+          {portrait.charms.map(c => (
+            <View key={c.title} style={s.card}>
+              <Text style={s.cardTitle}>{c.title}</Text>
+              <Text style={s.body}>{c.text}</Text>
+            </View>
+          ))}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>이럴 때 {name}의 마음</Text>
+            <View style={{ gap: 12 }}>
+              {portrait.feelings.map(f => (
+                <View key={f.scene}>
+                  <Text style={s.memoLabel}>{f.scene}</Text>
+                  <Text style={s.body}>{f.text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {portrait?.manual || writing ? (
+        <>
+          <Section number="03" title={`${name} 사용 설명서`} />
+          <View style={s.card}>
+            {portrait?.manual ? <PetManual m={portrait.manual} name={name} /> : pending(6)}
+          </View>
+        </>
+      ) : null}
+
+      <Section number="04" title="우리 사이" />
+      <View style={{ gap: 12 }}>
+        <View style={s.card}>
+          {bond ? (
+            <>
+              <Text style={s.body}>{bond.summary}</Text>
+              <Text style={[s.memoLabel, { marginTop: 14 }]}>보호자로서의 나</Text>
+              <Text style={s.body}>{bond.owner}</Text>
+              <Text style={[s.memoLabel, { marginTop: 14 }]}>{name}에게 나는</Text>
+              <Text style={s.body}>{bond.forPet}</Text>
+              <Text style={[s.memoLabel, { marginTop: 14 }]}>호흡이 척척 맞는 순간</Text>
+              <Text style={s.body}>{bond.fit}</Text>
+            </>
+          ) : writing ? pending(6) : (
+            <>
+              <Text style={s.memoLabel}>{name}에게 나는</Text>
+              <Text style={s.body}>{F.meToPet}</Text>
+              <Text style={[s.memoLabel, { marginTop: 12 }]}>나에게 {name}{josa(name, '은', '는')}</Text>
+              <Text style={s.body}>{F.petToMe}</Text>
+            </>
+          )}
+        </View>
+        {bond ? (
+          <View style={[s.card, s.fill]}>
+            <Text style={s.cardTitle}>{bond.friction.title}</Text>
+            <Text style={s.body}>{bond.friction.text}</Text>
+            <Text style={[s.body, s.bold, { marginTop: 8 }]}>{bond.friction.tip}</Text>
+          </View>
+        ) : null}
+        {F.points.map(p => (
+          <View key={p.kind} style={[s.card, p.kind === 'fill' && s.fill]}>
+            <Text style={s.cardTitle}>{p.title}</Text>
+            <Text style={s.body}>{p.text}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Section number="05" title="함께하는 하루" />
+      <View style={{ gap: 12 }}>
+        {days ? (
+          <View style={s.card}>
+            <View style={{ gap: 12 }}>
+              {days.routine.map(r => (
+                <View key={r.time} style={s.routineRow}>
+                  <View style={s.routineTime}><Text style={s.routineTimeText}>{r.time}</Text></View>
+                  <Text style={[s.body, { flex: 1 }]}>{r.text}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>{ga} 좋아할 놀이</Text>
+          {days ? (
+            <View style={{ gap: 10 }}>
+              {days.play.map(p => (
+                <View key={p.title}>
+                  <Text style={[s.body, s.bold]}>{p.title}</Text>
+                  <Text style={s.body}>{p.text}</Text>
+                </View>
+              ))}
+            </View>
+          ) : writing ? pending(4) : F.play.map((p, i) => <Text key={p} style={s.listItem}>{i + 1}. {p}</Text>)}
+          {F.goodDays.length ? (
+            <>
+              <Text style={[s.cardTitle, { marginTop: 16 }]}>함께 놀기 좋은 날</Text>
+              <View style={s.days}>{F.goodDays.map(d => <View key={d} style={s.day}><Text style={s.dayText}>{md(d)}</Text></View>)}</View>
+            </>
+          ) : null}
+        </View>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>계절마다 이렇게 챙겨 주세요</Text>
+          {days ? (
+            <View style={{ gap: 10 }}>
+              {days.seasons.map(x => (
+                <View key={x.season}>
+                  <Text style={s.memoLabel}>{x.season}</Text>
+                  <Text style={s.body}>{x.text}</Text>
+                </View>
+              ))}
+            </View>
+          ) : writing ? pending(4) : <Text style={s.body}>{F.pet.care}</Text>}
+          <Text style={s.note}>성향을 바탕으로 한 생활 팁이에요. 건강이 걱정되면 꼭 수의사 선생님과 상담해 주세요.</Text>
+        </View>
+        {days ? (
+          <View style={s.card}>
+            <View style={s.colorRow}>
+              <View style={[s.swatch, { backgroundColor: F.pet.luckyColor.hex }]} />
+              <Text style={[s.body, s.bold]}>행운 컬러 {F.pet.luckyColor.name}</Text>
+            </View>
+            <Text style={[s.body, { marginTop: 6 }]}>{days.color}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {bond || writing ? (
+        <>
+          <Section number="06" title={`${ga} 보내는 편지`} />
+          <PetLetter petId={petId} name={name} owner={owner} letter={bond?.letter ?? null} />
+          {days ? <Text style={s.closing}>{days.closing}</Text> : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 /* ---------- 입력 ---------- */
-function PetForm({ u, before, first, onCancel, onSaved }: {
-  u: User; before: Pet | null; first: boolean; onCancel?(): void; onSaved(pet: Pet): void;
+/** 새 아이 등록 — 한 번 등록하면 고치지 않는다 (지우고 다시 등록) */
+function PetForm({ u, first, onCancel, onSaved }: {
+  u: User; first: boolean; onCancel?(): void; onSaved(pet: Pet): void;
 }) {
   const { today } = useApp();
   const { toast } = usePremium();
-  const [name, setName] = useState(before?.name ?? '');
-  const [species, setSpecies] = useState<PetSpecies | null>(before?.species ?? null);
-  // 생일을 아는지 — 모르면 가족이 된 날로 본다
-  const [knowsBirth, setKnowsBirth] = useState<boolean | null>(before ? !!before.birthDate : null);
-  const [birth, setBirth] = useState(toDigits(before?.birthDate ?? null));
-  const [estimated, setEstimated] = useState(before?.birthDateIsEstimated ?? false);
-  const [adopted, setAdopted] = useState(toDigits(before?.adoptedDate ?? null));
-  const [gender, setGender] = useState<'male' | 'female' | null>(before?.gender ?? null);
-  const [traits, setTraits] = useState<PetTraits>(before?.traits ?? {});
+  const [name, setName] = useState('');
+  const [species, setSpecies] = useState<PetSpecies | null>(null);
+  // 생일을 아는지 — 알면 생일로, 모르면 가족이 된 날로 본다 (둘 중 하나만 받는다)
+  const [knowsBirth, setKnowsBirth] = useState<boolean | null>(null);
+  const [date, setDate] = useState('');
+  const [estimated, setEstimated] = useState(false);
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [traits, setTraits] = useState<PetTraits>({});
+  const [title, setTitle] = useState<OwnerTitle | null>(null);
+  const titles = titlesFor(u.gender, gender);
+  // 고르지 않았거나 아이 성별을 바꿔 목록에서 빠지면 엄마·아빠로 둔다
+  const ownerTitle = title && titles.includes(title) ? title : titles[0];
   const [busy, setBusy] = useState(false);
 
   const check = (digits: string) => {
     const b = checkBirth(digits, 'solar');
     return { ...b, ok: b.ok && b.iso >= OLDEST && b.iso <= today };
   };
-  const b = check(birth), a = check(adopted);
-  const birthOk = knowsBirth === true && b.ok;
-  // 가족이 된 날은 생일을 알면 선택, 모르면 필수
-  const adoptedOk = adopted ? a.ok && (!birthOk || a.iso >= b.iso) : knowsBirth === true;
-  const dateOk = knowsBirth === true ? birthOk && adoptedOk : knowsBirth === false && a.ok;
+  const d = check(date);
+  const dateOk = knowsBirth !== null && d.ok;
   const ok = !!name.trim() && !!species && dateOk;
   const missing = [
     !name.trim() && '이름',
@@ -268,20 +403,22 @@ function PetForm({ u, before, first, onCancel, onSaved }: {
     knowsBirth === null ? '생일을 아는지' : !dateOk && (knowsBirth ? '생일' : '가족이 된 날'),
   ].filter(Boolean) as string[];
   const started = !!name.trim() || !!species || knowsBirth !== null;
-  useEffect(() => { if (b.ok || a.ok) Keyboard.dismiss(); }, [b.ok, a.ok]);
+  useEffect(() => { if (d.ok) Keyboard.dismiss(); }, [d.ok]);
 
   const save = async () => {
     if (!ok || busy) return;
     const input: PetInput = {
       name: name.trim(), species: species!, gender,
-      birthDate: knowsBirth ? b.iso : null,
+      birthDate: knowsBirth ? d.iso : null,
       birthDateIsEstimated: !!knowsBirth && estimated,
-      adoptedDate: adopted && a.ok ? a.iso : null,
+      adoptedDate: knowsBirth ? null : d.iso,
+      adoptedDateIsEstimated: !knowsBirth && estimated,
       traits,
+      ownerTitle,
     };
     setBusy(true);
     try {
-      const saved = before ? await petApi.update(before.id, input) : await petApi.create(input);
+      const saved = await petApi.create(input);
       await refreshPets();
       onSaved(saved);
     } catch (e) {
@@ -307,21 +444,21 @@ function PetForm({ u, before, first, onCancel, onSaved }: {
       footer={(
         <>
           {started && missing.length ? <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>남은 칸 · {missing.join(', ')}</Text> : null}
-          <PrimaryButton label={busy ? '보는 중…' : before ? '고친 정보로 다시 보기' : '궁합 보기'} onPress={save} disabled={!ok || busy} />
+          <PrimaryButton label={busy ? '보는 중…' : '궁합 보기'} onPress={save} disabled={!ok || busy} />
         </>
       )}
     >
       {first ? (
         <>
-          <View style={s.introMeta}><Text style={s.kicker}>우리 집 반려동물</Text><Text style={txt.caption}>무료 · 여러 마리 등록 가능</Text></View>
+          <View style={s.introMeta}><Text style={s.kicker}>우리 집 반려동물</Text><Text style={txt.caption}>미리보기 무료 · 여러 마리 등록 가능</Text></View>
           <View style={s.introHead}>
             <Text style={s.introTitle}>댕냥이와 나,{'\n'}어떤 사이일까?</Text>
             <Mascot name="soon-pet" size={72} />
           </View>
-          <Text style={s.introBody}>{u.nickname}님의 사주와 아이의 생일로 타고난 성격, 둘의 궁합 유형, 함께하면 좋은 놀이까지 알려 드려요. 생일을 몰라도 가족이 된 날로 볼 수 있어요.</Text>
+          <Text style={s.introBody}>{u.nickname}님의 사주와 아이의 생일로 타고난 성격, 둘의 궁합 유형, 함께하면 좋은 놀이까지 알려 드려요. 생일을 몰라도 괜찮아요. 우리 집에 온 날, 두 번째 생일로 볼 수 있어요.</Text>
         </>
       ) : (
-        <Text style={[s.introTitle, { fontSize: 22, lineHeight: 30, marginTop: 12 }]}>{before ? `${before.name} 정보 고치기` : '새 아이 등록하기'}</Text>
+        <Text style={[s.introTitle, { fontSize: 22, lineHeight: 30, marginTop: 12 }]}>새 아이 등록하기</Text>
       )}
 
       <Card style={s.form}>
@@ -339,27 +476,20 @@ function PetForm({ u, before, first, onCancel, onSaved }: {
           <Label>생일을 알고 있나요?</Label>
           <View style={s.row}>
             <Pick label="알아요" selected={knowsBirth === true} onPress={() => setKnowsBirth(true)} />
-            <Pick label="몰라요" selected={knowsBirth === false} onPress={() => { setKnowsBirth(false); setEstimated(false); }} />
+            <Pick label="몰라요" selected={knowsBirth === false} onPress={() => setKnowsBirth(false)} />
           </View>
-          {knowsBirth === false ? <Text style={[txt.small, { marginTop: 8 }]}>괜찮아요. 가족이 된 날의 기운으로 둘의 인연을 볼게요.</Text> : null}
+          {knowsBirth === false ? <Text style={[txt.small, { marginTop: 8 }]}>괜찮아요. 가족이 된 날은 이 아이의 두 번째 생일이에요. 처음 함께한 그날의 기운으로 둘의 인연을 볼게요.</Text> : null}
         </View>
-
-        {knowsBirth === true ? (
-          <View>
-            <Label>생일 (양력)</Label>
-            <DateField digits={birth} onChange={setBirth} label="생일" check={b} />
-            <PressableScale onPress={() => setEstimated(v => !v)} style={s.checkRow} accessibilityRole="checkbox" accessibilityState={{ checked: estimated }}>
-              <View style={[s.checkBox, estimated && s.checkOn]}>{estimated ? <Icon name="check" size={12} color={colors.white} /> : null}</View>
-              <Text style={s.checkText}>정확하지 않아요 (대략 짐작한 날짜예요)</Text>
-            </PressableScale>
-          </View>
-        ) : null}
 
         {knowsBirth !== null ? (
           <View>
-            <Label>{knowsBirth ? '가족이 된 날 (선택)' : '가족이 된 날'}</Label>
-            <DateField digits={adopted} onChange={setAdopted} label="가족이 된 날" check={a} />
-            {adopted && a.ok && birthOk && a.iso < b.iso ? <Text style={s.error}>생일보다 앞선 날이에요.</Text> : null}
+            <Label>{knowsBirth ? '생일 (양력)' : '가족이 된 날'}</Label>
+            <DateField digits={date} onChange={setDate} label={knowsBirth ? '생일' : '가족이 된 날'} check={d} />
+            <PressableScale onPress={() => setEstimated(v => !v)} style={s.checkRow} accessibilityRole="checkbox" accessibilityState={{ checked: estimated }}>
+              <View style={[s.checkBox, estimated && s.checkOn]}>{estimated ? <Icon name="check" size={12} color={colors.white} /> : null}</View>
+              <Text style={s.checkText}>정확한 날짜는 몰라요 (대략 짐작한 날짜예요)</Text>
+            </PressableScale>
+            {estimated ? <Text style={[txt.small, { marginTop: 8 }]}>짐작한 날짜는 하루하루의 기운 대신 그달의 기운으로 봐요. 며칠 차이로는 결과가 달라지지 않으니, 달만 맞으면 충분해요.</Text> : null}
           </View>
         ) : null}
 
@@ -372,13 +502,20 @@ function PetForm({ u, before, first, onCancel, onSaved }: {
         </View>
 
         <View>
+          <Label>아이가 나를 부르는 말</Label>
+          <View style={s.titleGrid}>
+            {titles.map(t => <View key={t} style={s.titleCell}><Pick label={t} selected={ownerTitle === t} onPress={() => setTitle(t)} /></View>)}
+          </View>
+        </View>
+
+        <View>
           <Label>평소 모습 (선택)</Label>
-          <Text style={[txt.small, { marginTop: -4, marginBottom: 10 }]}>고르면 사주로 본 모습과 얼마나 같은지 맞춰 봐요.</Text>
+          <Text style={[txt.small, { marginTop: -4, marginBottom: 10 }]}>알려 주시면 {name.trim() || '우리 아이'}에게 더 꼭 맞는 풀이를 볼 수 있어요.</Text>
           <View style={{ gap: 10 }}>
             {AXES.map(axis => (
               <View key={axis} style={s.traitPick}>
                 <Text style={s.traitPickLabel}>{TRAITS[axis][0]}</Text>
-                <View style={[s.row, { flex: 1 }]}>
+                <View style={s.row}>
                   {TRAITS[axis][1].map(([v, l]) => (
                     <Pick key={v} label={l} selected={traits[axis] === v} onPress={() => pickTrait(axis, v as never)} />
                   ))}
@@ -388,6 +525,7 @@ function PetForm({ u, before, first, onCancel, onSaved }: {
           </View>
         </View>
       </Card>
+      <PetSnackBanner />
       <Disclaimer compact />
     </Screen>
   );
@@ -413,6 +551,23 @@ function Pick({ label, selected, onPress }: { label: string; selected: boolean; 
     <PressableScale onPress={onPress} haptic scaleTo={0.95} style={[s.pick, selected && s.pickOn]} accessibilityRole="radio" accessibilityState={{ selected }}>
       <Text style={[s.pickText, selected && { color: '#EDEDED' }]}>{label}</Text>
     </PressableScale>
+  );
+}
+
+/** 사용 설명서 — 좋아하는 것·싫어하는 것은 칩으로, 신호와 칭찬법은 짧은 줄로 */
+function PetManual({ m, name }: { m: NonNullable<PetReading['portrait']['manual']>; name: string }) {
+  const chips = (list: string[], tone: 'like' | 'dislike') => (
+    <View style={s.chips}>{list.map(x => <View key={x} style={[s.chip, tone === 'dislike' && s.chipOff]}><Text style={s.chipText}>{x}</Text></View>)}</View>
+  );
+  const lines = (list: string[]) => list.map(x => <Text key={x} style={s.listItem}>· {x}</Text>);
+  return (
+    <View style={{ gap: 14 }}>
+      <View><Text style={s.memoLabel}>좋아해요</Text>{chips(m.likes, 'like')}</View>
+      <View><Text style={s.memoLabel}>싫어해요</Text>{chips(m.dislikes, 'dislike')}</View>
+      <View><Text style={s.memoLabel}>기분 좋을 때 이런 모습</Text>{lines(m.happy)}</View>
+      <View><Text style={s.memoLabel}>마음이 불편할 때 이런 모습</Text>{lines(m.stressed)}</View>
+      <View style={s.memo}><Text style={s.memoLabel}>{name}에게 잘 통하는 칭찬</Text><Text style={s.body}>{m.praise}</Text></View>
+    </View>
   );
 }
 
@@ -447,8 +602,8 @@ const s = StyleSheet.create({
   checkBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: colors.navy, borderColor: colors.navy },
   checkText: { ...sansW('500'), fontSize: 13, letterSpacing: -0.4, color: colors.ink },
-  traitPick: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  traitPickLabel: { ...sansW('600'), width: 84, fontSize: 13, letterSpacing: -0.5, color: colors.inkSub },
+  traitPick: { gap: 6 },
+  traitPickLabel: { ...sansW('600'), fontSize: 13, letterSpacing: -0.5, color: colors.inkSub },
   error: { ...sansW('400'), color: colors.danger, fontSize: 12, marginTop: 6 },
 
   // 결과
@@ -483,15 +638,12 @@ const s = StyleSheet.create({
   memoLabel: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.65, color: colors.accent, marginBottom: 4, ...TIGHT },
   colorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: colors.line },
-  traitRow: { gap: 6 },
-  traitHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
-  traitLabel: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: INK },
-  traitChips: { flexDirection: 'row', gap: 6 },
-  sajuChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.surface },
-  sajuChipText: { ...sansW('600'), fontSize: 11, color: colors.inkSub },
-  ownerChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong },
-  matchChip: { backgroundColor: colors.accent, borderColor: colors.accent },
-  ownerChipText: { ...sansW('600'), fontSize: 11, color: colors.inkSub },
+  titleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  titleCell: { flexBasis: '30%', flexGrow: 1, flexDirection: 'row' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.surface },
+  chipOff: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.lineStrong },
+  chipText: { ...sansW('600'), fontSize: 12, color: INK },
   inlineCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 16, paddingVertical: 10, borderRadius: 6, backgroundColor: colors.surface },
   inlineCtaText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.5, color: colors.accent },
   listItem: { ...sansW('400'), fontSize: 13, lineHeight: 22, letterSpacing: -0.65, color: INK, ...TIGHT },
@@ -499,6 +651,10 @@ const s = StyleSheet.create({
   day: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: colors.surface },
   dayText: { ...sansW('600'), fontSize: 13, color: INK, fontVariant: ['tabular-nums'] },
   note: { ...sansW('400'), fontSize: 12, lineHeight: 17, letterSpacing: -0.6, color: colors.inkMute, marginTop: 8, ...TIGHT },
+  routineRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  routineTime: { width: 40, paddingVertical: 2, borderRadius: 4, alignItems: 'center', backgroundColor: colors.surface },
+  routineTimeText: { ...sansW('700'), fontSize: 12, color: colors.accent },
+  closing: { ...sansW('600'), fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: INK, textAlign: 'center', marginTop: 20, paddingHorizontal: 12 },
   manage: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 24 },
   manageLink: { ...sansW('700'), fontSize: 12, lineHeight: 20, letterSpacing: -0.48, color: colors.inkMute, textDecorationLine: 'underline' },
   manageDot: { color: colors.inkMute },

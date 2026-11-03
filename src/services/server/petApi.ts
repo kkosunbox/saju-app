@@ -11,7 +11,6 @@ export const petKeys = { list: ['pets'] as const };
 export const petApi = {
   list: async () => (await call<{ list: Pet[] }>(api.GET('/v1/pets'))).list,
   create: (pet: PetInput) => call<Pet>(api.POST('/v1/pets', { body: pet })),
-  update: (id: number, pet: PetInput) => call<Pet>(api.PUT('/v1/pets/{id}', { params: { path: { id } }, body: pet })),
   remove: (id: number) => call(api.DELETE('/v1/pets/{id}', { params: { path: { id } } })),
 };
 
@@ -21,4 +20,8 @@ export function usePets() {
   return useQuery({ queryKey: [...petKeys.list, user?.id, user?.version], queryFn: petApi.list, enabled: !!user });
 }
 
-export const refreshPets = () => queryClient.invalidateQueries({ queryKey: petKeys.list });
+/** 목록과 열어 둔 전체 결과(성향을 고치면 비교가 바뀐다)를 함께 새로 */
+export const refreshPets = () => Promise.all([
+  queryClient.invalidateQueries({ queryKey: petKeys.list }),
+  queryClient.invalidateQueries({ predicate: q => q.queryKey[0] === 'premium' && String(q.queryKey[1]).startsWith('pet:') }),
+]);

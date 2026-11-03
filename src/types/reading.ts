@@ -125,3 +125,25 @@ export interface CrushReading {
 export interface LuckyReading {
   days: { intro: string; best: { why: string; tip: string }[]; avoid: string[]; tips: string[] };
 }
+
+/** 반려동물 궁합 (server: pet.reading.ts). */
+export interface PetReading {
+  portrait: {
+    headline: string; story: string;
+    charms: Titled[];
+    feelings: { scene: string; text: string }[];
+    /** pet-v3부터 (그 전에 쓴 풀이에는 없다) */
+    manual?: { likes: string[]; dislikes: string[]; happy: string[]; stressed: string[]; praise: string };
+  };
+  bond: {
+    summary: string; owner: string; forPet: string; fit: string;
+    friction: { title: string; text: string; tip: string };
+    letter: string;
+  };
+  days: {
+    routine: { time: '아침' | '낮' | '저녁'; text: string }[];
+    play: Titled[];
+    seasons: { season: '봄' | '여름' | '가을' | '겨울'; text: string }[];
+    color: string; closing: string;
+  };
+}

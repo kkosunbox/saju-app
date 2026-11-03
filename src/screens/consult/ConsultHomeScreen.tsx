@@ -114,7 +114,7 @@ export default function ConsultHomeScreen() {
   ) : null);
 
   return (
-    <Screen largeTitle="상담" right={<PointPill />} scroll={false}>
+    <Screen largeTitle="상담" right={<PointPill attendHint quiet />} scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>

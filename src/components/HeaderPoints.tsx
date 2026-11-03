@@ -16,8 +16,8 @@ let attendBubbleShown = false;
 
 /** 상단 오른쪽: 내 포인트 알약(누르면 지갑).
  *  attendHint면 오늘 출석 전일 때 말풍선을 잠깐 띄웠다가 알약 속으로 빨려 들어가게 하고, 금색 +10을 남긴다.
- *  알약 → 알충전소 길을 익히게 하려는 것(비로그인도 똑같이) */
-export function PointPill({ attendHint }: { attendHint?: boolean }) {
+ *  알약 → 알충전소 길을 익히게 하려는 것(비로그인도 똑같이). quiet면 말풍선 없이 +10만 바로 붙인다(메인 밖 화면) */
+export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?: boolean }) {
   const nav = useNavigation();
   const { points, ready, attendedToday } = usePremium();
   const reduced = useReducedMotion();
@@ -32,12 +32,12 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
   const label = useRef(new Animated.Value(0)).current; // '오늘 출석 보상' 등장
   const gold = useRef(new Animated.Value(0)).current; // '+10알' 등장
   const gulp = useRef(new Animated.Value(0)).current; // 받은 알약이 살짝 부풂
-  const chip = useRef(new Animated.Value(attendBubbleShown ? 1 : 0)).current; // +10 칸 펼침(폭이라 JS 드라이버)
-  const chipPop = useRef(new Animated.Value(attendBubbleShown ? 1 : 0)).current; // +10 글자
+  const chip = useRef(new Animated.Value(attendBubbleShown || quiet ? 1 : 0)).current; // +10 칸 펼침(폭이라 JS 드라이버)
+  const chipPop = useRef(new Animated.Value(attendBubbleShown || quiet ? 1 : 0)).current; // +10 글자
 
   useEffect(() => {
     if (!show) return;
-    if (attendBubbleShown) { chip.setValue(1); chipPop.setValue(1); return; }
+    if (attendBubbleShown || quiet) { chip.setValue(1); chipPop.setValue(1); return; }
     // 끝까지 본 뒤에만 '보여 줬음'으로 친다. 메인은 운세를 불러오는 동안 스켈레톤에 알약을 그렸다가
     // 다 불러오면 새로 그리는데, 시작할 때 표시해 두면 스켈레톤에서 잘린 말풍선 탓에 새 알약은 +10만 보여 준다
     [body, label, gold, gulp, chip, chipPop].forEach(v => v.setValue(0));
@@ -75,7 +75,7 @@ export function PointPill({ attendHint }: { attendHint?: boolean }) {
       setBubble(false);
     });
     return () => anim.stop();
-  }, [show, reduced, body, label, gold, gulp, chip, chipPop]);
+  }, [show, quiet, reduced, body, label, gold, gulp, chip, chipPop]);
 
   if (!show) return <PillButton points={points} onPress={goWallet} />;
   const lerp = (v: Animated.Value, inputRange: number[], outputRange: number[]) => v.interpolate({ inputRange, outputRange, extrapolate: 'clamp' });

@@ -25,7 +25,8 @@ export type PremiumRef =
   | { kind: 'theme'; theme: ThemeKind }
   | { kind: 'lucky'; purpose: PurposeKey }
   | { kind: 'compat'; id: number }
-  | { kind: 'crush'; id: number };
+  | { kind: 'crush'; id: number }
+  | { kind: 'pet'; id: number };
 
 /** Unlock key of a content (same as the server catalog). */
 export function contentKeyOf(ref: PremiumRef): string {
@@ -36,6 +37,7 @@ export function contentKeyOf(ref: PremiumRef): string {
     case 'lucky': return `lucky:${ref.purpose}`;
     case 'compat': return `compat:${ref.id}`;
     case 'crush': return `crush:${ref.id}`;
+    case 'pet': return `pet:${ref.id}`;
     default: return ref.kind;
   }
 }
@@ -54,6 +56,7 @@ function getContent<T>(ref: PremiumRef) {
       case 'lucky': return api.GET('/v1/premium/contents/lucky/{purpose}', { params: { path: { purpose: ref.purpose } } });
       case 'compat': return api.GET('/v1/premium/contents/compat/{compatibilityId}', { params: { path: { compatibilityId: ref.id } } });
       case 'crush': return api.GET('/v1/premium/contents/crush/{compatibilityId}', { params: { path: { compatibilityId: ref.id } } });
+      case 'pet': return api.GET('/v1/premium/contents/pet/{petId}', { params: { path: { petId: ref.id } } });
     }
   })();
   return call<Envelope<T>>(r);

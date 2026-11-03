@@ -24,20 +24,24 @@ interface Props {
   isNew?: boolean;
   variant?: 'default' | 'figma';
   badgePlacement?: 'inline' | 'end';
+  /** 그림까지 들어 있는 배경 (figma) — 주면 기본 배경·마스코트 대신 쓴다 */
+  base?: number;
   onPress(): void;
   accessibilityLabel?: string;
 }
 
 /** 어두운 남색 프로모션 카드 — 제목 · 한 줄 설명 · 알약 버튼 · 오른쪽 아래 마스코트 실루엣 */
-export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', onPress, accessibilityLabel }: Props) {
+export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, onPress, accessibilityLabel }: Props) {
   const figma = variant === 'figma';
+  const ownBase = figma && !!base;
   return (
     <PressableScale onPress={onPress} style={s.card} scaleTo={0.98} accessibilityLabel={accessibilityLabel ?? title}>
-      {figma && tone === 'lime' ? <HomePromoArt large /> : null}
-      {figma && (tone === 'lime' || tone === 'gold') ? (
+      {ownBase ? <Image source={base} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} /> : null}
+      {figma && !ownBase && tone === 'lime' ? <HomePromoArt large /> : null}
+      {figma && !ownBase && (tone === 'lime' || tone === 'gold') ? (
         <Image source={tone === 'lime' ? require('../../assets/figma/home/consult-base.svg') : require('../../assets/figma/home/spouse-base.svg')} style={StyleSheet.absoluteFill} contentFit="fill" accessible={false} />
       ) : null}
-      {figma ? <HomePromoArt /> : <MascotPeek width={112} top={17} opacity={0.2} />}
+      {ownBase ? null : figma ? <HomePromoArt /> : <MascotPeek width={112} top={17} opacity={0.2} />}
       <View style={[s.titleRow, figma && badgePlacement === 'inline' && s.figmaInlineTitleRow]}>
         <Text style={[s.title, figma && s.figmaTitle, figma && badgePlacement === 'inline' && s.figmaInlineTitle, { color: PROMO_TONE[tone] }]}>{title}</Text>
         {isNew ? <View style={[s.new, figma && s.figmaNew, figma && badgePlacement === 'inline' && s.figmaInlineNew]}><Text style={[s.newText, figma && { ...sansW('600') }, figma && badgePlacement === 'inline' && s.figmaInlineNewText]}>NEW</Text></View> : null}
