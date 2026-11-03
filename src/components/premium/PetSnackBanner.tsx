@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import PressableScale from '../PressableScale';
 import { usePromoTrack } from '../PromoSlot';
@@ -7,15 +7,15 @@ import { PET_SNACK, PetSnackBanner as Banner } from '../../content/petSnack';
 import { colors, isDark } from '../../theme/colors';
 import { sansW } from '../../theme/typography';
 
-/** 간식 서비스 광고 (Figma 362:1286) — 반려동물 궁합의 입력·미리보기·결과 화면 아래. PET_SNACK이 null이면 그리지 않는다 */
-export default function PetSnackBanner({ marginTop = 16 }: { marginTop?: number }) {
-  return PET_SNACK ? <SnackCard banner={PET_SNACK} marginTop={marginTop} /> : null;
+/** 간식 서비스 광고 (Figma 362:1286) — 반려동물 궁합의 입력·미리보기·결과 화면 맨 위. PET_SNACK이 null이면 그리지 않는다 */
+export default function PetSnackBanner({ style }: { style?: StyleProp<ViewStyle> }) {
+  return PET_SNACK ? <SnackCard banner={PET_SNACK} style={style} /> : null;
 }
 
-function SnackCard({ banner, marginTop }: { banner: Banner; marginTop: number }) {
+function SnackCard({ banner, style }: { banner: Banner; style?: StyleProp<ViewStyle> }) {
   const onPress = usePromoTrack('pet', 'snack', () => { Linking.openURL(banner.url).catch(() => {}); });
   return (
-    <PressableScale onPress={onPress} style={[s.card, { marginTop }]} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`광고. ${banner.title}. ${banner.desc}`}>
+    <PressableScale onPress={onPress} style={[s.card, style]} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`광고. ${banner.title}. ${banner.desc}`}>
       <Image source={require('../../../assets/images/kkosunbox-snack.webp')} style={s.thumb} contentFit="cover" accessible={false} />
       <View style={s.copy}>
         <Text style={s.title} numberOfLines={1}>{banner.title}</Text>

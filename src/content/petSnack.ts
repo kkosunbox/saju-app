@@ -1,5 +1,5 @@
 /**
- * 반려동물 궁합 화면(입력 · 미리보기 · 결과) 아래에 붙는 간식 서비스 광고 배너 (Figma 362:1286).
+ * 반려동물 궁합 화면(입력 · 미리보기 · 결과) 맨 위에 붙는 간식 서비스 광고 배너 (Figma 362:1286).
  * null이면 배너를 그리지 않는다. 노출·클릭은 promo_event에 screen 'pet', item 'snack'으로 남는다.
  */
 export interface PetSnackBanner {

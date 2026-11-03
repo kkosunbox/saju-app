@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import { radius, sansW } from '../theme/typography';
 
 /** 어두운 카드 제목 색 — 디자인에서 카드마다 다른 연한 색을 쓴다 */
-export const PROMO_TONE = { gold: '#ECDB7B', lime: '#DFEEA5', mint: '#9FE3D2', sky: '#9ED8FF' } as const;
+export const PROMO_TONE = { gold: '#ECDB7B', lime: '#DFEEA5', mint: '#9FE3D2', sky: '#9ED8FF', pink: '#F3C5DD' } as const;
 
 interface Props {
   title: string;

@@ -21,7 +21,7 @@ import { ApiError } from '../../api/client';
 import { BodyState, LockedCard } from '../../components/premium/Kit';
 import { ITEMS } from '../../services/premium/catalog';
 import { usePremiumContent, useReading } from '../../services/server/premiumApi';
-import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PartPending, ProgressCard, ReadingBanner } from '../../components/premium/Reading';
 import PetLetter from '../../components/premium/PetLetter';
 import PetSnackBanner from '../../components/premium/PetSnackBanner';
 import { PetReading, ReadingView } from '../../types/reading';
@@ -33,6 +33,14 @@ import { User } from '../../types';
 import { OwnerTitle, Pet, PetCompatibility, PetInput, PetPreview, PetSpecies, PetTraitAxis, PetTraits } from '../../types/content';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
+
+/** 새 아이를 등록한 뒤 미리보기 전에 보여 주는 단계 (한 단계 0.8초) */
+const LOADING_STEPS = (name: string, basis: string, nickname: string) => [
+  `${name}의 ${basis} 기운을 읽고 있어요`,
+  `${nickname}님의 사주와 겹쳐 보고 있어요`,
+  '둘의 궁합 유형을 고르고 있어요',
+];
+const STEP_MS = 800;
 
 const SPECIES: [PetSpecies, string][] = [['dog', '강아지'], ['cat', '고양이'], ['other', '그 외']];
 /** 평소 모습 4가지 — [축, 질문, [값, 라벨] 두 개] */
@@ -117,6 +125,17 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   const { reading, retry } = useReading<PetReading>(content);
   const spec = petSpec(u, pet);
   const name = pet.name;
+  // 새로 등록한 아이는 미리보기 전에 궁합을 보는 단계를 잠깐 보여 준다 (다른 아이를 고르면 바로)
+  const steps = LOADING_STEPS(name, R.basis.kind === 'adopted' ? '가족이 된 날' : '생일', u.nickname);
+  const [step, setStep] = useState(revealed ? 0 : steps.length);
+  const loading = step < steps.length;
+  // 단계를 다 본 뒤에만 부드럽게 나타난다 (아이를 바꿔 볼 때는 그대로)
+  const Appear = revealed ? Reveal : View;
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setStep(n => n + 1), STEP_MS);
+    return () => clearTimeout(t);
+  }, [loading, step]);
 
   const remove = async () => {
     setConfirm(false);
@@ -146,6 +165,7 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
 
   return (
     <Screen key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton spec={spec} />}>
+      <PetSnackBanner style={s.snackTop} />
       <View style={s.petRow}>
         {pets.map(p => (
           <PressableScale key={p.id} onPress={() => onPick(p.id)} style={[s.petChip, p.id === pet.id && s.petChipOn]} scaleTo={0.95} accessibilityRole="tab" accessibilityState={{ selected: p.id === pet.id }}>
@@ -157,8 +177,12 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         </PressableScale>
       </View>
 
+      {loading ? (
+        <ProgressCard title="궁합을 보고 있어요" done={step} total={steps.length} note={steps[step]} />
+      ) : (
+      <Appear>
       <FriendCompare route="Pet" spec={spec} />
-      {revealed ? <Reveal>{hero}</Reveal> : hero}
+      {hero}
       {basisNote(name, R.basis) ? <Text style={s.basisNote}>{basisNote(name, R.basis)}</Text> : null}
 
       <Section number="01" title={`${name}의 타고난 성격`} />
@@ -192,12 +216,13 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         <Text style={s.body}>아이의 생일로 년·월·일 세 기둥을 세워 타고난 기운을 보고, 내 사주의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 생일을 모르면 가족이 된 날을 두 번째 생일로 삼아 그날의 기운으로 보고, 짐작한 생일은 날짜 대신 태어난 달의 기운으로 봐요. 태어난 시간은 쓰지 않아요. 재미로 보는 콘텐츠이고, 아이의 실제 성격은 함께 지내며 알아가는 게 가장 정확해요.</Text>
       </View>
 
-      <PetSnackBanner />
 
       <View style={s.manage}>
         <PressableScale onPress={() => setConfirm(true)} hitSlop={8}><Text style={s.manageLink}>{name} 지우기</Text></PressableScale>
       </View>
       <Disclaimer compact />
+      </Appear>
+      )}
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>{name} 정보를 지울까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>등록한 정보와 궁합 결과가 바로 지워져요.{content.open ? '\n열어 둔 전체 결과도 다시 볼 수 없어요.' : ''}</Text>
@@ -448,6 +473,7 @@ function PetForm({ u, first, onCancel, onSaved }: {
         </>
       )}
     >
+      <PetSnackBanner style={s.snackTop} />
       {first ? (
         <>
           <View style={s.introMeta}><Text style={s.kicker}>우리 집 반려동물</Text><Text style={txt.caption}>미리보기 무료 · 여러 마리 등록 가능</Text></View>
@@ -525,7 +551,6 @@ function PetForm({ u, first, onCancel, onSaved }: {
           </View>
         </View>
       </Card>
-      <PetSnackBanner />
       <Disclaimer compact />
     </Screen>
   );
@@ -655,6 +680,8 @@ const s = StyleSheet.create({
   routineTime: { width: 40, paddingVertical: 2, borderRadius: 4, alignItems: 'center', backgroundColor: colors.surface },
   routineTimeText: { ...sansW('700'), fontSize: 12, color: colors.accent },
   closing: { ...sansW('600'), fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: INK, textAlign: 'center', marginTop: 20, paddingHorizontal: 12 },
+  // 광고 배너는 화면 맨 위 — 아래 내용과 16 띄운다
+  snackTop: { marginTop: 4, marginBottom: 16 },
   manage: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 24 },
   manageLink: { ...sansW('700'), fontSize: 12, lineHeight: 20, letterSpacing: -0.48, color: colors.inkMute, textDecorationLine: 'underline' },
   manageDot: { color: colors.inkMute },

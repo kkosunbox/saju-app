@@ -46,6 +46,7 @@ export const ART = {
   'soon-baby': require('../../assets/images/soon-baby.webp'),
   'soon-pet': require('../../assets/images/soon-pet.webp'),
   'soon-name': require('../../assets/images/soon-name.webp'),
+  'soon-babyName': require('../../assets/images/soon-babyName.webp'),
   // 콘텐츠 탭 프리미엄 카드 그림 (나의 인생 지도 · 올해와 이달 · 테마 운세)
   'premium-life': require('../../assets/images/premium-life.webp'),
   'premium-sajuDeep': require('../../assets/images/premium-sajudeep.webp'),
@@ -65,7 +66,7 @@ const RATIO: Partial<Record<ArtName, number>> = {
   mbti: 718 / 683, pastLife: 718 / 683, friends: 1254 / 766,
   today: 519 / 508, week: 519 / 508, month: 519 / 508, year: 519 / 508,
   compatHero: 984 / 679, shareBanner: 984 / 204, crush: 336 / 411,
-  'soon-loveTiming': 268 / 233, 'soon-jobTiming': 244 / 233, 'soon-friendRank': 269 / 232, 'soon-marryAge': 256 / 233, 'soon-tarot': 276 / 238, 'soon-dream': 268 / 233, 'soon-boss': 268 / 233, 'soon-exam': 277 / 264, 'soon-baby': 268 / 232, 'soon-pet': 277 / 264, 'soon-name': 268 / 232,
+  'soon-loveTiming': 268 / 233, 'soon-jobTiming': 244 / 233, 'soon-friendRank': 269 / 232, 'soon-marryAge': 256 / 233, 'soon-tarot': 276 / 238, 'soon-dream': 268 / 233, 'soon-boss': 268 / 233, 'soon-exam': 277 / 264, 'soon-baby': 268 / 232, 'soon-pet': 277 / 264, 'soon-name': 268 / 232, 'soon-babyName': 384 / 365,
   'premium-life': 362 / 265, 'premium-sajuDeep': 350 / 333, 'premium-newyear': 384 / 307, 'premium-monthly': 384 / 307,
   'premium-love': 371 / 297, 'premium-money': 375 / 307, 'premium-career': 358 / 307, 'premium-lucky': 359 / 307,
 };

@@ -93,8 +93,8 @@ export default function ContentScreen() {
   ];
   // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
   const THEME_EXTRA: [string, number, string, string, React.ReactNode, () => void][] = [
-    ['pet', require('../../../assets/figma/content/tile-pet.webp'), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
-    ['spouse', require('../../../assets/figma/content/tile-spouse.webp'), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+    ['pet', require('../../../assets/figma/content/tile-pet.webp'), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill key="pet" cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
+    ['spouse', require('../../../assets/figma/content/tile-spouse.webp'), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag key="spouse" item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
   ];
 
   return (
@@ -160,13 +160,14 @@ export default function ContentScreen() {
       <View style={{ gap: 16 }}>
         <TrackedPromoCard
           screen="content" item="spouse"
-          tone="gold" variant="figma" isNew title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
+          tone="pink" variant="figma" title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
           owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
+          base={require('../../../assets/figma/content/promo-spouse-base.webp')}
           onPress={() => nav.navigate('Spouse')}
         />
         <TrackedPromoCard
           screen="content" item="pet"
-          tone="lime" variant="figma" isNew title="반려동물 궁합" desc="댕냥이와 나는 어떤 사이? 성격부터 함께 놀기 좋은 날까지"
+          tone="lime" variant="figma" title="반려동물 궁합" desc="댕냥이와 나는 어떤 사이? 성격부터 함께 놀기 좋은 날까지"
           coin cta={`${ITEMS.pet(0, '').cost}알 · 미리보기 무료 →`} base={require('../../../assets/figma/content/promo-pet-base.webp')}
           onPress={() => nav.navigate('Pet')}
         />
