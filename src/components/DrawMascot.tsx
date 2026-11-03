@@ -19,8 +19,10 @@ const C = 2 * Math.PI * R;
 const DOT_SPACING = C / 48;
 const HOLD_MS = 900;
 const HINT_H = 36; // 안내 알약 + 위 여백
-/** 화면을 열거나 앱으로 돌아왔을 때 이 확률로 졸고 있다 */
-const DOZE_CHANCE = 0.15;
+/** 화면을 열거나 한동안 비웠다가 앱으로 돌아왔을 때 이 확률로 졸고 있다 */
+const DOZE_CHANCE = 0.06;
+/** 이만큼 넘게 앱을 비웠다 돌아와야 졸 수 있다 — 잠깐 나갔다 오면 깨어 있다 */
+const DOZE_AWAY_MS = 10 * 60 * 1000;
 
 /**
  * 홈의 말풍선 아래 마스코트. 평소엔 둥실 떠 있고,
@@ -42,8 +44,10 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
   playfulRef.current = playful;
   useEffect(() => {
     let last = AppState.currentState;
+    let leftAt = 0;
     const sub = AppState.addEventListener('change', next => {
-      if (last !== 'active' && next === 'active' && playfulRef.current && Math.random() < DOZE_CHANCE) setDozing(true);
+      if (last === 'active' && next !== 'active') leftAt = Date.now();
+      if (last !== 'active' && next === 'active' && playfulRef.current && Date.now() - leftAt > DOZE_AWAY_MS && Math.random() < DOZE_CHANCE) setDozing(true);
       last = next;
     });
     return () => sub.remove();
