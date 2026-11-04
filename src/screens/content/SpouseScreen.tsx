@@ -28,6 +28,8 @@ export default function SpouseScreen() {
   const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
   const { reading, retry } = useReading<SpouseReading>(content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
+  // 카드는 Figma 327×168 비율을 지킨다 — 폭이 넓은 기기에서도 그림이 카드 전체를 채우게
+  const [heroW, setHeroW] = React.useState(327);
   if (!u) return null;
   const item = ITEMS.spouse();
   const R = content.data?.data;
@@ -44,8 +46,8 @@ export default function SpouseScreen() {
       <FriendCompare route="Spouse" spec={spec} />
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
       {/* Figma 운픽_22 히어로 — 그림 카드 위 로고 · 한 줄 · 칩, 아래 회색 지수 줄 */}
-      <View style={s.hero}>
-        <Image source={require('../../../assets/figma/spouse/hero.webp')} style={s.heroArt} contentFit="cover" accessible={false} />
+      <View style={[s.hero, { minHeight: Math.round((heroW * 168) / 327) }]} onLayout={(e) => setHeroW(e.nativeEvent.layout.width)}>
+        <Image source={require('../../../assets/figma/spouse/hero.webp')} style={s.heroArt} contentFit="cover" contentPosition="right bottom" accessible={false} />
         <View style={s.heroTop}><Logo height={29} /></View>
         <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
         <Text style={s.headline}>{sum.headline}</Text>
@@ -266,9 +268,9 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 const barH = (v: number) => Math.max(10, (v - 34) * 1.375);
 
 const s = StyleSheet.create({
-  // 카드 327×168 · 로고 12 · 한 줄 44 · 제목 70 · 칩 130 (글이 길어지면 아래로 늘고 그림은 아래에 붙는다)
-  hero: { marginTop: 12, minHeight: 168, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 19 },
-  heroArt: { position: 'absolute', right: 0, bottom: 0, width: 327, height: 168 },
+  // 카드 327×168 · 로고 12 · 한 줄 44 · 제목 70 · 칩 130 (폭에 맞춰 비율대로 커지고, 글이 길어지면 아래로 늘어도 그림은 카드를 꽉 채운 채 오른쪽 아래에 붙는다)
+  hero: { marginTop: 12, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 19 },
+  heroArt: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   heroTop: { height: 19, flexDirection: 'row', alignItems: 'flex-start' },
   eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 14, ...TIGHT },
   headline: { ...sansW('700'), fontSize: 20, lineHeight: 24, letterSpacing: -1, color: colors.white, marginTop: 8, maxWidth: 210, ...TIGHT },
