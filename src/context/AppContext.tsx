@@ -7,6 +7,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
 import { storage } from '../services/storage/storageService';
+import { push } from '../services/push';
 import { Account, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { ProfileInput, profileApi } from '../services/server/profileApi';
@@ -126,6 +127,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
 
+  // 앱을 열 때·계정이 바뀔 때 (로그인, 게스트 생성) 이 기기를 지금 계정의 푸시 기기로
+  const userId = user?.id;
+  useEffect(() => { if (userId) void push.sync(); }, [userId, account?.id]);
+
   // An open app also rolls over at KST midnight; returning from the background checks immediately.
   useEffect(() => {
     if (!user) return;
@@ -185,7 +190,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     sendSignupCode: email => authApi.sendSignupCode(email),
     verifySignupCode: (email, otp) => authApi.verifySignupCode(email, otp),
     completeSignup: async params => { await authApi.signup(params); queryClient.clear(); await loadSession(); },
-    signOut: async () => { await authApi.signOut(); await afterSignOut(); },
+    signOut: async () => { await push.unregister(); await authApi.signOut(); await afterSignOut(); },
     deleteAccount: async reason => { await authApi.withdraw(reason); await afterSignOut(); },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

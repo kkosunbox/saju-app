@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, DevSettings, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, DevSettings, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { useNavigation } from '@/navigation/compat';
 import { router } from 'expo-router';
@@ -22,7 +22,7 @@ import { useApp } from '../context/AppContext';
 import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
 import { fmtN } from '../services/premium/catalog';
-import { storage, NotificationSettings } from '../services/storage/storageService';
+import { NotificationSettings } from '../services/storage/storageService';
 import { notificationService } from '../services/notificationService';
 import { MBTI_INFO } from '../data/mbtiData';
 import { placeLabel } from '../services/server/birthPlaceApi';
@@ -76,12 +76,19 @@ export default function MyPageScreen() {
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
   const [deleteArm, setDeleteArm] = useState(false);
 
-  useEffect(() => { storage.getNotificationSettings().then(setNoti); }, []);
+  useEffect(() => { notificationService.load().then(setNoti); }, []);
   if (!user) return null;
 
   const updateNoti = async (next: NotificationSettings) => {
     setNoti(next);
-    await notificationService.schedule(next, user.nickname);
+    const { settings, blocked } = await notificationService.apply(next);
+    setNoti(settings);
+    if (blocked) {
+      Alert.alert('알림이 꺼져 있어요', '설정에서 운Pick 알림을 허용하면 아침 운세를 받아볼 수 있어요.', [
+        { text: '닫기', style: 'cancel' },
+        { text: '설정 열기', onPress: () => Linking.openSettings() },
+      ]);
+    }
   };
   return (
     <Screen largeTitle="마이" contentStyle={{ paddingTop: 7 }}>

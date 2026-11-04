@@ -72,9 +72,9 @@ async function authFetch(request: Request): Promise<Response> {
 export const api = createClient<paths>({ baseUrl: API_URL, fetch: authFetch });
 
 /** Authenticated JSON request for newly introduced endpoints before OpenAPI regeneration. */
-export async function requestData<T>(path: string, body?: unknown): Promise<T> {
+export async function requestData<T>(path: string, body?: unknown, method?: 'PUT' | 'DELETE'): Promise<T> {
   return call<T>(authFetch(new Request(`${API_URL}${path}`, {
-    method: body === undefined ? 'GET' : 'POST',
+    method: method ?? (body === undefined ? 'GET' : 'POST'),
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })).then(async response => {

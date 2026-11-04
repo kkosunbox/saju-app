@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "648499572638",
+    "project_id": "saju-512803",
+    "storage_bucket": "saju-512803.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:648499572638:android:26858d45b9ff5795d2708f",
+        "android_client_info": {
+          "package_name": "com.woonpick.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "648499572638-ra041qfdmnn7slqa0a895gkbnkfc1vfs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA0QcC0l2ikyQEUrmAu40BX3vGcdCsb5AU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "648499572638-ra041qfdmnn7slqa0a895gkbnkfc1vfs.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "648499572638-3lpm4dl9tvqscpvfcut4g1a5qgp6973m.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.woonpick.ios",
+                "app_store_id": "6827429370"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -19,6 +19,7 @@ import { guideSlugOf } from '@/content/guides';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
 import { useWebSideScroll } from '@/utils/webSideScroll';
+import { usePushOpenRouting } from '@/services/push';
 
 // 화면 청크를 못 받으면(새 배포 뒤 예전 탭) 새로고침, 그 밖의 오류는 다시 시도 화면 — 없으면 화면 전체가 하얗게 된다
 export { default as ErrorBoundary } from '@/components/AppErrorBoundary';
@@ -54,6 +55,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
   const { setGoWallet } = usePremium();
   useEffect(() => setGoWallet(() => router.push('/wallet')), [setGoWallet]);
   useCloseAuthFlowOnSignIn();
+  usePushOpenRouting(!booting && !hold && onboarded && hasProfile);
   const pathname = usePathname();
   if (booting) {
     // 웹 첫 화면은 부팅(세션 확인)을 기다리지 않고 랜딩을 그린다 — 정적 HTML에 본문이 들어가 검색엔진·공유 미리보기가 읽는다.
