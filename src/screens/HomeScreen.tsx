@@ -540,12 +540,12 @@ export default function HomeScreen() {
               screen="home" item="consult"
               variant="figma"
               tone="lime"
-              title="오늘 마음에 걸리는 일 있나요?"
-              desc="털어놓으면 사주로 답하고, 이어서 더 물어볼 수 있어요"
-              cta={consultFreeLeft > 0 ? `오늘 무료 상담 ${consultFreeLeft}번 남음 →` : `${consultCost} · 상담 시작하기 →`}
+              title="마음의 소리, 운알이에게 들려줄래요?"
+              desc="나의 사주를 기억하는 운알이와의 비밀 대화"
+              cta={consultFreeLeft > 0 ? `오늘 무료 대화 ${consultFreeLeft}번 남음 →` : `${consultCost} · 운알톡 시작하기 →`}
               coin={consultFreeLeft <= 0}
               onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
-              accessibilityLabel="고민 상담하기"
+              accessibilityLabel="운알이와 대화하기"
             />
           </View>
 

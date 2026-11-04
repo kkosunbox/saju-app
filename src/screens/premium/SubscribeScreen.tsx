@@ -47,7 +47,7 @@ export default function SubscribeScreen() {
         <Bullet>결제는 토스페이먼츠 정기결제로 처리되고, 결제일은 매달 첫 결제일과 같은 날이에요. 그 날이 없는 달은 말일에 결제돼요.</Bullet>
         <Bullet>결제에 실패하면 3일 동안 하루 한 번 다시 시도하고, 그래도 실패하면 구독이 끝나요.</Bullet>
         <Bullet>언제든 [마이 &gt; 내 알 &gt; 정기 구독]에서 해지할 수 있어요. 해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요.</Bullet>
-        <Bullet>결제 후 7일 안에 혜택(무료 상담·콘텐츠)을 하나도 쓰지 않았다면 전액 환불을 요청할 수 있어요. 그 밖에는 이용약관 제4조의2를 따라요.</Bullet>
+        <Bullet>결제 후 7일 안에 혜택(무료 운알톡·콘텐츠)을 하나도 쓰지 않았다면 전액 환불을 요청할 수 있어요. 그 밖에는 이용약관 제4조의2를 따라요.</Bullet>
       </View>
       <Text style={s.terms} accessibilityRole="link" onPress={() => router.push('/legal/terms')}>이용약관 보기</Text>
     </Screen>

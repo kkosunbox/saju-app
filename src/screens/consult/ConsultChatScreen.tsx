@@ -38,22 +38,22 @@ const LOCK_COIN = require('../../../assets/figma/consult/coin.png');
 const SEND_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '답변을 만들지 못했어요. 다시 물어봐 주세요',
   DUPLICATE_REQUEST: '아직 답을 쓰고 있어요. 잠시만 기다려 주세요',
-  CONSULT_CLOSED: '이 상담의 이어 묻기가 끝났어요. 새 상담으로 물어봐 주세요',
+  CONSULT_CLOSED: '이 대화의 이어 묻기가 끝났어요. 새 대화로 물어봐 주세요',
 };
 
 const ASK_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 알은 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
   DUPLICATE_REQUEST: '이미 답을 쓰고 있어요. 잠시만 기다려 주세요',
-  INSUFFICIENT_POINTS: '상담에 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
+  INSUFFICIENT_POINTS: '물어보는 데 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
 };
 
-/** 상담 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
+/** 운알톡 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
 export default function ConsultChatScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ConsultChat'>>();
   return params?.id === 'new' ? <PendingChat askKey={params.ask} /> : <Chat id={Number(params?.id)} />;
 }
 
-/** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 상담가가 답을 쓰는 중 */
+/** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 운알이가 답을 쓰는 중 */
 function PendingChat({ askKey }: { askKey?: string }) {
   const nav = useNavigation<Nav>();
   const { goWallet } = usePremium();
@@ -82,14 +82,14 @@ function PendingChat({ askKey }: { askKey?: string }) {
   const toTab = () => nav.navigate('Tabs', { screen: 'Consult' });
   if (!ask) {
     return (
-      <Screen title="고민상담" titleStyle={s.chatTitle} back>
-        <Text style={[txt.body, { textAlign: 'center', marginTop: 40 }]}>상담 화면을 다시 열어 주세요.</Text>
-        <PrimaryButton label="상담 탭으로" variant="soft" onPress={toTab} style={{ marginTop: 20 }} />
+      <Screen title="운알톡" titleStyle={s.chatTitle} back>
+        <Text style={[txt.body, { textAlign: 'center', marginTop: 40 }]}>대화 화면을 다시 열어 주세요.</Text>
+        <PrimaryButton label="운알톡으로" variant="soft" onPress={toTab} style={{ marginTop: 20 }} />
       </Screen>
     );
   }
   return (
-    <Screen title="고민상담" titleStyle={s.chatTitle} back sky>
+    <Screen title="운알톡" titleStyle={s.chatTitle} back sky>
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
@@ -126,7 +126,7 @@ function Chat({ id }: { id: number }) {
   if (q.isPending) return <LoadingScreen />;
   const e = q.data;
   if (!e?.answer) {
-    return <Screen title="고민상담" titleStyle={s.chatTitle} back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
+    return <Screen title="운알톡" titleStyle={s.chatTitle} back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
   }
   const C = catOf(e.topic);
   const cost = status.data?.cost ?? 100;
@@ -199,7 +199,7 @@ function Chat({ id }: { id: number }) {
       await consultApi.remove(id);
       queryClient.removeQueries({ queryKey: consultKeys.one(id) });
       queryClient.invalidateQueries({ queryKey: consultKeys.list });
-      toast('상담 기록을 지웠어요');
+      toast('대화 기록을 지웠어요');
       nav.goBack();
     } catch {
       toast('지우지 못했어요. 잠시 후 다시 시도해 주세요');
@@ -228,13 +228,13 @@ function Chat({ id }: { id: number }) {
     </>
   ) : (
     <>
-      <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>이 상담의 이어 묻기는 끝났어요</Text>
-      <PrimaryButton label="새 고민 상담하기" variant="soft" onPress={() => nav.navigate('Tabs', { screen: 'Consult' })} />
+      <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>이 대화의 이어 묻기는 끝났어요</Text>
+      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Tabs', { screen: 'Consult' })} />
     </>
   );
 
   return (
-    <Screen title="고민상담" titleStyle={s.chatTitle} back sky scroll={false}>
+    <Screen title="운알톡" titleStyle={s.chatTitle} back sky scroll={false}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
@@ -289,15 +289,15 @@ function Chat({ id }: { id: number }) {
         {full ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
 
         <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
-          <Text style={s.delete}>이 상담 기록 지우기</Text>
+          <Text style={s.delete}>이 대화 기록 지우기</Text>
         </PressableScale>
-        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 상담이에요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
+        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 대화예요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
       </ScrollView>
       {/* 키보드가 떠 있으면 홈 인디케이터 여백 없이 키보드 바로 위에 붙인다 */}
       <View style={[s.footer, { paddingBottom: keyboard ? 10 : Math.max(insets.bottom, 10) }]}>{footer}</View>
 
       <BottomSheet visible={unlockOpen} onClose={closeUnlock}>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
+        <Text style={[txt.caption, { textAlign: 'center' }]}>운알톡</Text>
         {pendingQ ? (
           <>
             <View style={s.pendingQ}><Text style={s.pendingQText} numberOfLines={3}>{pendingQ}</Text></View>
@@ -312,7 +312,7 @@ function Chat({ id }: { id: number }) {
         <PrimaryButton label="취소" variant="soft" onPress={closeUnlock} style={{ marginTop: 8 }} />
       </BottomSheet>
       <BottomSheet visible={del} onClose={() => setDel(false)}>
-        <Text style={[txt.h2, { textAlign: 'center' }]}>상담 기록을 지울까요?</Text>
+        <Text style={[txt.h2, { textAlign: 'center' }]}>대화 기록을 지울까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>고민 글과 답변, 이어서 나눈 대화가 바로 지워지고 되돌릴 수 없어요.</Text>
         <PrimaryButton label="지우기" onPress={remove} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setDel(false)} style={{ marginTop: 8 }} />
@@ -321,7 +321,7 @@ function Chat({ id }: { id: number }) {
   );
 }
 
-/** 미리보기의 마지막 말 — 상담가가 나머지를 꺼내려다 가려진다 */
+/** 미리보기의 마지막 말 — 운알이가 나머지를 꺼내려다 가려진다 */
 function Cliff({ hook }: { hook: string }) {
   return (
     <View accessibilityLabel={`${hook} 이어지는 말은 잠겨 있어요`}>

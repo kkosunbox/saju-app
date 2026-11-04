@@ -6,8 +6,8 @@ export default function TabsLayout() {
   return (
     <Tabs backBehavior="history" screenOptions={{ headerShown: false }} tabBar={p => <BottomNavigation {...p} />}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="consult" />
       <Tabs.Screen name="content" />
+      <Tabs.Screen name="consult" />
       <Tabs.Screen name="compatibility" />
       <Tabs.Screen name="my" />
     </Tabs>

@@ -25,7 +25,7 @@ export default function ConsultHistoryScreen() {
     initialPageParam: undefined as number | undefined,
     getNextPageParam: last => (last.length < PAGE ? undefined : last[last.length - 1].id),
   });
-  const title = kind === 'open' ? '이어서 이야기하기' : '지난 상담';
+  const title = kind === 'open' ? '이어서 이야기하기' : '지난 대화';
   if (q.isPending || q.isError) {
     return <Screen title={title} back><BodyState error={q.isError} onRetry={() => q.refetch()} /></Screen>;
   }
@@ -53,7 +53,7 @@ export default function ConsultHistoryScreen() {
         showsVerticalScrollIndicator={false}
         onEndReached={() => { if (q.hasNextPage && !q.isFetchingNextPage) q.fetchNextPage(); }}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={<Text style={[txt.small, s.empty]}>{kind === 'open' ? '이어서 이야기할 상담이 없어요' : '지난 상담이 없어요'}</Text>}
+        ListEmptyComponent={<Text style={[txt.small, s.empty]}>{kind === 'open' ? '이어서 이야기할 대화가 없어요' : '지난 대화가 없어요'}</Text>}
         ListFooterComponent={q.isFetchingNextPage ? <View style={s.more}><ActivityIndicator color={colors.purple} /></View> : undefined}
       />
     </Screen>

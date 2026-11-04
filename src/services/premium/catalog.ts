@@ -35,7 +35,7 @@ export const ITEMS = {
   },
   spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 300, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
-  consult: (id: string): Item => ({ key: 'consult:' + id, title: '고민 상담 1회', cost: 100, scope: '24시간 동안 10번 이어서 물어볼 수 있어요', desc: '고민에 대한 한 줄 답 · 마음 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 이어 묻기 10번' }),
+  consult: (id: string): Item => ({ key: 'consult:' + id, title: '운알톡 1회', cost: 100, scope: '24시간 동안 10번 이어서 물어볼 수 있어요', desc: '고민 해결 한 줄 답 · 마음의 소리 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 이어 묻기 10번' }),
   pet: (petId: number, name: string): Item => ({ key: 'pet:' + petId, title: name + ' · 반려동물 궁합', cost: 150, scope: '이 아이와의 궁합은 계속 볼 수 있어요', desc: '이 아이 이야기와 매력 · 이럴 때의 마음 · 타고난 성향과 지금 모습 · 우리 사이와 엇갈리는 순간 · 하루 루틴과 놀이 · 계절별 돌봄 · 함께 놀기 좋은 날 · 아이가 보내는 편지' }),
   compat: (compatibilityId: number, name: string, relationship: Relationship = 'lover', mbtiKnown = true): Item => ({
     key: 'compat:' + compatibilityId, title: name + '님과 심층 궁합', cost: 150, scope: '이 상대와의 궁합은 계속 볼 수 있어요',
@@ -66,7 +66,7 @@ export function bundleFor(owned: (key: string) => boolean): Item | null {
 export const PRICE_TABLE: [string, string][] = [
   ['오늘의 운세 · 4가지 분석 · 종합', '무료'], ['주간 운세 · 기본 궁합', '무료'], ['찰떡 MBTI · 사주 캐릭터 · 오늘의 부적', '무료'], ['월별 상세운세', '100알 / 월'], ['신년운세', '300알 / 해'],
   ['상세 사주 해석', '300알 · 소장'], ['평생운 · 10년 대운', '500알 · 소장'], ['테마 운세 (연애 · 재물 · 직업)', '각 200알 · 소장'],
-  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '300알 · 소장'], ['말 못 할 고민 상담', '100알 / 1회'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
+  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '300알 · 소장'], ['운알톡 · 비밀 고민 해결', '100알 / 1회'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
 ];
 
 /** 충전 상품: [원, 포인트, 보너스, 상품 ID]. 상품 ID는 서버와 같고 처음 가격을 그대로 쓴다 (points_1000 = 900원). */
@@ -80,7 +80,7 @@ export const PACKS: [number, number, number, string][] = [
  */
 export const SUBSCRIPTION = {
   productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',
-  benefits: ['고민 상담 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
+  benefits: ['운알톡 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
 };
 
 /** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */

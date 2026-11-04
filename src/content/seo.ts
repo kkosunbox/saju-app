@@ -43,7 +43,7 @@ const EXACT: Record<string, PageMeta> = {
   '/legal/terms': { title: '서비스 이용약관' },
   '/legal/privacy': { title: '개인정보처리방침' },
   '/compatibility': { title: '궁합' },
-  '/consult': { title: '고민 상담' },
+  '/consult': { title: '운알톡', description: '혼자 품은 고민, 마음의 소리를 운알이에게만 들려주세요. 사주로 해결의 실마리를 찾아 드려요.' },
   '/content': { title: '콘텐츠' },
   '/my': { title: '마이' },
   '/combined': { title: '오늘의 운세 · 종합풀이' },
@@ -66,7 +66,7 @@ const EXACT: Record<string, PageMeta> = {
   '/signup': { title: '회원가입' },
   '/signup-terms': { title: '약관 동의' },
   '/find-password': { title: '비밀번호 찾기' },
-  '/consult/history': { title: '상담 기록' },
+  '/consult/history': { title: '대화 기록' },
   '/premium/saju': { title: '상세 사주 해석' },
   '/premium/life': { title: '평생운 · 10년 대운' },
   '/premium/new-year': { title: '신년 운세' },
@@ -77,7 +77,7 @@ const EXACT: Record<string, PageMeta> = {
 /** 앞부분이 같은 경로 (동적 경로) */
 const PREFIX: [string, PageMeta][] = [
   ['/invite/', { title: '궁합 초대', description: '친구가 운Pick에서 궁합을 보자고 초대했어요.' }],
-  ['/consult/', { title: '고민 상담' }],
+  ['/consult/', { title: '운알톡' }],
   ['/premium/theme/', { title: '테마 운세' }],
   ['/analysis/', { title: '관점별 분석' }],
   ['/category/', { title: '분야별 운세' }],

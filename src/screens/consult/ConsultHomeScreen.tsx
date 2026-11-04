@@ -47,7 +47,7 @@ const EXAMPLES = [
 // 세 줄에 두 개씩 — 디자인처럼 첫째·넷째, 둘째·다섯째, 셋째·여섯째를 한 줄에
 const EXAMPLE_ROWS = [0, 1, 2].map(i => [EXAMPLES[i], EXAMPLES[i + 3]]);
 
-/** 상담 탭 — 상담가가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
+/** 운알톡 탭 — 운알이가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account, fortune } = useApp();
@@ -87,12 +87,12 @@ export default function ConsultHomeScreen() {
 
   const start = () => {
     if (!ok) return;
-    if (!account) { toast('로그인하면 상담받을 수 있어요'); router.push('/login'); return; }
+    if (!account) { toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
     if (free) ask();
     else setConfirm(true);
   };
   // 포인트가 모자라면 서버가 INSUFFICIENT_POINTS로 돌려주고, 대화 화면이 충전으로 안내한다.
-  // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 상담가가 답을 쓰는 중)
+  // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 운알이가 답을 쓰는 중)
   const ask = () => {
     setConfirm(false);
     const key = startAsk(text.trim(), cat ?? undefined);
@@ -114,12 +114,12 @@ export default function ConsultHomeScreen() {
   ) : null);
 
   return (
-    <Screen largeTitle="상담" right={<PointPill attendHint quiet />} scroll={false}>
+    <Screen largeTitle="운알톡" right={<PointPill attendHint quiet />} scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
             <Image source={CONSULT_MASCOT} style={s.mascot} contentFit="cover" />
-            <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}편하게 얘기해 주시면 사주로 같이 살펴볼게요.</Text>
+            <Text style={s.greet}>{u.nickname}님, 혼자 품고 있는 고민이 있나요?{'\n'}운알이에게만 들려주면 사주로 해결법을 찾아 줄게요.</Text>
           </View>
           {fortune && fortuneOpened ? (
             <TodayCard>
@@ -136,15 +136,15 @@ export default function ConsultHomeScreen() {
           ) : null}
 
           {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
-          <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
+          <Text style={s.exampleK}>다른 분들은 이런 고민을 털어놨어요</Text>
           <View style={{ gap: 12 }}>
             {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
           </View>
 
           {section('open', '이어서 이야기하기', openQ.data)}
-          {section('past', '지난 상담', pastQ.data)}
+          {section('past', '지난 대화', pastQ.data)}
 
-          <Text style={[s.note, { marginTop: 12 }]}>나만 볼 수 있어요. 1년 뒤 자동 삭제됩니다.</Text>
+          <Text style={[s.note, { marginTop: 12 }]}>운알이와 나만 아는 비밀이에요. 1년 뒤 자동으로 지워져요.</Text>
         </ScrollView>
 
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
@@ -152,16 +152,16 @@ export default function ConsultHomeScreen() {
           {/* 스크롤 내용이 안내 줄에서 탁 잘리지 않게 위로 바탕색 페이드 */}
           <LinearGradient pointerEvents="none" colors={FOOTER_FADE} style={s.fade} />
           <View style={s.between}>
-            {/* 오늘 남은 무료 상담 횟수 — 마지막 한 번이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
+            {/* 오늘 남은 무료 대화 횟수 — 마지막 한 번이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
             <View style={s.hintRow}>
               {free ? (
-                <View style={s.hintRow} accessibilityLabel={`오늘 무료 상담 ${perDay}회 중 ${freeLeft}회 남음`}>
-                  <Text style={s.freeK}>오늘 무료상담</Text>
+                <View style={s.hintRow} accessibilityLabel={`오늘 무료 대화 ${perDay}회 중 ${freeLeft}회 남음`}>
+                  <Text style={s.freeK}>오늘 무료 대화</Text>
                   <View style={s.ticket}><Text style={s.ticketText}>{freeLeft}회 남음</Text></View>
                 </View>
               ) : null}
               <Text style={s.hint} numberOfLines={1}>
-                {free ?(freeLeft === 1 ? '오늘 마지막 무료 상담이에요' : '') : `${cost}알로 상담${account ? ` · 보유 ${fmtP(points)}` : ''}`}
+                {free ?(freeLeft === 1 ? '오늘 마지막 무료 대화예요' : '') : `${cost}알로 물어보기${account ? ` · 보유 ${fmtP(points)}` : ''}`}
               </Text>
             </View>
             {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
@@ -169,10 +169,10 @@ export default function ConsultHomeScreen() {
           <View style={s.inputRow}>
             <TextInput
               ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW}
-              placeholder="지금 마음에 걸리는 일을 편하게 적어주세요" placeholderTextColor={colors.inkMute}
+              placeholder="마음의 소리를 편하게 적어 주세요" placeholderTextColor={colors.inkMute}
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
-            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 상담받기' : `${cost}알로 상담받기`}>
+            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : `${cost}알로 물어보기`}>
               <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
             </PressableScale>
           </View>
@@ -180,10 +180,10 @@ export default function ConsultHomeScreen() {
       </KeyboardAvoidingView>
 
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>고민 상담</Text>
-        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 상담받을까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 상담권 {perDay}장을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
-        <PrimaryButton label="상담받기" onPress={ask} style={{ marginTop: 20 }} />
+        <Text style={[txt.caption, { textAlign: 'center' }]}>운알톡</Text>
+        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 물어볼까요?</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 대화 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
+        <PrimaryButton label="물어보기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
 

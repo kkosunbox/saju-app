@@ -77,16 +77,16 @@ export function MyBubble({ children, at }: { children: string; at?: string | nul
   );
 }
 
-/** 상담가 얼굴 (어두운 동그라미 안의 마스코트) */
+/** 운알이 얼굴 (어두운 동그라미 안의 마스코트) */
 export function CounselorAvatar() {
   return (
-    <View style={s.avatar} accessibilityLabel="운픽 상담가">
+    <View style={s.avatar} accessibilityLabel="운알이">
       <Image source={require('../../../assets/figma/consult/coin.png')} style={{ width: 21, height: 19 }} contentFit="contain" />
     </View>
   );
 }
 
-/** 상담가가 하는 말 묶음 — 왼쪽에 얼굴, 오른쪽에 내용 */
+/** 운알이가 하는 말 묶음 — 왼쪽에 얼굴, 오른쪽에 내용 */
 export function Counselor({ children, at }: { children: React.ReactNode; at?: string | null }) {
   return (
     <View style={s.counselor}>
