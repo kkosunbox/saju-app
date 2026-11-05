@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Platform, ScrollView, ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import PressableScale from '../../components/PressableScale';
@@ -17,8 +17,8 @@ export interface Banner {
 const ROTATE_MS = 4000;
 /** Figma 375×96 — 화면 폭에 꽉 차게 두고 높이는 이 비율로 (배경 그림 1125×288, Figma 3배와 같은 비율) */
 const RATIO = 375 / 96;
-/** 자동으로 넘기는 애니메이션이 끝날 즈음 (복제 장에서 진짜 장으로 옮길 때) */
-const SLIDE_MS = 450;
+/** 자동 넘김이 다 도착했는지 보는 간격 — 도착한 뒤에만 복제 장에서 진짜 장으로 옮긴다 */
+const ARRIVE_POLL_MS = 50;
 
 /**
  * 콘텐츠 탭 맨 위 배너 — 화면 좌우 끝까지 꽉 차고, 옆으로 넘기고, 가만히 두면 4초마다 다음 장으로 넘어간다.
@@ -35,6 +35,8 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
   // 스크롤 위치의 장 번호 (복제 장 포함) — 처음엔 진짜 첫 장
   const page = useRef(loop ? 1 : 0);
   const touching = useRef(false);
+  // 마지막으로 본 스크롤 위치 — 자동 넘김이 목표 장에 다 닿았는지 본다
+  const lastX = useRef(0);
 
   const jump = (p: number) => ref.current?.scrollTo({ x: p * w, animated: false });
   /** 멈춘 장이 복제 장이면 진짜 장으로 옮기고 점을 맞춘다 */
@@ -45,8 +47,8 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
     setI(loop ? p - 1 : p);
   };
 
-  // 폭을 알면 진짜 첫 장으로 (앞의 복제 장을 건너뛴다)
-  useEffect(() => {
+  // 폭을 알면 진짜 첫 장으로 (앞의 복제 장을 건너뛴다) — 그리기 전에 옮겨야 복제 장이 한 번 비쳤다 튀지 않는다
+  useLayoutEffect(() => {
     if (w && loop) jump(page.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w, loop]);
@@ -60,7 +62,13 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
       ref.current?.scrollTo({ x: next * w, animated: true });
       page.current = next;
       setI((next - 1) % n);
-      slide = setTimeout(() => settle(next), SLIDE_MS);
+      // 애니메이션이 끝나기 전에 옮기면 몇 px 남은 채로 순간이동해 덜컹인다 — 목표 장에 닿은 뒤에 정리한다
+      let tries = 0;
+      const arrive = () => {
+        if (Math.abs(lastX.current - next * w) < 1 || ++tries > 30) settle(next);
+        else slide = setTimeout(arrive, ARRIVE_POLL_MS);
+      };
+      slide = setTimeout(arrive, ARRIVE_POLL_MS);
     }, ROTATE_MS);
     return () => { clearInterval(t); if (slide) clearTimeout(slide); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,35 +88,43 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
   // 웹 ScrollView는 onMomentumScrollEnd를 부르지 않는다 — 스크롤이 잠깐 멎으면 끝난 것으로 본다
   const webEnd = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(webEnd.current), []);
-  const onScroll = Platform.OS === 'web' ? (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
+    lastX.current = x;
+    if (Platform.OS !== 'web') return;
     clearTimeout(webEnd.current);
     webEnd.current = setTimeout(() => endAt(x), 150);
-  } : undefined;
+  };
 
   return (
     <View style={s.wrap} onLayout={onLayout}>
       <View style={s.clip}>
-        <ScrollView
+        {/* 폭을 재기 전엔 첫 장만 그대로 둔다 — 넘김 줄은 폭을 안 뒤 진짜 첫 장 위치에서 시작한다 */}
+        {!w ? <Slide b={items[0]} /> : <ScrollView
           ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+          contentOffset={{ x: page.current * w, y: 0 }}
           onScrollBeginDrag={() => { touching.current = true; }} onMomentumScrollEnd={onEnd} onScroll={onScroll} scrollEventThrottle={16}
         >
-          {/* 화면 끝까지 차는 배너라 눌러도 줄이지 않는다 (줄이면 뒤 배경이 테두리로 비친다) */}
-          {pages.map((b, k) => (
-            <PressableScale key={`${b.key}-${k}`} onPress={b.go} style={[s.banner, { width: w || 375 }]} scaleTo={1} accessibilityLabel={b.title.map(([t]) => t).join('')}>
-              <Image source={b.bg} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
-              <Text style={s.title} numberOfLines={1}>
-                {b.title.map(([t, c], k) => <Text key={k} style={{ color: c ?? '#FFFFFF' }}>{t}</Text>)}
-              </Text>
-              <Text style={s.sub} numberOfLines={1}>{b.sub}</Text>
-            </PressableScale>
-          ))}
-        </ScrollView>
+          {pages.map((b, k) => <Slide key={`${b.key}-${k}`} b={b} width={w} />)}
+        </ScrollView>}
         <View style={s.dots} pointerEvents="none">
           {items.map((b, k) => <View key={b.key} style={k === i ? s.dotOn : s.dot} />)}
         </View>
       </View>
     </View>
+  );
+}
+
+/** 배너 한 장 — 화면 끝까지 차는 배너라 눌러도 줄이지 않는다 (줄이면 뒤가 테두리로 비친다) */
+function Slide({ b, width }: { b: Banner; width?: number }) {
+  return (
+    <PressableScale onPress={b.go} style={[s.banner, { width: width || '100%' }]} scaleTo={1} accessibilityLabel={b.title.map(([t]) => t).join('')}>
+      <Image source={b.bg} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+      <Text style={s.title} numberOfLines={1}>
+        {b.title.map(([t, c], k) => <Text key={k} style={{ color: c ?? '#FFFFFF' }}>{t}</Text>)}
+      </Text>
+      <Text style={s.sub} numberOfLines={1}>{b.sub}</Text>
+    </PressableScale>
   );
 }
 

@@ -376,12 +376,14 @@ export default function HomeScreen() {
           ) : null}
 
           {friend ? (
-            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님이 보낸 결과 보기`}>
+            // 링크에는 친구 결과 한 줄만 담겨 있다 — 결과를 보여 주는 게 아니라 나도 해보도록 권한다
+            <PressableScale onPress={() => { markFriendSeen(); setFriend(null); openFriendRoute(nav, friend.c); }} style={[s.notice, { marginTop: arrived.length ? 8 : 16 }]} scaleTo={0.98} accessibilityLabel={`${friend.n}님의 ${friend.k} 한 줄: ${friend.h}. 나도 해보기`}>
               <Mascot size={30} />
               <View style={{ flex: 1 }}>
-                <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 &apos;{friend.k}&apos; 결과가 도착했어요</Text>
-                <Text style={txt.small} numberOfLines={1}>{friend.h} · 나도 해보고 비교하기</Text>
+                <Text style={s.noticeTitle} numberOfLines={1}>{friend.n}님의 &apos;{friend.k}&apos;</Text>
+                <Text style={txt.small} numberOfLines={1}>&ldquo;{friend.h}&rdquo;</Text>
               </View>
+              <Text style={s.noticeCta}>나도 해보기</Text>
               <HomeOutlineIcon name="chevronRight" size={18} color={colors.inkMute} />
             </PressableScale>
           ) : null}
@@ -608,6 +610,7 @@ const s = StyleSheet.create({
   date: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.56, marginTop: 7, includeFontPadding: false },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.accent },
   noticeTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  noticeCta: { fontSize: 13, fontWeight: '700', color: colors.accent, letterSpacing: -0.3, marginRight: -8 },
 
   bubbleWrap: { marginTop: 10, marginHorizontal: 19 },
   bubble: { flexDirection: 'row', alignItems: 'center', gap: 24, minHeight: 82, paddingVertical: 13, paddingHorizontal: 24, borderRadius: 24, backgroundColor: isDark ? colors.cream : 'transparent' },
