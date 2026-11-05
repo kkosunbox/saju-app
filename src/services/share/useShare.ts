@@ -20,7 +20,11 @@ export function useShare() {
   const sendLink = async (spec: ShareSpec) => {
     const r = await shareLink(spec.text, urlOf(spec));
     if (r === 'cancelled') return r;
-    if (r === 'copied') toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
+    if (r === 'copied') {
+      // 복사만으로는 보냈는지 알 수 없어 공유 보상을 주지 않는다
+      toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
+      return r;
+    }
     void rewardShare(spec.file);
     return r;
   };

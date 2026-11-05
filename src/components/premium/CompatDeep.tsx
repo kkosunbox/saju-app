@@ -147,7 +147,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         <Text style={s.title}>{advice.who}님을 위한 조언</Text>
         {advice.text ? <Text style={[s.body, { marginTop: 4 }]}>{advice.text}</Text> : pending(3)}
       </Card>
-      {together ? <Card style={{ marginTop: 12, padding: 16 }}><Text style={[s.title, { marginBottom: 4 }]}>오래 가는 법</Text>{together.lasting.map((t, i) => <Bullet key={i}>{t}</Bullet>)}</Card> : null}
+      {together ? <Card style={{ marginTop: 12, padding: 16 }}><Text style={[s.title, { marginBottom: 4 }]}>오래 가는 법</Text>{together.lasting.map((t, i) => <Bullet key={i} textStyle={s.body}>{t}</Bullet>)}</Card> : null}
 
       <SubHead variant="figma" title="앞으로 30일, 둘에게 좋은 날" />
       <View style={{ flexDirection: 'row', gap: 16 }}>
@@ -158,7 +158,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
           </View>
         ))}
       </View>
-      {together ? <Card style={{ marginTop: 12, padding: 16 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>)}</Card> : null}
+      {together ? <Card style={{ marginTop: 12, padding: 16 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} textStyle={s.body} color={colors.love}>{t}</Bullet>)}</Card> : null}
       {together ? <Tip title="두 사람에게">{together.closing}</Tip> : null}
     </>
   );

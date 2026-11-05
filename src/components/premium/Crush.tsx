@@ -107,7 +107,7 @@ export default function CrushView({ r, R, reading, onRetry, shareAction }: {
           </Card>
           <SoftCard style={{ marginTop: 10 }}>
             <Text style={[txt.h3, { color: colors.purple }]}>이렇게 먼저 연락해 보세요</Text>
-            <View style={{ gap: 8, marginTop: 10 }}>{approach.messages.map(m => <Text key={m} style={{ fontSize: 14.5, lineHeight: 22, color: colors.ink }}>{m}</Text>)}</View>
+            <View style={{ gap: 8, marginTop: 10 }}>{approach.messages.map(m => <Text key={m} style={{ ...sansW('400'), fontSize: 14.5, lineHeight: 22, letterSpacing: -0.5, color: colors.ink }}>{m}</Text>)}</View>
           </SoftCard>
           <Closing title="마지막 한마디" top={3} style={{ minHeight: 92 }}>{approach.closing}</Closing>
         </>

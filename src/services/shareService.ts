@@ -45,6 +45,10 @@ export async function renderCardWeb(ref: RefObject<ViewInstance | null>, file = 
 const isIosWeb = () => typeof navigator !== 'undefined'
   && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
+/** PC 브라우저 (휴대폰·태블릿이 아닌 웹) */
+const isDesktopWeb = () => typeof navigator !== 'undefined'
+  && !isIosWeb() && !/Android|Mobile|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 /** 웹에서 이미지 파일을 공유 시트로 보낼 수 있는지 */
 export const canShareImageWeb = (card: WebCard | null) =>
   Platform.OS === 'web' && !!card && !!(navigator as any).canShare?.({ files: [card.file] });
@@ -66,7 +70,7 @@ async function saveToPhotos(uri: string): Promise<ShareResult> {
 
 /**
  * 공유 카드 View를 PNG로 캡처한다.
- * - mode 'share': 이미지 첨부 공유 (웹은 Web Share — 모바일에서 인스타·카톡 바로 선택, iOS 앱은 문구·링크도 함께).
+ * - mode 'share': 이미지 첨부 공유 (웹은 Web Share — 모바일에서 인스타·카톡 바로 선택, iOS 앱은 문구·링크도 함께, PC 웹은 이미지만).
  *   웹에서 이미지 공유가 안 되면 fallback 'save'(기본)는 저장으로, 'none'은 'unsupported'를 돌려준다
  * - mode 'save' : 사진첩에 저장 (네이티브는 사진 보관함, iOS 웹은 공유 시트의 '이미지 저장', 그 밖의 웹은 PNG 다운로드)
  * - prepared: 웹에서 renderCardWeb으로 미리 그려 둔 이미지 (없거나 실패했으면 지금 그린다)
@@ -85,7 +89,10 @@ export async function shareCardImage(
       if (mode === 'share' || isIosWeb()) {
         if (canShareImageWeb(card)) {
           try {
-            await (navigator as any).share(mode === 'share' ? { files: [card.file], text: message || undefined } : { files: [card.file] });
+            // PC 크롬은 파일과 문구를 함께 넘기면 공유 시트의 '복사하기'가 같은 이미지를 클립보드에 두 번 넣어
+            // 카카오톡 PC에 두 장이 붙는다 (문구는 클립보드에 남지도 않는다) — PC에서는 이미지만 넘긴다
+            const withText = mode === 'share' && !!message && !isDesktopWeb();
+            await (navigator as any).share(withText ? { files: [card.file], text: message } : { files: [card.file] });
             return 'shared';
           } catch (e) {
             if ((e as Error)?.name === 'AbortError') return 'cancelled';

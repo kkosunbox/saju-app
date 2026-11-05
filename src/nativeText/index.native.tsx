@@ -53,4 +53,17 @@ const shim = Object.defineProperties({}, Object.getOwnPropertyDescriptors(RN));
 Object.defineProperty(shim, 'Text', { enumerable: true, value: Text });
 // 포커스 관리(TextInput.State)는 그대로 쓰게 한다
 Object.defineProperty(shim, 'TextInput', { enumerable: true, value: Object.assign(TextInput, { State: BaseTextInput.State }) });
+// Animated.Text 는 react-native 안쪽에서 원래 Text 를 감싸므로 위 규칙이 닿지 않아 시스템 글꼴로 그려졌다 → 바꾼 Text 로 다시 만든다
+let animated: typeof RN.Animated | undefined;
+Object.defineProperty(shim, 'Animated', {
+  enumerable: true,
+  get() {
+    if (!animated) {
+      const A = RN.Animated;
+      animated = Object.defineProperties({}, Object.getOwnPropertyDescriptors(A)) as typeof RN.Animated;
+      Object.defineProperty(animated, 'Text', { enumerable: true, value: A.createAnimatedComponent(Text) });
+    }
+    return animated;
+  },
+});
 module.exports = shim;

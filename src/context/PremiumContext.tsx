@@ -35,7 +35,7 @@ interface PremiumState {
   openCharge(i: number): void;
   attend(): Promise<void>;
   toggleMission(key: string): void;
-  /** 공유 보상: 콘텐츠마다 하루 한 번, 하루 최대 3번 +10알 (서버가 판단) */
+  /** 공유 보상: 하루 한 번 +10알 (서버가 판단). 링크를 복사만 한 경우는 요청하지 않는다 */
   rewardShare(key: string): Promise<void>;
   shareRewardsLeft: number;
   toast(msg: string): void;

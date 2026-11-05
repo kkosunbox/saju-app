@@ -95,7 +95,7 @@ export const LEGAL: Record<LegalDoc, { title: string; sections: [string, string]
       ],
       [
         "9. 개인정보 보호책임자",
-        "• 책임자: Jin-young Oh (대표)\n• 연락처: support@petbridgecore.com, 050-6665-2416\n개인정보 침해 신고·상담은 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118)에도 할 수 있습니다."
+        "• 책임자: Jin-yeong Oh (대표)\n• 연락처: support@petbridgecore.com, 050-6665-2416\n개인정보 침해 신고·상담은 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118)에도 할 수 있습니다."
       ],
       [
         "10. 개정",

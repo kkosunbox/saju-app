@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import { Image, ImageSourcePropType, StyleProp, StyleSheet, TextStyle, Text, View, type ViewInstance } from 'react-native';
 import { formatKoreanDate } from '../utils/date';
 import { sansW } from '../theme/typography';
 import { GiftTalisman } from '../content/giftTalismans';
@@ -14,7 +14,7 @@ export const PAPER_W = 263, PAPER_H = 412;
 interface PaperProps { today: string; onLoad?: () => void }
 
 /** 종이 그림 + 흰 테두리 — 캡처(html2canvas · view-shot)에서도 나오도록 View·Text·Image만 쓴다 */
-const Paper = forwardRef<ViewInstance, PaperProps & { bg: ImageSourcePropType; dateStyle: object; children: React.ReactNode }>(({ bg, today, onLoad, dateStyle, children }, ref) => (
+const Paper = forwardRef<ViewInstance, PaperProps & { bg: ImageSourcePropType; dateStyle: StyleProp<TextStyle>; children: React.ReactNode }>(({ bg, today, onLoad, dateStyle, children }, ref) => (
   <View ref={ref} collapsable={false} style={s.paper}>
     <Image source={bg} style={s.paperImage} resizeMode="cover" onLoad={onLoad} accessible={false} />
     <Text style={[s.date, dateStyle]}>{formatKoreanDate(today)}</Text>
@@ -42,13 +42,13 @@ const TalismanPaper = forwardRef<ViewInstance, PaperProps & { data: TalismanPape
 ));
 TalismanPaper.displayName = 'TalismanPaper';
 
-/** 친구에게 보내는 선물 부적 — 받는 사람을 비우면 From만 적는다 */
+/** 친구에게 보내는 선물 부적 — 받는 사람·보내는 사람 중 빈 쪽은 칩에서 뺀다(둘 다 비면 칩 없음) */
 export const GiftTalismanPaper = forwardRef<ViewInstance, PaperProps & { gift: GiftTalisman; to: string; from: string }>(({ gift, to, from, ...rest }, ref) => (
-  <Paper ref={ref} bg={gift.paper} dateStyle={s.giftDate} {...rest}>
-    <Hanja text={gift.hanja} color={gift.ink} top={106} />
-    <Text style={[s.line, s.title, { top: 271 }]} numberOfLines={1}>{gift.label}의 부적</Text>
+  <Paper ref={ref} bg={gift.paper} dateStyle={[s.giftDate, gift.dark && s.onDark]} {...rest}>
+    <Hanja text={gift.hanja} color={gift.seal ?? gift.ink} top={gift.dark ? 102 : 106} />
+    <Text style={[s.line, s.title, { top: 271 }, gift.dark && s.onDark]} numberOfLines={1}>{gift.label}의 부적</Text>
     <Text style={[s.line, s.wish, { top: 297, color: gift.ink }]} adjustsFontSizeToFit numberOfLines={1}>{gift.wish}</Text>
-    <Chip text={to ? `To. ${to} From. ${from}` : `From. ${from}`} color={gift.ink} top={323} />
+    {to || from ? <Chip text={[to && `To. ${to}`, from && `From. ${from}`].filter(Boolean).join(' ')} color={gift.ink} top={323} /> : null}
   </Paper>
 ));
 GiftTalismanPaper.displayName = 'GiftTalismanPaper';
@@ -62,6 +62,7 @@ const s = StyleSheet.create({
   date: { ...sansW('500'), position: 'absolute', left: 0, right: 0, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center' },
   todayDate: { top: 39, color: '#5D0000' },
   giftDate: { top: 27, color: '#210505' },
+  onDark: { color: '#FFFFFF' },
   charm: { position: 'absolute', left: 57, width: 149, height: 115, alignItems: 'center', justifyContent: 'center' },
   hanja: { ...sansW('700'), fontSize: 96, lineHeight: 115, letterSpacing: -4.8, textAlign: 'center' },
   multipleHanja: { fontSize: 56, letterSpacing: -2.8 },

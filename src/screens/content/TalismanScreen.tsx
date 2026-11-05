@@ -72,11 +72,12 @@ export default function TalismanScreen() {
   const [giftKey, setGiftKey] = useState(GIFT_TALISMANS[0].key);
   const [giftReady, setGiftReady] = useState(false);
   const [to, setTo] = useState('');
+  const [showFrom, setShowFrom] = useState(true);
   const opened = draw.ready && draw.opened;
   const gift = GIFT_TALISMANS.find(g => g.key === giftKey) ?? GIFT_TALISMANS[0];
   const receiver = to.trim();
   const preparedMine = usePreparedCard(card, tab === 'mine' && opened && paperReady, 'woonpick-talisman', `${q.data?.hanja}|${q.data?.mantra}|${today}`);
-  const preparedGift = usePreparedCard(giftCard, tab === 'gift' && giftReady, GIFT_FILE, `${giftKey}|${receiver}|${today}|${u?.nickname}`);
+  const preparedGift = usePreparedCard(giftCard, tab === 'gift' && giftReady, GIFT_FILE, `${giftKey}|${receiver}|${today}|${showFrom ? u?.nickname : ''}`);
   if (!u) return null;
   if (!q.data) return <LoadingScreen title="오늘의 부적" error={q.error} onRetry={q.refetch} />;
   const t = q.data;
@@ -113,13 +114,15 @@ export default function TalismanScreen() {
     if (!giftReady || busy) return;
     setBusy(true);
     try {
-      const text = `${u.nickname}님이 ${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적을 보냈어요.\n"${gift.wish}"\n나의 오늘 부적도 받아 보세요.`;
+      // 보내는 사람을 숨기면 공유 문구에도 이름을 쓰지 않는다
+      const head = showFrom ? `${u.nickname}님이 ${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적을 보냈어요.` : `${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적이 도착했어요.`;
+      const text = `${head}\n"${gift.wish}"\n나의 오늘 부적도 받아 보세요.`;
       const result = await shareCardImage(giftCard, { file: GIFT_FILE, text, url: appUrl(), mode: 'share', fallback: 'none', aspectRatio: W / H, prepared: preparedGift.current });
       if (result === 'shared' || result === 'saved') void rewardShare(GIFT_FILE);
       if (result === 'unsupported') {
         const r = await shareLink(text);
         if (r === 'copied') toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
-        if (r !== 'cancelled') void rewardShare(GIFT_FILE);
+        if (r === 'shared') void rewardShare(GIFT_FILE); // 복사만 한 경우는 보상 없음
       }
     } finally {
       setBusy(false);
@@ -203,7 +206,7 @@ export default function TalismanScreen() {
         <View style={s.form}>
           <Text style={s.formLabel}>어떤 마음을 담을까요?</Text>
           <View style={s.kinds}>
-            {[GIFT_TALISMANS.slice(0, 4), GIFT_TALISMANS.slice(4)].map((row, i) => (
+            {[GIFT_TALISMANS.slice(0, 4), GIFT_TALISMANS.slice(4, 8), GIFT_TALISMANS.slice(8)].map((row, i) => (
               <View key={i} style={s.kindRow}>
                 {row.map(g => {
                   const on = g.key === giftKey;
@@ -214,15 +217,21 @@ export default function TalismanScreen() {
                     </PressableScale>
                   );
                 })}
+                {/* 마지막 줄이 덜 차도 칸 폭은 네 칸 기준으로 둔다 */}
+                {Array.from({ length: 4 - row.length }, (_, k) => <View key={`gap${k}`} style={s.kindGap} />)}
               </View>
             ))}
           </View>
           <Text style={[s.formLabel, s.toLabel]}>누구에게 보낼까요?</Text>
           <TextField compact value={to} onChangeText={setTo} placeholder="이름 또는 닉네임" maxLength={10} returnKeyType="done" accessibilityLabel="받는 사람 이름 또는 닉네임" />
+          <PressableScale onPress={() => setShowFrom(v => !v)} style={s.checkRow} scaleTo={0.98} accessibilityRole="checkbox" accessibilityState={{ checked: showFrom }} accessibilityLabel="보내는 사람 표시">
+            <View style={[s.checkBox, showFrom && s.checkOn]}>{showFrom ? <Icon name="check" size={12} color={colors.white} /> : null}</View>
+            <Text style={s.checkText}>보내는 사람({u.nickname}) 표시</Text>
+          </PressableScale>
         </View>
         <View style={s.giftPaper}>
           <View style={s.paperShadow}>
-            <GiftTalismanPaper ref={giftCard} gift={gift} to={receiver} from={u.nickname} today={today} onLoad={() => setGiftReady(true)} />
+            <GiftTalismanPaper ref={giftCard} gift={gift} to={receiver} from={showFrom ? u.nickname : ''} today={today} onLoad={() => setGiftReady(true)} />
           </View>
           <Text style={s.effect}>{EFFECT}</Text>
         </View>
@@ -269,9 +278,14 @@ const s = StyleSheet.create({
   kinds: { marginTop: 8, gap: 8 },
   kindRow: { flexDirection: 'row', gap: 12 },
   kind: { flex: 1, height: 56, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: 5, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.surface },
+  kindGap: { flex: 1, borderWidth: 1, borderColor: 'transparent' },
   kindOn: { borderColor: colors.navy, backgroundColor: colors.navy },
   kindHanja: { ...sansW('600'), fontSize: 20, lineHeight: 24, letterSpacing: -0.4 },
   kindLabel: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.26, color: colors.inkMute },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, alignSelf: 'flex-start' },
+  checkBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  checkOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  checkText: { ...sansW('500'), fontSize: 13, letterSpacing: -0.4, color: colors.ink },
   giftPaper: { marginTop: 28, alignItems: 'center' },
   paperShadow: { width: W, height: H, borderRadius: 32, ...SHADOW },
   footer: { flexDirection: 'row', gap: 12 },

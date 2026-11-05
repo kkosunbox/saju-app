@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, GestureResponderEvent, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Mask, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { haptic } from '../utils/haptic';
+import { sansW } from '../theme/typography';
+
+// SVG 글자는 Text 의 Pretendard 기본값이 닿지 않아 글꼴을 직접 준다 (안 주면 시스템 글꼴)
+const SVG_BOLD = sansW('700').fontFamily;
 
 const BRUSH = 38;
 const COLS = 8, ROWS = 12;
@@ -109,8 +113,8 @@ export default function ScratchCover({ width, height, radius = 16, title, hint, 
         <Rect x="0" y="0" width={width} height={height} rx={radius} fill="url(#scratchFoil)" mask="url(#scratchMask)" />
         {touched ? null : (
           <>
-            <SvgText x={width / 2} y={height / 2 - 6} fontSize={84} fontWeight="700" fill="#B9861F" fillOpacity={0.35} textAnchor="middle">符</SvgText>
-            <SvgText x={width / 2} y={height / 2 + 44} fontSize={17} fontWeight="700" fill="#5A4110" textAnchor="middle">{title}</SvgText>
+            <SvgText x={width / 2} y={height / 2 - 6} fontSize={84} fontFamily={SVG_BOLD} fontWeight="700" fill="#B9861F" fillOpacity={0.35} textAnchor="middle">符</SvgText>
+            <SvgText x={width / 2} y={height / 2 + 44} fontSize={17} fontFamily={SVG_BOLD} fontWeight="700" fill="#5A4110" textAnchor="middle">{title}</SvgText>
           </>
         )}
       </Svg>

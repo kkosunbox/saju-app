@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import Screen from '../../components/Screen';
-import Card from '../../components/Card';
 import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
@@ -13,7 +14,7 @@ import Reveal from '../../components/Reveal';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import Icon from '../../components/Icon';
-import Mascot, { Logo } from '../../components/Mascot';
+import SolidIcon from '../../components/SolidIcon';
 import { checkBirth, fmtDate } from '../../components/BirthFields';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
@@ -43,6 +44,16 @@ const LOADING_STEPS = (name: string, basis: string, nickname: string) => [
 const STEP_MS = 800;
 
 const SPECIES: [PetSpecies, string][] = [['dog', '강아지'], ['cat', '고양이'], ['other', '그 외']];
+const SPECIES_LABEL = Object.fromEntries(SPECIES) as Record<PetSpecies, string>;
+/** 종류마다 하트를 단 아이 그림 (입력 버튼 · 저장된 상대) — 그 외는 조금 좁다 */
+const PET_IMG: Record<PetSpecies, { src: number; w: number }> = {
+  dog: { src: require('../../../assets/images/pet-dog.webp'), w: 24 },
+  cat: { src: require('../../../assets/images/pet-cat.webp'), w: 24 },
+  other: { src: require('../../../assets/images/pet-other.webp'), w: 20 },
+};
+const INTRO_BG = require('../../../assets/images/pet-intro-bg.webp');
+const HERO_BG = require('../../../assets/images/pet-hero-bg.webp');
+const HERO_PETS = require('../../../assets/images/pet-hero-pets.webp');
 /** 평소 모습 4가지 — [축, 질문, [값, 라벨] 두 개] */
 const TRAITS: { [A in PetTraitAxis]: [string, [NonNullable<PetTraits[A]>, string][]] } = {
   energy: ['에너지', [['active', '에너지 넘침'], ['middle', '그날그날'], ['calm', '느긋함']]],
@@ -53,7 +64,14 @@ const TRAITS: { [A in PetTraitAxis]: [string, [NonNullable<PetTraits[A]>, string
 const AXES = Object.keys(TRAITS) as PetTraitAxis[];
 const OLDEST = '1990-01-01';
 
-const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d} (${WEEK[weekdayOf(iso)]})`; };
+/** 저장된 상대에 적는 나이 — 생일을 알 때만 (1살 전이면 개월) */
+function ageOf(pet: Pet, today: string): string | null {
+  if (!pet.birthDate) return null;
+  const b = parseISO(pet.birthDate), t = parseISO(today);
+  const months = (t.y - b.y) * 12 + t.m - b.m - (t.d < b.d ? 1 : 0);
+  if (months >= 12) return `${Math.floor(months / 12)}살`;
+  return months > 0 ? `${months}개월` : null;
+}
 /** 받침이 있으면 a, 없으면 b (코코와 / 별이랑 → 별과) */
 const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
 /**
@@ -95,7 +113,8 @@ export default function PetScreen() {
   if (adding || !pet) {
     return (
       <PetForm
-        u={u} first={!pets.length}
+        u={u} pets={pets}
+        onPick={id => { setSelected(id); setFresh(null); setAdding(false); }}
         onCancel={pets.length ? () => setAdding(false) : undefined}
         onSaved={saved => { setSelected(saved.id); setFresh(saved.id); setAdding(false); }}
       />
@@ -151,14 +170,12 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
 
   const hero = (
     <View style={s.hero}>
-      <View style={s.heroLogo}><Logo height={LOGO_H} /></View>
-      <Mascot name="soon-pet" size={78} />
-      <Text style={s.eyebrow}>{u.nickname} × {name}</Text>
+      <Image source={HERO_BG} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+      <Image source={HERO_PETS} style={s.heroPets} contentFit="contain" accessible={false} />
+      <Text style={s.eyebrow}>{u.nickname} x {name}</Text>
       <Text accessibilityRole="header" style={s.typeName}>{R.type.name}</Text>
       <Text style={s.typeLine}>{R.type.line}</Text>
-      <View style={s.scoreChip} accessible accessibilityLabel={`궁합 ${R.score}점`}>
-        <Text style={s.scoreValue}>{R.score}</Text><Text style={s.scoreUnit}>점</Text>
-      </View>
+      <Text style={s.score} accessibilityLabel={`궁합 ${R.score}점`}>{R.score}점</Text>
       <View style={s.tags}>{R.pet.keywords.map(k => <View key={k} style={s.tag}><Text style={s.tagText}>#{k}</Text></View>)}</View>
     </View>
   );
@@ -173,7 +190,7 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
           </PressableScale>
         ))}
         <PressableScale onPress={onAdd} style={[s.petChip, s.petAdd]} scaleTo={0.95} accessibilityLabel="반려동물 추가">
-          <Text style={[s.petChipText, { color: colors.accent }]}>+ 추가</Text>
+          <Text style={s.petAddText}>+추가</Text>
         </PressableScale>
       </View>
 
@@ -282,9 +299,7 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
       {portrait?.manual || writing ? (
         <>
           <Section number="03" title={`${name} 사용 설명서`} />
-          <View style={s.card}>
-            {portrait?.manual ? <PetManual m={portrait.manual} name={name} /> : pending(6)}
-          </View>
+          {portrait?.manual ? <PetManual m={portrait.manual} name={name} /> : <View style={s.card}>{pending(6)}</View>}
         </>
       ) : null}
 
@@ -328,15 +343,23 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
       <Section number="05" title="함께하는 하루" />
       <View style={{ gap: 12 }}>
         {days ? (
-          <View style={s.card}>
-            <View style={{ gap: 12 }}>
-              {days.routine.map(r => (
-                <View key={r.time} style={s.routineRow}>
-                  <View style={s.routineTime}><Text style={s.routineTimeText}>{r.time}</Text></View>
-                  <Text style={[s.body, { flex: 1 }]}>{r.text}</Text>
+          <View style={s.routine}>
+            {days.routine.map((r, i) => {
+              const last = i === days.routine.length - 1;
+              return (
+                <View key={r.time} style={[s.routineRow, !last && { paddingBottom: 7 }]}>
+                  {/* 왼쪽 레일 — 아이콘 칸을 흰 줄로 잇는다 */}
+                  <View style={s.routineRail}>
+                    <TimeIcon time={r.time} />
+                    {!last ? <View style={s.railLine} /> : null}
+                  </View>
+                  <View style={s.routineCopy}>
+                    <Text style={s.routineTime}>{r.time}</Text>
+                    <Text style={s.routineText}>{r.text}</Text>
+                  </View>
                 </View>
-              ))}
-            </View>
+              );
+            })}
           </View>
         ) : null}
         <View style={s.card}>
@@ -351,13 +374,23 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
               ))}
             </View>
           ) : writing ? pending(4) : F.play.map((p, i) => <Text key={p} style={s.listItem}>{i + 1}. {p}</Text>)}
-          {F.goodDays.length ? (
-            <>
-              <Text style={[s.cardTitle, { marginTop: 16 }]}>함께 놀기 좋은 날</Text>
-              <View style={s.days}>{F.goodDays.map(d => <View key={d} style={s.day}><Text style={s.dayText}>{md(d)}</Text></View>)}</View>
-            </>
-          ) : null}
         </View>
+        {F.goodDays.length ? (
+          <View style={s.goodDays}>
+            <Text accessibilityRole="header" style={s.goodTitle}>함께 놀기 좋은 날</Text>
+            <View style={s.days}>
+              {F.goodDays.map(d => {
+                const p = parseISO(d);
+                return (
+                  <View key={d} style={s.day}>
+                    <Text style={s.dayDate}>{p.m}/{p.d}</Text>
+                    <Text style={s.dayWeek}>{WEEK[weekdayOf(d)]}요일</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
         <View style={s.card}>
           <Text style={s.cardTitle}>계절마다 이렇게 챙겨 주세요</Text>
           {days ? (
@@ -396,8 +429,8 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
 
 /* ---------- 입력 ---------- */
 /** 새 아이 등록 — 한 번 등록하면 고치지 않는다 (지우고 다시 등록) */
-function PetForm({ u, first, onCancel, onSaved }: {
-  u: User; first: boolean; onCancel?(): void; onSaved(pet: Pet): void;
+function PetForm({ u, pets, onPick, onCancel, onSaved }: {
+  u: User; pets: Pet[]; onPick(id: number): void; onCancel?(): void; onSaved(pet: Pet): void;
 }) {
   const { today } = useApp();
   const { toast } = usePremium();
@@ -474,28 +507,36 @@ function PetForm({ u, first, onCancel, onSaved }: {
       )}
     >
       <PetSnackBanner style={s.snackTop} />
-      {first ? (
-        <>
-          <View style={s.introMeta}><Text style={s.kicker}>우리 집 반려동물</Text><Text style={txt.caption}>미리보기 무료 · 여러 마리 등록 가능</Text></View>
-          <View style={s.introHead}>
-            <Text style={s.introTitle}>댕냥이와 나,{'\n'}어떤 사이일까?</Text>
-            <Mascot name="soon-pet" size={72} />
-          </View>
-          <Text style={s.introBody}>{u.nickname}님의 사주와 아이의 생일로 타고난 성격, 둘의 궁합 유형, 함께하면 좋은 놀이까지 알려 드려요. 생일을 몰라도 괜찮아요. 우리 집에 온 날, 두 번째 생일로 볼 수 있어요.</Text>
-        </>
-      ) : (
-        <Text style={[s.introTitle, { fontSize: 22, lineHeight: 30, marginTop: 12 }]}>새 아이 등록하기</Text>
-      )}
+      {/* 소개 배너 (Figma 374:1288) — 327×142 그림 위 제목·설명 */}
+      <View style={s.intro}>
+        <Image source={INTRO_BG} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+        <Text accessibilityRole="header" style={s.introTitle}>댕냥이와 나, 어떤 사이일까?</Text>
+        <Text style={s.introBody}>{u.nickname}님의 사주와 아이의 생일로 타고난 성격, 둘의 궁합 유형, 함께하면 좋은 놀이까지 알려 드려요.</Text>
+      </View>
 
-      <Card style={s.form}>
+      {pets.length ? (
+        <>
+          <View style={s.blockHead}>
+            <Text accessibilityRole="header" style={s.blockTitle}>저장된 상대</Text>
+            <View style={s.blockBar} />
+            <Text style={s.blockSub}>여러 마리 등록 가능해요</Text>
+          </View>
+          <View style={{ gap: 16 }}>{pets.map(p => <SavedPet key={p.id} pet={p} today={today} onPress={() => onPick(p.id)} />)}</View>
+        </>
+      ) : null}
+
+      <View style={[s.blockHead, { marginBottom: 12 }]}>
+        <Text accessibilityRole="header" style={s.blockTitle}>반려동물과 궁합 보기</Text>
+      </View>
+      <View style={s.form}>
         <View>
           <Label>이름</Label>
-          <TextField compact value={name} onChangeText={setName} placeholder="아이 이름" maxLength={20} />
+          <TextField compact value={name} onChangeText={setName} placeholder="이름 또는 닉네임" maxLength={20} />
         </View>
 
         <View>
           <Label>어떤 아이인가요?</Label>
-          <View style={s.row}>{SPECIES.map(([k, l]) => <Pick key={k} label={l} selected={species === k} onPress={() => setSpecies(k)} />)}</View>
+          <View style={s.row}>{SPECIES.map(([k, l]) => <Pick key={k} label={l} icon={k} selected={species === k} onPress={() => setSpecies(k)} />)}</View>
         </View>
 
         <View>
@@ -536,8 +577,8 @@ function PetForm({ u, first, onCancel, onSaved }: {
 
         <View>
           <Label>평소 모습 (선택)</Label>
-          <Text style={[txt.small, { marginTop: -4, marginBottom: 10 }]}>알려 주시면 {name.trim() || '우리 아이'}에게 더 꼭 맞는 풀이를 볼 수 있어요.</Text>
-          <View style={{ gap: 10 }}>
+          <Text style={s.traitHelp}>알려 주시면 {name.trim() || '우리 아이'}에게 더 꼭 맞는 풀이를 볼 수 있어요.</Text>
+          <View style={{ gap: 12 }}>
             {AXES.map(axis => (
               <View key={axis} style={s.traitPick}>
                 <Text style={s.traitPickLabel}>{TRAITS[axis][0]}</Text>
@@ -550,9 +591,25 @@ function PetForm({ u, first, onCancel, onSaved }: {
             ))}
           </View>
         </View>
-      </Card>
-      <Disclaimer compact />
+      </View>
+      <Disclaimer compact mt={16} />
     </Screen>
+  );
+}
+
+/** 저장된 상대 한 줄 (Figma 367:2765) — 누르면 그 아이의 결과로 */
+function SavedPet({ pet, today, onPress }: { pet: Pet; today: string; onPress(): void }) {
+  const meta = [SPECIES_LABEL[pet.species], ageOf(pet, today), pet.gender && (pet.gender === 'male' ? '남아' : '여아')].filter(Boolean).join(' · ');
+  return (
+    <PressableScale onPress={onPress} scaleTo={0.98} style={s.saved} accessibilityRole="button" accessibilityLabel={`${pet.name}, ${meta}, 궁합 ${pet.result.score}점`}>
+      <View style={s.avatar}><Image source={PET_IMG[pet.species].src} style={s.avatarImg} contentFit="contain" accessible={false} /></View>
+      <View style={s.savedCopy}>
+        <Text style={s.savedName} numberOfLines={1}>{pet.name}</Text>
+        <Text style={s.savedMeta} numberOfLines={1}>{meta}</Text>
+      </View>
+      <Text style={s.savedScore}>{pet.result.score}</Text>
+      <View style={s.savedChev}><Icon name="chevronRight" size={20} strokeWidth={2.4} color={colors.inkMute} /></View>
+    </PressableScale>
   );
 }
 
@@ -571,28 +628,95 @@ function Label({ children }: { children: string }) {
 }
 
 /** 낮은 선택 버튼 — 고르면 남색 */
-function Pick({ label, selected, onPress }: { label: string; selected: boolean; onPress(): void }) {
+function Pick({ label, icon, selected, onPress }: { label: string; icon?: PetSpecies; selected: boolean; onPress(): void }) {
   return (
     <PressableScale onPress={onPress} haptic scaleTo={0.95} style={[s.pick, selected && s.pickOn]} accessibilityRole="radio" accessibilityState={{ selected }}>
+      {icon ? <Image source={PET_IMG[icon].src} style={{ width: PET_IMG[icon].w, height: 22 }} contentFit="contain" accessible={false} /> : null}
       <Text style={[s.pickText, selected && { color: '#EDEDED' }]}>{label}</Text>
     </PressableScale>
   );
 }
 
-/** 사용 설명서 — 좋아하는 것·싫어하는 것은 칩으로, 신호와 칭찬법은 짧은 줄로 */
+/** 사용 설명서 (Figma 384:2420~) — 좋아해요·싫어해요는 나란한 두 칸, 신호와 칭찬법은 책 아이콘을 단 회색 칸 */
 function PetManual({ m, name }: { m: NonNullable<PetReading['portrait']['manual']>; name: string }) {
-  const chips = (list: string[], tone: 'like' | 'dislike') => (
-    <View style={s.chips}>{list.map(x => <View key={x} style={[s.chip, tone === 'dislike' && s.chipOff]}><Text style={s.chipText}>{x}</Text></View>)}</View>
-  );
-  const lines = (list: string[]) => list.map(x => <Text key={x} style={s.listItem}>· {x}</Text>);
   return (
-    <View style={{ gap: 14 }}>
-      <View><Text style={s.memoLabel}>좋아해요</Text>{chips(m.likes, 'like')}</View>
-      <View><Text style={s.memoLabel}>싫어해요</Text>{chips(m.dislikes, 'dislike')}</View>
-      <View><Text style={s.memoLabel}>기분 좋을 때 이런 모습</Text>{lines(m.happy)}</View>
-      <View><Text style={s.memoLabel}>마음이 불편할 때 이런 모습</Text>{lines(m.stressed)}</View>
-      <View style={s.memo}><Text style={s.memoLabel}>{name}에게 잘 통하는 칭찬</Text><Text style={s.body}>{m.praise}</Text></View>
+    <View style={{ gap: 16 }}>
+      <View style={s.likeRow}>
+        <LikeCard tone="like" items={m.likes} />
+        <LikeCard tone="dislike" items={m.dislikes} />
+      </View>
+      <ManualCard title="기분이 좋을 때 이런 모습">{m.happy.map(x => <Text key={x} style={s.manualText}>· {x}</Text>)}</ManualCard>
+      <ManualCard title="마음이 불편할 때 이런 모습">{m.stressed.map(x => <Text key={x} style={s.manualText}>· {x}</Text>)}</ManualCard>
+      <ManualCard title={`${name}에게 잘 통하는 칭찬`}><Text style={s.manualText}>{m.praise}</Text></ManualCard>
     </View>
+  );
+}
+
+function LikeCard({ tone, items }: { tone: 'like' | 'dislike'; items: string[] }) {
+  const like = tone === 'like';
+  return (
+    <View style={[s.likeCard, { borderColor: like ? LIKE_LINE : DISLIKE_LINE }]}>
+      <View style={s.likeHead}>
+        {like ? <LikeIcon /> : <DislikeIcon />}
+        <Text accessibilityRole="header" style={s.manualTitle}>{like ? '좋아해요' : '싫어해요'}</Text>
+      </View>
+      <View style={s.likeList}>{items.map(x => <Text key={x} style={s.likeItem}>{x}</Text>)}</View>
+    </View>
+  );
+}
+
+function ManualCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={s.manualCard}>
+      <View style={s.manualHead}>
+        {/* 아이콘(20)은 제목 줄(17)보다 위 1 · 아래 2 삐져나온다 */}
+        <View style={{ marginTop: -1, marginBottom: -2 }}><SolidIcon name="book" size={20} color={colors.accent} /></View>
+        <Text accessibilityRole="header" style={s.manualTitle}>{title}</Text>
+      </View>
+      <View style={{ marginTop: 6 }}>{children}</View>
+    </View>
+  );
+}
+
+/* Figma 아이콘 (Favorite_fill · Dell_fill · Sun_fill · Moon_fill) — 경로는 Figma SVG 그대로 */
+function LikeIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Path d="M4.45067 13.9082L11.4033 20.4395C11.6428 20.6644 11.7625 20.7769 11.9037 20.8046C11.9673 20.8171 12.0327 20.8171 12.0963 20.8046C12.2375 20.7769 12.3572 20.6644 12.5967 20.4395L19.5493 13.9082C21.5055 12.0706 21.743 9.0466 20.0978 6.92607L19.7885 6.52734C17.8203 3.99058 13.8696 4.41601 12.4867 7.31365C12.2913 7.72296 11.7087 7.72296 11.5133 7.31365C10.1304 4.41601 6.17972 3.99058 4.21154 6.52735L3.90219 6.92607C2.25695 9.0466 2.4945 12.0706 4.45067 13.9082Z"
+        fill={colors.accent} stroke={colors.accent} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+function DislikeIcon() {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24">
+      <Path d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3ZM16.707 7.29297C16.3166 6.9025 15.6835 6.90261 15.293 7.29297L12 10.5859L8.70703 7.29297C8.31649 6.90261 7.68344 6.9025 7.29297 7.29297C6.9025 7.68344 6.90261 8.31649 7.29297 8.70703L10.5859 12L7.29297 15.293C6.90244 15.6835 6.90244 16.3165 7.29297 16.707C7.68349 17.0976 8.31651 17.0976 8.70703 16.707L12 13.4141L15.293 16.707C15.6835 17.0976 16.3165 17.0976 16.707 16.707C17.0976 16.3165 17.0976 15.6835 16.707 15.293L13.4141 12L16.707 8.70703C17.0974 8.31649 17.0975 7.68344 16.707 7.29297Z"
+        fill={colors.danger} />
+    </Svg>
+  );
+}
+/** 하루 타임라인의 28 흰 칸 — 아침(해돋이) · 낮(해) · 저녁(달) */
+function TimeIcon({ time }: { time: '아침' | '낮' | '저녁' }) {
+  return (
+    <Svg width={28} height={28} viewBox="0 0 28 28">
+      <Rect width={28} height={28} rx={6} fill={RAIL} />
+      {time === '아침' ? (
+        <>
+          <Path transform="translate(2 2)" fill="#F07777" d="M21.0547 19L2.89744 18.9947C2.31872 18.9947 1.98245 18.3675 2.00071 17.9154C2.02353 17.3439 2.41509 16.8787 3.01308 16.8761L5.85289 16.864C6.15771 14.107 8.07898 11.7973 10.6971 11.1584C12.2568 10.7779 13.8747 11.0963 15.2193 11.9693C16.89 13.0529 17.9694 14.8242 18.1515 16.8613L21.0197 16.8808C21.5943 16.8845 21.9747 17.3771 21.9991 17.9144C22.0209 18.4001 21.6582 19.0005 21.0547 19Z" />
+          <Path transform="translate(2 2)" fill="#F07777" d="M6.55646 9.74309C7.08275 10.261 7.15296 11.0085 6.70109 11.5446C6.26662 12.0595 5.44208 12.1825 4.90379 11.6803C4.3655 11.1782 3.8134 10.6263 3.28652 10.0563C2.83104 9.56378 2.94866 8.72116 3.42754 8.31045C3.90642 7.89974 4.66075 7.87733 5.14983 8.35891L6.55646 9.74309Z" />
+          <Path transform="translate(2 2)" fill="#F07777" d="M13.1104 7.74735C13.1163 8.48572 12.6374 9.06395 11.9388 9.1235C11.2674 9.18038 10.5975 8.68429 10.5719 7.94857C10.5464 7.21284 10.5462 6.43224 10.5767 5.6566C10.6029 4.98629 11.2819 4.47363 11.9109 4.52184C12.54 4.57004 13.0892 5.08758 13.0945 5.77395L13.1104 7.74735Z" />
+          <Path transform="translate(2 2)" fill="#F07777" d="M19.1266 11.6319C18.638 12.131 17.8989 12.0996 17.4282 11.6761C16.9575 11.2525 16.822 10.461 17.2915 9.98245L18.8915 8.35108C19.4022 7.83025 20.2923 7.90275 20.7314 8.47675C21.0744 8.92447 21.1132 9.60421 20.7057 10.0205L19.1272 11.6319H19.1266Z" />
+        </>
+      ) : time === '낮' ? (
+        <>
+          <Circle cx={14} cy={14} r={4} fill="#FCBD51" />
+          <Path d="M14 7V5M14 23V21M18.95 9.04996L20.3643 7.63574M7.63608 20.3644L9.05029 18.9502M21 14L23 14M5 14L7 14M18.95 18.95L20.3643 20.3643M7.63608 7.63559L9.05029 9.0498"
+            stroke="#FCBD51" strokeWidth={2} strokeLinecap="round" />
+        </>
+      ) : (
+        <Path fill={colors.accent} d="M17 6C17.2931 6 17.4397 6 17.5799 6.04196C18.1934 6.22551 18.4787 6.931 18.1653 7.48943C18.0937 7.61708 17.8753 7.82826 17.4386 8.25062C15.935 9.70471 15 11.7429 15 14C15 16.2569 15.9349 18.2945 17.4384 19.7483C17.8759 20.1714 18.0947 20.383 18.1664 20.5108C18.4796 21.0691 18.1943 21.7743 17.5812 21.958C17.4408 22 17.2939 22 17 22C12.5817 22 9 18.4183 9 14C9 9.58172 12.5817 6 17 6Z" />
+      )}
+    </Svg>
   );
 }
 
@@ -608,48 +732,70 @@ function Section({ number, title }: { number: string; title: string }) {
 
 const INK = isDark ? colors.ink : '#000000';
 const CHIP = '#FFF386';
-const LOGO_H = 36 / 65 * 55;
+const RAIL = isDark ? colors.surface : colors.white; // 타임라인 아이콘 칸·레일
+const LIKE_LINE = '#92D8FF';
+const DISLIKE_LINE = '#FFB1B1';
+const DAY_BG = isDark ? colors.card : '#FFE7E7';
+const DAY_INK = '#DD2828';
+const NOTE = isDark ? colors.inkMute : '#838383';
 const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
 const s = StyleSheet.create({
-  // 입력
-  introMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  kicker: { ...sansW('600'), color: colors.inkMute, fontSize: 12, letterSpacing: 1.2 },
-  introHead: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 20 },
-  introTitle: { ...txt.title, fontSize: 29, lineHeight: 40 },
-  introBody: { ...txt.body, fontSize: 15, lineHeight: 25, marginTop: 14 },
-  form: { gap: 16, padding: 16, marginTop: 20 },
-  fieldLabel: { fontSize: 14, fontWeight: '600', letterSpacing: -0.56, color: colors.ink, marginBottom: 8 },
-  row: { flexDirection: 'row', gap: 8 },
-  pick: { flex: 1, height: 36, borderRadius: 5, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  // 입력 — 소개 배너 327×142 · 제목 20/800 (위·왼 20) · 설명 13/500 (제목 아래 16)
+  // 설명 폭은 Figma 162지만 낱말 단위로 줄이 나뉘면 4줄이 돼, 3줄로 나오게 186 (웹 172부터 3줄 + 기기 글꼴 여유)
+  intro: { height: 142, padding: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: '#1B1F5C' },
+  introTitle: { ...sansW('800'), fontSize: 20, lineHeight: 24, letterSpacing: -0.8, color: colors.white, ...TIGHT },
+  introBody: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', width: 186, marginTop: 16, ...TIGHT },
+  // 블록 제목 18/600 — 위 블록과 32, 아래 16 (폼 앞은 12)
+  blockHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 32, marginBottom: 16 },
+  blockTitle: { ...sansW('600'), fontSize: 18, lineHeight: 21, color: INK, ...TIGHT },
+  blockBar: { width: 1, height: 14, backgroundColor: '#999999' },
+  blockSub: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, flexShrink: 1, ...TIGHT },
+  // 저장된 상대 327×64 · 그림 원 40 (위·왼 12) · 이름 14/700 · 정보 13/400 · 점수 20/600 빨강 · 화살표 칸 28 (오른쪽 16)
+  saved: { flexDirection: 'row', alignItems: 'center', height: 64, paddingLeft: 12, paddingRight: 16, gap: 8, borderRadius: 12, backgroundColor: colors.card },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  avatarImg: { width: 32, height: 29 },
+  savedCopy: { flex: 1, gap: 4 },
+  savedName: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, ...TIGHT },
+  savedMeta: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, ...TIGHT },
+  savedScore: { ...sansW('600'), fontSize: 20, lineHeight: 24, letterSpacing: -0.8, color: colors.danger, fontVariant: ['tabular-nums'], ...TIGHT },
+  savedChev: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  // 폼 — 회색 칸 (둘레 16) · 항목 사이 16 · 제목 아래 8 · 버튼 사이 12
+  form: { gap: 16, padding: 16, borderRadius: 12, backgroundColor: colors.card },
+  fieldLabel: { ...sansW('600'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, marginBottom: 8, ...TIGHT },
+  row: { flexDirection: 'row', gap: 12 },
+  pick: { flex: 1, flexDirection: 'row', gap: 4, height: 36, borderRadius: 5, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   pickOn: { backgroundColor: colors.navy },
-  pickText: { fontSize: 13, fontWeight: '600', letterSpacing: -0.26, color: colors.ink },
+  pickText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.26, color: colors.ink },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   checkBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: colors.navy, borderColor: colors.navy },
   checkText: { ...sansW('500'), fontSize: 13, letterSpacing: -0.4, color: colors.ink },
-  traitPick: { gap: 6 },
-  traitPickLabel: { ...sansW('600'), fontSize: 13, letterSpacing: -0.5, color: colors.inkSub },
+  // 평소 모습 — 설명은 제목 아래 4 · 첫 질문까지 16 · 질문과 버튼 사이 8 · 질문 묶음 사이 12
+  traitHelp: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, marginTop: -4, marginBottom: 16, ...TIGHT },
+  traitPick: { gap: 8 },
+  traitPickLabel: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: isDark ? colors.inkSub : '#555555', ...TIGHT },
   error: { ...sansW('400'), color: colors.danger, fontSize: 12, marginTop: 6 },
 
   // 결과
   content: { paddingTop: 0, paddingBottom: 60 },
-  petRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4, marginBottom: 16 },
-  petChip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.card, maxWidth: 140 },
-  petChipOn: { backgroundColor: colors.navy },
+  // 아이 칩 — 높이 32 · 좌우 16 · 고른 칩은 검정, 추가는 하늘색 점선
+  petRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  petChip: { height: 32, paddingHorizontal: 16, borderRadius: 30, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', maxWidth: 140 },
+  petChipOn: { backgroundColor: isDark ? colors.navy : '#000000' },
   petAdd: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.accent, borderStyle: 'dashed' },
-  petChipText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.4, color: colors.ink },
-  hero: { borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 40, paddingBottom: 24, paddingHorizontal: 16, backgroundColor: '#1F2547' },
-  heroLogo: { position: 'absolute', left: 16, top: 12 },
-  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 10, textAlign: 'center', ...TIGHT },
-  typeName: { ...sansW('700'), fontSize: 24, lineHeight: 30, letterSpacing: -1.2, color: colors.white, marginTop: 6, textAlign: 'center', ...TIGHT },
-  typeLine: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: CHIP, marginTop: 6, textAlign: 'center', ...TIGHT },
-  scoreChip: { flexDirection: 'row', alignItems: 'baseline', gap: 2, marginTop: 14, paddingHorizontal: 14, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)' },
-  scoreValue: { ...sansW('700'), fontSize: 22, lineHeight: 28, letterSpacing: -0.8, color: colors.white, fontVariant: ['tabular-nums'], ...TIGHT },
-  scoreUnit: { ...sansW('600'), fontSize: 13, color: colors.white, ...TIGHT },
-  tags: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' },
-  tag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5, borderColor: CHIP },
-  tagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, color: CHIP, opacity: 0.85, ...TIGHT },
-  basisNote: { ...txt.caption, textAlign: 'center', marginTop: 10 },
+  petChipText: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: colors.ink, ...TIGHT },
+  petAddText: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.accent, opacity: 0.8, ...TIGHT },
+  // 히어로 327×300 — 그림 136×97 (위 33) · 글줄 사이 10 · 키워드 칩까지 13 · 아래 22
+  hero: { minHeight: 300, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 33, paddingBottom: 21, paddingHorizontal: 16, backgroundColor: '#1E1838' },
+  heroPets: { width: 136, height: 97 },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', textAlign: 'center', ...TIGHT },
+  typeName: { ...sansW('700'), fontSize: 24, lineHeight: 24, letterSpacing: -1.2, color: colors.white, marginTop: 7, textAlign: 'center', ...TIGHT },
+  typeLine: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: CHIP, marginTop: 7, textAlign: 'center', ...TIGHT },
+  score: { ...sansW('700'), fontSize: 32, lineHeight: 32, letterSpacing: -1.6, color: colors.white, marginTop: 10, textAlign: 'center', fontVariant: ['tabular-nums'], ...TIGHT },
+  tags: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 13, flexWrap: 'wrap' },
+  tag: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5, borderColor: CHIP },
+  tagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, color: CHIP, opacity: 0.8, ...TIGHT },
+  basisNote: { ...sansW('500'), fontSize: 12, lineHeight: 17, letterSpacing: -0.48, color: NOTE, textAlign: 'center', marginTop: 12, ...TIGHT },
 
   section: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 32, marginBottom: 16 },
   sectionText: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: -0.9, color: INK, flexShrink: 1, ...TIGHT },
@@ -663,26 +809,40 @@ const s = StyleSheet.create({
   memoLabel: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.65, color: colors.accent, marginBottom: 4, ...TIGHT },
   colorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: colors.line },
-  titleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  titleCell: { flexBasis: '30%', flexGrow: 1, flexDirection: 'row' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
-  chip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.surface },
-  chipOff: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.lineStrong },
-  chipText: { ...sansW('600'), fontSize: 12, color: INK },
-  inlineCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 16, paddingVertical: 10, borderRadius: 6, backgroundColor: colors.surface },
-  inlineCtaText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.5, color: colors.accent },
+  // 부르는 말 — 두 칸씩
+  titleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  titleCell: { flexBasis: '40%', flexGrow: 1, flexDirection: 'row' },
+  // 사용 설명서 — 좋아해요·싫어해요 흰 칸 (선 1 · 둥근 12 · 둘레 16) · 머리 아이콘 24 + 8 · 목록 줄 사이 6
+  likeRow: { flexDirection: 'row', gap: 13 },
+  likeCard: { flex: 1, padding: 16, borderRadius: 12, borderWidth: 1, backgroundColor: colors.surface },
+  likeHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  likeList: { gap: 6, marginTop: 9 },
+  likeItem: { ...sansW('500'), fontSize: 12, lineHeight: 18, letterSpacing: -1.2, color: INK, ...TIGHT },
+  // 신호·칭찬 칸 — 회색 둥근 8 · 둘레 16 · 책 아이콘 20 + 8 · 본문 13/400 줄 22
+  manualCard: { padding: 16, borderRadius: 8, backgroundColor: colors.card },
+  manualHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  manualTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, flexShrink: 1, ...TIGHT },
+  manualText: { ...sansW('400'), fontSize: 13, lineHeight: 22, letterSpacing: -0.65, color: INK, ...TIGHT },
   listItem: { ...sansW('400'), fontSize: 13, lineHeight: 22, letterSpacing: -0.65, color: INK, ...TIGHT },
-  days: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  day: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: colors.surface },
-  dayText: { ...sansW('600'), fontSize: 13, color: INK, fontVariant: ['tabular-nums'] },
+  // 함께 놀기 좋은 날 — 위 카드와 24, 아래 카드와 16 (바깥 gap 12 포함) · 칸 98×63 분홍 · 날짜 18/700 빨강 · 요일 13/400
+  goodDays: { marginTop: 12, marginBottom: 4 },
+  goodTitle: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: -0.72, color: INK, ...TIGHT },
+  days: { flexDirection: 'row', gap: 16, marginTop: 16 },
+  day: { flex: 1, height: 63, paddingTop: 12, borderRadius: 12, alignItems: 'center', backgroundColor: DAY_BG },
+  dayDate: { ...sansW('700'), fontSize: 18, lineHeight: 21, letterSpacing: -0.72, color: DAY_INK, fontVariant: ['tabular-nums'], ...TIGHT },
+  dayWeek: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, ...TIGHT },
   note: { ...sansW('400'), fontSize: 12, lineHeight: 17, letterSpacing: -0.6, color: colors.inkMute, marginTop: 8, ...TIGHT },
-  routineRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  routineTime: { width: 40, paddingVertical: 2, borderRadius: 4, alignItems: 'center', backgroundColor: colors.surface },
-  routineTimeText: { ...sansW('700'), fontSize: 12, color: colors.accent },
+  // 하루 타임라인 — 회색 둥근 8 · 아이콘 칸 28 (위·왼 14) · 글은 칸 오른쪽 8 · 흰 레일 2
+  routine: { paddingTop: 14, paddingLeft: 14, paddingRight: 16, paddingBottom: 16, borderRadius: 8, backgroundColor: colors.card },
+  routineRow: { flexDirection: 'row', gap: 8 },
+  routineRail: { width: 28, alignItems: 'center' },
+  railLine: { flex: 1, width: 2, backgroundColor: RAIL },
+  routineCopy: { flex: 1, paddingTop: 5 },
+  routineTime: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, ...TIGHT },
+  routineText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, marginTop: 6, ...TIGHT },
   closing: { ...sansW('600'), fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: INK, textAlign: 'center', marginTop: 20, paddingHorizontal: 12 },
   // 광고 배너는 화면 맨 위 — 아래 내용과 16 띄운다
   snackTop: { marginTop: 4, marginBottom: 16 },
   manage: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 24 },
   manageLink: { ...sansW('700'), fontSize: 12, lineHeight: 20, letterSpacing: -0.48, color: colors.inkMute, textDecorationLine: 'underline' },
-  manageDot: { color: colors.inkMute },
 });

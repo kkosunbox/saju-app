@@ -71,7 +71,7 @@ export default function CharacterScreen() {
 
       <SubHead title="이런 사람이에요" caption={c.core} />
       <Card>
-        {c.traits.map(t => <Bullet key={t}>{t}</Bullet>)}
+        {c.traits.map(t => <Bullet key={t} textStyle={txt.body}>{t}</Bullet>)}
         <Text style={[txt.body, { marginTop: 10, fontSize: 14 }]}>속마음 · {c.inner}</Text>
       </Card>
 

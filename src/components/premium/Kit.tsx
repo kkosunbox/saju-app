@@ -92,11 +92,13 @@ export function SubHead({ title, caption, first, variant = 'default' }: { title:
 export function Para({ children, mt = 6, style }: { children: React.ReactNode; mt?: number; style?: StyleProp<TextStyle> }) {
   return <Text style={[s.para, { marginTop: mt }, style]}>{children}</Text>;
 }
-export function Bullet({ children, color = colors.purpleSoft }: { children: React.ReactNode; color?: string }) {
+/** textStyle: 화면마다 주변 본문과 같은 글자로 맞출 때. 점은 첫 줄 가운데에 오도록 줄높이를 따라간다 */
+export function Bullet({ children, color = colors.purpleSoft, textStyle }: { children: React.ReactNode; color?: string; textStyle?: StyleProp<TextStyle> }) {
+  const lh = StyleSheet.flatten(textStyle)?.lineHeight ?? 22;
   return (
     <View style={s.bullet}>
-      <View style={[s.bulletDot, { backgroundColor: color }]} />
-      <Text style={[s.para, { flex: 1, marginTop: 0, lineHeight: 22 }]}>{children}</Text>
+      <View style={[s.bulletDot, { backgroundColor: color, marginTop: (lh - 6) / 2 }]} />
+      <Text style={[s.para, { flex: 1, marginTop: 0, lineHeight: 22 }, textStyle]}>{children}</Text>
     </View>
   );
 }
@@ -132,7 +134,7 @@ export function ActRow({ ok = true, children, icon, variant = 'default' }: { ok?
       ) : (
         <View style={[s.mark, { backgroundColor: ok ? colors.okBg : colors.careBg }]}><Icon name={icon ?? (ok ? 'check' : 'sparkle')} size={14} color={ok ? colors.success : colors.thai} strokeWidth={2.4} /></View>
       )}
-      <Text style={{ flex: 1, fontSize: 15, lineHeight: 22, color: colors.ink }}>{children}</Text>
+      <Text style={{ ...sansW('400'), flex: 1, fontSize: 15, lineHeight: 22, letterSpacing: -0.5, color: colors.ink }}>{children}</Text>
     </View>
   );
 }
@@ -143,8 +145,8 @@ export function ViewRow({ k, children }: { k: SrcKey; children: React.ReactNode 
   return (
     <View style={s.viewRow}>
       <View style={[s.vdot, { borderColor: t.color }]}><Text style={{ fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: t.color }}>{t.emoji}</Text></View>
-      <Text style={{ flex: 1, fontSize: 14, lineHeight: 21, color: colors.ink }}>
-        <Text style={{ color: t.color, fontSize: 12, fontWeight: '700' }}>{t.label}  </Text>{children}
+      <Text style={{ ...sansW('400'), flex: 1, fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: colors.ink }}>
+        <Text style={{ ...sansW('700'), color: t.color, fontSize: 12 }}>{t.label}  </Text>{children}
       </Text>
     </View>
   );
@@ -194,7 +196,7 @@ export function Hero({ children, style }: { children: React.ReactNode; style?: S
 export const heroTxt = StyleSheet.create({
   eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
   summ: { fontFamily: fonts.serif, color: colors.white, fontSize: 17, lineHeight: 24, fontWeight: '600', letterSpacing: -0.4, marginTop: 4 },
-  body: { color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 22, marginTop: 8 },
+  body: { ...sansW('400'), color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 22, letterSpacing: -0.5, marginTop: 8 },
 });
 export function DarkChip({ children, gold }: { children: React.ReactNode; gold?: boolean }) {
   return (
@@ -425,12 +427,13 @@ const s = StyleSheet.create({
   // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 테두리 · 줄높이를 정하고 전체를 옅게 한다
   lineTag: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, opacity: 0.85 },
   lineTagText: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
-  para: { fontSize: 14.5, lineHeight: 23, color: colors.inkSub },
+  // 본문 글자는 글꼴·자간을 직접 준다 (기본값에 맡기면 자간 -0.2로 그려져 디자인의 -0.04em 본문과 달라 보인다)
+  para: { ...sansW('400'), fontSize: 14.5, lineHeight: 23, letterSpacing: -0.5, color: colors.inkSub },
   bullet: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 4 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
   tip: { marginTop: 12, backgroundColor: colors.accentSoft, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
-  tipTitle: { fontSize: 12, fontWeight: '700', color: colors.purpleSoft, marginBottom: 2 },
-  tipText: { fontSize: 14, lineHeight: 21, color: colors.ink },
+  tipTitle: { ...sansW('700'), fontSize: 12, letterSpacing: -0.4, color: colors.purpleSoft, marginBottom: 2 },
+  tipText: { ...sansW('400'), fontSize: 14, lineHeight: 21, letterSpacing: -0.5, color: colors.ink },
   soft: { backgroundColor: colors.accentSoft, borderRadius: radius.lg, padding: 18 },
   actRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   mark: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

@@ -59,7 +59,7 @@ export const pointsApi = {
 
   attend: () => call<PointTransaction>(api.POST('/v1/points/attendance')),
 
-  /** contentKey: `share:{spec file}` — the server allows one reward per key a day, 3 a day. */
+  /** contentKey: `share:{spec file}` — the server allows one reward a day. */
   rewardShare: (contentKey: string) =>
     call<{ granted: boolean; balance: number; shareRewardsLeft: number }>(api.POST('/v1/points/share-rewards', { body: { contentKey } })),
 

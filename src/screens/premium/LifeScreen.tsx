@@ -24,6 +24,10 @@ import { radius, sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { lifeSpec } from '../../services/share/shareSpecs';
 
+// SVG 글자는 Text 의 Pretendard 기본값이 닿지 않아 글꼴을 직접 준다 (안 주면 시스템 글꼴)
+const SVG_BOLD = sansW('700').fontFamily;
+const SVG_REGULAR = sansW('400').fontFamily;
+
 function LifeChart({ pts, now }: { pts: { a: number; v: number }[]; now: number }) {
   const W = 320, H = 150;
   const X = (a: number) => 14 + ((a - 5) / 80) * (W - 28), Y = (v: number) => 12 + (1 - (v - 60) / 40) * (H - 40);
@@ -46,7 +50,7 @@ function LifeChart({ pts, now }: { pts: { a: number; v: number }[]; now: number 
         <Rect x={X(5)} y={4} width={X(30) - X(5)} height={H - 28} rx={8} fill={colors.lavenderSoft} />
         <Rect x={X(55)} y={4} width={X(85) - X(55)} height={H - 28} rx={8} fill={colors.lavenderSoft} />
         {([['초년', 17], ['중년', 42], ['말년', 70]] as const).map(([l, a]) => (
-          <SvgText key={l} x={X(a)} y={18} textAnchor="middle" fill={colors.purpleSoft} fontSize={10} fontWeight="700">{l}</SvgText>
+          <SvgText key={l} x={X(a)} y={18} textAnchor="middle" fill={colors.purpleSoft} fontSize={10} fontFamily={SVG_BOLD} fontWeight="700">{l}</SvgText>
         ))}
         <Path d={`${path} L${X(85)},${H - 24} L${X(5)},${H - 24}Z`} fill="url(#lifeg)" />
         <Path d={path} fill="none" stroke={colors.purpleSoft} strokeWidth={2.5} strokeLinecap="round" />
@@ -54,11 +58,11 @@ function LifeChart({ pts, now }: { pts: { a: number; v: number }[]; now: number 
           <>
             <Line x1={X(now)} x2={X(now)} y1={8} y2={H - 24} stroke={colors.seal} strokeWidth={1.5} strokeDasharray="3 3" />
             <Rect x={X(now) - 15} y={H - 22} width={30} height={15} rx={4} fill={colors.seal} />
-            <SvgText x={X(now)} y={H - 11} textAnchor="middle" fill="#fff" fontSize={9} fontWeight="700">지금</SvgText>
+            <SvgText x={X(now)} y={H - 11} textAnchor="middle" fill="#fff" fontSize={9} fontFamily={SVG_BOLD} fontWeight="700">지금</SvgText>
           </>
         ) : null}
         <Circle cx={X(peak.a)} cy={Y(peak.v)} r={5} fill="#D9B872" stroke={colors.purpleSoft} strokeWidth={2} />
-        {[10, 20, 30, 40, 50, 60, 70, 80].map(a => <SvgText key={a} x={X(a)} y={H - 2} textAnchor="middle" fill={colors.inkMute} fontSize={9}>{a}</SvgText>)}
+        {[10, 20, 30, 40, 50, 60, 70, 80].map(a => <SvgText key={a} x={X(a)} y={H - 2} textAnchor="middle" fill={colors.inkMute} fontSize={9} fontFamily={SVG_REGULAR}>{a}</SvgText>)}
       </Svg>
       <Text style={[txt.small, { marginTop: 8, textAlign: 'center' }]}>노란 점이 흐름이 가장 높게 오르는 구간({peak.a - 5}~{peak.a + 4}세)이에요</Text>
     </View>
