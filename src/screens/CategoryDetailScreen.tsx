@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
 import ScoreRing from '../components/ScoreRing';
-import Seal from '../components/Seal';
 import SectionHeader from '../components/SectionHeader';
 import Stars from '../components/Stars';
 import ScoreDelta, { scoreDeltaLabel } from '../components/ScoreDelta';
@@ -19,6 +19,12 @@ import PromoSlot from '../components/PromoSlot';
 import { PROMO_OF_CATEGORY, promosOf } from '../services/promo/promos';
 
 const KICKER = { love: '緣分 · 연애운', money: '財物 · 재물운', work: '事業 · 직장운', relationship: '人和 · 관계운' } as const;
+const VIEWPOINTS = {
+  saju: { icon: require('../../assets/figma/category-impact/saju.svg'), color: '#FE8828' },
+  thai: { icon: require('../../assets/figma/category-impact/thai.svg'), color: '#61AA4D' },
+  mbti: { icon: require('../../assets/figma/category-impact/mbti.svg'), color: '#2885FE' },
+  tarot: { icon: require('../../assets/figma/category-impact/tarot.svg'), color: '#B157FB' },
+} as const;
 
 export default function CategoryDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
@@ -34,7 +40,7 @@ export default function CategoryDetailScreen() {
   const score = f[params.category];
   const yesterday = fortune.yesterdayScores?.[params.category];
   const a = fortune.analyses;
-  const contributions = (['saju', 'thai', 'mbti', 'tarot'] as const)
+  const contributions = (Object.keys(VIEWPOINTS) as (keyof typeof VIEWPOINTS)[])
     .filter(key => f.viewpointImpacts || a[key])
     .map(key => ({ key, v: f.viewpointImpacts?.[key][params.category] ?? a[key]!.scoreBias[params.category] }));
   const maxAbs = Math.max(8, ...contributions.map(c => Math.abs(c.v)));
@@ -58,17 +64,20 @@ export default function CategoryDetailScreen() {
       <Figure title="관점별 영향" caption={f.viewpointImpacts ? '각 관점 반영 전후의 점수 차이 · 합산하지 않아요' : '이전에 계산된 운세의 관점별 신호예요'}>
         <View style={{ gap: 14 }}>
           {contributions.map(c => {
-            const at = analysisTheme[c.key];
+            const { icon, color } = VIEWPOINTS[c.key];
             const pct = (Math.abs(c.v) / maxAbs) * 50;
             const pos = c.v >= 0;
             return (
               <View key={c.key} style={s.row}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, width: 104 }}><Seal ch={at.emoji} color={at.color} /><Text style={[s.rowLabel, { width: undefined }]}>{at.label}</Text></View>
+                <View style={s.viewpointLabel}>
+                  <Image source={icon} style={s.viewpointIcon} contentFit="contain" />
+                  <Text style={s.rowLabel}>{analysisTheme[c.key].label}</Text>
+                </View>
                 <View style={s.track}>
                   <View style={s.center} />
-                  <View style={[s.bar, { width: `${pct}%`, backgroundColor: pos ? at.color : colors.inkMute }, pos ? { left: '50%' } : { right: '50%' }]} />
+                  <View style={[s.bar, { width: `${pct}%`, backgroundColor: color }, pos ? { left: '50%' } : { right: '50%' }]} />
                 </View>
-                <Text style={[s.val, { color: pos ? at.color : colors.inkMute }]}>{c.v > 0 ? `+${c.v}` : c.v}</Text>
+                <Text style={[s.val, { color: pos ? color : colors.inkMute }]}>{c.v > 0 ? `+${c.v}` : c.v}</Text>
               </View>
             );
           })}
@@ -98,7 +107,9 @@ const s = StyleSheet.create({
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scoreNote: { fontSize: 13.5, lineHeight: 20, color: colors.inkSub },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowLabel: { width: 104, fontSize: 13, fontWeight: '600', color: colors.inkSub },
+  viewpointLabel: { flexDirection: 'row', alignItems: 'center', gap: 4, width: 104, minHeight: 17 },
+  viewpointIcon: { width: 12, height: 12 },
+  rowLabel: { fontSize: 13, fontWeight: '600', color: colors.inkSub },
   track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.line, overflow: 'hidden' },
   center: { position: 'absolute', left: '50%', width: 1, height: 8, backgroundColor: colors.lineStrong },
   bar: { position: 'absolute', height: 8, borderRadius: 4 },

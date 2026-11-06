@@ -1,5 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Platform, ScrollView, ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, PanResponder, Platform, Pressable, ScrollView, ScrollViewInstance, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import PressableScale from '../../components/PressableScale';
 import { SCREEN_PX, sansW } from '../../theme/typography';
@@ -8,9 +8,11 @@ export interface Banner {
   key: string;
   /** require()로 불러온 배경 그림 */
   bg: number;
-  /** 제목 조각 — [글자, 색] (색이 없으면 흰색) */
+  /** 제목 조각 — [글자, 색] */
   title: [string, string?][];
   sub: string;
+  /** 제목과 안내 문구의 기본 색 (기본값 흰색) */
+  textColor?: string;
   go(): void;
 }
 
@@ -38,77 +40,149 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
   // 마지막으로 본 스크롤 위치 — 자동 넘김이 목표 장에 다 닿았는지 본다
   const lastX = useRef(0);
 
-  const jump = (p: number) => ref.current?.scrollTo({ x: p * w, animated: false });
-  /** 멈춘 장이 복제 장이면 진짜 장으로 옮기고 점을 맞춘다 */
-  const settle = (p: number) => {
+  const arrival = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const webEnd = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const nextRotation = useRef(0);
+  const dragFrom = useRef(0);
+  const ignorePressUntil = useRef(0);
+
+  const jump = useCallback((p: number) => ref.current?.scrollTo({ x: p * w, animated: false }), [w]);
+  /** 복제 장에서는 같은 그림의 진짜 장으로 옮긴다. */
+  const settle = useCallback((p: number) => {
     if (loop && p === 0) { p = n; jump(p); }
     else if (loop && p === n + 1) { p = 1; jump(p); }
     page.current = p;
     setI(loop ? p - 1 : p);
-  };
+  }, [jump, loop, n]);
 
-  // 폭을 알면 진짜 첫 장으로 (앞의 복제 장을 건너뛴다) — 그리기 전에 옮겨야 복제 장이 한 번 비쳤다 튀지 않는다
+  const moveTo = useCallback((p: number) => {
+    clearTimeout(arrival.current);
+    clearTimeout(webEnd.current);
+    nextRotation.current = Date.now() + ROTATE_MS;
+    ref.current?.scrollTo({ x: p * w, animated: true });
+    let tries = 0;
+    const arrive = () => {
+      if (Math.abs(lastX.current - p * w) < 1 || ++tries > 30) {
+        arrival.current = undefined;
+        jump(p);
+        settle(p);
+      } else arrival.current = setTimeout(arrive, ARRIVE_POLL_MS);
+    };
+    arrival.current = setTimeout(arrive, ARRIVE_POLL_MS);
+  }, [jump, settle, w]);
+
   useLayoutEffect(() => {
-    if (w && loop) jump(page.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [w, loop]);
+    if (w) jump(page.current);
+  }, [jump, w]);
 
   useEffect(() => {
     if (!w || !loop) return;
-    let slide: ReturnType<typeof setTimeout> | undefined;
-    const t = setInterval(() => {
-      if (touching.current) return;
-      const next = page.current + 1;
-      ref.current?.scrollTo({ x: next * w, animated: true });
-      page.current = next;
-      setI((next - 1) % n);
-      // 애니메이션이 끝나기 전에 옮기면 몇 px 남은 채로 순간이동해 덜컹인다 — 목표 장에 닿은 뒤에 정리한다
-      let tries = 0;
-      const arrive = () => {
-        if (Math.abs(lastX.current - next * w) < 1 || ++tries > 30) settle(next);
-        else slide = setTimeout(arrive, ARRIVE_POLL_MS);
-      };
-      slide = setTimeout(arrive, ARRIVE_POLL_MS);
-    }, ROTATE_MS);
-    return () => { clearInterval(t); if (slide) clearTimeout(slide); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [w, loop, n]);
+    nextRotation.current = Date.now() + ROTATE_MS;
+    const timer = setInterval(() => {
+      if (!touching.current && !arrival.current && Date.now() >= nextRotation.current) moveTo(page.current + 1);
+    }, 100);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(arrival.current);
+      arrival.current = undefined;
+      clearTimeout(webEnd.current);
+    };
+  }, [w, loop, moveTo]);
+
+  const beginDrag = useCallback(() => {
+    touching.current = true;
+    clearTimeout(arrival.current);
+    arrival.current = undefined;
+    clearTimeout(webEnd.current);
+  }, []);
+
+  const endDrag = useCallback(() => {
+    touching.current = false;
+    nextRotation.current = Date.now() + ROTATE_MS;
+    ignorePressUntil.current = Date.now() + 150;
+  }, []);
+
+  const webPan = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, g) => loop && w > 0 && Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy),
+    onPanResponderGrant: () => {
+      beginDrag();
+      dragFrom.current = lastX.current;
+    },
+    onPanResponderMove: (_, g) => {
+      const x = Math.max(0, Math.min((n + 1) * w, dragFrom.current - g.dx));
+      ref.current?.scrollTo({ x, animated: false });
+    },
+    onPanResponderRelease: (_, g) => {
+      endDrag();
+      const start = Math.round(dragFrom.current / w);
+      const advance = Math.abs(g.dx) >= Math.min(48, w / 4) || (Math.abs(g.dx) > 12 && Math.abs(g.vx) > 0.4);
+      moveTo(Math.max(0, Math.min(n + 1, start + (advance ? -Math.sign(g.dx) : 0))));
+    },
+    onPanResponderTerminate: () => {
+      endDrag();
+      moveTo(Math.round(lastX.current / w));
+    },
+  }), [beginDrag, endDrag, loop, moveTo, n, w]);
 
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
-  const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => endAt(e.nativeEvent.contentOffset.x);
-  const endAt = (x: number) => {
-    touching.current = false;
-    if (!w) return;
-    const p = Math.round(x / w);
-    // 넘김이 반 픽셀쯤 어긋나 멈추면 옆 장 끄트머리가 비친다 — 장 경계에 딱 맞춘다
-    if (Math.abs(x - p * w) > 0.01) jump(p);
+  const onEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (arrival.current || touching.current) return;
+    const p = Math.round(e.nativeEvent.contentOffset.x / w);
     settle(p);
   };
-
-  // 웹 ScrollView는 onMomentumScrollEnd를 부르지 않는다 — 스크롤이 잠깐 멎으면 끝난 것으로 본다
-  const webEnd = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(webEnd.current), []);
+  const onNativeDragEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    endDrag();
+    const x = e.nativeEvent.contentOffset.x;
+    const p = Math.round(x / w);
+    // 이미 장 경계에서 멈추면 모멘텀 종료 이벤트가 생략될 수 있다.
+    if (p > 0 && p <= n && Math.abs(x - p * w) < 1) settle(p);
+  };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     lastX.current = x;
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web' || touching.current || arrival.current) return;
+    nextRotation.current = Date.now() + ROTATE_MS;
     clearTimeout(webEnd.current);
-    webEnd.current = setTimeout(() => endAt(x), 150);
+    webEnd.current = setTimeout(() => {
+      const p = Math.round(x / w);
+      if (Math.abs(x - p * w) > 0.01) jump(p);
+      settle(p);
+    }, 150);
   };
+
+  const openBanner = useCallback((b: Banner) => {
+    if (!touching.current && Date.now() >= ignorePressUntil.current) b.go();
+  }, []);
 
   return (
     <View style={s.wrap} onLayout={onLayout}>
       <View style={s.clip}>
-        {/* 폭을 재기 전엔 첫 장만 그대로 둔다 — 넘김 줄은 폭을 안 뒤 진짜 첫 장 위치에서 시작한다 */}
-        {!w ? <Slide b={items[0]} /> : <ScrollView
-          ref={ref} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-          contentOffset={{ x: page.current * w, y: 0 }}
-          onScrollBeginDrag={() => { touching.current = true; }} onMomentumScrollEnd={onEnd} onScroll={onScroll} scrollEventThrottle={16}
-        >
-          {pages.map((b, k) => <Slide key={`${b.key}-${k}`} b={b} width={w} />)}
-        </ScrollView>}
-        <View style={s.dots} pointerEvents="none">
-          {items.map((b, k) => <View key={b.key} style={k === i ? s.dotOn : s.dot} />)}
+        <View style={[s.track, Platform.OS === 'web' && WEB_DRAG]} {...(Platform.OS === 'web' ? webPan.panHandlers : {})}>
+          {/* 폭을 재기 전엔 첫 장만 보여 준다. */}
+          {!w ? <Slide b={items[0]} onPress={items[0].go} /> : <ScrollView
+            ref={ref} horizontal showsHorizontalScrollIndicator={false}
+            pagingEnabled={Platform.OS !== 'web'}
+            onScrollBeginDrag={Platform.OS === 'web' ? undefined : beginDrag}
+            onScrollEndDrag={Platform.OS === 'web' ? undefined : onNativeDragEnd}
+            onMomentumScrollEnd={onEnd} onScroll={onScroll} scrollEventThrottle={16}
+          >
+            {pages.map((b, k) => <Slide key={`${b.key}-${k}`} b={b} width={w} onPress={() => openBanner(b)} />)}
+          </ScrollView>}
+        </View>
+        <View style={s.dots} pointerEvents="box-none">
+          {items.map((b, k) => (
+            <Pressable
+              key={b.key}
+              style={s.dotTarget}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              accessibilityRole="button"
+              accessibilityLabel={`${k + 1}번째 배너 · ${b.title.map(([t]) => t).join('')}`}
+              accessibilityState={{ selected: k === i }}
+              onPress={() => { if (w && loop) moveTo(k + 1); }}
+            >
+              <View style={k === i ? s.dotOn : s.dot} />
+            </Pressable>
+          ))}
         </View>
       </View>
     </View>
@@ -116,28 +190,33 @@ export default function ContentBanners({ items }: { items: Banner[] }) {
 }
 
 /** 배너 한 장 — 화면 끝까지 차는 배너라 눌러도 줄이지 않는다 (줄이면 뒤가 테두리로 비친다) */
-function Slide({ b, width }: { b: Banner; width?: number }) {
+function Slide({ b, width, onPress }: { b: Banner; width?: number; onPress: () => void }) {
+  const textColor = b.textColor ?? '#FFFFFF';
   return (
-    <PressableScale onPress={b.go} style={[s.banner, { width: width || '100%' }]} scaleTo={1} accessibilityLabel={b.title.map(([t]) => t).join('')}>
-      <Image source={b.bg} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+    <PressableScale onPress={onPress} style={[s.banner, { width: width || '100%' }]} scaleTo={1} accessibilityLabel={b.title.map(([t]) => t).join('')}>
+      <Image source={b.bg} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} draggable={false} />
       <Text style={s.title} numberOfLines={1}>
-        {b.title.map(([t, c], k) => <Text key={k} style={{ color: c ?? '#FFFFFF' }}>{t}</Text>)}
+        {b.title.map(([t, c], k) => <Text key={k} style={{ color: c ?? textColor }}>{t}</Text>)}
       </Text>
-      <Text style={s.sub} numberOfLines={1}>{b.sub}</Text>
+      <Text style={[s.sub, { color: textColor }]} numberOfLines={1}>{b.sub}</Text>
     </PressableScale>
   );
 }
+
+const WEB_DRAG = { cursor: 'grab', touchAction: 'pan-y', userSelect: 'none' } as const;
 
 const s = StyleSheet.create({
   // 화면 안쪽 여백(SCREEN_PX)을 걷어내 좌우 끝까지 — 모서리는 둥글리지 않는다.
   // 뒤에 배경색을 깔지 않는다 (장 경계·가장자리의 반 픽셀 안티앨리어싱으로 어두운 선이 비친다)
   wrap: { marginHorizontal: -SCREEN_PX, aspectRatio: RATIO, boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' },
   clip: { flex: 1, overflow: 'hidden' },
+  track: { flex: 1 },
   banner: { height: '100%', paddingLeft: 28, paddingTop: 26 },
   title: { ...sansW('700'), fontSize: 17, lineHeight: 20, letterSpacing: -0.68, color: '#FFFFFF', includeFontPadding: false },
-  sub: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#FFFFFF', marginTop: 5, includeFontPadding: false },
+  sub: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, marginTop: 5, includeFontPadding: false },
   // 점 줄은 배너 가운데 · 아래에서 14 (Figma 96 높이에서 위 76) — 지금 장은 6px 흰 테두리 원, 나머지는 4px 회색 점
-  dots: { position: 'absolute', left: 0, right: 0, bottom: 14, height: 6, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  dots: { position: 'absolute', left: 0, right: 0, bottom: 5, height: 24, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  dotTarget: { width: 12, height: 24, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#D9D9D9' },
   dotOn: { width: 6, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#FFFFFF' },
 });

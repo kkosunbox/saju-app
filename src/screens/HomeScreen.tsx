@@ -22,7 +22,7 @@ import Mascot, { ArtName, Logo } from '../components/Mascot';
 import DrawMascot from '../components/DrawMascot';
 import AnimatedNumber from '../components/AnimatedNumber';
 import PromoSlot, { TrackedPromoCard } from '../components/PromoSlot';
-import { isNewYearSeason, promosOf } from '../services/promo/promos';
+import { isNewYearSeason, newYearOf, promosOf } from '../services/promo/promos';
 import HScroll from '../components/HScroll';
 import { HomeCategoryGlyph, HomeFreeArt, HomeOutlineIcon } from '../components/home/HomeDesignAssets';
 import Icon from '../components/Icon';
@@ -44,6 +44,7 @@ import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 import { COPY } from '../content/copy';
 import { KEYWORDS } from '../data/keywords';
 import { KeywordTag } from '../types';
+import { YearPreview } from '../types/premium';
 import BottomSheet from '../components/BottomSheet';
 import InvitePicker from '../components/InvitePicker';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
@@ -59,6 +60,7 @@ const MASCOT_PREVIEWS = [
 ] as const;
 
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
+const NEW_YEAR_PROMO_TOPICS = '분야별 6대 운세 · 12개월 흐름';
 // Figma 각 분야 라벨 그룹의 링 중심 대비 위치(375px 프레임).
 const CATEGORY_LABEL_OFFSET = { love: 0, money: 0.5, work: -0.5, relationship: 0.5 } as const;
 const READ_STEPS = ['사주로 오늘의 일진을 짚는 중…', 'MBTI 성향을 겹쳐 보는 중…', '오늘의 타로 카드를 펼치는 중…', '별자리 흐름을 맞춰 보는 중…', '오늘의 이야기를 쓰는 중…'];
@@ -326,6 +328,8 @@ export default function HomeScreen() {
     return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' ? '잘맞는 유형은?' : '눌러서 뽑기' };
   });
   const spouseOwned = owned(ITEMS.spouse().key);
+  const newYearPromo = isNewYearSeason(today) ? promosOf(nav, today).newyear : null;
+  const newYearArt = newYearOf(today) === 2027 ? require('../../assets/figma/home/deeper-newyear-2027.webp') : undefined;
 
   const onDrawn = () => {
     draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
@@ -566,19 +570,39 @@ export default function HomeScreen() {
           <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 87 }} title="더 깊이 보기" caption={COPY.deeper} />
           <TrackedPromoCard
             screen="home" item="spouse"
-            variant="figma"
+            variant="home"
             badgePlacement="inline"
             tone="gold"
+            base={require('../../assets/figma/home/deeper-spouse.webp')}
             isNew
             title="미래 배우자 리포트"
             desc="어떤 사람을, 언제, 어디서 만나게 될까?"
             owned={spouseOwned}
             coin={!spouseOwned}
-            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost} · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
+            cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}P · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
             onPress={() => nav.navigate('Spouse')}
           />
           {/* 11월 ~ 1월: 다음 해(1월은 올해) 신년운세 */}
-          {isNewYearSeason(today) ? <View style={{ marginTop: 16 }}><PromoSlot screen="home" promo={promosOf(nav, today).newyear} tone="sky" variant="figma" teaser /></View> : null}
+          {newYearPromo ? (
+            <View style={{ marginTop: 16 }}>
+              <PromoSlot
+                screen="home"
+                promo={{
+                  ...newYearPromo,
+                  title: newYearPromo.title.replace('신년운세', '신년 운세').replace('미리 보기', '미리보기'),
+                  desc: `사자성어 · ${NEW_YEAR_PROMO_TOPICS}`,
+                  teaser: data => {
+                    const idiom = (data as YearPreview).idiom?.[0];
+                    return idiom ? `「${idiom}」 · ${NEW_YEAR_PROMO_TOPICS}` : null;
+                  },
+                }}
+                tone={newYearArt ? 'gold' : 'sky'}
+                variant="home"
+                base={newYearArt}
+                teaser
+              />
+            </View>
+          ) : null}
           <PressableScale onPress={() => nav.navigate('Tabs', { screen: 'Content' })} style={s.link} scaleTo={0.98}>
             <Text style={s.linkText}>평생운 · 신년운세 · 월별운세 · 테마 운세 · 길일</Text>
             <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />

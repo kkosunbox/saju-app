@@ -26,10 +26,11 @@ interface Props {
   /** 잠겨 있으면 미리보기의 내 결과 한 조각을 설명에 넣는다 */
   teaser?: boolean;
   variant?: React.ComponentProps<typeof PromoCard>['variant'];
+  base?: React.ComponentProps<typeof PromoCard>['base'];
 }
 
 /** 유료 콘텐츠 추천 카드 — 보유 여부 · 가진 알로 바로 열기 · 미리보기 한 줄 · 노출/클릭 기록 */
-export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser, variant }: Props) {
+export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser, variant, base }: Props) {
   const { owned, points } = usePremium();
   const have = owned(promo.item.key);
   const preview = usePremiumPreview<unknown>(promo.ref ?? { kind: 'saju' }, !!teaser && !!promo.ref && !have);
@@ -41,8 +42,9 @@ export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser,
   const verb = promo.key !== 'consult' && promo.key !== 'crush' && points >= promo.item.cost ? '가진 알로 바로 열기' : promo.verb;
   return (
     <PromoCard
-      tone={tone} variant={variant} title={title ?? promo.title} desc={desc}
-      owned={have} coin={!have} cta={have ? '다시보기 →' : `${promo.item.cost} · ${verb} →`}
+      tone={tone} variant={variant} base={base} title={title ?? promo.title} desc={desc}
+      isNew={variant === 'home'} badgePlacement={variant === 'home' ? 'inline' : undefined}
+      owned={have} coin={!have} cta={have ? '다시보기 →' : `${promo.item.cost}${variant === 'home' ? 'P' : ''} · ${verb} →`}
       onPress={onPress}
     />
   );

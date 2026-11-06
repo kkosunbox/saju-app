@@ -85,11 +85,19 @@ export default function ContentScreen() {
   const spouseOwned = owned(ITEMS.spouse().key);
   const soon = UPCOMING.filter(c => c.status === 'soon');
   const nextYear = parseISO(today).y + 1;
-  // 배너 순서는 Figma 점 위치대로: 새해 → 평생운 → 미래 배우자
+  // 배너 순서는 Figma 점 위치대로: 새해 → 평생운 → 미래 배우자 → 운알톡
   const BANNERS: Banner[] = [
     { key: 'newyear', bg: require('../../../assets/figma/content/banner-newyear.webp'), title: [[`${nextYear}년, `, '#68F7F0'], ['나에게 어떤 일이 생길까?']], sub: `${nextYear}년 운세 확인하기 →`, go: () => nav.navigate('NewYear', { year: nextYear }) },
     { key: 'life', bg: require('../../../assets/figma/content/banner-life.webp'), title: [['내 인생은 앞으로 '], ['어떻게 펼쳐질까?', '#E5DCFF']], sub: '나의 평생운 확인하기 →', go: () => openPremium(nav, 'life') },
     { key: 'spouse', bg: require('../../../assets/figma/content/banner-spouse.webp'), title: [['나의 미래'], [' 배우자는?', '#F3C5DD']], sub: '나의 미래 배우자 확인하기 →', go: () => nav.navigate('Spouse') },
+    {
+      key: 'consult',
+      bg: require('../../../assets/figma/content/banner-consult.webp'),
+      title: [['마음의 소리, ', '#0098EB'], ['운알이와 대화해볼래요?']],
+      sub: '운알이와 비밀대화 하러가기 →',
+      textColor: '#000000',
+      go: () => nav.navigate('Tabs', { screen: 'Consult' }),
+    },
   ];
   // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
   const THEME_EXTRA: [string, number, string, string, React.ReactNode, () => void][] = [
