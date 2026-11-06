@@ -1,5 +1,5 @@
 /**
- * 이용약관 · 개인정보처리방침 — public/terms.html · public/privacy.html 과 같은 원본에서 만든다.
+ * 이용약관 · 개인정보처리방침 — 앱과 웹(/legal/terms · /legal/privacy)이 같이 쓴다. 옛 웹 주소 /terms · /privacy 는 vercel.json 에서 여기로 넘긴다.
  * 운영자·연락처는 src/content/business.ts 와 같게.
  */
 export type LegalDoc = 'terms' | 'privacy';

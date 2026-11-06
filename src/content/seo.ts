@@ -1,7 +1,7 @@
 /**
  * 웹 검색·공유 미리보기용 경로별 메타 — 정적 HTML에는 src/app/+html.tsx 가, 화면을 옮길 때의 탭 제목은 SiteHead 가 그린다.
  * 검색에 올리는 건 랜딩(/)과 서비스 소개(/g/*, content/guides)뿐이다. 나머지는 프로필이 있어야 열리거나 개인 화면이고,
- * 약관(public/terms.html · privacy.html)은 검색 결과에서 서비스 메뉴 자리를 차지하지 않게 noindex.
+ * 약관(/legal/terms · /legal/privacy)은 검색 결과에서 서비스 메뉴 자리를 차지하지 않게 noindex.
  */
 import { BRAND } from '@/components/BrandMark';
 import { GUIDES, guideSlugOf } from './guides';
@@ -13,7 +13,7 @@ export const SITE_URL = 'https://woonpick.com';
 export const SITE_NAME = `${BRAND.name}(${BRAND.ko})`;
 /** 검색 결과 제목은 앞부분만 보이므로 찾는 말(사주·MBTI·타로·점성술)을 브랜드 바로 뒤에 둔다 */
 export const SITE_TITLE = `${SITE_NAME} · 사주·MBTI·타로·점성술 운세`;
-export const SITE_DESCRIPTION = `소름 돋게 정확한 운세 풀이, ${SITE_NAME}. 사주·MBTI·타로·점성술, 4가지 관점으로 더 깊이 읽어보는 나. 오늘의 운세부터 궁합·신년 운세까지 가입 없이 1분이면 봐요.`;
+export const SITE_DESCRIPTION = `소름 돋게 정확한 운세 풀이, ${SITE_NAME}. 사주·MBTI·타로·점성술로 오늘의 운세부터 궁합·신년 운세까지 가입 없이 1분이면 봐요.`;
 /** 카카오톡 등 공유 미리보기는 검색어보다 한눈에 끌리는 문구로 */
 const SHARE_TITLE = `${BRAND.name} · 소름 돋게 정확한 운세 풀이`;
 const SHARE_DESCRIPTION = '사주 · MBTI · 타로 · 점성술, 4가지 관점으로 더 깊이 읽어보는 나';

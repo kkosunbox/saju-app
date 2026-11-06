@@ -5,6 +5,10 @@
   "buildCommand": "EXPO_PUBLIC_API_URL=/api npm run build:web -- --clear",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/terms", "destination": "/legal/terms", "permanent": true },
+    { "source": "/privacy", "destination": "/legal/privacy", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/invite/:token", "destination": "/invite/[token]" },
     { "source": "/consult/:id", "destination": "/consult/[id]" }
