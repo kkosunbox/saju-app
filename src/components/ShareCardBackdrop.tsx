@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export const STORY_WIDTH = 311;
@@ -28,8 +29,8 @@ export default function ShareCardBackdrop({ gold = false }: { gold?: boolean }) 
       {...(gold ? GOLD_LINE : BLUE_LINE)} style={StyleSheet.absoluteFill}
     />
     <View style={s.frame} testID="share-frame">
-      <Image source={gold ? require('../../assets/figma/share/gold-base.png') : require('../../assets/figma/share/clouds.png')} style={s.fill} resizeMode="stretch" accessible={false} />
-      {gold ? <Image source={require('../../assets/figma/share/gold-paper.png')} style={s.goldPaper} resizeMode="stretch" accessible={false} /> : null}
+      <Image source={gold ? require('../../assets/figma/share/gold-base.webp') : require('../../assets/figma/share/clouds.webp')} style={s.fill} contentFit="fill" accessible={false} />
+      {gold ? <Image source={require('../../assets/figma/share/gold-paper.webp')} style={s.goldPaper} contentFit="fill" accessible={false} /> : null}
     </View>
     <View style={[s.border, gold && s.goldBorder]} />
   </View>;

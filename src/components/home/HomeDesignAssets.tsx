@@ -59,7 +59,7 @@ export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' |
     return <Image source={require('../../../assets/figma/home/free-character.webp')} style={{ position: 'absolute', left: -3, top: -8, width: 48, height: 48 }} contentFit="cover" accessible={false} />;
   }
   if (kind === 'tal') {
-    return <Image source={require('../../../assets/figma/home/free-talisman.png')} style={{ width: 39, height: 39 }} contentFit="cover" accessible={false} />;
+    return <Image source={require('../../../assets/figma/home/free-talisman.webp')} style={{ width: 39, height: 39 }} contentFit="cover" accessible={false} />;
   }
   const friends = kind === 'inv';
   const width = friends ? 64 : 41;
@@ -69,7 +69,7 @@ export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' |
       {Array.from({ length: layers }, (_, i) => (
         <Image
           key={i}
-          source={friends ? require('../../../assets/figma/home/free-friends.png') : require('../../../assets/figma/home/free-content-sheet.png')}
+          source={friends ? require('../../../assets/figma/home/free-friends.webp') : require('../../../assets/figma/home/free-content-sheet.webp')}
           style={{ position: 'absolute', left: friends ? 0 : (kind === 'mbti' ? -0.2263 : -1.2726) * width, top: (friends ? -0.3803 : -0.1449) * 39, width: (friends ? 1 : 2.4705) * width, height: (friends ? 1.6371 : 1.2986) * 39 }}
           contentFit="fill"
           accessible={false}
@@ -92,7 +92,7 @@ export function HomeAnalysisArt({ source }: { source: keyof typeof ANALYSIS | 't
   const a = ANALYSIS[source];
   return (
     <View style={{ position: 'absolute', right: a.right, top: a.top, width: a.width, height: a.height, overflow: 'hidden' }} pointerEvents="none">
-      <Image source={require('../../../assets/figma/home/analysis-sheet.png')} style={{ position: 'absolute', left: a.x * a.width, top: a.y * a.height, width: a.w * a.width, height: a.h * a.height }} contentFit="fill" accessible={false} />
+      <Image source={require('../../../assets/figma/home/analysis-sheet.webp')} style={{ position: 'absolute', left: a.x * a.width, top: a.y * a.height, width: a.w * a.width, height: a.h * a.height }} contentFit="fill" accessible={false} />
     </View>
   );
 }
@@ -102,7 +102,7 @@ export function HomePromoArt({ large = false }: { large?: boolean }) {
   const height = large ? 110 : 93;
   return (
     <View style={{ position: 'absolute', right: 0, top: large ? 0 : 17, width, height, opacity: large ? 0.3 : 0.12, overflow: 'hidden', transform: [{ scaleX: -1 }] }} pointerEvents="none">
-      <Image source={require('../../../assets/figma/home/promo-mascot.png')} style={{ position: 'absolute', left: -0.2782 * width, top: 0.069 * height, width: 1.1805 * width, height: 1.3039 * height }} contentFit="fill" accessible={false} />
+      <Image source={require('../../../assets/figma/home/promo-mascot.webp')} style={{ position: 'absolute', left: -0.2782 * width, top: 0.069 * height, width: 1.1805 * width, height: 1.3039 * height }} contentFit="fill" accessible={false} />
     </View>
   );
 }

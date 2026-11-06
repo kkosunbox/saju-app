@@ -268,7 +268,7 @@ export default function HomeScreen() {
     <View pointerEvents="none" style={[s.skyBackdrop, { height: 404 + safeTop }]}>
       {!isDark && (
         <Image
-          source={require('../../assets/figma/home/clouds.png')}
+          source={require('../../assets/figma/home/clouds.webp')}
           contentFit="fill"
           accessible={false}
           style={[s.clouds, { top: safeTop - 22 }]}

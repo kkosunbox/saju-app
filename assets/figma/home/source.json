@@ -3,7 +3,7 @@
   "screen": "288:2354",
   "background": "288:2641",
   "assets": {
-    "clouds.png": {
+    "clouds.webp": {
       "node": "288:2355",
       "slot": [
         0,
@@ -59,7 +59,7 @@
         39
       ]
     },
-    "free-talisman.png": {
+    "free-talisman.webp": {
       "node": "288:2571",
       "slot": [
         40,
@@ -68,7 +68,7 @@
         39
       ]
     },
-    "analysis-sheet.png": {
+    "analysis-sheet.webp": {
       "nodes": [
         "288:2520",
         "288:2528",
@@ -77,7 +77,7 @@
       ],
       "runtime": "HomeAnalysisArt; original Figma crop transforms"
     },
-    "promo-mascot.png": {
+    "promo-mascot.webp": {
       "nodes": [
         "288:2578",
         "288:2580",

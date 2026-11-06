@@ -2,7 +2,7 @@ import { ImageSourcePropType } from 'react-native';
 
 /**
  * 친구에게 선물하는 부적 (Figma 운픽_14_3) — mark는 고르는 칸의 한자 색, ink는 종이에 적히는 색(소원·칩).
- * 장난 부적(텅장·똥촉)은 어두운 종이라 dark로 날짜·제목을 흰색으로 쓰고, 한자는 seal 색으로 쓴다.
+ * 장난 부적(텅장·똥촉·고생·못난이)은 어두운 종이라 dark로 날짜·제목을 흰색으로 쓰고, 한자는 seal 색으로 쓴다.
  */
 export interface GiftTalisman { key: string; hanja: string; label: string; wish: string; mark: string; ink: string; seal?: string; dark?: boolean; paper: ImageSourcePropType }
 
@@ -17,4 +17,6 @@ export const GIFT_TALISMANS: readonly GiftTalisman[] = [
   { key: 'peace', hanja: '安', label: '평안', wish: '마음 편안하고 무탈한 하루가 된다.', mark: '#2881FE', ink: '#0227C1', paper: require('../../assets/figma/talisman/gift-peace.webp') },
   { key: 'broke', hanja: '空', label: '텅장', wish: '돈은 스쳐 가고, 텅장된다.', mark: '#E0774B', ink: '#FFB191', seal: '#CD460D', dark: true, paper: require('../../assets/figma/talisman/gift-broke.webp') },
   { key: 'jinx', hanja: '運', label: '똥촉', wish: '너가 고른 건 다 꽝이다.', mark: '#FF8E4C', ink: '#FFBB98', seal: '#C84400', dark: true, paper: require('../../assets/figma/talisman/gift-jinx.webp') },
+  { key: 'toil', hanja: '苦', label: '고생', wish: '하는 일마다 고생한다.', mark: '#6A985D', ink: '#D7D99A', seal: '#5C6820', dark: true, paper: require('../../assets/figma/talisman/gift-toil.webp') },
+  { key: 'ugly', hanja: '醜', label: '못난이', wish: '점점 더 못생겨진다.', mark: '#6D45D3', ink: '#CDB5EF', seal: '#7159AE', dark: true, paper: require('../../assets/figma/talisman/gift-ugly.webp') },
 ];

@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
-import { Image, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import { Image } from 'expo-image';
 import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdrop';
 import { Logo } from './Mascot';
 import CharacterArt from './CharacterArt';
@@ -20,17 +21,17 @@ const EXTRA = Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-E
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 // Figma's 110 × 110 illustration slots, including each source image's crop transform.
 const ART = {
-  Monthly: { source: require('../../assets/figma/share/monthly.png'), x: -118.5, y: -8.18, w: 329.24, h: 107.6 },
-  PastLife: { source: require('../../assets/figma/share/pastlife.png'), x: -222.14, y: -8.18, w: 329.24, h: 107.6 },
-  ThemeCareer: { source: require('../../assets/figma/share/career.png'), x: -14.68, y: -9.15, w: 124.2, h: 124.2 },
-  SajuDeep: { source: require('../../assets/figma/share/saju.png'), x: -26.09, y: -19.29, w: 152.18, h: 152.18 },
-  Theme: { source: require('../../assets/figma/share/love.png'), x: -26.3, y: -14.07, w: 142.85, h: 142.85 },
-  NewYear: { source: require('../../assets/figma/share/newyear.png'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
-  Life: { source: require('../../assets/figma/share/life.png'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
-  Lucky: { source: require('../../assets/figma/share/lucky.png'), x: -28.18, y: -26.36, w: 155.55, h: 155.55 },
-  ThemeMoney: { source: require('../../assets/figma/share/money.png'), x: -31.76, y: -31.15, w: 167.22, h: 167.22 },
+  Monthly: { source: require('../../assets/figma/share/monthly.webp'), x: -118.5, y: -8.18, w: 329.24, h: 107.6 },
+  PastLife: { source: require('../../assets/figma/share/pastlife.webp'), x: -222.14, y: -8.18, w: 329.24, h: 107.6 },
+  ThemeCareer: { source: require('../../assets/figma/share/career.webp'), x: -14.68, y: -9.15, w: 124.2, h: 124.2 },
+  SajuDeep: { source: require('../../assets/figma/share/saju.webp'), x: -26.09, y: -19.29, w: 152.18, h: 152.18 },
+  Theme: { source: require('../../assets/figma/share/love.webp'), x: -26.3, y: -14.07, w: 142.85, h: 142.85 },
+  NewYear: { source: require('../../assets/figma/share/newyear.webp'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
+  Life: { source: require('../../assets/figma/share/life.webp'), x: -22.94, y: -17.29, w: 145.87, h: 145.87 },
+  Lucky: { source: require('../../assets/figma/share/lucky.webp'), x: -28.18, y: -26.36, w: 155.55, h: 155.55 },
+  ThemeMoney: { source: require('../../assets/figma/share/money.webp'), x: -31.76, y: -31.15, w: 167.22, h: 167.22 },
   Pet: { source: require('../../assets/images/soon-pet.webp'), x: -2.7, y: 0, w: 115.4, h: 110 },
-  MbtiMatch: { source: require('../../assets/figma/share/mbti.png'), x: -173.46, y: -74.08, w: 356.07, h: 444.52 },
+  MbtiMatch: { source: require('../../assets/figma/share/mbti.webp'), x: -173.46, y: -74.08, w: 356.07, h: 444.52 },
 };
 
 /** Story image only: all content comes from the existing result; no private birth details. */
@@ -60,7 +61,7 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(f
         <View style={s.chipRow}><View style={s.chip}><Text style={s.chipText}>{spec.talisman.nickname} · 오늘의 {spec.talisman.keyword}</Text></View></View>
       </> : <>
         <View style={s.artSlot}>
-          {spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} resizeMode="stretch" accessible={false} />}
+          {spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
         </View>
         <Text style={s.eyebrow} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
         <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
