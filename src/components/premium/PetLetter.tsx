@@ -17,6 +17,21 @@ const LINE_H = 28;
 const stampOf = (letter: string) => letter.slice(0, 40);
 
 /**
+ * 편지 본문을 문단으로 나눈다. 문단 사이는 빈 줄 하나(줄 노트 한 칸)로 띄운다.
+ * 줄바꿈 없이 이어 쓴 예전 편지는 문장을 2~3개씩 묶어 나눈다.
+ */
+export function paragraphsOf(letter: string): string[] {
+  const lines = letter.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  if (lines.length > 1) return lines;
+  const sentences = (letter.match(/[^.!?~]+[.!?~]+["')]*\s*|[^.!?~]+$/g) ?? []).map(t => t.trim()).filter(Boolean);
+  if (sentences.length < 4) return [letter.trim()];
+  const size = Math.ceil(sentences.length / Math.ceil(sentences.length / 3));
+  const out: string[] = [];
+  for (let i = 0; i < sentences.length; i += size) out.push(sentences.slice(i, i + size).join(' '));
+  return out;
+}
+
+/**
  * 아이가 보내는 편지 — 처음엔 봉투로 닫혀 있고, 열면 줄 노트 편지지에 펼쳐진다.
  * owner는 받는 사람으로 적을 말 (고른 호칭, 없으면 닉네임님). letter가 없으면(쓰는 중) 봉투만 보이고 열 수 없다.
  */
@@ -71,7 +86,7 @@ function Paper({ name, owner, letter }: { name: string; owner: string; letter: s
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           {Array.from({ length: Math.ceil(h / LINE_H) }, (_, i) => <View key={i} style={[s.rule, { top: (i + 1) * LINE_H - 4 }]} />)}
         </View>
-        <Text style={s.body}>{letter}</Text>
+        <Text style={s.body}>{paragraphsOf(letter).join('\n\n')}</Text>
       </View>
       <Text style={s.from}>From. {name}</Text>
     </View>

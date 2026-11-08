@@ -11,8 +11,8 @@ export const SITE_URL = 'https://woonpick.com';
 
 /** 정식 이름은 운Pick이지만 '운픽'으로 찾는 사람도 많아 제목·설명에 함께 적는다 */
 export const SITE_NAME = `${BRAND.name}(${BRAND.ko})`;
-/** 검색 결과 제목은 앞부분만 보이므로 찾는 말(사주·MBTI·타로·점성술)을 브랜드 바로 뒤에 둔다 */
-export const SITE_TITLE = `${SITE_NAME} · 사주·MBTI·타로·점성술 운세`;
+/** 검색 결과 제목 — 브랜드, 한 줄 후킹, 찾는 말 순서 */
+export const SITE_TITLE = `${SITE_NAME} | 소름돋게 정확하다고 소문난 그 곳 | 사주·MBTI·타로·점성술`;
 export const SITE_DESCRIPTION = `소름 돋게 정확한 운세 풀이, ${SITE_NAME}. 사주·MBTI·타로·점성술로 오늘의 운세부터 궁합·신년 운세까지 가입 없이 1분이면 봐요.`;
 /** 카카오톡 등 공유 미리보기는 검색어보다 한눈에 끌리는 문구로 */
 const SHARE_TITLE = `${BRAND.name} · 소름 돋게 정확한 운세 풀이`;

@@ -76,12 +76,23 @@ export default function CharacterScreen() {
       </Card>
 
       <SubHead title="찰떡 캐릭터" caption="함께 있으면 편안한 기운" />
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        {artOfName(c.bestFriend) ? <View style={s.friendArt}><CharacterArt name={c.bestFriend} size={52} /></View> : <Mascot name="friends" size={34} />}
-        <View style={{ flex: 1 }}>
-          <Text style={txt.h3}>{c.bestFriend}</Text>
-          <Text style={[txt.small, { marginTop: 2 }]}>친구에게 공유해서 찰떡 캐릭터인지 확인해 보세요</Text>
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          {c.bestFriendHanja || artOfName(c.bestFriend)
+            ? <View style={s.friendArt}><CharacterArt hanja={c.bestFriendHanja} name={c.bestFriend} size={52} /></View>
+            : <Mascot name="friends" size={34} />}
+          <View style={{ flex: 1 }}>
+            <Text style={txt.h3}>{c.bestFriend}</Text>
+            {c.bestFriendBasis ? <Text style={s.basis}>{c.bestFriendBasis}</Text> : null}
+          </View>
         </View>
+        {/* 왜 찰떡인지: 색끼리(천간합) · 동물끼리(육합) — 용어 없이 일상 말로 */}
+        {c.bestFriendReasons?.length ? (
+          <View style={s.reasons}>
+            {c.bestFriendReasons.map(r => <Bullet key={r} textStyle={[txt.body, { fontSize: 14 }]}>{r}</Bullet>)}
+          </View>
+        ) : null}
+        <Text style={[txt.small, { marginTop: 10 }]}>친구에게 공유해서 찰떡 캐릭터인지 확인해 보세요</Text>
       </Card>
 
       <View style={s.cta}><PromoSlot screen="character" promo={promosOf(nav, today).sajuDeep} tone="mint" title="내 사주를 더 깊이 알고 싶다면" /></View>
@@ -104,5 +115,7 @@ const s = StyleSheet.create({
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
   chipText: { color: colors.white, fontSize: 12, fontWeight: '600' },
   foot: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 18 },
+  basis: { fontSize: 13, fontWeight: '600', color: colors.purpleSoft, marginTop: 4 },
+  reasons: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   cta: { marginTop: 24 },
 });

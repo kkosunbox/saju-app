@@ -116,8 +116,11 @@ export interface CombinedFortune {
   luckyColorHex: string;
   luckyNumber: number;
   luckyTime: string;
-  /** 행운 색 · 숫자 · 시간을 고른 근거 (한 문장씩). 예전에 저장된 운세에는 없음 */
-  luckyReasons?: { color: string; number: string; time: string };
+  /**
+   * 행운 색 · 숫자 · 시간을 고른 이유 (쉬운 말 한 문장씩). 예전에 저장된 운세에는 없음.
+   * basis는 그 명리 근거 (용신 火, 병진(丙辰)시 · 子辰합) — 더 예전 운세에는 없음
+   */
+  luckyReasons?: { color: string; number: string; time: string; basis?: { color: string; number: string; time: string } };
 }
 
 export interface TarotReading {

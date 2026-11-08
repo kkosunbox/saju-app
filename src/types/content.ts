@@ -9,6 +9,8 @@ export type Element = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 export interface SajuCharacter {
   name: string; title: string; hanja: string; element: Element; colorHex: string;
   core: string; traits: string[]; inner: string; bestFriend: string; keyword: string;
+  /** 찰떡 캐릭터의 일주 한자 (그림 고르기용) · 어떤 사이인지 한 줄 (예: 함께 빛나는 사이) · 이유 문장 */
+  bestFriendHanja?: string; bestFriendBasis?: string; bestFriendReasons?: string[];
 }
 
 export interface Talisman {

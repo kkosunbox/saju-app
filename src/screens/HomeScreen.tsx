@@ -492,10 +492,17 @@ export default function HomeScreen() {
               </View>
               {luckOpen && f.luckyReasons ? (
                 <View style={s.luckWhy}>
-                  {([['컬러', f.luckyReasons.color], ['숫자', f.luckyReasons.number], ['시간', f.luckyReasons.time]] as const).map(([k, why]) => (
+                  {([
+                    ['컬러', f.luckyReasons.color, f.luckyReasons.basis?.color],
+                    ['숫자', f.luckyReasons.number, f.luckyReasons.basis?.number],
+                    ['시간', f.luckyReasons.time, f.luckyReasons.basis?.time],
+                  ] as const).map(([k, why, basis]) => (
                     <View key={k} style={s.luckWhyRow}>
                       <Text style={s.luckWhyK}>{k}</Text>
-                      <Text style={s.luckWhyV}>{why}</Text>
+                      <View style={s.luckWhyBody}>
+                        <Text style={s.luckWhyV}>{why}</Text>
+                        {basis ? <Text style={s.luckWhyBasis}>{basis}</Text> : null}
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -680,7 +687,9 @@ const s = StyleSheet.create({
   luckWhy: { gap: 6, marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   luckWhyRow: { flexDirection: 'row', gap: 8 },
   luckWhyK: { width: 28, fontSize: 12, lineHeight: 18, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.5 },
-  luckWhyV: { flex: 1, fontSize: 12, lineHeight: 18, color: colors.inkSub, letterSpacing: -0.5 },
+  luckWhyBody: { flex: 1, gap: 2 },
+  luckWhyV: { fontSize: 12, lineHeight: 18, color: colors.inkSub, letterSpacing: -0.5 },
+  luckWhyBasis: { fontSize: 11, lineHeight: 15, color: colors.inkMute, letterSpacing: -0.4 },
   luck: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   luckColor: { gap: 6 },
   luckColorValue: { marginLeft: -1 },

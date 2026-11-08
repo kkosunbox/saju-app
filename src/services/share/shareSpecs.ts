@@ -63,6 +63,7 @@ const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.len
 const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d}`; };
 const mdw = (iso: string) => `${md(iso)} ${WEEK[weekdayOf(iso)]}`;
 const ieyo = (w: string) => josa(w, '이에요', '예요');
+const eunneun = (w: string) => josa(w, '은', '는');
 
 /*
  * 공유 메시지는 사용자 말투로 꾸미지 않고 앱이 보내는 안내문으로 쓴다 (선물 부적 문구와 같은 결).
@@ -115,7 +116,10 @@ export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
   return {
     kind: '사주 캐릭터', seal: c.hanja.slice(0, 1), pillar: c.hanja, eyebrow: `60가지 캐릭터 중 ${u.nickname}님은`,
     headline: c.name, sub: c.core,
-    detail: { label: '60가지 사주 캐릭터 중 하나', value: `${PLAIN_ELEMENT[c.element]}의 기운` },
+    // 찰떡 캐릭터와 어떤 사이인지 액자 중앙에 보여 준다 (예: 나와 '노란 돼지'는 / 뻗고 받쳐 주는 사이)
+    detail: c.bestFriendBasis
+      ? { label: `나와 '${c.bestFriend}'${eunneun(c.bestFriend)}`, value: c.bestFriendBasis }
+      : { label: '60가지 사주 캐릭터 중 하나', value: `${PLAIN_ELEMENT[c.element]}의 기운` },
     stats: [['찰떡 친구', c.bestFriend], ['타고난 기운', PLAIN_ELEMENT[c.element]], ['나의 강점', strength]],
     teaser: `나와 찰떡인 캐릭터는 '${c.bestFriend.split(' ')[0]} ··'`,
     hook: '너는 어떤 캐릭터일까?',
