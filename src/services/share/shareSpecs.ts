@@ -44,6 +44,17 @@ export interface ShareSpec {
   tarot?: TarotReading;
   /** 오늘의 운세: 칭호 · 올해 상위 % 카드로 그린다 */
   today?: TodayCardData;
+  /** 사주 캐릭터: 나와 찰떡 캐릭터를 나란히 그리는 케미 카드 */
+  character?: CharacterCardData;
+}
+
+export interface CharacterCardData {
+  nickname: string;
+  /** 내 캐릭터 — 카드의 주인공. core: 한 줄 성격, element: 타고난 기운, strength: 나의 강점 */
+  mine: { hanja: string; name: string; core: string; element: string; strength: string };
+  friend: { hanja?: string; name: string };
+  /** 어떤 사이인지 한 줄 (예: 뻗고 받쳐 주는 사이) */
+  bond: string;
 }
 
 export interface TodayCardData {
@@ -123,7 +134,14 @@ export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
     stats: [['찰떡 친구', c.bestFriend], ['타고난 기운', PLAIN_ELEMENT[c.element]], ['나의 강점', strength]],
     teaser: `나와 찰떡인 캐릭터는 '${c.bestFriend.split(' ')[0]} ··'`,
     hook: '너는 어떤 캐릭터일까?',
-    text: `60가지 사주 캐릭터 중 ${u.nickname}님은 '${c.name}'${ieyo(c.name)}.\n${seeMine('캐릭터')}`, file: 'woonpick-character', route: 'Character', short: c.name,
+    text: c.bestFriendBasis
+      ? `60가지 사주 캐릭터 중 ${u.nickname}님은 '${c.name}', 찰떡 캐릭터는 '${c.bestFriend}'${ieyo(c.bestFriend)}.\n${seeMine('캐릭터', '찾을')}`
+      : `60가지 사주 캐릭터 중 ${u.nickname}님은 '${c.name}'${ieyo(c.name)}.\n${seeMine('캐릭터')}`,
+    file: 'woonpick-character', route: 'Character', short: c.name,
+    // 찰떡 근거가 오는 서버에서만 케미 카드로 그린다
+    character: c.bestFriendBasis
+      ? { nickname: u.nickname, mine: { hanja: c.hanja, name: c.name, core: c.core, element: PLAIN_ELEMENT[c.element], strength }, friend: { hanja: c.bestFriendHanja, name: c.bestFriend }, bond: c.bestFriendBasis }
+      : undefined,
   };
 }
 

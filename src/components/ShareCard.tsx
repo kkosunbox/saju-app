@@ -5,6 +5,7 @@ import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdro
 import { Logo } from './Mascot';
 import CharacterArt from './CharacterArt';
 import TodayShareCard from './TodayShareCard';
+import CharacterShareCard from './CharacterShareCard';
 import TarotCard from './tarot/TarotCard';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
@@ -37,6 +38,7 @@ const ART = {
 /** Story image only: all content comes from the existing result; no private birth details. */
 const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(function ShareCard({ spec, today }, ref) {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
+  if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
   const gold = !!spec.talisman;
   const art = ART[spec.route as keyof typeof ART] ?? ART.SajuDeep;
   const detail = spec.detail ?? (spec.big ? { label: spec.big.label, value: `${spec.big.value}${spec.big.unit ?? ''}` } : undefined);
