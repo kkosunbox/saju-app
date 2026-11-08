@@ -33,12 +33,44 @@ const GOOGLE = {
 /** 네이버 개발자센터 iOS 환경에 등록한 URL Scheme */
 const NAVER_URL_SCHEME = 'woonpicknaverlogin';
 
+/**
+ * Android 릴리스 빌드는 R8(난독화 · 축소, full mode)을 켜는데, 카카오 · 네이버 SDK는 Retrofit + Gson/Moshi 로
+ * 토큰 응답을 읽으면서 필요한 keep 규칙을 AAR에 넣어 두지 않는다. 규칙이 없으면 모델 필드 이름이 바뀌고
+ * Retrofit 제네릭 정보가 지워져서, 카카오는 로그인 콜백에서 앱이 죽고 네이버는 토큰 교환이 실패한다.
+ * (구글은 Play 서비스라 영향이 없다.) 카카오 개발자 문서의 ProGuard 규칙 + 네이버 SDK 패키지 유지.
+ */
+const SOCIAL_PROGUARD_RULES = `
+# 카카오 SDK
+-keep class com.kakao.sdk.**.model.* { <fields>; }
+-keep class * extends com.google.gson.TypeAdapter
+-dontwarn org.bouncycastle.jsse.**
+-dontwarn org.conscrypt.*
+-dontwarn org.openjsse.**
+
+# 네이버 로그인 SDK
+-keep class com.navercorp.nid.** { *; }
+
+# Retrofit · Gson (R8 full mode)
+-keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
+-if interface * { @retrofit2.http.* <methods>; }
+-keep,allowobfuscation interface <1>
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-if interface * { @retrofit2.http.* public *** *(...); }
+-keep,allowoptimization,allowshrinking,allowobfuscation class <3>
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+`;
+
 module.exports = ({ config }) => ({
   ...config,
   plugins: [
     ...config.plugins,
-    // 카카오 Android SDK는 Maven Central에 없다
-    ['expo-build-properties', { android: { extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'] } }],
+    // 카카오 Android SDK는 Maven Central에 없다. 릴리스 빌드의 R8 규칙은 SOCIAL_PROGUARD_RULES 참고
+    [
+      'expo-build-properties',
+      { android: { extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'], extraProguardRules: SOCIAL_PROGUARD_RULES } },
+    ],
     // iOS 로그인 복귀 URL은 아래 SceneDelegate 플러그인이 받는다 (handleKakaoOpenUrl 은 AppDelegate 전용이라 쓰지 않음)
     ['@react-native-kakao/core', { nativeAppKey: KEYS.kakaoNativeAppKey, android: { authCodeHandlerActivity: true }, ios: {} }],
     './plugins/withKakaoAndroidCompileSdk',

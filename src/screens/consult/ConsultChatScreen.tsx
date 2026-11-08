@@ -22,7 +22,7 @@ import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow } from './parts';
+import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -212,7 +212,7 @@ function Chat({ id }: { id: number }) {
     <>
       <View style={s.inputRow}>
         <TextInput
-          ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW}
+          ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW} {...webEnterToSend(() => { if (!unlocking) send(input); })}
           placeholder="이어서 물어보세요" placeholderTextColor={isDark ? colors.inkMute : '#999999'}
           style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
         />

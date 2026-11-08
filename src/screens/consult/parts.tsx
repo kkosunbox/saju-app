@@ -33,6 +33,19 @@ export const kstTime = (iso: string | null) => {
 /** 웹 textarea 는 기본 두 줄이라 한 줄로 시작한다 — 입력창에 펼쳐 넣는다 */
 export const WEB_ONE_ROW = (Platform.OS === 'web' ? { rows: 1 } : {}) as object;
 
+/** 웹: Enter 는 보내기, Shift+Enter 는 줄바꿈 (한글 조합 중 Enter 는 글자 확정이라 넘긴다). 앱은 그대로 줄바꿈 */
+export function webEnterToSend(onSend: () => void) {
+  if (Platform.OS !== 'web') return {};
+  return {
+    onKeyPress: (e: { key?: string; shiftKey?: boolean; nativeEvent: { key: string; isComposing?: boolean; keyCode?: number; shiftKey?: boolean }; preventDefault(): void }) => {
+      const n = e.nativeEvent;
+      if ((e.key ?? n.key) !== 'Enter' || (e.shiftKey ?? n.shiftKey) || n.isComposing || n.keyCode === 229) return;
+      e.preventDefault();
+      onSend();
+    },
+  };
+}
+
 /** 웹: 입력창을 쓰는 만큼 max 까지 늘린다 (앱은 multiline 입력창이 스스로 늘어난다) */
 export function useWebAutoGrow(ref: RefObject<TextInputInstance | null>, value: string, max: number) {
   useLayoutEffect(() => {

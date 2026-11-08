@@ -23,7 +23,7 @@ import { useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
-import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow } from './parts';
+import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow, webEnterToSend } from './parts';
 import WorryMarquee from './WorryMarquee';
 
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
@@ -168,7 +168,7 @@ export default function ConsultHomeScreen() {
           </View>
           <View style={s.inputRow}>
             <TextInput
-              ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW}
+              ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW} {...webEnterToSend(start)}
               placeholder="마음의 소리를 편하게 적어 주세요" placeholderTextColor={colors.inkMute}
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
