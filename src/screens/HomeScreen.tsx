@@ -48,6 +48,8 @@ import { YearPreview } from '../types/premium';
 import BottomSheet from '../components/BottomSheet';
 import InvitePicker from '../components/InvitePicker';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
+import FortuneAlarmPrompt from '../components/notification/FortuneAlarmPrompt';
+import { notificationService } from '../services/notificationService';
 import { useInviteShare } from '../services/share/useInviteShare';
 import ScoreDelta, { ScoreDeltaText, scoreDeltaLabel } from '../components/ScoreDelta';
 
@@ -159,7 +161,7 @@ export default function HomeScreen() {
   const consultStatus = useConsultStatus(!!account).data;
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const consultCost = consultStatus?.cost ?? 100;
-  const { owned, toast, points } = usePremium();
+  const { owned, toast, points, welcomeBonus } = usePremium();
   const { sendInvite, inviteShareSheet } = useInviteShare();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [showInvite, setShowInvite] = useState(false);
@@ -220,6 +222,22 @@ export default function HomeScreen() {
       savePendingInvite({ ...inv, auto: false });
     });
   }, []));
+  // 오늘의 운세를 방금 뽑았으면, 뽑고 7초가 지나고 풀이도 다 펼쳐진 뒤(최소 2초 여유) 알림 권유 시트를 한 번 띄운다.
+  // 다른 화면으로 갔거나 앱이 뒤로 가 있으면 띄우지 않는다. 띄울지(횟수·권한)는 notificationService가 정한다
+  const [drawnAt, setDrawnAt] = useState(0);
+  const [alarmAsk, setAlarmAsk] = useState(false);
+  const live = useScreenLive();
+  useEffect(() => {
+    if (!drawnAt || reading || !live) return;
+    let alive = true;
+    const timer = setTimeout(async () => {
+      if (!alive || !(await notificationService.shouldPrompt().catch(() => false)) || !alive) return;
+      setDrawnAt(0); // 한 번 뽑을 때 한 번만
+      await notificationService.markPrompted();
+      setAlarmAsk(true);
+    }, Math.max(2000, 7000 - (Date.now() - drawnAt)));
+    return () => { alive = false; clearTimeout(timer); };
+  }, [drawnAt, reading, live]);
   const closeInvite = () => { setShowInvite(false); setInvite(null); };
   const declineInvite = () => { clearPendingInvite(); closeInvite(); };
   // 내 초대 링크로 상대가 본 궁합 중 아직 안 연 것 — 궁합 탭과 같은 캐시
@@ -334,6 +352,7 @@ export default function HomeScreen() {
   const onDrawn = () => {
     draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
     setDrawn(true);
+    setDrawnAt(Date.now());
     setWaitingForPolish(true);
   };
   /** 방금 뽑았을 때만 차례로 나타나게 (Reveal은 처음 그려질 때 한 번 움직인다) */
@@ -623,6 +642,7 @@ export default function HomeScreen() {
       {invitePrompt}
       {inviteShareSheet}
       <WelcomeBonusSheet hidden={showInvite} />
+      <FortuneAlarmPrompt visible={alarmAsk && !showInvite && !welcomeBonus} onClose={() => setAlarmAsk(false)} />
     </View>
   );
 }

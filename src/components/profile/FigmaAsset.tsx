@@ -23,7 +23,7 @@ const assets = {
   smallChevron: [require('../../../assets/figma/my-page/chevron-left-16.svg'), 16, 16],
   close: [require('../../../assets/figma/my-page/close.svg'), 24, 24],
   toggleOn: [require('../../../assets/figma/my-page/toggle-on.svg'), 40, 24],
-  toggleOff: [require('../../../assets/figma/my-page/toggle-off.png'), 40, 24],
+  toggleOff: [require('../../../assets/figma/my-page/toggle-off.svg'), 40, 24],
 } as const;
 export type ProfileAssetName = keyof typeof assets;
 
@@ -32,7 +32,7 @@ export default function FigmaAsset({ name, tint }: { name: ProfileAssetName; tin
   const chevron = name === 'chevron' || name === 'smallChevron';
   const slot = name === 'user' || name === 'coins' ? 16 : width;
   return (
-    <View style={{ width: slot, height: name === 'user' || name === 'coins' ? 16 : height, alignItems: 'center', justifyContent: 'center', ...(name === 'toggleOff' ? { backgroundColor: '#D0D0D0', borderRadius: 12 } : {}), transform: chevron ? [{ scaleX: -1 }] : name === 'system' ? [{ scaleY: -1 }] : [] }}>
+    <View style={{ width: slot, height: name === 'user' || name === 'coins' ? 16 : height, alignItems: 'center', justifyContent: 'center', transform: chevron ? [{ scaleX: -1 }] : name === 'system' ? [{ scaleY: -1 }] : [] }}>
       <Image source={source} style={{ width, height, transform: name === 'user' ? [{ translateY: 0.4 }] : name === 'coins' ? [{ translateX: -0.5 }] : [] }} contentFit="contain" tintColor={tint} />
     </View>
   );

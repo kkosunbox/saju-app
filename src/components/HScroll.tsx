@@ -1,11 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform, ScrollView, StyleProp, ViewStyle, type ScrollViewInstance } from 'react-native';
+import { Platform, ScrollView, StyleProp, ViewStyle, type ScrollViewInstance, type ScrollViewProps } from 'react-native';
+
+type Props = Pick<ScrollViewProps, 'onScroll' | 'scrollEventThrottle' | 'onContentSizeChange'> & {
+  children: React.ReactNode; contentContainerStyle?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle>; scrollRef?: React.RefObject<ScrollViewInstance | null>;
+};
 
 /**
  * 가로로 넘기는 줄. 휴대폰은 손가락으로 넘기면 되지만 데스크톱 웹은 마우스로 넘길 방법이 없어서
  * 웹에서는 마우스로 잡아 끌면 넘어가게 한다. 끌다가 놓을 때는 카드가 눌리지 않는다.
  */
-export default function HScroll({ children, contentContainerStyle, style, scrollRef }: { children: React.ReactNode; contentContainerStyle?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle>; scrollRef?: React.RefObject<ScrollViewInstance | null> }) {
+export default function HScroll({ children, contentContainerStyle, style, scrollRef, ...rest }: Props) {
   const ownRef = useRef<ScrollViewInstance>(null);
   const ref = scrollRef ?? ownRef;
   useEffect(() => {
@@ -43,7 +47,7 @@ export default function HScroll({ children, contentContainerStyle, style, scroll
     };
   }, [ref]);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={style} contentContainerStyle={contentContainerStyle}>
+    <ScrollView {...rest} ref={ref} horizontal showsHorizontalScrollIndicator={false} style={style} contentContainerStyle={contentContainerStyle}>
       {children}
     </ScrollView>
   );

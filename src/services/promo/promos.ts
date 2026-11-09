@@ -60,8 +60,8 @@ export function promosOf(nav: Nav, today: string): Record<PromoKey, Promo> {
       go: () => nav.navigate('Theme', { kind: 'money' }),
     },
     'theme-career': {
-      key: 'theme-career', track: 'theme:career', title: '직업·적성 운세', desc: '맞는 일 · 커리어 상승기 · 이직 타이밍',
-      item: ITEMS.theme('career'), verb: '자세히 보기', ref: { kind: 'theme', theme: 'career' },
+      key: 'theme-career', track: 'theme:career', title: '직업 · 적성 운세', desc: '맞는 일 · 커리어 상승기 · 이직 타이밍',
+      item: ITEMS.theme('career'), verb: '확인하기', ref: { kind: 'theme', theme: 'career' },
       teaser: d => { const p = d as ThemePreview; return p.kind === 'career' && p.jobs?.length ? `잘 맞는 일 ${p.jobs.slice(0, 2).join(' · ')} · 커리어 상승기 · 이직 타이밍` : null; },
       go: () => nav.navigate('Theme', { kind: 'career' }),
     },

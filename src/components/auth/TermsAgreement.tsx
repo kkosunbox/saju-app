@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import PressableScale from '../PressableScale';
 import { CheckRow } from './AuthKit';
 import { colors } from '../../theme/colors';
 import { radius } from '../../theme/typography';
+import { storage } from '../../services/storage/storageService';
 
 export type AgreeKey = 'age' | 'terms' | 'privacy' | 'marketing';
 export type Agreements = Record<AgreeKey, boolean>;
@@ -13,12 +14,24 @@ const AGREES: { k: AgreeKey; label: string; required: boolean }[] = [
   { k: 'age', label: '[필수] 만 14세 이상이에요', required: true },
   { k: 'terms', label: '[필수] 서비스 이용약관', required: true },
   { k: 'privacy', label: '[필수] 개인정보 수집·이용', required: true },
-  { k: 'marketing', label: '[선택] 아침 운세·이벤트 알림 받기', required: false },
+  { k: 'marketing', label: '[선택] 이벤트·혜택 알림 받기 (광고성 정보)', required: false },
 ];
 const DOC: Partial<Record<AgreeKey, string>> = {
+  marketing: '목적: 이벤트·할인·혜택 소식을 앱 푸시로 보내 드려요 · 보관: 동의를 철회하거나 회원 탈퇴할 때까지 · 마이 메뉴에서 언제든 끌 수 있어요. 오늘의 운세 알림은 이와 별개로 마이 메뉴에서 켜요.',
   terms: '운세 콘텐츠는 재미와 참고를 위한 것이며 중요한 결정의 근거가 될 수 없어요. 알은 콘텐츠 열람에만 쓸 수 있어요.',
   privacy: '항목: 이메일, 닉네임, 생년월일·출생시간, 성별, MBTI, 고민 상담 글 · 목적: 맞춤 운세·상담 제공 · 보관: 회원 탈퇴 시까지 (고민 상담은 1년) · 고민 상담 글은 답변 작성을 위해 Anthropic(미국)에 전달돼요',
 };
+
+/** 약관 동의 상태 — 이 기기에서 이미 이벤트·혜택 알림에 동의했으면(게스트로 쓸 때) 선택 항목을 그대로 체크해 둔다 */
+export function useAgreements(): [Agreements, (next: Agreements) => void] {
+  const [agree, setAgree] = useState(NO_AGREEMENTS);
+  useEffect(() => {
+    let alive = true;
+    storage.getNotificationSettings().then(n => { if (alive && n.marketing) setAgree(a => ({ ...a, marketing: true })); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  return [agree, setAgree];
+}
 
 export const requiredAgreed = (a: Agreements) => AGREES.filter(x => x.required).every(x => a[x.k]);
 

@@ -3,7 +3,7 @@ export type PushPermission = 'granted' | 'denied' | 'undetermined';
 
 export const push = {
   permission: async (): Promise<PushPermission> => 'denied',
-  enable: async (): Promise<boolean> => false,
+  enable: async (_dailyFortuneMinute: number | null): Promise<boolean> => false,
   sync: async (): Promise<void> => {},
   unregister: async (): Promise<void> => {},
 };

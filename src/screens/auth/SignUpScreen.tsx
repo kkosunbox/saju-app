@@ -6,7 +6,7 @@ import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import BottomSheet from '../../components/BottomSheet';
 import { FieldError, FieldLabel } from '../../components/auth/AuthKit';
-import TermsAgreement, { NO_AGREEMENTS, requiredAgreed } from '../../components/auth/TermsAgreement';
+import TermsAgreement, { requiredAgreed, useAgreements } from '../../components/auth/TermsAgreement';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ApiError } from '../../api/client';
@@ -36,7 +36,7 @@ export default function SignUpScreen() {
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
   const [sheet, setSheet] = useState(false);
-  const [agree, setAgree] = useState(NO_AGREEMENTS);
+  const [agree, setAgree] = useAgreements();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [codeSent, setCodeSent] = useState(false);

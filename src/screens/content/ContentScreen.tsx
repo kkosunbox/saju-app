@@ -168,14 +168,14 @@ export default function ContentScreen() {
       <View style={{ gap: 16 }}>
         <TrackedPromoCard
           screen="content" item="spouse"
-          tone="pink" variant="figma" title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
+          tone="pink" variant="recommendation" title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
           owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
           base={require('../../../assets/figma/content/promo-spouse-base.webp')}
           onPress={() => nav.navigate('Spouse')}
         />
         <TrackedPromoCard
           screen="content" item="pet"
-          tone="lime" variant="figma" title="반려동물 궁합" desc="댕냥이와 나는 어떤 사이? 성격부터 함께 놀기 좋은 날까지"
+          tone="lime" variant="recommendation" title="반려동물 궁합" desc="댕냥이와 나는 어떤 사이? 성격부터 함께 놀기 좋은 날까지"
           coin cta={`${ITEMS.pet(0, '').cost}알 · 미리보기 무료 →`} base={require('../../../assets/figma/content/promo-pet-base.webp')}
           onPress={() => nav.navigate('Pet')}
         />

@@ -5,7 +5,7 @@ import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import { FieldError } from '../../components/auth/AuthKit';
-import TermsAgreement, { NO_AGREEMENTS, requiredAgreed } from '../../components/auth/TermsAgreement';
+import TermsAgreement, { requiredAgreed, useAgreements } from '../../components/auth/TermsAgreement';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { authApi } from '../../services/server/authApi';
@@ -23,7 +23,7 @@ export default function SocialTermsScreen() {
   const { next } = useLocalSearchParams<{ next?: string }>();
   const { signOut } = useApp();
   const { toast } = usePremium();
-  const [agree, setAgree] = useState(NO_AGREEMENTS);
+  const [agree, setAgree] = useAgreements();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ok = requiredAgreed(agree);

@@ -91,11 +91,12 @@ export default function CategoryDetailScreen() {
         ...(score < 66 ? [[`오늘은 피하기 · ${f.avoidActions[0]}`, ACTION_NOTE[f.avoidActions[0]] ?? '오늘은 한 걸음 물러서도 괜찮아요.']] as [string, string][] : []),
       ]} />
 
-      {/* 같은 분야를 더 깊이 보는 유료 콘텐츠 하나 — 점수가 낮은 날은 '아쉽다면'으로 */}
+      {/* 같은 분야를 더 깊이 보는 유료 콘텐츠 하나 — 직장운은 Figma의 고정 문구를 쓴다 */}
       <SectionHeader title="더 깊이 보기" />
       <PromoSlot
-        screen={`category_${params.category}`} promo={promosOf(nav, today)[PROMO_OF_CATEGORY[params.category]]} tone="mint" teaser
-        title={score < 66 ? (params.category === 'relationship' ? '사람 때문에 고민이라면' : `오늘 ${t.label}이 아쉽다면`) : undefined}
+        screen={`category_${params.category}`} promo={promosOf(nav, today)[PROMO_OF_CATEGORY[params.category]]} tone="mint"
+        teaser={params.category !== 'work'}
+        title={params.category !== 'work' && score < 66 ? (params.category === 'relationship' ? '사람 때문에 고민이라면' : `오늘 ${t.label}이 아쉽다면`) : undefined}
       />
       <Disclaimer compact />
     </Screen>

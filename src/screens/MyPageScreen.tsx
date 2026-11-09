@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, DevSettings, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, DevSettings, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { useNavigation } from '@/navigation/compat';
 import { router } from 'expo-router';
@@ -22,15 +22,15 @@ import { useApp } from '../context/AppContext';
 import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
 import { fmtN } from '../services/premium/catalog';
-import { NotificationSettings } from '../services/storage/storageService';
-import { notificationService } from '../services/notificationService';
+import { NotificationSettings, formatMinute, notificationService } from '../services/notificationService';
+import FortuneTimeWheel from '../components/notification/FortuneTimeWheel';
+import type { PushPermission } from '../services/push';
 import { MBTI_INFO } from '../data/mbtiData';
 import { placeLabel } from '../services/server/birthPlaceApi';
 import { colors } from '../theme/colors';
 import { shadow, txt } from '../theme/typography';
 import appJson from '../../app.json';
 
-const HOURS = [7, 8, 9];
 const THEME_LABEL: Record<ThemePref, string> = { system: '시스템', light: '라이트', dark: '다크' };
 
 /** 색은 앱 시작 때 정해지므로(colors.ts) 모드를 바꾸면 앱을 다시 불러와 적용한다. 앱은 안내 시트를 거치고 웹은 바로 새로고침 */
@@ -68,27 +68,51 @@ function ProfileRow({ icon, label, value, last }: { icon: ProfileAssetName; labe
 
 export default function MyPageScreen() {
   const { user, fortune, account, signOut, deleteAccount } = useApp();
-  const { points, ownedCount } = usePremium();
+  const { points, ownedCount, toast } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [theme] = useState<ThemePref>(readThemePrefSync());
   const [themeAsk, setThemeAsk] = useState<ThemePref | null>(null);
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
+  const [timeDraft, setTimeDraft] = useState<number | null>(null); // 시간 고르기 시트 — 저장을 눌러야 바뀐다
   const [deleteArm, setDeleteArm] = useState(false);
 
-  useEffect(() => { notificationService.load().then(setNoti); }, []);
+  const [permission, setPermission] = useState<PushPermission | null>(null);
+  // 설정 앱에서 권한을 바꾸고 돌아와도 맞도록, 앱으로 돌아올 때마다 다시 읽는다
+  useEffect(() => {
+    const refresh = () => {
+      notificationService.load().then(setNoti);
+      notificationService.permission().then(setPermission);
+    };
+    refresh();
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') refresh(); });
+    return () => sub.remove();
+  }, []);
   if (!user) return null;
 
+  const blockedAlert = () => Alert.alert('알림이 꺼져 있어요', '설정에서 운Pick 알림을 허용하면 오늘의 운세와 소식을 받아볼 수 있어요.', [
+    { text: '닫기', style: 'cancel' },
+    { text: '설정 열기', onPress: () => Linking.openSettings() },
+  ]);
+  // 이벤트·혜택에 동의했는데 이 기기 알림 권한이 없을 때 (웹·다른 기기에서 동의 등): 권한만 다시 받는다
+  const enablePermission = async () => {
+    if (!noti) return;
+    if (permission === 'denied') { blockedAlert(); return; }
+    const { granted, blocked } = await notificationService.enablePermission(noti);
+    setPermission(await notificationService.permission());
+    if (blocked) blockedAlert();
+    else if (granted) toast('이제 이벤트·혜택 알림을 받을 수 있어요');
+  };
+
   const updateNoti = async (next: NotificationSettings) => {
+    if (!noti) return;
+    const prev = noti;
     setNoti(next);
-    const { settings, blocked } = await notificationService.apply(next);
+    const { settings, blocked, notice } = await notificationService.apply(prev, next);
     setNoti(settings);
-    if (blocked) {
-      Alert.alert('알림이 꺼져 있어요', '설정에서 운Pick 알림을 허용하면 아침 운세를 받아볼 수 있어요.', [
-        { text: '닫기', style: 'cancel' },
-        { text: '설정 열기', onPress: () => Linking.openSettings() },
-      ]);
-    }
+    setPermission(await notificationService.permission());
+    if (notice) toast(notice);
+    if (blocked) blockedAlert();
   };
   return (
     <Screen largeTitle="마이" contentStyle={{ paddingTop: 7 }}>
@@ -141,19 +165,56 @@ export default function MyPageScreen() {
       />
 
       <ProfileHeading title="알림" />
-      {noti && (
-        <Card variant="flat" style={s.notificationCard}>
-          <View style={s.notificationTop}>
-            <View style={s.notificationIcon}><FigmaAsset name="bell" /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.notificationTitle}>아침 운세 알림</Text>
-              <Text style={s.notificationCaption}>새로운 운세와 소식을 놓치지 마세요.</Text>
+      {Platform.OS === 'web' ? (
+        // 웹은 앱 푸시를 받을 수 없어 켜지 않는다 — 켜 봐야 어디서도 알림이 오지 않는다
+        <Card variant="flat" style={s.alarmCard}>
+          <View style={s.alarmSection}>
+            <View style={s.alarmHead}>
+              <View style={s.notificationIcon}><FigmaAsset name="bell" /></View>
+              <View style={s.alarmText}>
+                <Text style={s.notificationTitle}>오늘의 운세, 알림으로 먼저 받아 보세요</Text>
+                <Text style={s.alarmCaption}>운Pick 앱에서 알림을 켜면 매일 원하는 시간에 오늘의 행운을 가장 먼저 알려 드려요.</Text>
+              </View>
             </View>
-            <PressableScale accessibilityRole="switch" accessibilityLabel="아침 운세 알림" accessibilityState={{ checked: noti.enabled }} onPress={() => updateNoti({ ...noti, enabled: !noti.enabled })} hitSlop={10} style={s.notificationToggle}><FigmaAsset name={noti.enabled ? 'toggleOn' : 'toggleOff'} /></PressableScale>
           </View>
-          {noti.enabled && (
-            <Segmented variant="figma" options={HOURS.map(h => ({ key: String(h), label: `오전 ${h}시` }))} value={String(noti.hour)} onChange={hour => updateNoti({ ...noti, hour: Number(hour) })} />
-          )}
+        </Card>
+      ) : noti && (
+        <Card variant="flat" style={s.alarmCard}>
+          <View style={s.alarmSection}>
+            <View style={s.alarmHead}>
+              <View style={s.notificationIcon}><FigmaAsset name="bell" /></View>
+              <View style={s.alarmText}>
+                <Text style={s.notificationTitle}>오늘의 운세 알림</Text>
+                <Text style={s.alarmCaption}>오늘 나에게 올 행운, 원하는 시간에 가장 먼저 알려 드릴게요.</Text>
+              </View>
+              <PressableScale accessibilityRole="switch" accessibilityLabel="오늘의 운세 알림" accessibilityState={{ checked: noti.fortune }} onPress={() => { void notificationService.markDecided(); updateNoti({ ...noti, fortune: !noti.fortune }); }} hitSlop={10}><FigmaAsset name={noti.fortune ? 'toggleOn' : 'toggleOff'} /></PressableScale>
+            </View>
+            {noti.fortune && (
+              <PressableScale onPress={() => setTimeDraft(noti.minute)} scaleTo={0.99} style={s.alarmSub} accessibilityRole="button" accessibilityLabel={`알림 시간 ${formatMinute(noti.minute)}`} accessibilityHint="알림 받을 시간을 바꿔요">
+                <FigmaAsset name="time" />
+                <Text style={s.timeLabel}>알림 시간</Text>
+                <Text style={s.timeValue}>{formatMinute(noti.minute)}</Text>
+                <FigmaAsset name="smallChevron" />
+              </PressableScale>
+            )}
+          </View>
+          <View style={s.alarmDivider} />
+          <View style={s.alarmSection}>
+            <View style={s.alarmHead}>
+              <View style={s.notificationIcon}><FigmaAsset name="sparkle" /></View>
+              <View style={s.alarmText}>
+                <Text style={s.notificationTitle}>이벤트·혜택 알림</Text>
+                <Text style={s.alarmCaption}>할인·이벤트 소식을 먼저 알려 드려요. (광고성 정보 수신 동의)</Text>
+              </View>
+              <PressableScale accessibilityRole="switch" accessibilityLabel="이벤트·혜택 알림" accessibilityState={{ checked: noti.marketing }} onPress={() => updateNoti({ ...noti, marketing: !noti.marketing })} hitSlop={10}><FigmaAsset name={noti.marketing ? 'toggleOn' : 'toggleOff'} /></PressableScale>
+            </View>
+            {noti.marketing && permission !== null && permission !== 'granted' && (
+              <PressableScale onPress={enablePermission} scaleTo={0.99} style={s.alarmSub} accessibilityRole="button" accessibilityLabel="알림 권한이 꺼져 있어 받을 수 없어요. 알림 켜기" accessibilityHint={permission === 'denied' ? '설정 앱으로 안내해요' : '알림 권한을 물어요'}>
+                <Text style={s.permissionText}>이 기기 알림 권한이 꺼져 있어 받을 수 없어요</Text>
+                <Text style={s.permissionAction}>{permission === 'denied' ? '설정에서 켜기' : '알림 켜기'}</Text>
+              </PressableScale>
+            )}
+          </View>
         </Card>
       )}
 
@@ -230,6 +291,15 @@ export default function MyPageScreen() {
       <Disclaimer />
       <BusinessFooter style={{ marginTop: 28 }} />
 
+      <BottomSheet visible={timeDraft !== null} onClose={() => setTimeDraft(null)}>
+        {timeDraft !== null && noti && <View>
+          <Text style={[txt.h2, s.center]}>알림 시간</Text>
+          <Text style={[txt.small, s.center, { marginTop: 4, marginBottom: 12 }]}>매일 이 시간에 오늘의 운세를 알려 드려요</Text>
+          <FortuneTimeWheel value={timeDraft} onChange={setTimeDraft} />
+          <PrimaryButton label={`${formatMinute(timeDraft)}로 저장`} onPress={() => { const minute = timeDraft; setTimeDraft(null); if (minute !== noti.minute) updateNoti({ ...noti, minute }); }} style={{ marginTop: 16 }} />
+        </View>}
+      </BottomSheet>
+
       <BottomSheet visible={!!themeAsk} onClose={() => setThemeAsk(null)}>
         {themeAsk && <View>
           <Text style={[txt.caption, s.center]}>화면 모드</Text>
@@ -274,12 +344,21 @@ const s = StyleSheet.create({
   rowIcon: { width: 16, alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, color: colors.ink, fontWeight: '500' },
   rowValue: { fontSize: 15, color: colors.inkSub, fontWeight: '600' },
-  notificationCard: { padding: 7, borderColor: profileLine },
-  notificationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 8, paddingTop: 4, minHeight: 55 },
   notificationIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.lavenderSoft, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  notificationToggle: { marginTop: 8 },
   notificationTitle: profileType(14, '700', 17, -0.56, colors.ink),
   notificationCaption: { ...profileType(13, '400', 18, -0.65), marginTop: 4 },
+  permissionText: { ...profileType(12, '500', 16, -0.4, colors.inkSub), flex: 1 },
+  permissionAction: profileType(12, '700', 16, -0.4, colors.ink),
+  // 알림 카드: 구역마다 위아래 16 · 좌우 16으로 같게, 아이콘·글·토글은 가운데 정렬, 아래 줄(시간·권한)은 12 띄운다
+  alarmCard: { padding: 0, borderColor: profileLine, overflow: 'hidden' },
+  alarmSection: { paddingHorizontal: 16, paddingVertical: 16 },
+  alarmHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  alarmText: { flex: 1 },
+  alarmCaption: { ...profileType(13, '400', 18, -0.65), marginTop: 4 },
+  alarmDivider: { height: 1, backgroundColor: profileLine },
+  alarmSub: { minHeight: 44, marginTop: 12, borderRadius: 8, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  timeLabel: { ...profileType(13, '600', 18, -0.65), flex: 1 },
+  timeValue: profileType(13, '700', 18, -0.65, colors.ink),
   wallet: { padding: 0, overflow: 'hidden' },
   walletTop: { minHeight: 64, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 16 },
   walletCaption: profileType(13, '400', 18, -0.65),
