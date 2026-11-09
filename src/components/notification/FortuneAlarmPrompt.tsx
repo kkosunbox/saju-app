@@ -38,10 +38,11 @@ export default function FortuneAlarmPrompt({ visible, onClose }: { visible: bool
       const next = { fortune: true, minute, marketing: current.marketing || marketing };
       const { settings, blocked, notice } = await notificationService.apply(current, next);
       onClose();
-      if (settings.fortune) toast(`매일 ${formatMinute(settings.minute)}에 오늘의 운세를 알려 드릴게요`);
-      if (notice) setTimeout(() => toast(notice), settings.fortune ? 2600 : 0);
+      // 앱 설정은 켜졌다. 권한이 없으면 켜졌다는 말 대신 설정 안내만 (마이 메뉴에도 안내가 남는다)
+      if (!blocked) toast(`매일 ${formatMinute(settings.minute)}에 오늘의 운세를 알려 드릴게요`);
+      if (notice) setTimeout(() => toast(notice), blocked ? 0 : 2600);
       if (blocked) {
-        Alert.alert('알림이 꺼져 있어요', '설정에서 운Pick 알림을 허용하면 오늘의 운세를 받아볼 수 있어요.', [
+        Alert.alert('운세 알림을 켜 두었어요', '이 기기 알림 권한이 꺼져 있어 아직 받을 수 없어요. 설정에서 운Pick 알림을 허용해 주세요.', [
           { text: '닫기', style: 'cancel' },
           { text: '설정 열기', onPress: () => Linking.openSettings() },
         ]);

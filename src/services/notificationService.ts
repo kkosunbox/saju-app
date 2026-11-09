@@ -33,34 +33,41 @@ const native = Platform.OS !== 'web';
 
 export interface ApplyResult {
   settings: NotificationSettings;
+  /** 이 기기가 지금 알림을 받을 수 있게 등록됐다 (켜진 알림이 없으면 false) */
+  registered: boolean;
   /** 알림 권한이 거절돼 설정 앱에서 켜야 한다 */
   blocked: boolean;
   /** 이벤트·혜택 동의가 바뀌었으면 그 결과 안내 */
   notice?: string;
 }
 
-/** 둘 중 하나라도 켜져 있으면 권한을 받아 등록, 둘 다 꺼지면 기기를 뗀다. 운세 알림은 권한이 없으면 꺼진다 */
-async function syncDevice(next: NotificationSettings): Promise<{ settings: NotificationSettings; blocked: boolean }> {
-  if (!native) return { settings: next, blocked: false };
+/**
+ * 둘 중 하나라도 켜져 있으면 권한을 받아 등록, 둘 다 꺼지면 기기를 뗀다.
+ * 권한이 없거나 등록이 실패해도 사용자가 고른 설정은 그대로 둔다 — 마이 메뉴가 권한 안내를 보여 주고,
+ * 권한이 생기면 앱을 열 때(push.sync) 그 설정대로 등록된다
+ */
+async function syncDevice(next: NotificationSettings): Promise<{ registered: boolean; blocked: boolean }> {
+  if (!native) return { registered: false, blocked: false };
   if (!next.fortune && !next.marketing) {
     await push.unregister();
-    return { settings: next, blocked: false };
+    return { registered: false, blocked: false };
   }
-  const granted = await push.enable(next.fortune ? next.minute : null);
-  if (granted) return { settings: next, blocked: false };
-  return { settings: { ...next, fortune: false }, blocked: (await push.permission()) === 'denied' };
+  const registered = await push.enable(next.fortune ? next.minute : null);
+  return { registered, blocked: !registered && (await push.permission()) === 'denied' };
 }
 
 export const notificationService = {
-  /** 화면에 보일 상태: 운세 알림은 권한이 없으면 꺼진 것으로, 이벤트·혜택은 서버 동의 값으로 */
+  /** 화면에 보일 상태: 운세 알림은 이 기기에 고른 그대로, 이벤트·혜택은 서버 동의 값으로 (OS 권한은 permission()으로 따로) */
   async load(): Promise<NotificationSettings> {
     const saved = await storage.getNotificationSettings();
     const marketing = (await pushApi.getMarketing().catch(() => null))?.agreed ?? saved.marketing;
-    const fortune = saved.fortune && (!native || (await push.permission()) === 'granted');
-    const settings = { ...saved, fortune, marketing };
-    if (marketing !== saved.marketing) await storage.saveNotificationSettings({ ...saved, marketing });
+    const settings = { ...saved, marketing };
+    if (marketing !== saved.marketing) await storage.saveNotificationSettings(settings);
     return settings;
   },
+
+  /** 앱으로 돌아왔을 때: 설정 앱에서 권한을 켜고 왔으면 지금 설정대로 등록한다 */
+  resync: () => push.sync(),
 
   /** 운세 알림 켜기·끄기·시각 바꾸기, 이벤트·혜택 동의 바꾸기를 한 번에 */
   async apply(prev: NotificationSettings, next: NotificationSettings): Promise<ApplyResult> {
@@ -75,9 +82,10 @@ export const notificationService = {
         marketing = prev.marketing; // 서버에 남기지 못하면 바꾸지 않는다
       }
     }
-    const { settings, blocked } = await syncDevice({ ...next, marketing });
+    const settings = { ...next, marketing };
     await storage.saveNotificationSettings(settings);
-    return { settings, blocked, notice };
+    const { registered, blocked } = await syncDevice(settings);
+    return { settings, registered, blocked, notice };
   },
 
   /** 지금 OS 알림 권한 (웹은 늘 denied) */
@@ -108,7 +116,7 @@ export const notificationService = {
     if (!native) return false;
     const [settings, record, permission] = await Promise.all([storage.getNotificationSettings(), storage.getNotificationPrompt(), push.permission()]);
     if (record.decided || permission === 'denied') return false;
-    if (settings.fortune && permission === 'granted') return false;
+    if (settings.fortune) return false; // 이미 켰다 (권한이 없으면 마이 메뉴가 안내한다)
     if (record.count >= 2) return false;
     return record.count === 0 || now - record.lastAt >= 3 * 24 * 3600_000;
   },

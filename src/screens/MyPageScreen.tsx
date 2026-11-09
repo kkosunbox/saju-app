@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState, DevSettings, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
-import { useNavigation } from '@/navigation/compat';
+import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import MbtiArt from '../components/MbtiArt';
@@ -78,30 +78,33 @@ export default function MyPageScreen() {
   const [deleteArm, setDeleteArm] = useState(false);
 
   const [permission, setPermission] = useState<PushPermission | null>(null);
-  // 설정 앱에서 권한을 바꾸고 돌아와도 맞도록, 앱으로 돌아올 때마다 다시 읽는다
-  useEffect(() => {
-    const refresh = () => {
-      notificationService.load().then(setNoti);
-      notificationService.permission().then(setPermission);
-    };
-    refresh();
-    const sub = AppState.addEventListener('change', st => { if (st === 'active') refresh(); });
-    return () => sub.remove();
+  // 마이 탭은 한 번 열면 계속 떠 있다 — 홈의 권유 시트에서 켜고 와도 맞도록 탭에 들어올 때마다 다시 읽는다
+  const reloadNoti = useCallback(() => {
+    notificationService.load().then(setNoti);
+    notificationService.permission().then(setPermission);
   }, []);
+  useFocusEffect(reloadNoti);
+  // 설정 앱에서 권한을 켜고 돌아오면 지금 설정대로 등록하고 다시 읽는다
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', st => {
+      if (st === 'active') notificationService.resync().finally(reloadNoti);
+    });
+    return () => sub.remove();
+  }, [reloadNoti]);
   if (!user) return null;
 
-  const blockedAlert = () => Alert.alert('알림이 꺼져 있어요', '설정에서 운Pick 알림을 허용하면 오늘의 운세와 소식을 받아볼 수 있어요.', [
+  const blockedAlert = () => Alert.alert('이 기기 알림 권한이 꺼져 있어요', '알림은 켜 두었어요. 설정에서 운Pick 알림을 허용하면 바로 받아볼 수 있어요.', [
     { text: '닫기', style: 'cancel' },
     { text: '설정 열기', onPress: () => Linking.openSettings() },
   ]);
-  // 이벤트·혜택에 동의했는데 이 기기 알림 권한이 없을 때 (웹·다른 기기에서 동의 등): 권한만 다시 받는다
+  // 알림을 켜 두었는데 이 기기 알림 권한이 없을 때 (권한을 거절했거나, 다른 기기에서 동의 등): 권한만 다시 받는다
   const enablePermission = async () => {
     if (!noti) return;
     if (permission === 'denied') { blockedAlert(); return; }
     const { granted, blocked } = await notificationService.enablePermission(noti);
     setPermission(await notificationService.permission());
     if (blocked) blockedAlert();
-    else if (granted) toast('이제 이벤트·혜택 알림을 받을 수 있어요');
+    else if (granted) toast('이제 알림을 받을 수 있어요');
   };
 
   const updateNoti = async (next: NotificationSettings) => {
@@ -114,6 +117,15 @@ export default function MyPageScreen() {
     if (notice) toast(notice);
     if (blocked) blockedAlert();
   };
+  // 켜 둔 알림이 있는데 OS 권한이 없으면 켜진 그대로 두고 안내한다 (운세가 켜졌으면 운세 칸에, 아니면 이벤트 칸에 한 번만)
+  const needPermission = Platform.OS !== 'web' && permission !== null && permission !== 'granted';
+  const permissionHint = (
+    <PressableScale onPress={enablePermission} scaleTo={0.99} style={s.alarmSub} accessibilityRole="button" accessibilityLabel={`이 기기 알림 권한이 꺼져 있어 아직 받을 수 없어요. ${permission === 'denied' ? '설정에서 켜기' : '알림 켜기'}`} accessibilityHint={permission === 'denied' ? '설정 앱으로 안내해요' : '알림 권한을 물어요'}>
+      <Text style={s.permissionText}>이 기기 알림 권한이 꺼져 있어 아직 받을 수 없어요</Text>
+      <Text style={s.permissionAction}>{permission === 'denied' ? '설정에서 켜기' : '알림 켜기'}</Text>
+    </PressableScale>
+  );
+
   return (
     <Screen largeTitle="마이" contentStyle={{ paddingTop: 7 }}>
       {/* 프로필 카드 */}
@@ -189,6 +201,7 @@ export default function MyPageScreen() {
               </View>
               <PressableScale accessibilityRole="switch" accessibilityLabel="오늘의 운세 알림" accessibilityState={{ checked: noti.fortune }} onPress={() => { void notificationService.markDecided(); updateNoti({ ...noti, fortune: !noti.fortune }); }} hitSlop={10}><FigmaAsset name={noti.fortune ? 'toggleOn' : 'toggleOff'} /></PressableScale>
             </View>
+            {noti.fortune && needPermission && permissionHint}
             {noti.fortune && (
               <PressableScale onPress={() => setTimeDraft(noti.minute)} scaleTo={0.99} style={s.alarmSub} accessibilityRole="button" accessibilityLabel={`알림 시간 ${formatMinute(noti.minute)}`} accessibilityHint="알림 받을 시간을 바꿔요">
                 <FigmaAsset name="time" />
@@ -208,12 +221,7 @@ export default function MyPageScreen() {
               </View>
               <PressableScale accessibilityRole="switch" accessibilityLabel="이벤트·혜택 알림" accessibilityState={{ checked: noti.marketing }} onPress={() => updateNoti({ ...noti, marketing: !noti.marketing })} hitSlop={10}><FigmaAsset name={noti.marketing ? 'toggleOn' : 'toggleOff'} /></PressableScale>
             </View>
-            {noti.marketing && permission !== null && permission !== 'granted' && (
-              <PressableScale onPress={enablePermission} scaleTo={0.99} style={s.alarmSub} accessibilityRole="button" accessibilityLabel="알림 권한이 꺼져 있어 받을 수 없어요. 알림 켜기" accessibilityHint={permission === 'denied' ? '설정 앱으로 안내해요' : '알림 권한을 물어요'}>
-                <Text style={s.permissionText}>이 기기 알림 권한이 꺼져 있어 받을 수 없어요</Text>
-                <Text style={s.permissionAction}>{permission === 'denied' ? '설정에서 켜기' : '알림 켜기'}</Text>
-              </PressableScale>
-            )}
+            {noti.marketing && !noti.fortune && needPermission && permissionHint}
           </View>
         </Card>
       )}
