@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-nativ
 import { Image } from 'expo-image';
 import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdrop';
 import { Logo } from './Mascot';
+import ShareLinkBadge from './ShareLinkBadge';
 import CharacterArt from './CharacterArt';
 import TodayShareCard from './TodayShareCard';
 import CharacterShareCard from './CharacterShareCard';
@@ -83,7 +84,7 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(f
       </View>
       <Text style={[s.hook, spec.hook.length > 15 && s.longHook, KEEP]} numberOfLines={2}>{spec.hook}</Text>
       <Text style={s.url}>생일만 넣으면 30초 · 운픽</Text>
-      <View style={s.cta}><Text style={s.ctaText}>나도 뽑아보기</Text></View>
+      <ShareLinkBadge style={s.link} />
     </View>
   );
 });
@@ -109,8 +110,8 @@ const s = StyleSheet.create({
   hook: { ...EXTRA, position: 'absolute', left: 24, top: 482, width: 164, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: '#000000' },
   longHook: { top: 470 },
   url: { ...sansW('500'), position: 'absolute', left: 24, top: 508, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: '#000000' },
-  cta: { position: 'absolute', right: 24, top: 485, height: 36, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 5, backgroundColor: '#1D212D' },
-  ctaText: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.26, color: '#EDEDED' },
+  // 링크 뱃지 — 피그마 (180, 492), 오른쪽 끝 291
+  link: { position: 'absolute', right: 20, top: 492 },
   hanjaBox: { position: 'absolute', left: 92, top: 144, width: 127, height: 115, justifyContent: 'center', alignItems: 'center' },
   hanja: { ...sansW('700'), fontSize: 96, lineHeight: 115, letterSpacing: -4.8, color: '#BC3827' },
   mantra: { ...sansW('700'), position: 'absolute', left: 28, right: 28, top: 302, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, textAlign: 'center', color: '#000000' },

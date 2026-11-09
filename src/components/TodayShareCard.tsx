@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { Image, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import ShareCardBackdrop from './ShareCardBackdrop';
 import { ART, Logo } from './Mascot';
+import ShareLinkBadge from './ShareLinkBadge';
 import { POSES } from './ResultMascot';
 import { TodayCardData } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
@@ -14,7 +15,7 @@ import { getMascotFrame } from '../utils/mascotLayout';
  * 피그마(운픽_2_2)의 311 폭 좌표를 그대로 옮기고, 548px 높이와 각 요소의 좌표를 그대로 유지한다.
  * 캡처에서도 나오도록 View·Text·Image·그라디언트만 쓴다.
  */
-const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', percent: '#1FA6FD', dark: '#1D212D' };
+const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', percent: '#1FA6FD' };
 
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 
@@ -67,7 +68,7 @@ const TodayShareCard = forwardRef<ViewInstance, { data: TodayCardData; today: st
           <Text style={s.hook}>너는 오늘 상위 몇 %?</Text>
           <Text style={s.url}>생일만 넣으면 30초 · 운픽</Text>
         </View>
-        <View style={s.cta}><Text style={s.ctaText}>나도 뽑아보기</Text></View>
+        <ShareLinkBadge style={s.link} />
       </View>
     </View>
   );
@@ -99,6 +100,6 @@ const s = StyleSheet.create({
   foot: { position: 'absolute', left: 24, right: 24, top: 482, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   hook: { ...(Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-ExtraBold' }), fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: C.ink },
   url: { ...sansW('500'), marginTop: 8, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: C.ink },
-  cta: { marginTop: 3, height: 36, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 5, backgroundColor: C.dark },
-  ctaText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.26, color: '#EDEDED' },
+  // 링크 뱃지 — 피그마 (180, 492), 오른쪽 끝 291 (foot 오른쪽 24보다 4 바깥)
+  link: { marginTop: 10, marginRight: -4 },
 });

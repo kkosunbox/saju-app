@@ -454,11 +454,12 @@ function PetForm({ u, pets, onPick, onCancel, onSaved }: {
   };
   const d = check(date);
   const dateOk = knowsBirth !== null && d.ok;
-  const ok = !!name.trim() && !!species && dateOk;
+  const ok = !!name.trim() && !!species && dateOk && !!gender;
   const missing = [
     !name.trim() && '이름',
     !species && '어떤 아이',
     knowsBirth === null ? '생일을 아는지' : !dateOk && (knowsBirth ? '생일' : '가족이 된 날'),
+    !gender && '성별',
   ].filter(Boolean) as string[];
   const started = !!name.trim() || !!species || knowsBirth !== null;
   useEffect(() => { if (d.ok) Keyboard.dismiss(); }, [d.ok]);
@@ -561,10 +562,10 @@ function PetForm({ u, pets, onPick, onCancel, onSaved }: {
         ) : null}
 
         <View>
-          <Label>성별 (선택)</Label>
+          <Label>성별</Label>
           <View style={s.row}>
-            <Pick label="남아" selected={gender === 'male'} onPress={() => setGender(g => (g === 'male' ? null : 'male'))} />
-            <Pick label="여아" selected={gender === 'female'} onPress={() => setGender(g => (g === 'female' ? null : 'female'))} />
+            <Pick label="남아" selected={gender === 'male'} onPress={() => setGender('male')} />
+            <Pick label="여아" selected={gender === 'female'} onPress={() => setGender('female')} />
           </View>
         </View>
 

@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import { radius, sansW } from '../theme/typography';
 
 /** 어두운 카드 제목 색 — 디자인에서 카드마다 다른 연한 색을 쓴다 */
-export const PROMO_TONE = { gold: '#ECDB7B', lime: '#DFEEA5', mint: '#9FE3D2', sky: '#9ED8FF', pink: '#F3C5DD', sage: '#AFE4C4', amber: '#FFDC9F' } as const;
+export const PROMO_TONE = { gold: '#ECDB7B', lime: '#DFEEA5', mint: '#9FE3D2', sky: '#9ED8FF', pink: '#F3C5DD', sage: '#AFE4C4', amber: '#FFDC9F', lavender: '#E5DCFF' } as const;
 
 interface Props {
   title: string;
@@ -26,19 +26,22 @@ interface Props {
   badgePlacement?: 'inline' | 'end';
   /** 그림까지 들어 있는 배경 (figma) — 주면 기본 배경·마스코트 대신 쓴다 */
   base?: number;
+  /** 그림이 설명 줄까지 올라오는 배경에서 설명 오른쪽을 비워 둔다 */
+  descInset?: number;
   onPress(): void;
   accessibilityLabel?: string;
 }
 
 /** 어두운 남색 프로모션 카드 — 제목 · 한 줄 설명 · 알약 버튼 · 오른쪽 아래 마스코트 실루엣 */
-export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, onPress, accessibilityLabel }: Props) {
+export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, descInset, onPress, accessibilityLabel }: Props) {
   const home = variant === 'home';
   const recommendation = variant === 'recommendation';
   const figma = variant !== 'default';
   const ownBase = figma && !!base;
   return (
     <PressableScale onPress={onPress} style={[s.card, (home || recommendation) && s.homeCard]} scaleTo={0.98} accessibilityLabel={accessibilityLabel ?? title} accessibilityHint={recommendation ? desc : undefined}>
-      {ownBase ? <Image source={base} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} /> : null}
+      {/* 그림이 카드보다 넓으면 마스코트가 있는 오른쪽을 남긴다 */}
+      {ownBase ? <Image source={base} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" accessible={false} /> : null}
       {figma && !ownBase && tone === 'lime' ? <HomePromoArt large /> : null}
       {figma && !ownBase && (tone === 'lime' || tone === 'gold') ? (
         <Image source={tone === 'lime' ? require('../../assets/figma/home/consult-base.svg') : require('../../assets/figma/home/spouse-base.svg')} style={StyleSheet.absoluteFill} contentFit="fill" accessible={false} />
@@ -48,7 +51,7 @@ export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold'
         <Text style={[s.title, figma && s.figmaTitle, figma && badgePlacement === 'inline' && s.figmaInlineTitle, (home || recommendation) && s.homeTitle, { color: PROMO_TONE[tone] }]} numberOfLines={recommendation ? 1 : undefined}>{title}</Text>
         {isNew ? <View style={[s.new, figma && s.figmaNew, figma && badgePlacement === 'inline' && s.figmaInlineNew]}><Text style={[s.newText, figma && { ...sansW('600') }, figma && badgePlacement === 'inline' && s.figmaInlineNewText]}>NEW</Text></View> : null}
       </View>
-      <Text style={[s.desc, figma && s.figmaDesc, recommendation && s.recommendationDesc]} numberOfLines={recommendation ? 1 : undefined}>{desc}</Text>
+      <Text style={[s.desc, figma && s.figmaDesc, recommendation && s.recommendationDesc, descInset != null && { paddingRight: descInset }]} numberOfLines={recommendation ? 1 : undefined}>{desc}</Text>
       <View style={[s.cta, home && s.homeCta]}>
         {home && (coin || owned) ? (
           <Image source={require('../../assets/figma/home/deeper-point.webp')} style={s.homePoint} contentFit="contain" accessible={false} />

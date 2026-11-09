@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Animated, Platform, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ import ScoreRing from '../components/ScoreRing';
 import Mascot, { ArtName, Logo } from '../components/Mascot';
 import DrawMascot from '../components/DrawMascot';
 import AnimatedNumber from '../components/AnimatedNumber';
-import PromoSlot, { TrackedPromoCard } from '../components/PromoSlot';
+import PromoSlot, { NEW_YEAR_ART, TrackedPromoCard } from '../components/PromoSlot';
 import { isNewYearSeason, newYearOf, promosOf } from '../services/promo/promos';
 import HScroll from '../components/HScroll';
 import { HomeCategoryGlyph, HomeFreeArt, HomeOutlineIcon } from '../components/home/HomeDesignAssets';
@@ -102,11 +102,12 @@ function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animat
   const step = 1 / (count + 1);
   const from = index * step;
   const x = sweep.interpolate({ inputRange: [from, from + step * 2], outputRange: [-GLINT_W, (box?.width ?? 0) + GLINT_W], extrapolate: 'clamp' });
-  const id = `tag-glint-${index}`;
+  // 웹에선 SVG id가 문서 전체에서 공유된다 — 홈이 두 번 떠 있어도 겹치지 않게 인스턴스마다 다르게
+  const id = `tag-glint-${useId().replace(/:/g, '')}`;
   return (
     <View>
-      {/* 크기는 보통 글자로 잡고, 그린 뒤엔 투명하게 두어 SVG 글자만 보인다 */}
-      <Text style={[s.mascotTag, box && { color: 'transparent' }]} onLayout={e => setBox(e.nativeEvent.layout)}>#{label}</Text>
+      {/* 글자는 보통 Text로 늘 보이게 두고, SVG는 그 위에 빛줄기만 얹는다 — 클립이 빠져도 파란 네모가 드러나지 않는다 */}
+      <Text style={s.mascotTag} onLayout={e => setBox(e.nativeEvent.layout)}>#{label}</Text>
       {box && (
         <Svg width={box.width} height={box.height} style={StyleSheet.absoluteFill} pointerEvents="none">
           <Defs>
@@ -120,7 +121,6 @@ function GlintTag({ label, sweep, index, count }: { label: string; sweep: Animat
             </SvgGradient>
           </Defs>
           <G clipPath={`url(#${id}-clip)`}>
-            <Rect width={box.width} height={box.height} fill={TAG_INK} />
             <AnimatedRect x={x} width={GLINT_W} height={box.height} fill={`url(#${id}-glint)`} />
           </G>
         </Svg>
@@ -347,7 +347,7 @@ export default function HomeScreen() {
   });
   const spouseOwned = owned(ITEMS.spouse().key);
   const newYearPromo = isNewYearSeason(today) ? promosOf(nav, today).newyear : null;
-  const newYearArt = newYearOf(today) === 2027 ? require('../../assets/figma/home/deeper-newyear-2027.webp') : undefined;
+  const newYearArt = NEW_YEAR_ART[newYearOf(today)];
 
   const onDrawn = () => {
     draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
@@ -531,8 +531,20 @@ export default function HomeScreen() {
           ))}
           </View>
 
+          <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 79 }} title="4가지 관점" caption="오늘의 운세는 이렇게 만들어져요" action="종합 풀이 보기" onAction={openCombined} />
+          <View style={s.grid}>
+            <View style={s.gridRow}>
+              <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
+              <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
+            </View>
+            <View style={s.gridRow}>
+              <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
+              {a.tarot ? <AnalysisTile analysis={a.tarot} onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })} /> : null}
+            </View>
+          </View>
+
           {hidden ? null : later(1050, (
-            <View style={{ marginTop: 16 }}>
+            <View style={{ marginTop: 32 }}>
               <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
             </View>
           ))}
@@ -579,18 +591,6 @@ export default function HomeScreen() {
               onPress={() => nav.navigate('Tabs', { screen: 'Consult' })}
               accessibilityLabel="운알이와 대화하기"
             />
-          </View>
-
-          <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 79 }} title="4가지 관점" caption="오늘의 운세는 이렇게 만들어졌어요" action="종합 풀이 보기" onAction={openCombined} />
-          <View style={s.grid}>
-            <View style={s.gridRow}>
-              <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
-              <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
-            </View>
-            <View style={s.gridRow}>
-              <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              {a.tarot ? <AnalysisTile analysis={a.tarot} onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })} /> : null}
-            </View>
           </View>
 
           <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 87 }} title="더 깊이 보기" caption={COPY.deeper} />
@@ -724,7 +724,7 @@ const s = StyleSheet.create({
   periodLinkText: { height: 16 },
 
   freeCard: { width: 116, height: 118, padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  freeHeader: { marginTop: 16, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  freeHeader: { marginTop: 32, marginBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   freeHeading: { ...sansW('600'), minWidth: 98, fontSize: 18, lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000', includeFontPadding: false },
   freeDivider: { width: 0, height: 14 },
   freeDividerLine: { position: 'absolute', left: -0.5, width: 1, height: 14, backgroundColor: '#999999' },

@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { STORY_FRAME, STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdrop';
 import { Logo } from './Mascot';
+import ShareLinkBadge from './ShareLinkBadge';
 import CharacterScene, { CharacterAvatar } from './CharacterScene';
 import { characterScene, CHARACTER_PALETTES } from '../data/characterScene';
 import { CharacterCardData } from '../services/share/shareSpecs';
@@ -14,7 +15,7 @@ import { sansW } from '../theme/typography';
  * 그 아래 작은 칸에 찰떡 캐릭터와 어떤 사이인지를 붙인다.
  * 다른 공유 카드와 같은 311×548 액자에 캐릭터와 어울리는 오행 풍경을 담는다.
  */
-const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', blue: '#1FA6FD', pink: '#FF6F91', dark: '#1D212D' };
+const C = { ink: '#000000', mute: '#777777', accent: '#28B2FE', blue: '#1FA6FD', pink: '#FF6F91' };
 const EXTRA = Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-ExtraBold' };
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 
@@ -67,7 +68,7 @@ const CharacterShareCard = forwardRef<ViewInstance, { data: CharacterCardData; t
           <Text style={s.hook}>너의 사주 캐릭터도 확인해 봐!</Text>
           <Text style={s.url}>생일만 넣으면 30초 · 운픽</Text>
         </View>
-        <View style={s.cta}><Text style={s.ctaText}>내 캐릭터 찾기</Text></View>
+        <ShareLinkBadge style={s.link} />
       </View>
     </View>
   );
@@ -100,6 +101,6 @@ const s = StyleSheet.create({
   foot: { position: 'absolute', left: 24, right: 24, top: STORY_FRAME.top + STORY_FRAME.height, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 12 },
   hook: { ...EXTRA, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: C.ink },
   url: { ...sansW('500'), marginTop: 8, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: C.ink },
-  cta: { height: 36, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 5, backgroundColor: C.dark },
-  ctaText: { ...sansW('600'), fontSize: 13, letterSpacing: -0.26, color: '#EDEDED' },
+  // 링크 뱃지 — 오늘의 운세 카드와 같이 오른쪽 끝 291 (foot 오른쪽 24보다 4 바깥)
+  link: { marginRight: -4 },
 });

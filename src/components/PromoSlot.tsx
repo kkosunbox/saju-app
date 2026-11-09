@@ -15,7 +15,20 @@ export const RECOMMENDATION_DESIGN: Partial<Record<PromoKey, { base: number; ton
   spouse: LOVE_DESIGN,
   'theme-money': { base: require('../../assets/figma/content/promo-money-base.webp'), tone: 'amber' },
   'theme-career': { base: require('../../assets/figma/content/promo-career-base.webp'), tone: 'lime' },
+  // 콘텐츠 탭 평생운 배너 그림
+  life: { base: require('../../assets/figma/content/banner-life.webp'), tone: 'lavender' },
 };
+/** 신년운세는 그림에 해가 적혀 있어 해마다 따로 — 홈 '더 깊이 보기'와 같은 그림 */
+export const NEW_YEAR_ART: Partial<Record<number, number>> = {
+  2027: require('../../assets/figma/home/deeper-newyear-2027.webp'),
+};
+/** 상품별 추천 카드 그림 — 따로 정한 게 없으면 운알톡 그림 */
+export function promoDesign(key: PromoKey, year?: number): { base: number; tone: keyof typeof PROMO_TONE; descInset?: number } {
+  const art = key === 'newyear' && year ? NEW_YEAR_ART[year] : undefined;
+  // 말풍선이 설명 줄 높이까지 올라와 있어 설명을 그 앞에서 끊는다
+  if (art) return { base: art, tone: 'gold', descInset: 76 };
+  return RECOMMENDATION_DESIGN[key] ?? CONSULT_DESIGN;
+}
 
 /** 화면에 처음 보일 때 노출을 한 번 남기고, 누를 때 클릭을 남긴 뒤 go를 부른다 */
 export function usePromoTrack(screen: string, item: string, go: () => void) {
@@ -52,11 +65,11 @@ export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser,
   const desc = title ? `${promo.title} · ${body}` : body;
   // 상담은 하루 무료 횟수가 있고 속마음은 상대를 먼저 골라야 해서 가진 알 안내를 하지 않는다
   const verb = promo.key !== 'consult' && promo.key !== 'crush' && points >= promo.item.cost ? '가진 알로 바로 열기' : promo.verb;
-  const design = RECOMMENDATION_DESIGN[promo.key] ?? CONSULT_DESIGN;
+  const design = promoDesign(promo.key, promo.ref?.kind === 'newyear' ? promo.ref.year : undefined);
   const recommendation = variant === 'recommendation';
   return (
     <PromoCard
-      tone={recommendation ? design.tone : tone} variant={variant} base={base ?? (recommendation ? design.base : undefined)} title={title ?? promo.title} desc={desc}
+      tone={recommendation ? design.tone : tone} variant={variant} base={base ?? (recommendation ? design.base : undefined)} descInset={recommendation && !base ? design.descInset : undefined} title={title ?? promo.title} desc={desc}
       isNew={variant === 'home'} badgePlacement={variant === 'home' ? 'inline' : undefined}
       owned={have} coin={!have} cta={have ? '다시보기 →' : `${promo.item.cost}${variant === 'home' ? 'P' : recommendation ? '알' : ''} · ${verb} →`}
       onPress={onPress}

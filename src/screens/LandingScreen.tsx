@@ -20,7 +20,7 @@ import MascotCarousel from "../components/MascotCarousel";
 import PressableScale from "../components/PressableScale";
 import PrimaryButton from "../components/PrimaryButton";
 import PromoCard from "../components/PromoCard";
-import { CONSULT_DESIGN, RECOMMENDATION_DESIGN } from "../components/PromoSlot";
+import { promoDesign } from "../components/PromoSlot";
 import ReviewCarousel from "../components/ReviewCarousel";
 import ScoreRing from "../components/ScoreRing";
 import { COPY } from "../content/copy";
@@ -358,12 +358,13 @@ export default function LandingScreen() {
           <Text style={s.h}>{COPY.deeper}</Text>
           <View style={{ gap: 10 }}>
             {PAID_BANNERS.map((b) => {
-              const d = RECOMMENDATION_DESIGN[b.key] ?? CONSULT_DESIGN;
+              const d = promoDesign(b.key, NEW_YEAR);
               return (
                 <PromoCard
                   key={b.key}
                   variant="recommendation"
                   base={d.base}
+                  descInset={d.descInset}
                   tone={d.tone}
                   title={b.title}
                   desc={b.desc}
