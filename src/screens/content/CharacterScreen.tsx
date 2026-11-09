@@ -7,15 +7,16 @@ import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import BrandMark from '../../components/BrandMark';
 import Mascot from '../../components/Mascot';
-import CharacterArt, { artOfName } from '../../components/CharacterArt';
+import { artOfName } from '../../components/CharacterArt';
 import { Bullet, SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
 import LoadingScreen from '../../components/LoadingScreen';
-import { ELEMENT_INFO } from '../../data/sajuData';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { characterSpec } from '../../services/share/shareSpecs';
+import CharacterScene, { CharacterAvatar } from '../../components/CharacterScene';
+import { characterScene, CHARACTER_ENERGY_LABELS, CHARACTER_PALETTES } from '../../data/characterScene';
 import FriendCompare from '../../components/FriendCompare';
 import PillarSlot from '../../components/PillarSlot';
 import Reveal from '../../components/Reveal';
@@ -34,6 +35,9 @@ export default function CharacterScreen() {
   if (!u) return null;
   if (!q.data || !draw.ready) return <LoadingScreen title="나의 사주 캐릭터" error={q.error} onRetry={q.refetch} />;
   const c = q.data;
+  const scene = characterScene(c.hanja, c.name);
+  const palette = scene?.palette ?? CHARACTER_PALETTES[c.element];
+  const energyLabel = scene?.energyLabel ?? CHARACTER_ENERGY_LABELS[c.element];
 
   // 처음엔 60갑자 슬롯에서 내 일주를 찾는다
   if (!draw.opened) {
@@ -51,20 +55,22 @@ export default function CharacterScreen() {
     <Screen title="나의 사주 캐릭터" back right={<ShareIconButton spec={characterSpec(u, c)} />}>
       <FriendCompare route="Character" spec={characterSpec(u, c)} />
       {wrap(
-      <View ref={card} collapsable={false} style={s.card}>
-        <View style={s.brand}><BrandMark light size={15} /></View>
+      <View ref={card} collapsable={false} style={[s.card, { backgroundColor: palette.soft }]}>
+        <View style={s.brand}><BrandMark size={15} /></View>
         {/* 일주(60갑자)마다 다른 캐릭터 그림 */}
         <View style={s.art}>
-          <CharacterArt hanja={c.hanja} size={120} />
-          <View style={s.hanja}><Text style={s.hanjaText}>{c.hanja}</Text></View>
+          <CharacterScene hanja={c.hanja} name={c.name} size={160} style={s.scene} />
+          <View style={[s.energy, { backgroundColor: palette.soft }]}><Text style={[s.energyText, { color: palette.ink }]}>{energyLabel}</Text></View>
         </View>
-        <Text style={s.eyebrow}>{u.nickname}님은</Text>
-        <Text style={s.name}>{c.name}</Text>
-        <Text style={s.title}>{c.title}</Text>
-        <View style={s.chips}>
-          {c.traits.slice(0, 3).map(t => <View key={t} style={s.chip}><Text style={s.chipText}>{t}</Text></View>)}
+        <View style={s.details}>
+          <Text style={[s.eyebrow, { color: palette.accent }]}>{u.nickname}님은</Text>
+          <Text style={[s.name, { color: palette.ink }]}>{c.name}</Text>
+          <Text style={[s.title, { color: palette.accent }]}>{c.title}</Text>
+          <View style={s.chips}>
+            {c.traits.slice(0, 3).map(t => <View key={t} style={s.chip}><Text style={[s.chipText, { color: palette.ink }]}>{t}</Text></View>)}
+          </View>
+          <Text style={[s.foot, { color: palette.accent }]}>생일로 찾은 60가지 사주 캐릭터 중 하나</Text>
         </View>
-        <Text style={s.foot}>60가지 사주 캐릭터 중 하나 · {ELEMENT_INFO[c.element].ko}({ELEMENT_INFO[c.element].hanja})의 기운</Text>
       </View>
       )}
       <ShareActions spec={characterSpec(u, c)} />
@@ -79,7 +85,7 @@ export default function CharacterScreen() {
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           {c.bestFriendHanja || artOfName(c.bestFriend)
-            ? <View style={s.friendArt}><CharacterArt hanja={c.bestFriendHanja} name={c.bestFriend} size={52} /></View>
+            ? <View style={s.friendArt}><CharacterAvatar hanja={c.bestFriendHanja} name={c.bestFriend} size={56} /></View>
             : <Mascot name="friends" size={34} />}
           <View style={{ flex: 1 }}>
             <Text style={txt.h3}>{c.bestFriend}</Text>
@@ -101,20 +107,21 @@ export default function CharacterScreen() {
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, padding: 20, alignItems: 'center', marginTop: 4 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start' },
-  brandText: { fontFamily: fonts.serif, color: colors.white, fontSize: 14, fontWeight: '600' },
-  friendArt: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  art: { marginTop: 12, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  hanja: { position: 'absolute', right: -4, bottom: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.moon },
-  hanjaText: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '700', color: colors.heroBg, letterSpacing: 1 },
-  eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 18 },
-  name: { fontFamily: fonts.serif, color: colors.white, fontSize: 36, fontWeight: '600', marginTop: 2 },
-  title: { color: colors.moon, fontSize: 14, marginTop: 4 },
+  card: { borderRadius: 20, overflow: 'hidden', alignItems: 'center', marginTop: 4 },
+  brand: { position: 'absolute', left: 18, top: 16, zIndex: 1 },
+  friendArt: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  art: { width: '100%', height: 216 },
+  scene: { width: '100%' },
+  details: { width: '100%', padding: 20, alignItems: 'center' },
+  energy: { position: 'absolute', right: 16, bottom: 12, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
+  energyText: { fontFamily: fonts.serif, fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: -0.2 },
+  eyebrow: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 0 },
+  name: { fontFamily: fonts.serif, color: colors.white, fontSize: 32, fontWeight: '600', textAlign: 'center', marginTop: 2 },
+  title: { color: colors.moon, fontSize: 14, marginTop: 6, textAlign: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 16 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', backgroundColor: 'rgba(255,255,255,0.06)' },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: 'rgba(255,255,255,0.5)' },
   chipText: { color: colors.white, fontSize: 12, fontWeight: '600' },
-  foot: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 18 },
+  foot: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 16, textAlign: 'center' },
   basis: { fontSize: 13, fontWeight: '600', color: colors.purpleSoft, marginTop: 4 },
   reasons: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   cta: { marginTop: 24 },

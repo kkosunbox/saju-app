@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, ImageStyle, StyleProp } from 'react-native';
-import { BRANCHES, STEMS } from '../data/sajuData';
+import { characterIndex } from '../data/characterScene';
 
 /**
  * 60갑자 사주 캐릭터 그림 — 갑자(01)부터 계해(60)까지 60갑자 순서.
@@ -69,20 +69,14 @@ const ART = [
   require('../../assets/images/characters/60.webp'),
 ];
 
-/** 60갑자 순서의 일주 한자 (甲子 · 乙丑 · … · 癸亥) */
-const PILLARS = Array.from({ length: 60 }, (_, i) => STEMS[i % 10].hanja + BRANCHES[i % 12].hanja);
-/** 캐릭터 이름 앞의 색 — 서버(free-content.ts)의 STEM_COLOR와 같다 */
-const STEM_COLOR = ['푸른', '푸른', '붉은', '붉은', '노란', '노란', '하얀', '하얀', '검은', '검은'];
-const NAMES = Array.from({ length: 60 }, (_, i) => `${STEM_COLOR[i % 10]} ${BRANCHES[i % 12].animal}`);
-
 /** 일주 한자(예: 己丑)로 그림 찾기 */
-export const artOfPillar = (hanja: string) => ART[PILLARS.indexOf(hanja)] ?? null;
+export const artOfPillar = (hanja: string) => ART[characterIndex(hanja)] ?? null;
 /** 캐릭터 이름(예: 하얀 소)으로 그림 찾기 — 찰떡 캐릭터처럼 이름만 있을 때 */
-export const artOfName = (name: string) => ART[NAMES.indexOf(name)] ?? null;
+export const artOfName = (name: string) => ART[characterIndex(undefined, name)] ?? null;
 
 /** 사주 캐릭터 그림. hanja(일주) 또는 name 중 하나로 고른다. 못 찾으면 아무것도 그리지 않는다 */
 export default function CharacterArt({ hanja, name, size, style }: { hanja?: string; name?: string; size: number; style?: StyleProp<ImageStyle> }) {
-  const src = (hanja && artOfPillar(hanja)) || (name && artOfName(name)) || null;
+  const src = ART[characterIndex(hanja, name)] ?? null;
   if (!src) return null;
   return <Image source={src} style={[{ width: size, height: size }, style]} resizeMode="contain" accessibilityIgnoresInvertColors />;
 }
