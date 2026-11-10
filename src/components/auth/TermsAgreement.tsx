@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import PressableScale from '../PressableScale';
 import { CheckRow } from './AuthKit';
 import { colors } from '../../theme/colors';
 import { radius } from '../../theme/typography';
-import { storage } from '../../services/storage/storageService';
 
 export type AgreeKey = 'age' | 'terms' | 'privacy' | 'marketing';
 export type Agreements = Record<AgreeKey, boolean>;
@@ -22,15 +21,9 @@ const DOC: Partial<Record<AgreeKey, string>> = {
   privacy: '항목: 이메일, 닉네임, 생년월일·출생시간, 성별, MBTI, 고민 상담 글 · 목적: 맞춤 운세·상담 제공 · 보관: 회원 탈퇴 시까지 (고민 상담은 1년) · 고민 상담 글은 답변 작성을 위해 Anthropic(미국)에 전달돼요',
 };
 
-/** 약관 동의 상태 — 이 기기에서 이미 이벤트·혜택 알림에 동의했으면(게스트로 쓸 때) 선택 항목을 그대로 체크해 둔다 */
+/** 약관 동의 상태 — 모든 항목(선택 항목 포함)이 꺼진 채로 시작한다 */
 export function useAgreements(): [Agreements, (next: Agreements) => void] {
-  const [agree, setAgree] = useState(NO_AGREEMENTS);
-  useEffect(() => {
-    let alive = true;
-    storage.getNotificationSettings().then(n => { if (alive && n.marketing) setAgree(a => ({ ...a, marketing: true })); }).catch(() => {});
-    return () => { alive = false; };
-  }, []);
-  return [agree, setAgree];
+  return useState(NO_AGREEMENTS);
 }
 
 export const requiredAgreed = (a: Agreements) => AGREES.filter(x => x.required).every(x => a[x.k]);

@@ -8,6 +8,8 @@ import CharacterArt from './CharacterArt';
 import TodayShareCard from './TodayShareCard';
 import CharacterShareCard from './CharacterShareCard';
 import TarotCard from './tarot/TarotCard';
+import MbtiArt from './MbtiArt';
+import MbtiScoreRing from './MbtiScoreRing';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
 import { sansW } from '../theme/typography';
@@ -21,6 +23,8 @@ const fit = (text: string, base: number, width: number, tracking = -0.05) => {
 };
 const EXTRA = Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-ExtraBold' };
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
+/** 찰떡 MBTI 카드 가운데 종합 궁합 링 지름 */
+const MBTI_RING = 58;
 // Figma's 110 × 110 illustration slots, including each source image's crop transform.
 const ART = {
   Monthly: { source: require('../../assets/figma/share/monthly.webp'), x: -118.5, y: -8.18, w: 329.24, h: 107.6 },
@@ -63,16 +67,20 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(f
         <Text style={s.mantra} numberOfLines={2} adjustsFontSizeToFit>{spec.talisman.mantra}</Text>
         <View style={s.chipRow}><View style={s.chip}><Text style={s.chipText}>{spec.talisman.nickname} · 오늘의 {spec.talisman.keyword}</Text></View></View>
       </> : <>
-        <View style={s.artSlot}>
+        {spec.mbti ? <View style={s.mbtiRow}>
+          <View style={s.mbtiCell}><MbtiArt type={spec.mbti.mine} size={72} /><Text style={s.mbtiType}>{spec.mbti.mine}</Text></View>
+          <View style={s.mbtiRing}><MbtiScoreRing score={spec.mbti.score} size={MBTI_RING} color="#000000" /></View>
+          <View style={s.mbtiCell}><MbtiArt type={spec.mbti.partner} size={72} /><Text style={s.mbtiType}>{spec.mbti.partner}</Text></View>
+        </View> : <View style={s.artSlot}>
           {spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
-        </View>
-        <Text style={s.eyebrow} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
-        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
+        </View>}
+        <Text style={[s.eyebrow, spec.mbti && { top: 254 }]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
+        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, spec.mbti && { top: 276 }, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
         {detail ? <>
           <Text style={s.detailLabel} numberOfLines={1} adjustsFontSizeToFit>{detail.label}</Text>
           <Text style={[s.detailValue, { fontSize: detailSize, letterSpacing: -detailSize * 0.05 }, multilineDetail && s.multilineDetail]} numberOfLines={multilineDetail ? 2 : 1} adjustsFontSizeToFit>{detail.value}</Text>
         </> : null}
-        {spec.sub ? <Text style={[s.line, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
+        {spec.sub ? <Text style={[s.line, spec.mbti && { top: 330 }, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
       </>}
       <View style={s.stats} testID="share-stats">
         {spec.stats.map(([label, value], i) => <View key={label} style={[s.stat, gold && { flex: [1.1, 0.55, 1.35][i] ?? 1 }]}>
@@ -95,6 +103,12 @@ const s = StyleSheet.create({
   logo: { position: 'absolute', left: 20, top: 9 },
   date: { ...sansW('500'), position: 'absolute', left: 36, right: 36, top: 72, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center', color: '#777777' },
   artSlot: { position: 'absolute', left: 100, top: 106, width: 110, height: 110, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  // 찰떡 MBTI — 그림 칸 자리에 내 MBTI · 링 · 찰떡 MBTI. 보조 제목이 없어 아래 글줄을 24 내린다 (eyebrow 254 · headline 276 · line 330)
+  mbtiRow: { position: 'absolute', left: 36, right: 36, top: 124, height: 102, flexDirection: 'row', justifyContent: 'space-between' },
+  mbtiCell: { width: 76, alignItems: 'center' },
+  mbtiType: { ...EXTRA, marginTop: 4, fontSize: 18, lineHeight: 22, letterSpacing: -0.9, color: '#000000' },
+  // 링은 양옆 칸(그림 72 + 간격 4 + MBTI 글자 22 = 98)의 세로 가운데에
+  mbtiRing: { marginTop: (98 - MBTI_RING) / 2 },
   eyebrow: { ...sansW('700'), position: 'absolute', left: 28, right: 28, top: 230, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#28B2FE' },
   headline: { ...EXTRA, position: 'absolute', left: 25, right: 25, top: 252, fontSize: 32, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center', color: '#000000' },
   multilineTitle: { top: 248, fontSize: 20, lineHeight: 24, height: 48, letterSpacing: -1 },
@@ -104,9 +118,10 @@ const s = StyleSheet.create({
   line: { ...sansW('600'), position: 'absolute', left: 26, right: 26, top: 362, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#777777' },
   stats: { position: 'absolute', left: 28, top: 398, width: 255, height: 61, flexDirection: 'row', borderBottomLeftRadius: 25, borderBottomRightRadius: 25, backgroundColor: '#FFFFFF' },
   stat: { flex: 1, height: 61, alignItems: 'center', paddingHorizontal: 3 },
-  statValueBox: { position: 'absolute', left: 3, right: 3, top: 4, height: 30, justifyContent: 'center' },
+  // 흰 칸(61) 안에서 값·라벨 묶음의 위아래 여백을 맞춘다 (위 10.5 · 아래 11)
+  statValueBox: { position: 'absolute', left: 3, right: 3, top: 6, height: 30, justifyContent: 'center' },
   statValue: { ...EXTRA, maxWidth: '100%', fontSize: 18, lineHeight: 21, letterSpacing: -0.72, textAlign: 'center', color: '#000000' },
-  statLabel: { ...sansW('600'), position: 'absolute', top: 34, left: 3, right: 3, fontSize: 12, lineHeight: 14, letterSpacing: -0.48, textAlign: 'center', color: '#777777' },
+  statLabel: { ...sansW('600'), position: 'absolute', top: 36, left: 3, right: 3, fontSize: 12, lineHeight: 14, letterSpacing: -0.48, textAlign: 'center', color: '#777777' },
   hook: { ...EXTRA, position: 'absolute', left: 24, top: 482, width: 164, fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: '#000000' },
   longHook: { top: 470 },
   url: { ...sansW('500'), position: 'absolute', left: 24, top: 508, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: '#000000' },

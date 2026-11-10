@@ -6,6 +6,7 @@ import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, HeadRow, LockGate, Para, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
@@ -27,11 +28,13 @@ export default function SpouseScreen() {
   const { user: u } = useApp();
   const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
   const { reading, retry } = useReading<SpouseReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
   // 카드는 Figma 327×168 비율을 지킨다 — 폭이 넓은 기기에서도 그림이 카드 전체를 채우게
   const [heroW, setHeroW] = React.useState(327);
   if (!u) return null;
   const item = ITEMS.spouse();
+  if (content.open && gate.show) return <ReadingStepsScreen title="미래 배우자 리포트" kind="spouse" reading={reading} />;
   const R = content.data?.data;
   // 첫 화면(무료): 열람했으면 본문에서, 아니면 미리보기에서
   const sum: SpousePreview | undefined = R
@@ -63,7 +66,7 @@ export default function SpouseScreen() {
       </View>
 
       {!content.open ? <LockGate item={item} />
-        : R ? <SpouseBody R={R} reading={reading} onRetry={retry} />
+        : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact />

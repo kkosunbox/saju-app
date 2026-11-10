@@ -138,7 +138,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
         <Stack.Screen name="legal/[doc]" />
         {/* 서비스 소개는 누구나 (웹 검색 유입) */}
         <Stack.Screen name="g/[topic]" />
-        {/* 개발용: 풀이 로딩 연출 비교 (/dev/loading) */}
+        {/* 개발용: 풀이 로딩 연출 비교 — 로컬 개발 서버에서만 열린다 (src/app/dev/loading.tsx) */}
         <Stack.Screen name="dev/loading" />
         {/* 웹 소셜 로그인 콜백: 온보딩·프로필 여부와 상관없이 받는다 */}
         <Stack.Screen name="oauth/[provider]/callback" />

@@ -8,6 +8,7 @@ import { RelationIcon } from '../SolidIcon';
 import { ART } from '../Mascot';
 import { Bullet, Para, SoftCard, SubHead, Tip } from './Kit';
 import { PartPending, ReadingBanner } from './Reading';
+import { ReadingPart, useReadingSections } from './ReadingGate';
 import { CompatibilityResult, User } from '../../types';
 import { WEEK, pText, toSajuFull } from '../../services/premium/helpers';
 import { DeepCompatibility, SajuFull } from '../../types/premium';
@@ -36,6 +37,8 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   const writing = reading?.status === 'writing';
   const { bond, fields, together } = reading?.parts ?? {};
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
+  // C방식: 아직 안 쓴 파트의 섹션은 숨기고 그 자리에 로딩 카드 하나
+  const S = useReadingSections(reading, 'compat');
   const rows: [string, (x: SajuFull) => string][] = [['일주', x => pText(x.ch.day)], ['일간', x => STEMS[x.ds].ko + EK(x.meE)], ['신강약', x => x.strength], ['용신', x => `${EK(x.yong)}(${ELEMENT_INFO[x.yong].hanja})`], ['띠', x => BRANCHES[x.ch.year.branch].animal + '띠']];
   const tags = [
     D.stemHap ? '천간합' : null,
@@ -58,6 +61,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
   return (
     <>
       <ReadingBanner reading={reading} onRetry={onRetry} />
+      <ReadingPart s={S} part="bond" lead>
       <Card style={{ marginTop: 16 }}>{bond ? <><Text style={txt.h3}>{bond.headline}</Text><Para>{bond.summary}</Para></> : pending(4)}</Card>
 
       <SubHead variant="figma" title="두 사람 한눈에" caption={privatePartner ? '상대 프로필은 비공개로 보호해요' : undefined} />
@@ -115,6 +119,9 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         : <Text style={txt.caption}>{privatePartner ? '상대의 개인 성향 정보는 공개하지 않고, 두 사람의 궁합을 풀이해요.' : `${nmB}님의 MBTI를 몰라 MBTI 비교는 빼고 봤어요.`}</Text>}
       {bond || writing ? <Card style={{ marginTop: 16, padding: 16 }}>{bond ? <Text style={s.body}>{bond.views}</Text> : pending(3)}</Card> : null}
 
+      </ReadingPart>
+
+      <ReadingPart s={S} part="fields" lead>
       <SubHead variant="figma" title="분야별 궁합 풀이" />
       <Card style={{ padding: 16, gap: 24 }}>
         {scoreRows.map(([k, t, v]) => {
@@ -129,6 +136,9 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
         })}
       </Card>
 
+      </ReadingPart>
+
+      <ReadingPart s={S} part="together" lead>
       <SubHead variant="figma" title="부딪히기 쉬운 순간" />
       {together ? together.frictions.map((f, i) => (
         <Card key={i} style={{ marginTop: i ? 12 : 0, padding: 16 }}>
@@ -160,6 +170,7 @@ export default function CompatDeep({ u, r, D, reading, onRetry }: {
       </View>
       {together ? <Card style={{ marginTop: 12, padding: 16 }}>{together.dateIdeas.map((t, i) => <Bullet key={i} textStyle={s.body} color={colors.love}>{t}</Bullet>)}</Card> : null}
       {together ? <Tip title="두 사람에게">{together.closing}</Tip> : null}
+      </ReadingPart>
     </>
   );
 }

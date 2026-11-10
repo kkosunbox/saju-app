@@ -7,6 +7,7 @@ import Disclaimer from '../../components/Disclaimer';
 import { BodyState, HeadRow, LockGate, Hero, Pill, heroTxt } from '../../components/premium/Kit';
 import { Bullet, Closing, InfoRows, Para, SajuHeading, SourceMark, SubHead, Tip, ViewRow } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { ELS, axisVerdict, elName, mainStem, stage12, strength3, tenGod, thaiDay } from '../../services/premium/helpers';
@@ -64,9 +65,11 @@ export default function SajuDeepScreen() {
   const { user: u, today } = useApp();
   const content = usePremiumContent<SajuData>({ kind: 'saju' });
   const { reading, retry } = useReading<SajuReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<SajuPreview>({ kind: 'saju' }, !content.open);
   if (!u?.natal) return null;
   const item = ITEMS.sajuDeep();
+  if (content.open && gate.show) return <ReadingStepsScreen title="상세사주 해석" kind="saju" reading={reading} />;
   const F = content.data?.F ?? null;
   // 원국표·일주는 프로필의 원국으로(무료), 신강약·용신은 본문 또는 미리보기에서
   const ch = u.natal.chart; const ds = ch.day.stem; const me = STEMS[ds]; const per = STEM_PERSONA[ds];
@@ -104,7 +107,7 @@ export default function SajuDeepScreen() {
       </Card>
       {!content.open ? <LockGate item={item} />
         : F && content.data ? (
-          <SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} />
+          <ReadingReveal on={gate.appeared}><SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} /></ReadingReveal>
         ) : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />

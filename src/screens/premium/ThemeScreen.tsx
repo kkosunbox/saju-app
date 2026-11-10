@@ -8,6 +8,7 @@ import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Para, SubHead, heroTxt,
 import { Image } from 'expo-image';
 import { Closing, InfoRows, SajuIcon, SajuIconName } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsKind, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS, ThemeKind } from '../../services/premium/catalog';
@@ -40,6 +41,8 @@ function ThemeHero({ kind, children }: { kind: ThemeKind; children: React.ReactN
   );
 }
 
+const THEME_STEPS = { love: 'themeLove', money: 'themeMoney', career: 'themeCareer' } as const satisfies Record<ThemeKind, ReadingStepsKind>;
+
 export default function ThemeScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Theme'>>();
   const { user: u } = useApp();
@@ -47,9 +50,11 @@ export default function ThemeScreen() {
   const ref = { kind: 'theme', theme: kind } as const;
   const content = usePremiumContent<ThemeContent<ThemeKind> & { details: ThemeDetails }>(ref);
   const { reading, retry } = useReading<ThemeReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<ThemePreview>(ref, !content.open);
   if (!u?.natal) return null;
   const item = ITEMS.theme(kind);
+  if (content.open && gate.show) return <ReadingStepsScreen title="테마 운세" kind={THEME_STEPS[kind]} reading={reading} />;
   const data = content.data?.data; const F = content.data?.F;
   // 상단 요약(무료): 열람했으면 본문에서, 아니면 미리보기에서
   const top = (data ? { kind, ...data } : preview.data?.kind === kind ? preview.data : undefined) as (ThemePreview & Partial<ThemeLove & ThemeMoney & ThemeCareer>) | undefined;
@@ -85,7 +90,7 @@ export default function ThemeScreen() {
       <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti}`} />
       {hero}
       {!content.open ? <LockGate key={item.key} item={item} />
-        : data && F ? <ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} />
+        : data && F ? <ReadingReveal on={gate.appeared}><ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />

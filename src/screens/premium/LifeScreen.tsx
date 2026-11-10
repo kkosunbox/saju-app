@@ -9,6 +9,7 @@ import Disclaimer from '../../components/Disclaimer';
 import { BodyState, HeadRow, Hero, LockGate, Para, heroTxt, scoreColor } from '../../components/premium/Kit';
 import { Bullet, Closing, SubHead, Tip } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { ageNow, currentDaeun, mainStem, pText, stage12, stageKeyOfAge, strength3, tenGod, tenName } from '../../services/premium/helpers';
@@ -75,9 +76,11 @@ export default function LifeScreen() {
   const { user: u, today } = useApp();
   const content = usePremiumContent<LifeData>({ kind: 'life' });
   const { reading, retry } = useReading<LifeReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<LifePreview>({ kind: 'life' }, !content.open);
   if (!u?.natal) return null;
   const item = ITEMS.life();
+  if (content.open && gate.show) return <ReadingStepsScreen title="평생운" kind="life" reading={reading} />;
   const L = content.data?.data; const F = content.data?.F;
   const now = ageNow(u, today);
   const chart = L?.chart ?? preview.data?.chart;
@@ -92,7 +95,7 @@ export default function LifeScreen() {
         {chart ? <LifeChart pts={chart} now={now} /> : <BodyState error={preview.isError} />}
       </Card>
       {!content.open ? <LockGate item={item} />
-        : L && F ? <LifeBody u={u} L={L} reading={reading} onRetry={retry} />
+        : L && F ? <ReadingReveal on={gate.appeared}><LifeBody u={u} L={L} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />

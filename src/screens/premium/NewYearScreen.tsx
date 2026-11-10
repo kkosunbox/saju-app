@@ -11,6 +11,7 @@ import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, MonthBars, Para, Tip,
 import { Logo } from '../../components/Mascot';
 import { Closing, InfoRows, Para as LuckPara, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
@@ -36,9 +37,11 @@ export default function NewYearScreen() {
   const ref = { kind: 'newyear', year: y } as const;
   const content = usePremiumContent<YearContent>(ref);
   const { reading, retry } = useReading<YearReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<YearPreview>(ref, !content.open);
   if (!u) return null;
   const item = ITEMS.newyear(y);
+  if (content.open && gate.show) return <ReadingStepsScreen title="신년운세" kind="year" reading={reading} />;
   const D = content.data?.data; const F = content.data?.F;
   const top: YearPreview | undefined = D ?? preview.data;
   const idiom = top?.idiom ?? null;
@@ -60,7 +63,7 @@ export default function NewYearScreen() {
         </View>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
-        : D ? <NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} />
+        : D ? <ReadingReveal on={gate.appeared}><NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />

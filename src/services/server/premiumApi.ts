@@ -2,7 +2,8 @@
  * Paid contents and their free previews from the server.
  * The body comes only with an entitlement (member + unlocked); the preview (guests too) is the free top part.
  */
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
 import { useApp } from '../../context/AppContext';
@@ -10,6 +11,7 @@ import { usePremium } from '../../context/PremiumContext';
 import { PurposeKey, SajuFull, SajuProfile } from '../../types/premium';
 import { ReadingView } from '../../types/reading';
 import { toSajuFull } from '../premium/helpers';
+import { markViewing } from '../readingPresence';
 import { readingsKey } from './premiumReadings';
 
 export { listReadings, readingsKey } from './premiumReadings';
@@ -124,6 +126,9 @@ export function useReading<P>(content: { key: string; data?: { reading: ReadingV
     // let the app-wide watcher know, so it can tell the user when this finishes elsewhere
     if (writing) qc.invalidateQueries({ queryKey: readingsKey });
   }, [writing, qc]);
+  // 이 화면을 보는 동안엔 풀이가 화면에 바로 채워지니 완성 토스트를 띄우지 않는다
+  const key = content.key;
+  useFocusEffect(useCallback(() => markViewing(key), [key]));
   const finished = writing && !!poll.data && poll.data.status !== 'writing';
   useEffect(() => {
     // keep the content cache in step so leaving and coming back shows the finished reading

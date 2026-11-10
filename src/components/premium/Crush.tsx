@@ -6,6 +6,7 @@ import ScoreRing from '../ScoreRing';
 import { ActRow, Bullet, Hero, Para, SoftCard, SubHead, heroTxt } from './Kit';
 import { Closing } from './SajuParts';
 import { PartPending, ReadingBanner } from './Reading';
+import { ReadingPart, useReadingSections } from './ReadingGate';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { WEEK } from '../../services/premium/helpers';
 import { CompatibilityResult } from '../../types';
@@ -21,12 +22,16 @@ export default function CrushView({ r, R, reading, onRetry, shareAction }: {
   const writing = reading?.status === 'writing';
   const { heart, approach } = reading?.parts ?? {};
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
+  // C방식: 아직 안 쓴 파트의 섹션은 숨기고 그 자리에 로딩 카드 하나
+  const S = useReadingSections(reading, 'crush');
   return (
     <>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ flex: 1 }}><SubHead variant="figma" title={`${r.target.nickname}님의 속마음`} caption="두 사람의 사주와 성향으로 본 마음의 경향" /></View>
         {shareAction}
       </View>
+      <ReadingBanner reading={reading} onRetry={onRetry} />
+      <ReadingPart s={S} part="heart" lead>
       <Hero style={{ marginTop: 0, flexDirection: 'row', alignItems: 'center', gap: 18 }}>
         <ScoreRing score={R.temp} size={100} stroke={8} label="마음 온도" />
         <View style={{ flex: 1 }}>
@@ -38,7 +43,6 @@ export default function CrushView({ r, R, reading, onRetry, shareAction }: {
         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.ink }}>연인으로 발전할 가능성</Text>
         <Text style={{ ...sansW('600'), fontSize: 22, color: colors.love }}>{R.chance}%</Text>
       </View>
-      <ReadingBanner reading={reading} onRetry={onRetry} />
       {heart ? <Card style={{ marginTop: 12 }}><Para mt={0}>{heart.summary}</Para></Card> : null}
 
       <SubHead variant="figma" title="01 · 그 사람에게 나는" />
@@ -53,6 +57,9 @@ export default function CrushView({ r, R, reading, onRetry, shareAction }: {
 
       <SubHead variant="figma" title="02 · 그 사람의 호감 신호" caption={r.target.mbti ? `${r.target.mbti} 성향이 마음을 보일 때` : '그 사람이 마음을 보일 때'} />
       <Card style={{ gap: 10 }}>{heart ? heart.signals.map(t => <ActRow variant="figma" key={t} icon="sparkle">{t}</ActRow>) : pending(4)}</Card>
+      </ReadingPart>
+
+      <ReadingPart s={S} part="approach" lead>
 
       <SubHead variant="figma" title="03 · 관계의 속도" />
       <Card>
@@ -112,6 +119,7 @@ export default function CrushView({ r, R, reading, onRetry, shareAction }: {
           <Closing title="마지막 한마디" top={3} style={{ minHeight: 92 }}>{approach.closing}</Closing>
         </>
       ) : null}
+      </ReadingPart>
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미로 보는 콘텐츠예요. 상대의 진짜 마음은 대화로 확인해 주세요.</Text>
     </>
   );

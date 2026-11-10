@@ -1,6 +1,7 @@
 /**
  * 로딩 연출 비교 (개발용) — 상세사주 화면을 본뜬 가짜 화면에서, 풀이를 기다리는 연출만 바꿔 본다.
  * 서버 호출 없이 정해진 시간표대로 파트가 하나씩 완성된다.
+ * 라우트(src/app/dev/loading.tsx)는 로컬 개발 서버(__DEV__)에서만 이 화면을 연다. 배포 번들에는 들어가지 않는다.
  */
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -13,7 +14,7 @@ import { Hero, heroTxt } from '../../components/premium/Kit';
 import { Bullet, Para, SajuHeading, SubHead, Tip } from '../../components/premium/SajuParts';
 import { PartPending, ProgressCard } from '../../components/premium/Reading';
 import {
-  FloatingReadingPill, FullReadingLoader, LoaderStep, ScrollMascot, StepReadingLoader, TypeReveal, WritingLine,
+  FloatingReadingPill, FullReadingLoader, LoaderStep, ScrollMascot, StepReadingLoader, TypeReveal, WritingPlaceholder, ReadingWritingCard,
 } from '../../components/premium/ReadingLoaders';
 import { colors } from '../../theme/colors';
 import { sansW } from '../../theme/typography';
@@ -107,7 +108,7 @@ function Demo({ mode, totalMs, onBack, onReplay }: { mode: Mode; totalMs: number
       <Screen title="상세사주 해석" onBack={onBack} right={replay} scroll={false}>
         {mode === 'full'
           ? <FullReadingLoader title="운픽님의 사주를 풀고 있어요" done={count} total={total} messages={MESSAGES} />
-          : <StepReadingLoader title="운픽님의 사주를 풀고 있어요" steps={SCHEDULE.map(([k]): LoaderStep => ({ key: k, ...PART_STEP[k], done: done.has(k) }))} />}
+          : <StepReadingLoader title="운픽님의 사주를 풀고 있어요" steps={SCHEDULE.map(([k]): LoaderStep => ({ key: k, ...PART_STEP[k], done: done.has(k) }))} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요." />}
       </Screen>
     );
   }
@@ -151,7 +152,15 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
   const has = (p: Part) => done.has(p);
   const stream = mode === 'stream';
   /** 모드별 '아직 안 쓴 파트' 자리 */
-  const pending = (lines = 4) => stream ? <WritingLine /> : <PartPending writing={writing} lines={lines} />;
+  /** mt: C안에서 앞 내용과의 간격 (카드 안에 혼자 있으면 0) */
+  const pending = (lines = 4, mt = 0) => stream ? <WritingPlaceholder lines={lines} mt={mt} /> : <PartPending writing={writing} lines={lines} />;
+  /** 카드 하나가 통째로 아직 안 쓴 자리 — C안은 덮개 카드가 카드를 대신한다 */
+  // C안: 실제 화면과 같이 아직 안 쓴 첫 파트 자리에만 체크리스트 로딩 카드 하나 (화면 순서: 성품 → 오행 → 분야 → 대운)
+  const firstPending = (['core', 'structure', 'fields', 'flow'] as Part[]).find(k => !done.has(k));
+  const [startedAt] = useState(() => Date.now());
+  const pendingCard = (part: Part, lines = 6) => stream
+    ? (part === firstPending ? <ReadingWritingCard startedAt={startedAt} steps={SCHEDULE.map(([k]) => ({ key: k, ...PART_STEP[k] }))} doneKeys={[...done]} /> : null)
+    : <Card>{pending(lines)}</Card>;
   const P = (text: string, mt?: number) => <Prose stream={stream} mt={mt} text={text} />;
   const Show = (children: React.ReactNode) => <Appear stream={stream}>{children}</Appear>;
 
@@ -201,10 +210,11 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
             <SajuHeading title="속마음" icon="heart" />
             {P(TEXT.inner, 7)}
           </Card>
-        </>) : <Card>{pending(6)}</Card>}
+        </>) : pendingCard('core')}
 
       <SubHead title="02 · 오행의 균형" caption="타고난 다섯 기운" />
-      <Card>
+      {/* C안: 풀이를 쓰는 동안은 계산 결과(오행 막대)도 미리 보여 주지 않고 덮개 카드 하나로 */}
+      {stream && !has('structure') ? pendingCard('structure') : Show(<Card>
         <View style={{ gap: 10 }}>
           {ELS.map(([l, c, v]) => (
             <View key={l} style={s.meter}>
@@ -214,13 +224,13 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
             </View>
           ))}
         </View>
-        {has('structure') ? Show(<>
+        {has('structure') ? (<>
             {P(TEXT.elements, 14)}
             <Text style={[s.label, { marginTop: 20 }]}>기운을 채우는 생활습관</Text>
             <Bullet>하루 끝에 할 일을 세 줄로 정리하기</Bullet>
             <Bullet>흰색·은색 소품을 책상 위에 두기</Bullet>
-          </>) : pending()}
-      </Card>
+          </>) : pending(4, 16)}
+      </Card>)}
 
       <SubHead title="06 · 분야별 타고난 운" caption="연애 · 재물 · 일 · 관계 · 건강" />
       {has('fields') ? Show(<>
@@ -235,13 +245,15 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
               {P(TEXT.money, 12)}
             </Card>
           </View>
-        </>) : <Card>{pending(6)}</Card>}
+        </>) : pendingCard('fields')}
 
       <SubHead title="07 · 대운의 흐름" caption="10년마다 바뀌는 큰 운 · 순행 4세 시작" />
-      <Card>
-        <Text style={s.label}>지금의 10년 · 34~43세</Text>
-        {has('flow') ? Show(<><Text style={[s.cardTitle, { marginTop: 8 }]}>씨앗을 심는 10년</Text>{P(TEXT.daeun)}</>) : pending(3)}
-      </Card>
+      {stream && !has('flow') ? pendingCard('flow') : Show(
+        <Card>
+          <Text style={s.label}>지금의 10년 · 34~43세</Text>
+          {has('flow') ? <><Text style={[s.cardTitle, { marginTop: 8 }]}>씨앗을 심는 10년</Text>{P(TEXT.daeun)}</> : pending(3, 12)}
+        </Card>
+      )}
     </>
   );
 }

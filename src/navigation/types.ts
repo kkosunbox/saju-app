@@ -8,7 +8,7 @@ export type TabParamList = {
   Home: undefined;
   Consult: undefined;
   Content: undefined;
-  Compatibility: { result?: CompatibilityResult } | undefined;
+  Compatibility: { result?: CompatibilityResult; resultId?: string } | undefined;
   MyPage: undefined;
 };
 

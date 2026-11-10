@@ -13,6 +13,7 @@ import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Para, scoreColor } from '../../components/premium/Kit';
 import { Closing, InfoRows, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
@@ -38,9 +39,11 @@ export default function MonthlyScreen() {
   const ref = { kind: 'monthly', month: `${sel.y}-${pad2(sel.m)}` } as const;
   const content = usePremiumContent<MonthContent>(ref);
   const { reading, retry } = useReading<MonthReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<MonthPreview>(ref, !content.open);
   if (!u?.natal) return null;
   const item = ITEMS.monthly(sel.y, sel.m);
+  if (content.open && gate.show) return <ReadingStepsScreen title="월별 상세운세" kind="month" reading={reading} />;
   const R = content.data?.data; const F = content.data?.F;
   const top: MonthPreview | undefined = R ?? preview.data;
   const mp = monthPillarOf(sel.y, sel.m);
@@ -70,7 +73,7 @@ export default function MonthlyScreen() {
         </View>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
-        : R && F ? <MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} />
+        : R && F ? <ReadingReveal on={gate.appeared}><MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />

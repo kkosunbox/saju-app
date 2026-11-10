@@ -3,13 +3,15 @@
  * 포인트와 열람권은 회원만 가진다. 게스트가 쓰려 하면 로그인으로 보낸다.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import BottomSheet from '../components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, fmtP, ro, titleOfKey } from '../services/premium/catalog';
+import { Item, PACKS, fmtP, ro } from '../services/premium/catalog';
+import { announceReadingDone } from '../services/readingDone';
+import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
 import { pointsApi, pointsKeys } from '../services/server/pointsApi';
 import { listReadings, readingsKey } from '../services/server/premiumReadings';
@@ -38,7 +40,8 @@ interface PremiumState {
   /** 공유 보상: 하루 한 번 +10알 (서버가 판단). 링크를 복사만 한 경우는 요청하지 않는다 */
   rewardShare(key: string): Promise<void>;
   shareRewardsLeft: number;
-  toast(msg: string): void;
+  /** onPress가 있으면 눌러서 이동할 수 있는 토스트 (끝에 › 표시) */
+  toast(msg: string, onPress?: () => void): void;
   goWallet?: () => void;
   setGoWallet(fn: () => void): void;
   /** 아직 알려 주지 않은 가입 축하 알 (0이면 없음). 메인 화면이 한 번 보여 주고 지운다 */
@@ -89,7 +92,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const [missionState, setMissionState] = useState<{ key: string | null; value: Record<string, boolean> }>({ key: null, value: {} });
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<{ msg: string; onPress?: () => void } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const goWalletRef = useRef<() => void>(undefined);
 
@@ -115,10 +118,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const owned = useCallback((key: string) => ownedKeys.has(key), [ownedKeys]);
   const points = wallet.data?.balance ?? 0;
 
-  const toast = useCallback((msg: string) => {
-    setToastMsg(msg);
+  const toast = useCallback((msg: string, onPress?: () => void) => {
+    setToastMsg({ msg, onPress });
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastMsg(null), 2200);
+    // 누를 수 있는 토스트는 누를 틈을 조금 더 준다
+    toastTimer.current = setTimeout(() => setToastMsg(null), onPress ? 4000 : 2200);
   }, []);
 
   async function doUnlock(it: Item, onDone?: () => void) {
@@ -157,8 +161,9 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     const next = new Map((readings.data ?? []).map(r => [r.contentKey, r.status] as [string, string]));
     next.forEach((status, key) => {
       if (prev.get(key) === 'writing' && status === 'done') {
-        toast(`${titleOfKey(key)} 풀이가 완성됐어요`);
         queryClient.invalidateQueries({ queryKey: ['premium', key] });
+        // 그 화면을 보고 있으면 알리지 않고, 백그라운드였으면 푸시가 알렸다 (readingDone.ts)
+        announceReadingDone(key, toast);
       }
     });
     readingStatus.current = next;
@@ -224,7 +229,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
           <ChargeSheet i={sheet.i} points={points} onConfirm={() => doCharge(sheet.i)} onClose={() => setSheet(null)} />
         ) : null}
       </BottomSheet>
-      {toastMsg ? <Toast msg={toastMsg} /> : null}
+      {toastMsg ? <Toast msg={toastMsg.msg} onPress={toastMsg.onPress && (() => { const go = toastMsg.onPress!; setToastMsg(null); go(); })} /> : null}
     </Ctx.Provider>
   );
 }
@@ -298,13 +303,21 @@ function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: num
   );
 }
 
-function Toast({ msg }: { msg: string }) {
+/** 알림 토스트. onPress가 있으면 눌러서 이동할 수 있고, 끝에 › 를 붙여 누를 수 있다는 걸 보여 준다 */
+function Toast({ msg, onPress }: { msg: string; onPress?: () => void }) {
   const insets = useSafeAreaInsets();
   const a = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.timing(a, { toValue: 1, duration: 220, useNativeDriver: true }).start(); }, [msg]);
   return (
-    <Animated.View pointerEvents="none" style={[s.toast, { top: insets.top + 60, opacity: a }]} accessibilityLiveRegion="polite" accessibilityRole="alert">
-      <Text style={s.toastText}>{msg}</Text>
+    <Animated.View pointerEvents={onPress ? 'auto' : 'none'} style={[s.toast, onPress && s.toastPressable, { top: insets.top + 60, opacity: a }]} accessibilityLiveRegion="polite">
+      {onPress ? (
+        <Pressable onPress={onPress} style={({ pressed }) => [s.toastRow, pressed && { opacity: 0.7 }]} hitSlop={8} accessibilityRole="button" accessibilityHint="눌러서 바로 확인해요">
+          <Text style={s.toastText}>{msg}</Text>
+          <Icon name="chevronRight" size={16} strokeWidth={2.4} color={colors.white} />
+        </Pressable>
+      ) : (
+        <Text style={s.toastText} accessibilityRole="alert">{msg}</Text>
+      )}
     </Animated.View>
   );
 }
@@ -316,5 +329,8 @@ const s = StyleSheet.create({
   sumVal: { fontSize: 15, fontWeight: '700', color: colors.ink },
   hr: { height: 1, backgroundColor: colors.lineStrong },
   toast: { position: 'absolute', alignSelf: 'center', backgroundColor: colors.heroBg, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 15, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  // 누를 수 있는 토스트는 여백까지 누를 수 있게 안쪽(Pressable)에 여백을 둔다
+  toastPressable: { paddingHorizontal: 0, paddingVertical: 0 },
+  toastRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 18, paddingRight: 14, paddingVertical: 12 },
   toastText: { color: colors.white, fontSize: 14, fontWeight: '600' },
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useLocalSearchParams } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
@@ -22,7 +23,8 @@ import { ApiError } from '../../api/client';
 import { BodyState, LockedCard } from '../../components/premium/Kit';
 import { ITEMS } from '../../services/premium/catalog';
 import { usePremiumContent, useReading } from '../../services/server/premiumApi';
-import { PartPending, ProgressCard, ReadingBanner } from '../../components/premium/Reading';
+import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEP_MS, PreviewStepsScreen, ReadingOpeningCard, ReadingPart, useJustOpenedFetching, useReadingSections } from '../../components/premium/ReadingGate';
 import PetLetter from '../../components/premium/PetLetter';
 import PetSnackBanner from '../../components/premium/PetSnackBanner';
 import { PetReading, ReadingView } from '../../types/reading';
@@ -36,12 +38,12 @@ import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
 /** 새 아이를 등록한 뒤 미리보기 전에 보여 주는 단계 (한 단계 0.8초) */
+/** 새로 등록한 아이의 결과 전 단계 (B방식 체크리스트 화면) */
 const LOADING_STEPS = (name: string, basis: string, nickname: string) => [
-  `${name}의 ${basis} 기운을 읽고 있어요`,
-  `${nickname}님의 사주와 겹쳐 보고 있어요`,
-  '둘의 궁합 유형을 고르고 있어요',
+  { key: 'pet', label: `${name}의 ${basis} 기운 읽기`, sub: '타고난 성향을 찾았어요' },
+  { key: 'me', label: `${nickname}님의 사주와 겹쳐 보기`, sub: '둘의 기운을 맞춰 봤어요' },
+  { key: 'type', label: '궁합 유형 고르기', sub: '둘에게 맞는 유형을 골랐어요' },
 ];
-const STEP_MS = 800;
 
 const SPECIES: [PetSpecies, string][] = [['dog', '강아지'], ['cat', '고양이'], ['other', '그 외']];
 const SPECIES_LABEL = Object.fromEntries(SPECIES) as Record<PetSpecies, string>;
@@ -101,7 +103,9 @@ function basisNote(name: string, basis: PetPreview['basis']): string | null {
 export default function PetScreen() {
   const { user: u } = useApp();
   const q = usePets();
-  const [selected, setSelected] = useState<number | null>(null);
+  // 풀이 완성 알림을 눌러 오면 그 아이로 연다
+  const { petId } = useLocalSearchParams<{ petId?: string }>();
+  const [selected, setSelected] = useState<number | null>(petId ? Number(petId) || null : null);
   // 새 아이 등록 화면을 연 중인지
   const [adding, setAdding] = useState(false);
   const [fresh, setFresh] = useState<number | null>(null);
@@ -142,19 +146,22 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   const F = content.open ? content.data?.data ?? null : null;
   const R = F ?? pet.result;
   const { reading, retry } = useReading<PetReading>(content);
+  const fetching = useJustOpenedFetching(content);
   const spec = petSpec(u, pet);
   const name = pet.name;
   // 새로 등록한 아이는 미리보기 전에 궁합을 보는 단계를 잠깐 보여 준다 (다른 아이를 고르면 바로)
   const steps = LOADING_STEPS(name, R.basis.kind === 'adopted' ? '가족이 된 날' : '생일', u.nickname);
-  const [step, setStep] = useState(revealed ? 0 : steps.length);
-  const loading = step < steps.length;
+  // steps.length번째 한 박자는 "궁합을 다 봤어요"
+  const [step, setStep] = useState(revealed ? 0 : steps.length + 1);
+  const loading = step <= steps.length;
   // 단계를 다 본 뒤에만 부드럽게 나타난다 (아이를 바꿔 볼 때는 그대로)
   const Appear = revealed ? Reveal : View;
   useEffect(() => {
     if (!loading) return;
-    const t = setTimeout(() => setStep(n => n + 1), STEP_MS);
+    const t = setTimeout(() => setStep(n => n + 1), PREVIEW_STEP_MS);
     return () => clearTimeout(t);
   }, [loading, step]);
+  if (loading) return <PreviewStepsScreen title="반려동물 궁합" heading={`${name}${josa(name, '과', '와')}의 궁합을 보고 있어요`} steps={steps} step={step} />;
 
   const remove = async () => {
     setConfirm(false);
@@ -194,27 +201,10 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         </PressableScale>
       </View>
 
-      {loading ? (
-        <ProgressCard title="궁합을 보고 있어요" done={step} total={steps.length} note={steps[step]} />
-      ) : (
       <Appear>
       <FriendCompare route="Pet" spec={spec} />
       {hero}
       {basisNote(name, R.basis) ? <Text style={s.basisNote}>{basisNote(name, R.basis)}</Text> : null}
-
-      <Section number="01" title={`${name}의 타고난 성격`} />
-      <View style={s.card}>
-        <Text accessibilityRole="header" style={s.cardTitle}>{R.pet.title}</Text>
-        <Text style={s.body}>{R.pet.persona}</Text>
-        {F ? (
-          <>
-            <View style={s.memo}>
-              <Text style={s.memoLabel}>이 아이의 강점</Text>
-              <Text style={s.body}>{F.pet.strength}</Text>
-            </View>
-          </>
-        ) : null}
-      </View>
 
       {!content.open ? (
         <>
@@ -222,6 +212,8 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         </>
       ) : F ? (
         <PetBody F={F} reading={reading} onRetry={retry} petId={pet.id} name={name} owner={pet.ownerTitle ?? `${u.nickname}님`} />
+      ) : fetching ? (
+        <ReadingOpeningCard kind="pet" />
       ) : (
         <BodyState error={content.isError} onRetry={() => content.refetch()} />
       )}
@@ -239,7 +231,6 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
       </View>
       <Disclaimer compact />
       </Appear>
-      )}
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>{name} 정보를 지울까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>등록한 정보와 궁합 결과가 바로 지워져요.{content.open ? '\n열어 둔 전체 결과도 다시 볼 수 없어요.' : ''}</Text>
@@ -260,10 +251,24 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
   const writing = reading?.status === 'writing';
   const { portrait, bond, days } = reading?.parts ?? {};
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
+  // C방식: 아직 안 쓴 파트의 섹션은 숨기고 그 자리에 로딩 카드 하나
+  const S = useReadingSections(reading, 'pet');
   const ga = `${name}${josa(name, '이', '')}가`;
   return (
     <>
       <View style={{ marginTop: 16 }}><ReadingBanner reading={reading} onRetry={onRetry} /></View>
+
+      <ReadingPart s={S} part="portrait" lead>
+      {/* 타고난 성격은 무료 미리보기에서 빼고, 연 뒤에 이야기와 함께 보여 준다 */}
+      <Section number="01" title={`${name}의 타고난 성격`} />
+      <View style={s.card}>
+        <Text accessibilityRole="header" style={s.cardTitle}>{F.pet.title}</Text>
+        <Text style={s.body}>{F.pet.persona}</Text>
+        <View style={s.memo}>
+          <Text style={s.memoLabel}>이 아이의 강점</Text>
+          <Text style={s.body}>{F.pet.strength}</Text>
+        </View>
+      </View>
 
       <Section number="02" title={`${name} 이야기`} />
       <View style={s.card}>
@@ -296,13 +301,15 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
         </View>
       ) : null}
 
-      {portrait?.manual || writing ? (
+      {portrait?.manual ? (
         <>
           <Section number="03" title={`${name} 사용 설명서`} />
-          {portrait?.manual ? <PetManual m={portrait.manual} name={name} /> : <View style={s.card}>{pending(6)}</View>}
+          <PetManual m={portrait.manual} name={name} />
         </>
       ) : null}
+      </ReadingPart>
 
+      <ReadingPart s={S} part="bond" lead>
       <Section number="04" title="우리 사이" />
       <View style={{ gap: 12 }}>
         <View style={s.card}>
@@ -340,6 +347,9 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
         ))}
       </View>
 
+      </ReadingPart>
+
+      <ReadingPart s={S} part="days" lead>
       <Section number="05" title="함께하는 하루" />
       <View style={{ gap: 12 }}>
         {days ? (
@@ -416,6 +426,9 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
         ) : null}
       </View>
 
+      </ReadingPart>
+
+      <ReadingPart s={S} part="bond">
       {bond || writing ? (
         <>
           <Section number="06" title={`${ga} 보내는 편지`} />
@@ -423,6 +436,7 @@ function PetBody({ F, reading, onRetry, petId, name, owner }: {
           {days ? <Text style={s.closing}>{days.closing}</Text> : null}
         </>
       ) : null}
+      </ReadingPart>
     </>
   );
 }

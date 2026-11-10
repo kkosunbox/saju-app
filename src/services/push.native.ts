@@ -12,15 +12,30 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { router, type Href } from 'expo-router';
+import { hrefOfKey, titleOfKey } from './premium/catalog';
 import { pushApi } from './server/pushApi';
 import { storage } from './storage/storageService';
 
 export type PushPermission = 'granted' | 'denied' | 'undetermined';
 
-// 앱을 보고 있을 때 온 알림도 배너로 보여 준다
+/** 서버가 AI 풀이를 다 쓰면 보내는 알림 (data.type) */
+const READING_DONE = 'reading_done';
+const readingKeyOf = (data: unknown): string | null => {
+  const d = data as { type?: unknown; contentKey?: unknown } | null | undefined;
+  return d?.type === READING_DONE && typeof d.contentKey === 'string' ? d.contentKey : null;
+};
+
+// 앱을 보고 있을 때 온 알림도 배너로 보여 준다.
+// 풀이 완성 알림만은 숨긴다 — 앱이 켜져 있으면 그 화면에선 풀이가 바로 채워지고, 다른 화면에선 앱이 토스트로 알린다
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+  handleNotification: async notification => {
+    const show = !readingKeyOf(notification.request.content.data);
+    return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
+  },
 });
+
+/** 눌러서 연 풀이 완성 알림 (앱으로 돌아와 같은 안내를 토스트로 또 띄우지 않게) */
+const openedReadings = new Set<string>();
 
 const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
 let token: string | null = null;
@@ -79,6 +94,41 @@ export const push = {
     }
   },
 
+  /**
+   * 이 풀이의 완성을 푸시로 이미 알렸는지 — 알림 센터에 남아 있거나 눌러서 열었으면 true.
+   * 앱이 백그라운드에 있는 동안 끝난 풀이는 푸시가 알렸으니, 돌아와서 토스트를 또 띄우지 않는다.
+   * 토큰이 없는 기기(알림을 꺼 둠)는 푸시가 안 왔으니 false → 토스트로 알린다
+   */
+  async wasNotified(contentKey: string): Promise<boolean> {
+    if (openedReadings.has(contentKey)) return true;
+    try {
+      const presented = await Notifications.getPresentedNotificationsAsync();
+      return presented.some(n => readingKeyOf(n.request.content.data) === contentKey);
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * 개발용(/dev/toast): 서버가 보내는 것과 같은 풀이 완성 알림을 이 기기에 몇 초 뒤 띄운다 (로컬 알림).
+   * 권한이 없으면 묻고, 거절되면 false
+   */
+  async devScheduleReadingDone(contentKey: string, seconds: number): Promise<boolean> {
+    await ensureChannel();
+    let { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted' && canAskAgain) ({ status } = await Notifications.requestPermissionsAsync());
+    if (status !== 'granted') return false;
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'AI 풀이 완성',
+        body: `${titleOfKey(contentKey)} 풀이가 완성됐어요. 눌러서 확인해 보세요`,
+        data: { type: READING_DONE, contentKey },
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds },
+    });
+    return true;
+  },
+
   /** 알림을 모두 끌 때·로그아웃 전: 이 기기를 지금 계정에서 뗀다 */
   async unregister(): Promise<void> {
     try {
@@ -91,7 +141,7 @@ export const push = {
   },
 };
 
-/** 알림을 눌러 앱이 열리면 data.url 화면으로 (ready: 첫 화면이 준비된 뒤) */
+/** 알림을 눌러 앱이 열리면 data.url 화면으로, 풀이 완성 알림은 그 콘텐츠 화면으로 (ready: 첫 화면이 준비된 뒤) */
 export function usePushOpenRouting(ready: boolean): void {
   const response = Notifications.useLastNotificationResponse();
   const handled = useRef<string | null>(null);
@@ -100,7 +150,10 @@ export function usePushOpenRouting(ready: boolean): void {
     const id = response.notification.request.identifier;
     if (handled.current === id) return;
     handled.current = id;
-    const url = response.notification.request.content.data?.url;
+    const data = response.notification.request.content.data;
+    const readingKey = readingKeyOf(data);
+    if (readingKey) openedReadings.add(readingKey);
+    const url = readingKey ? hrefOfKey(readingKey) : data?.url;
     if (typeof url === 'string' && url.startsWith('/')) router.push(url as Href);
   }, [ready, response]);
 }

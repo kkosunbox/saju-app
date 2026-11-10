@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -14,15 +15,19 @@ import { useFreeContent } from '../../services/server/contentApi';
 import LoadingScreen from '../../components/LoadingScreen';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors } from '../../theme/colors';
-import { radius, txt } from '../../theme/typography';
+import { radius, sansW, txt } from '../../theme/typography';
 import { mbtiSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 import MbtiDeck from '../../components/MbtiDeck';
 import MbtiArt from '../../components/MbtiArt';
+import MbtiScoreRing from '../../components/MbtiScoreRing';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
 import PromoSlot from '../../components/PromoSlot';
 import { promosOf } from '../../services/promo/promos';
+
+const LIME = '#DFEEA5';
+const HERO_BG = require('../../../assets/figma/mbti/hero.webp');
 
 /** 무료: 나와 가장 잘 맞는 MBTI */
 export default function MbtiMatchScreen() {
@@ -56,11 +61,20 @@ export default function MbtiMatchScreen() {
       {/* 결과 카드 */}
       {wrap(
       <View ref={card} collapsable={false} style={s.card}>
-        <MbtiArt type={top.type} size={115} style={s.cardArt} />
-        <Logo height={29} />
-        <Text style={s.eyebrow}>{u.mbti} {u.nickname}님의 찰떡 MBTI는</Text>
-        <Text style={s.big}>{top.type}</Text>
-        <Text style={s.nick}>{top.nickname} ㆍ 궁합 {top.score}점</Text>
+        <Image source={HERO_BG} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+        <View style={s.cardLogo}><Logo height={30} /></View>
+        <Text style={s.eyebrow}>{u.nickname}님의 찰떡 MBTI는</Text>
+        <View style={s.pair}>
+          <View style={s.pairCell}>
+            <MbtiArt type={u.mbti} size={80} />
+            <Text style={s.pairType}>{u.mbti}</Text>
+          </View>
+          <MbtiScoreRing score={top.score} style={{ marginTop: 13 }} />
+          <View style={s.pairCell}>
+            <MbtiArt type={top.type} size={80} />
+            <Text style={s.pairType}>{top.type}</Text>
+          </View>
+        </View>
         <Text style={s.reason}>{top.reason}</Text>
       </View>
       )}
@@ -84,8 +98,7 @@ export default function MbtiMatchScreen() {
           <Card key={b.type} style={{ padding: 16 }}>
             <View style={s.between}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={[s.medal, i === 0 && { backgroundColor: colors.navy }]}><Text style={[s.medalText, i === 0 && { color: colors.white }]}>{i + 1}</Text></View>
-                <MbtiArt type={b.type} size={36} />
+                <View style={[s.medal, i === 0 && { backgroundColor: colors.navy }]}><Text style={[s.medalText, i === 0 && { color: LIME }]}>{i + 1}</Text></View>
                 <Text style={s.topType}>{b.type}</Text>
                 <Text style={txt.small}>{b.nickname}</Text>
               </View>
@@ -131,19 +144,22 @@ export default function MbtiMatchScreen() {
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, paddingHorizontal: 17, paddingTop: 11, paddingBottom: 19, overflow: 'hidden' },
-  cardArt: { position: 'absolute', right: 23, top: 23 },
-  eyebrow: { color: '#DDDDDD', fontSize: 13, lineHeight: 18, letterSpacing: -0.6, marginTop: 14 },
-  big: { color: colors.white, fontSize: 44, lineHeight: 53, fontWeight: '600', letterSpacing: -2 },
-  nick: { color: '#DFEEA5', fontSize: 14, lineHeight: 18, fontWeight: '600', letterSpacing: -0.6 },
-  reason: { color: colors.white, fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: -0.6, marginTop: 12 },
-  rankRow: { flexDirection: 'row', marginTop: 12, paddingVertical: 12, borderRadius: radius.lg, backgroundColor: colors.card },
+  // 피그마 482:1517 — 327×219, 밤하늘 구름 배경
+  card: { backgroundColor: colors.heroBg, borderRadius: radius.lg, paddingTop: 20, paddingBottom: 16, overflow: 'hidden' },
+  // 피그마 흰 로고 36×20 (말풍선 포함) — Logo 상자(65:55)로는 높이 30
+  cardLogo: { position: 'absolute', left: 12, top: 2 },
+  eyebrow: { ...sansW('400'), color: '#DDDDDD', fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center' },
+  pair: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 28, marginTop: 10 },
+  pairCell: { width: 80, alignItems: 'center' },
+  pairType: { ...sansW('600'), color: colors.white, fontSize: 20, lineHeight: 24, letterSpacing: -1, marginTop: 1 },
+  reason: { ...sansW('500'), color: colors.white, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center', alignSelf: 'center', maxWidth: 240, marginTop: 14 },
+  rankRow: { flexDirection: 'row', marginTop: 19, paddingTop: 12, paddingBottom: 14, paddingHorizontal: 12, borderRadius: radius.lg, backgroundColor: colors.card },
   rankCell: { flex: 1, alignItems: 'center', gap: 4 },
-  rankNo: { color: colors.inkMute, fontSize: 13, fontWeight: '500' },
-  rankType: { color: colors.ink, fontSize: 20, fontWeight: '600', letterSpacing: -1 },
+  rankNo: { ...sansW('600'), color: colors.inkMute, fontSize: 13, lineHeight: 18, letterSpacing: -0.65 },
+  rankType: { ...sansW('600'), color: colors.ink, fontSize: 20, lineHeight: 24, letterSpacing: -1 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   medal: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  medalText: { fontSize: 13, fontWeight: '700', color: colors.inkSub },
+  medalText: { ...sansW('700'), fontSize: 16, lineHeight: 19, letterSpacing: -0.64, color: colors.inkSub },
   topType: { fontSize: 20, fontWeight: '600', color: colors.ink, letterSpacing: -1 },
   topScore: { fontSize: 16, fontWeight: '700', color: colors.ink, letterSpacing: -0.6 },
   together: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: colors.mbti, letterSpacing: -0.6, marginTop: 8 },

@@ -15,10 +15,8 @@ import { ReadingView } from '../../types/reading';
 /** 풀이 상태 안내. 다 썼으면 아무것도 그리지 않는다. */
 export function ReadingBanner({ reading, onRetry }: { reading: ReadingView<unknown> | null; onRetry(): void }) {
   if (!reading || reading.status === 'done') return null;
-  if (reading.status === 'writing') {
-    return <ProgressCard title="풀이를 쓰고 있어요" done={reading.done} total={reading.total}
-      note="보통 30초 안팎이 걸려요. 화면을 나가도 계속 쓰고, 다 쓰면 이 화면에서 언제든 다시 볼 수 있어요." />;
-  }
+  // 쓰는 중 안내는 로딩 화면(B) · 로딩 카드(C)가 맡는다
+  if (reading.status === 'writing') return null;
   const [title, desc, action] = reading.status === 'failed'
     ? ['풀이 일부를 쓰지 못했어요', '다시 쓰기를 누르면 남은 부분을 마저 써요. 알은 더 들지 않아요.', '다시 쓰기']
     : ['지금은 풀이를 쓸 수 없어요', '계산 결과를 먼저 보여 드려요. 잠시 후 다시 열면 풀이를 써 드릴게요.', '다시 시도'];

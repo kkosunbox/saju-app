@@ -6,6 +6,8 @@ export const push = {
   enable: async (_dailyFortuneMinute: number | null): Promise<boolean> => false,
   sync: async (): Promise<void> => {},
   unregister: async (): Promise<void> => {},
+  wasNotified: async (_contentKey: string): Promise<boolean> => false,
+  devScheduleReadingDone: async (_contentKey: string, _seconds: number): Promise<boolean> => false,
 };
 
 export function usePushOpenRouting(_ready: boolean): void {}

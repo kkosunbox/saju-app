@@ -46,6 +46,8 @@ export interface ShareSpec {
   today?: TodayCardData;
   /** 사주 캐릭터: 나와 찰떡 캐릭터를 나란히 그리는 케미 카드 */
   character?: CharacterCardData;
+  /** 찰떡 MBTI: 그림 칸에 내 MBTI · 종합 궁합 링 · 찰떡 MBTI를 나란히 그린다 */
+  mbti?: { mine: string; partner: string; score: number };
 }
 
 export interface CharacterCardData {
@@ -111,10 +113,10 @@ export function todaySpec(u: User, f: CombinedFortune, card?: ShareCard | null):
 export function mbtiSpec(u: User, m: MbtiMatches): ShareSpec {
   const { best, worst } = m; const top = best[0];
   return {
-    kind: '찰떡 MBTI', seal: '性', eyebrow: `${u.mbti} ${u.nickname}님의 찰떡 MBTI는`,
+    kind: '찰떡 MBTI', seal: '性', eyebrow: `${u.nickname}님의 찰떡 MBTI는`,
     headline: top.type, sub: top.together,
-    detail: { label: top.nickname, value: `궁합 ${top.score}점` },
-    big: { value: String(top.score), unit: '점', label: '궁합 점수' },
+    // 점수는 그림 칸의 링에 있어 가운데 보조 제목(detail)은 두지 않는다
+    mbti: { mine: u.mbti, partner: top.type, score: top.score },
     stats: [['2위', best[1].type], ['3위', best[2].type], ['조심', worst.type]],
     teaser: `${top.type}와 잘 맞는 진짜 이유`,
     hook: '너의 찰떡 MBTI는 뭘까?',

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -7,6 +8,7 @@ import SolidIcon, { SolidIconName } from '../../components/SolidIcon';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, HeadRow, LockGate, Para, Pill, Rank, SubHead } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { LuckyReading, ReadingView } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
 import { ITEMS } from '../../services/premium/catalog';
@@ -31,13 +33,17 @@ const AVOID_RED = '#DD2828';
 
 export default function LuckyScreen() {
   const { user: u, today } = useApp();
-  const [pk, setPk] = useState<PurposeKey>('move');
+  // 풀이 완성 알림을 눌러 오면 그 목적으로 연다
+  const { purpose } = useLocalSearchParams<{ purpose?: string }>();
+  const [pk, setPk] = useState<PurposeKey>(purpose && purpose in PURPOSE_ICON ? (purpose as PurposeKey) : 'move');
   const ref = { kind: 'lucky', purpose: pk } as const;
   const content = usePremiumContent<LuckyDays>(ref);
   const { reading, retry } = useReading<LuckyReading>(content);
+  const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<LuckyPreview>(ref, !content.open);
   if (!u) return null;
   const item = ITEMS.lucky(pk, today);
+  if (content.open && gate.show) return <ReadingStepsScreen title="길일 찾기" kind="lucky" reading={reading} />;
   const L = content.data?.data;
   const top = L ? L.list[0] : preview.data?.top;
 
@@ -67,7 +73,7 @@ export default function LuckyScreen() {
       </Card>
 
       {!content.open ? <LockGate key={item.key} item={item} />
-        : L && content.data?.F ? <LuckyBody key={item.key} L={L} F={content.data.F} pk={pk} reading={reading} onRetry={retry} />
+        : L && content.data?.F ? <ReadingReveal on={gate.appeared}><LuckyBody key={item.key} L={L} F={content.data.F} pk={pk} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
       <ShareCta item={item} spec={L ? luckySpec(u, L) : null} />
       <Disclaimer mt={24} />

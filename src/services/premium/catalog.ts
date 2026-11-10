@@ -100,6 +100,27 @@ export const ro = (n: number) => (numFinal(n) === 'other' ? '으로' : '로');
 export const iga = (n: number) => (numFinal(n) === 'none' ? '가' : '이');
 
 /** 열람권 키 → 사람이 읽는 이름 (알림 문구용). */
+/**
+ * 콘텐츠 키 → 그 콘텐츠를 보는 화면 경로 (풀이 완성 알림·토스트를 눌렀을 때).
+ * 궁합·속마음은 궁합 탭에서 그 상대를, 반려동물은 그 아이를, 길일은 그 목적을 골라 연다.
+ */
+export function hrefOfKey(key: string): string | null {
+  const [kind, arg] = key.split(':');
+  switch (kind) {
+    case 'saju': return '/premium/saju';
+    case 'life': return '/premium/life';
+    case 'spouse': return '/spouse';
+    case 'newyear': return `/premium/new-year?year=${arg}`;
+    case 'monthly': { const [y, m] = (arg ?? '').split('-'); return `/premium/monthly?y=${y}&m=${Number(m)}`; }
+    case 'theme': return `/premium/theme/${arg}`;
+    case 'lucky': return `/premium/lucky?purpose=${arg}`;
+    case 'compat':
+    case 'crush': return `/compatibility?resultId=${arg}`;
+    case 'pet': return `/pet?petId=${arg}`;
+    default: return null;
+  }
+}
+
 export function titleOfKey(key: string): string {
   const [kind, arg] = key.split(':');
   switch (kind) {

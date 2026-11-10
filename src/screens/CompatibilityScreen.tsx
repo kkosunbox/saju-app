@@ -25,6 +25,8 @@ import { BodyState, LockedCard } from '../components/premium/Kit';
 import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
 import { usePremiumContent, useReading } from '../services/server/premiumApi';
+import { PREVIEW_STEP_MS, PreviewStepsScreen, ReadingOpeningCard, useJustOpenedFetching } from '../components/premium/ReadingGate';
+import Reveal from '../components/Reveal';
 import { CompatReading, CrushReading } from '../types/reading';
 import { CrushReport, DeepCompatibility } from '../types/premium';
 import { compatApi, compatKeys, isPrivateInvite } from '../services/server/compatApi';
@@ -151,12 +153,18 @@ export default function CompatibilityScreen() {
   };
 
   const [busy, setBusy] = useState(false);
+  // 새로 본 궁합은 결과 전에 '궁합을 보고 있어요' 단계를 잠깐 보여 준다 (반려동물 궁합과 같다). 목록에서 다시 열면 바로
+  const [fresh, setFresh] = useState<CompatibilityResult | null>(null);
+  const [step, setStep] = useState(0);
   /** 서버가 계산하고 내 궁합 기록에 저장한다 (상대 정보는 기록을 지우면 함께 삭제). */
   const run = async (partner: PartnerInput & { relationship: Relationship; calendarType: CalendarType; isLeapMonth: boolean }) => {
     if (!user || busy) return;
     setBusy(true);
     try {
-      setResult(await compatApi.create(user.id, partner));
+      const r = await compatApi.create(user.id, partner);
+      setStep(0);
+      setFresh(r);
+      setResult(r);
       queryClient.invalidateQueries({ queryKey: compatKeys.list });
       // 결과가 저장됐으니 다음 상대를 위해 입력 칸을 비운다 (실패하면 고칠 수 있게 남긴다)
       resetForm();
@@ -200,6 +208,13 @@ export default function CompatibilityScreen() {
     setSeenResult(params?.result);
     if (params?.result) setResult(params.result);
   }
+  // 풀이 완성 알림을 눌러 오면 그 상대의 궁합을 연다 (기록 목록이 온 뒤 한 번)
+  const [seenResultId, setSeenResultId] = useState<string | undefined>();
+  if (params?.resultId && params.resultId !== seenResultId && saved.data) {
+    setSeenResultId(params.resultId);
+    const found = saved.data.find(r => String(r.id) === params.resultId);
+    if (found) setResult(found);
+  }
   // 내 링크로 상대가 본 궁합을 열면 '새 결과'를 끈다 (홈 알림·목록의 NEW)
   const newId = result?.isNew ? result.id : undefined;
   useEffect(() => {
@@ -207,12 +222,26 @@ export default function CompatibilityScreen() {
     compatApi.markSeen(newId).then(() => queryClient.invalidateQueries({ queryKey: compatKeys.list })).catch(() => {});
   }, [newId]);
 
+  const isFresh = !!result && result === fresh;
+  const steps = result ? LOADING_STEPS(user?.nickname ?? '', result.target.nickname) : [];
+  // steps.length번째 한 박자는 "궁합을 다 봤어요"
+  const loading = isFresh && step <= steps.length;
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setStep(n => n + 1), PREVIEW_STEP_MS);
+    return () => clearTimeout(t);
+  }, [loading, step]);
+
   if (!user) return null;
+
+  if (result && loading) return <PreviewStepsScreen title="우리 둘의 궁합" heading="두 사람의 궁합을 보고 있어요" steps={steps} step={step} onBack={() => setResult(null)} />;
 
   if (result) {
     const rel = RELATIONSHIP_INFO[result.relationship];
+    const Appear = isFresh ? Reveal : React.Fragment;
     return (
       <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={() => setResult(null)} right={<ShareIconButton spec={compatSpec(user, result)} />}>
+        <Appear>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={29} /></View>
           <View style={s.pair}>
@@ -276,6 +305,7 @@ export default function CompatibilityScreen() {
           </PressableScale>
         ) : null}
         <Disclaimer compact />
+        </Appear>
         <BottomSheet visible={confirmDelete} onClose={() => setConfirmDelete(false)}>
           <Text style={[txt.h2, { textAlign: 'center' }]}>{result.target.nickname}님 정보를 지울까요?</Text>
           <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>상대 정보와 궁합 결과가 바로 지워져요.{'\n'}열어 둔 {result.relationship === 'lover' ? '심층 궁합·속마음도' : '심층 궁합도'} 다시 볼 수 없어요.</Text>
@@ -446,11 +476,12 @@ function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number
   const item = ITEMS.compat(id, r.target.nickname, r.relationship, !!r.target.mbti);
   const content = usePremiumContent<DeepCompatibility>({ kind: 'compat', id });
   const { reading, retry } = useReading<CompatReading>(content);
+  const fetching = useJustOpenedFetching(content);
   if (!content.open) return <LockedCard item={item} />;
   return (
     <>
       <SectionHeader variant="figma" title="심층 궁합 리포트" caption="두 사람의 세 가지 관점을 하나로 엮은 풀이" />
-      {content.data ? <CompatDeep u={u} r={r} D={content.data.data} reading={reading} onRetry={retry} /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {content.data ? <CompatDeep u={u} r={r} D={content.data.data} reading={reading} onRetry={retry} /> : fetching ? <ReadingOpeningCard kind="compat" /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
     </>
   );
 }
@@ -460,8 +491,9 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
   const item = ITEMS.crush(id, r.target.nickname);
   const content = usePremiumContent<CrushReport>({ kind: 'crush', id });
   const { reading, retry } = useReading<CrushReading>(content);
+  const fetching = useJustOpenedFetching(content);
   if (!content.open) return <LockedCard item={item} />;
-  if (!content.data) return <BodyState error={content.isError} onRetry={() => content.refetch()} />;
+  if (!content.data) return fetching ? <ReadingOpeningCard kind="crush" /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />;
   return (
     <>
       <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} shareAction={<ShareIconButton spec={crushSpec(u, r, content.data.data)} />} />
@@ -469,6 +501,13 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
     </>
   );
 }
+
+/** 새로 본 궁합의 결과 전 단계 (반려동물 궁합과 같은 연출) */
+const LOADING_STEPS = (me: string, partner: string) => [
+  { key: 'chart', label: `${me}님과 ${partner}님의 사주 펼치기`, sub: '두 사람의 원국을 세웠어요' },
+  { key: 'mix', label: '두 사람의 기운 겹쳐 보기', sub: '합과 충을 살펴봤어요' },
+  { key: 'score', label: '분야별 궁합 매기기', sub: '분야마다 점수를 냈어요' },
+];
 
 /** 궁합 결과 상단 카드 배경 — 관계마다 다른 그림 */
 const HERO: Record<Relationship, ImageSourcePropType> = {
