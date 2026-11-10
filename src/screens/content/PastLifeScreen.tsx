@@ -11,7 +11,8 @@ import FriendCompare from '../../components/FriendCompare';
 import MemoryReveal from '../../components/MemoryReveal';
 import Reveal from '../../components/Reveal';
 import { useOpened } from '../../services/content/opened';
-import Mascot, { Logo } from '../../components/Mascot';
+import { Logo } from '../../components/Mascot';
+import PastLifeArt from '../../components/PastLifeArt';
 import Icon from '../../components/Icon';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -55,7 +56,7 @@ export default function PastLifeScreen() {
     <View style={s.hero}>
       <Image source={require('../../../assets/figma/past-life/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
       <View style={s.heroLogo}><Logo height={LOGO_H} /></View>
-      <Mascot name="pastLife" size={71} />
+      <PastLifeArt result={P} size={136} />
       <Text style={s.eyebrow}>{u.nickname}님의 오래전 이야기</Text>
       <Text style={s.era}>{P.era}</Text>
       <Text accessibilityRole="header" style={s.name}>{P.role}</Text>

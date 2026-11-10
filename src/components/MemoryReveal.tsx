@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Mascot from './Mascot';
+import PastLifeArt from './PastLifeArt';
 import PrimaryButton from './PrimaryButton';
 import { haptic } from '../utils/haptic';
 import { motion, useReducedMotion } from '../utils/motion';
@@ -104,7 +105,13 @@ export default function MemoryReveal({ nickname, era, role, line, onDone }: { ni
             );
           }) : null}
           <Animated.View style={{ opacity: mascotOpacity, transform: [{ translateX: shake }, { scale: mascotScale }] }}>
-            <Mascot name="pastLife" size={71} />
+            <View style={{ width: 136, height: 136, alignItems: 'center', justifyContent: 'center' }}>
+              {/* Load only the selected result ahead of the reveal, without exposing it while sealed. */}
+              <View style={[StyleSheet.absoluteFill, { opacity: shown ? 1 : 0 }]}>
+                <PastLifeArt result={{ era, role }} size={136} />
+              </View>
+              {!shown ? <Mascot name="pastLife" size={71} /> : null}
+            </View>
           </Animated.View>
         </View>
 
@@ -134,9 +141,9 @@ export default function MemoryReveal({ nickname, era, role, line, onDone }: { ni
 
 const GOLD = '#FFF386';
 const s = StyleSheet.create({
-  card: { height: 320, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 36, paddingHorizontal: 16, backgroundColor: '#141A3A' },
+  card: { minHeight: 340, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 28, paddingBottom: 24, paddingHorizontal: 16, backgroundColor: '#141A3A' },
   dim: { backgroundColor: 'rgba(8, 10, 28, 0.55)' },
-  stage: { width: 180, height: 120, alignItems: 'center', justifyContent: 'center' },
+  stage: { width: 180, height: 140, alignItems: 'center', justifyContent: 'center' },
   halo: { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: GOLD, shadowColor: GOLD, shadowOpacity: 0.9, shadowRadius: 30, shadowOffset: { width: 0, height: 0 } },
   ring: { position: 'absolute', width: 110, height: 110, borderRadius: 55, borderWidth: 1.5, borderColor: GOLD },
   spark: { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: GOLD },

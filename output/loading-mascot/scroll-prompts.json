@@ -1,0 +1,25 @@
+{
+  "tool": "OpenAI built-in image_gen",
+  "reference": "source/scroll-approved-sample.png",
+  "prompt": "Use case: stylized-concept. Create a precise animation SPRITE SHEET from the attached APPROVED STILL. The approved composition MUST be preserved: front-facing glossy pear-shaped pastel mascot, two large eyes looking down, holding upright cream scroll with completely blank back facing viewer; left-of-image mitten grips dark calligraphy brush whose tip is hidden BEHIND scroll; right-of-image mitten supports lower scroll. No desk. Exact same character identity, proportions, yellow-mint-blue iridescent material, scroll shape and lighting as reference. OUTPUT: exactly 24 distinct consecutive animation frames in a uniform 6 COLUMN x 4 ROW rectangular grid, 3072 x 2048 pixels (each cell square 512 x 512). Row-major chronological order left-to-right top-to-bottom. Background truly transparent alpha. No labels, numbers, grid lines or borders. Every cell has one complete mascot full body and scroll, 12 percent clear padding inside each cell. ABSOLUTELY LOCK CAMERA, BODY OUTLINE, BODY CENTER, SIZE, SCROLL POSITION, LIGHTING, SUPPORTING HAND across all frames: these are identical held elements of a 2D animation, not independently redesigned poses. Animate ONLY brush-holding wrist and brush handle in very small smooth continuous arcs, writing on hidden inner side of scroll. Character eyes stay focused down and pupils fixed; no blink to avoid distracting deformation. 24 poses sample ONE continuous periodic natural writing movement, angle theta=2*pi*frame/24: hand moves in a tiny oval, brush handle rocks gently + or - 8 degrees, wrist up/down tiny amount. All 24 poses have smoothly incrementing small differences, no pauses, no jump, no duplicate frames, no reversing the frame order. Frame 24 must naturally lead back into frame 1. Keep bristle tip concealed at ALL TIMES. Scroll backside stays completely blank, no ink anywhere. No extra props, no text, no mouth, no legs. High quality clean soft 3D product render as original. Prioritize coherent consistent character locked at same location per cell over exaggerated motion.",
+  "assembly": {
+    "source": "source/scroll.png",
+    "grid": [
+      6,
+      4
+    ],
+    "distinctFrames": 24,
+    "sequence": "row-major, forward only",
+    "fps": 12,
+    "durationSeconds": 2,
+    "outputPixels": [
+      256,
+      256
+    ],
+    "loop": "infinite",
+    "outputs": [
+      "assets/images/loading-mascot/saju-writing-scroll.gif"
+    ],
+    "command": "node scripts/assemble-loading-mascot.mjs scroll"
+  }
+}

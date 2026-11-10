@@ -15,7 +15,7 @@ import { formatKoreanDate } from '../../utils/date';
 import { sansW, txt } from '../../theme/typography';
 import { colors } from '../../theme/colors';
 import { talismanSpec } from '../../services/share/shareSpecs';
-import { shareLink, appUrl } from '../../services/share/linkShare';
+import { shareLink, appUrl, copyText } from '../../services/share/linkShare';
 import { WebCard, renderCardWeb, shareCardImage } from '../../services/shareService';
 import TalismanPaper, { GiftTalismanPaper, PAPER_H as H, PAPER_W as W } from '../../components/TalismanPaper';
 import FriendCompare from '../../components/FriendCompare';
@@ -41,7 +41,11 @@ const TABS: { key: Tab; label: string }[] = [{ key: 'mine', label: '오늘 나�
 const GIFT_FILE = 'woonpick-talisman-gift';
 const EFFECT = '효력은 오늘 자정까지 지속되어요.';
 
-/** 웹은 부적을 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유(사진첩 저장)를 막는다 */
+/**
+ * 웹은 부적을 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유(사진첩 저장)를 막는다.
+ * 그리는 동안 화면이 잠깐 멈추니, 부적을 고르거나 이름을 치는 중에는 그리지 않고 손을 멈춘 뒤 한 번만 그린다.
+ */
+const PREPARE_DELAY = 800;
 function usePreparedCard(ref: RefObject<ViewInstance | null>, ready: boolean, file: string, key: string) {
   const prepared = useRef<WebCard | null>(null);
   useEffect(() => {
@@ -49,7 +53,7 @@ function usePreparedCard(ref: RefObject<ViewInstance | null>, ready: boolean, fi
     let alive = true;
     const t = setTimeout(() => {
       renderCardWeb(ref, file).then(c => { if (alive) prepared.current = c; }).catch(() => {});
-    }, 300);
+    }, PREPARE_DELAY);
     return () => { alive = false; clearTimeout(t); prepared.current = null; };
   }, [ready, key, ref, file]);
   return prepared;
@@ -109,14 +113,21 @@ export default function TalismanScreen() {
       setBusy(false);
     }
   };
+  // 보내는 사람을 숨기면 공유 문구에도 이름을 쓰지 않는다
+  const giftText = () => {
+    const head = showFrom ? `${u.nickname}님이 ${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적을 보냈어요.` : `${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적이 도착했어요.`;
+    return `${head}\n"${gift.wish}"\n나의 오늘 부적도 받아 보세요.`;
+  };
+  // 웹: PC 공유 시트는 이미지만 넘기니(shareService 참고) 문구·링크는 따로 복사해 붙여 넣게 한다
+  const copyGiftLink = async () => {
+    toast((await copyText(`${giftText()}\n${appUrl()}`)) ? '문구와 링크를 복사했어요' : '복사하지 못했어요');
+  };
   // 부적 이미지와 함께 운픽으로 들어오는 링크를 보낸다 — 이미지 공유가 안 되는 브라우저는 링크만
   const sendGift = async () => {
     if (!giftReady || busy) return;
     setBusy(true);
     try {
-      // 보내는 사람을 숨기면 공유 문구에도 이름을 쓰지 않는다
-      const head = showFrom ? `${u.nickname}님이 ${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적을 보냈어요.` : `${receiver ? `${receiver}님에게 ` : ''}${gift.label}의 부적이 도착했어요.`;
-      const text = `${head}\n"${gift.wish}"\n나의 오늘 부적도 받아 보세요.`;
+      const text = giftText();
       const result = await shareCardImage(giftCard, { file: GIFT_FILE, text, url: appUrl(), mode: 'share', fallback: 'none', aspectRatio: W / H, prepared: preparedGift.current });
       if (result === 'shared' || result === 'saved') void rewardShare(GIFT_FILE);
       if (result === 'unsupported') {
@@ -145,11 +156,19 @@ export default function TalismanScreen() {
       ) : undefined}
       footer={mine ? undefined : (
         <View style={s.footer}>
-          <PressableScale onPress={save} disabled={!giftReady || busy} style={[s.footBtn, s.footSave]} scaleTo={0.96} accessibilityLabel="선물 부적 이미지 저장">
+          <PressableScale onPress={save} disabled={!giftReady || busy} style={[s.footBtn, Platform.OS === 'web' ? s.footCopy : s.footSave]} scaleTo={0.96} accessibilityLabel="선물 부적 이미지 저장">
+            <Icon name="download" size={16} strokeWidth={1.95} color={colors.ink} />
             <Text style={[s.footText, { color: colors.ink }]}>이미지 저장</Text>
           </PressableScale>
+          {Platform.OS === 'web' && (
+            <PressableScale onPress={copyGiftLink} disabled={busy} style={[s.footBtn, s.footCopy]} scaleTo={0.96} accessibilityLabel="부적 문구와 링크 복사">
+              <Icon name="copy" size={16} strokeWidth={1.95} color={colors.ink} />
+              <Text style={[s.footText, { color: colors.ink }]}>링크 복사</Text>
+            </PressableScale>
+          )}
           <PressableScale onPress={sendGift} disabled={!giftReady || busy} style={[s.footBtn, s.footSend]} scaleTo={0.96} haptic accessibilityLabel="친구에게 부적 보내기">
-            <Text style={[s.footText, { color: colors.white }]}>친구에게 부적 보내기</Text>
+            {/* 웹은 링크 복사까지 세 버튼이 한 줄이라 짧게 */}
+            <Text style={[s.footText, { color: colors.white }]} numberOfLines={1}>{Platform.OS === 'web' ? '부적 보내기' : '친구에게 부적 보내기'}</Text>
           </PressableScale>
         </View>
       )}
@@ -289,8 +308,10 @@ const s = StyleSheet.create({
   giftPaper: { marginTop: 28, alignItems: 'center' },
   paperShadow: { width: W, height: H, borderRadius: 32, ...SHADOW },
   footer: { flexDirection: 'row', gap: 12 },
-  footBtn: { height: 48, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  footBtn: { height: 48, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4 },
   footSave: { width: 111, backgroundColor: colors.card },
+  // 웹: 저장 · 링크 복사는 글자 폭만큼
+  footCopy: { paddingHorizontal: 14, backgroundColor: colors.card },
   footSend: { flex: 1, backgroundColor: colors.navy },
   footText: { ...sansW('500'), fontSize: 14, letterSpacing: -0.28 },
 });

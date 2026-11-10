@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 
 export type IconName =
   | 'home' | 'sparkle' | 'sheet' | 'heart' | 'user' | 'share' | 'chevronRight' | 'chevronLeft' | 'chevronDown' | 'bell' | 'crown'
-  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'external' | 'lock' | 'calendar' | 'ticket' | 'mapPin';
+  | 'refresh' | 'check' | 'close' | 'clock' | 'palette' | 'mail' | 'grid' | 'chat' | 'chatHeart' | 'send' | 'arrowUp' | 'download' | 'copy' | 'external' | 'lock' | 'calendar' | 'ticket' | 'mapPin';
 
 /** 디자인의 Icon/Outline 세트(heroicons 계열 선형 아이콘)와 같은 모양 */
 const PATHS: Record<IconName, string> = {
@@ -33,6 +33,7 @@ const PATHS: Record<IconName, string> = {
   send: 'M6 12L3.3 3.1A59.8 59.8 0 0121.5 12 59.8 59.8 0 013.3 20.9L6 12zm0 0h7.5',
   arrowUp: 'M12 19V5m0 0l-6 6m6-6l6 6',
   download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+  copy: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z',
   lock: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
   calendar: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
   ticket: 'M4 6h16v3.5a2.5 2.5 0 000 5V18H4v-3.5a2.5 2.5 0 000-5z M15 6v2 M15 11v2 M15 16v2',

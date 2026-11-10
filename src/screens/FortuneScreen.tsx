@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { RootStackParamList } from '../navigation/types';
 import Screen from '../components/Screen';
@@ -9,7 +9,7 @@ import ScoreRing from '../components/ScoreRing';
 import ResultMascot from '../components/ResultMascot';
 import { PROMO_TONE } from '../components/PromoCard';
 import PromoSlot from '../components/PromoSlot';
-import { PROMO_OF_CATEGORY, PromoKey, isNewYearSeason, promosOf } from '../services/promo/promos';
+import { PROMO_OF_CATEGORY, PromoKey, promosOf } from '../services/promo/promos';
 import CategoryRow from '../components/CategoryRow';
 import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
@@ -18,10 +18,11 @@ import { useQuery } from '@tanstack/react-query';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { Period } from '../types';
 import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
-import { radius } from '../theme/typography';
+import { radius, txt } from '../theme/typography';
 import { motion, useReducedMotion } from '../utils/motion';
-import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
-import { ScoreDeltaText, scoreDeltaLabel } from '../components/ScoreDelta';
+import { useFortuneDraw } from '../services/content/opened';
+import FortuneSealed from '../components/FortuneSealed';
+import CombinedAnalysisContent from '../components/CombinedAnalysisContent';
 
 const TABS: { key: Period; label: string }[] = [
   { key: 'daily', label: '오늘' }, { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
@@ -48,11 +49,13 @@ function FlowBar({ label, score, best, index }: { label: string; score: number; 
   );
 }
 
-/** 오늘 · 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다) */
+/**
+ * 오늘 · 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다).
+ * 들어온다고 오늘의 운세를 뽑지 않는다 — 안 뽑았으면 '오늘' 탭만 봉인하고 홈으로 보낸다. 주간·월간·연간은 기간 운세라 그대로 보인다.
+ */
 export default function FortuneScreen() {
   const { user, fortune, today, fortuneWriting } = useApp();
-  useMarkOpened('fortune');
-  useFortuneDraw();
+  const draw = useFortuneDraw();
   const nav = useNavigation();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
   const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
@@ -63,20 +66,36 @@ export default function FortuneScreen() {
   });
   const period = tab === 'daily' ? null : periodQuery.data ?? null;
   if (!user || !fortune) return null;
-  const f = fortune.combined;
+  // 오늘 탭인데 아직 안 뽑았으면 점수·문장을 그리지 않는다 (기록을 읽기 전엔 깜빡이지 않게 비워 둔다)
+  const locked = tab === 'daily' && !draw.opened;
+  if (tab === 'daily') {
+    return (
+      <Screen title="운세" back>
+        <Segmented<Period> options={TABS} value={tab} onChange={setTab} />
+        {locked ? (draw.ready ? <FortuneSealed /> : null) : fortuneWriting ? (
+          <View style={s.writing}>
+            <ActivityIndicator color={colors.purple} />
+            <Text style={[txt.small, s.writingText]}>네 가지 관점을 엮어 오늘의 이야기를 쓰고 있어요</Text>
+          </View>
+        ) : (
+          <View style={s.dailyContent}><CombinedAnalysisContent fortune={fortune} today={today} /></View>
+        )}
+      </Screen>
+    );
+  }
 
-  const score = tab === 'daily' ? f.totalScore : period?.score ?? 0;
-  const label = tab === 'daily' ? '오늘' : period?.label ?? '';
-  const summary = tab === 'daily' ? f.summary : period?.summary ?? (periodQuery.error ? '불러오지 못했어요. 잠시 후 다시 시도해 주세요.' : '불러오는 중…');
+  const score = period?.score ?? 0;
+  const label = period?.label ?? '';
+  const summary = period?.summary ?? (periodQuery.error ? '불러오지 못했어요. 잠시 후 다시 시도해 주세요.' : '불러오는 중…');
   const bestScore = period ? Math.max(...period.flow.map(x => x.score)) : 0;
 
-  // 이 기간에 가장 약한 분야를 먼저 추천하고, 기간에 맞는 유료 콘텐츠를 덧붙인다 (신년운세 시즌에는 오늘 탭에도 신년운세)
-  const scoreOf = (k: CategoryKey) => (tab === 'daily' ? f[k] : period?.cats[k].score ?? 0);
+  // 이 기간에 가장 약한 분야를 먼저 추천하고, 기간에 맞는 유료 콘텐츠를 덧붙인다
+  const scoreOf = (k: CategoryKey) => period?.cats[k].score ?? 0;
   const weak = CATS.reduce((a, b) => (scoreOf(b) < scoreOf(a) ? b : a));
   const P = promosOf(nav, today);
   const WEAK_TITLE: Record<CategoryKey, string> = { love: `${label} 연애운이 아쉽다면`, money: `${label} 재물운이 아쉽다면`, work: `${label} 직장운이 아쉽다면`, relationship: '사람 때문에 고민이라면' };
-  const BY_TAB: Record<Period, PromoKey[]> = {
-    daily: isNewYearSeason(today) ? ['newyear', 'consult'] : ['consult', 'spouse'], weekly: ['lucky', 'crush'], monthly: ['monthly', 'lucky'], yearly: ['newyear', 'life'],
+  const BY_TAB: Record<Exclude<Period, 'daily'>, PromoKey[]> = {
+    weekly: ['lucky', 'crush'], monthly: ['monthly', 'lucky'], yearly: ['newyear', 'life'],
   };
   const recs = [PROMO_OF_CATEGORY[weak], ...BY_TAB[tab]].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
 
@@ -85,32 +104,29 @@ export default function FortuneScreen() {
       <Segmented<Period> options={TABS} value={tab} onChange={setTab} />
 
       <LinearGradient colors={gradients.skyCard} style={s.hero}>
-        <View style={{ alignSelf: 'center' }}><ResultMascot scores={tab === 'daily' ? f : period ? { totalScore: period.score, love: period.cats.love.score, money: period.cats.money.score, work: period.cats.work.score, relationship: period.cats.relationship.score } : undefined} size={88} /></View>
+        <View style={{ alignSelf: 'center' }}><ResultMascot scores={period ? { totalScore: period.score, love: period.cats.love.score, money: period.cats.money.score, work: period.cats.work.score, relationship: period.cats.relationship.score } : undefined} size={88} /></View>
         <View style={s.heroRow}>
-          <ScoreRing key={tab} score={score} accessibilityLabel={`${score}점${tab === 'daily' ? scoreDeltaLabel(score, fortune.yesterdayScores?.totalScore) : ''}`} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
+          <ScoreRing key={tab} score={score} accessibilityLabel={`${score}점`} size={54} stroke={2.5} color={colors.accent} track="transparent" inner={colors.cream} textColor={colors.inkSub} fontSize={22} />
           <View style={{ flex: 1 }}>
             <View style={s.heroHead}>
               <Text style={s.heroTitle}>{tab === 'weekly' ? '이번주' : label}의 흐름</Text>
               {period ? <View style={s.focus}><Text style={s.focusText}>집중 테마 · {period.focus}</Text></View> : null}
             </View>
             <Text style={s.heroText}>{summary}</Text>
-            {tab === 'daily' ? <ScoreDeltaText now={score} before={fortune.yesterdayScores?.totalScore} style={{ marginTop: 4 }} /> : null}
           </View>
         </View>
       </LinearGradient>
 
-      <SectionHeader title={`${label} 분야별 운세`} caption={tab === 'daily' ? '눌러서 자세히 보기' : undefined} />
+      <SectionHeader title={`${label} 분야별 운세`} />
       <View style={{ gap: 16 }}>
         {CATS.map((k, i) => {
-          // 오늘 풀이(AI)가 아직이면 문장 은행 문장 대신 '쓰는 중'
-          const c = tab === 'daily' ? { score: f[k], text: fortuneWriting ? '오늘의 풀이를 쓰고 있어요…' : f.categoryTexts[k], best: '' } : period?.cats[k];
+          const c = period?.cats[k];
           if (!c) return null;
           return (
             <CategoryRow
               key={`${tab}-${k}`}
               category={k} score={c.score} text={c.text} delay={i * 80}
               badge={c.best ? `${c.best} 최고` : undefined}
-              onPress={tab === 'daily' ? () => nav.navigate('CategoryDetail', { category: k }) : undefined}
             />
           );
         })}
@@ -141,6 +157,9 @@ export default function FortuneScreen() {
 const BAR = isDark ? colors.lineStrong : '#DDE0E6';
 
 const s = StyleSheet.create({
+  dailyContent: { marginTop: 20 },
+  writing: { paddingVertical: 80, alignItems: 'center', justifyContent: 'center' },
+  writingText: { textAlign: 'center', marginTop: 14 },
   hero: { marginTop: 20, minHeight: 180, borderRadius: radius.lg, paddingTop: 19, paddingBottom: 16, paddingHorizontal: 16 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 2 },
   heroHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

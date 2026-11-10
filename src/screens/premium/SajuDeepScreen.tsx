@@ -34,6 +34,9 @@ const EK = (e: keyof typeof ELEMENT_INFO) => ELEMENT_INFO[e].ko;
 // 강점 · 보완 제목 색 (디자인 값, 다크 모드는 테마 색)
 const STRENGTH_HEX = isDark ? colors.success : '#35A05F';
 const CAUTION_HEX = isDark ? colors.thai : '#BA6F28';
+/** 01 타고난 성품 박스 바탕 — 라이트 모드만 (다크는 기본 카드 색 유지) */
+const coreBg = (hex: string) => (isDark ? undefined : { backgroundColor: hex });
+const CORE_BG = { outer: coreBg('#F1FAFF'), inner: coreBg('#FFF2F2'), last: coreBg('#FFFAF1') };
 
 interface SajuData { profile: unknown; axes: CrossAxis[]; daeun: DaeunTable }
 
@@ -155,15 +158,15 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
       <SubHead title="01 · 타고난 성품" caption="겉모습과 속마음, 일주가 그리는 나" />
       {core ? (
         <>
-          <Card>
+          <Card style={CORE_BG.outer}>
             <SajuHeading title="겉모습" icon="user" />
             <Para mt={7}>{core.outer}</Para>
           </Card>
-          <Card style={{ marginTop: 16 }}>
+          <Card style={[{ marginTop: 16 }, CORE_BG.inner]}>
             <SajuHeading title="속마음" icon="heart" />
             <Para mt={7}>{core.inner}</Para>
           </Card>
-          <Card style={{ marginTop: 16 }}>
+          <Card style={[{ marginTop: 16 }, CORE_BG.last]}>
             <SajuHeading title={`${dayName} (${me.hanja}${BRANCHES[ch.day.branch].hanja}) · ${STAGE12[F.dayStage]}`} icon="puzzle" />
             <Para mt={7}>{core.dayPillar}</Para>
           </Card>

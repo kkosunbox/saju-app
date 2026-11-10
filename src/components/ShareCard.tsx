@@ -9,6 +9,7 @@ import TodayShareCard from './TodayShareCard';
 import CharacterShareCard from './CharacterShareCard';
 import TarotCard from './tarot/TarotCard';
 import MbtiArt from './MbtiArt';
+import PastLifeArt from './PastLifeArt';
 import MbtiScoreRing from './MbtiScoreRing';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
@@ -41,7 +42,7 @@ const ART = {
 };
 
 /** Story image only: all content comes from the existing result; no private birth details. */
-const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(function ShareCard({ spec, today }, ref) {
+const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onArtReady?: () => void }>(function ShareCard({ spec, today, onArtReady }, ref) {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
   const gold = !!spec.talisman;
@@ -72,7 +73,7 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string }>(f
           <View style={s.mbtiRing}><MbtiScoreRing score={spec.mbti.score} size={MBTI_RING} color="#000000" /></View>
           <View style={s.mbtiCell}><MbtiArt type={spec.mbti.partner} size={72} /><Text style={s.mbtiType}>{spec.mbti.partner}</Text></View>
         </View> : <View style={s.artSlot}>
-          {spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
+          {spec.pastLife ? <PastLifeArt result={spec.pastLife} size={110} onDisplay={onArtReady} /> : spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
         </View>}
         <Text style={[s.eyebrow, spec.mbti && { top: 254 }]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
         <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, spec.mbti && { top: 276 }, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>

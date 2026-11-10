@@ -1,0 +1,12 @@
+{
+  "id": "16-royal-archivist",
+  "name": "왕실 기록관",
+  "prompt": "Use case: stylized-concept. Asset: ONE individual transparent foreign-era past-life occupation variant of the user's EXISTING service mascot. Reference 1 is original brand identity, reference 2 is the completed foreign-era teacher defining series rendering and accessories, reference 3 is the Korean occupation counterpart for personality only. Preserve exact nonhuman asymmetrical pear-like squishy jelly blob silhouette, tall rounded upper-right lobe, broad plump base and bulging right side. NO separate head, human body, hair, legs, nose or MOUTH. Expressive simple black eyes, tiny rounded jelly flipper hands. Smooth silky 3D airbrushed pastel rainbow, lemon-yellow center, sky-blue edges, mint and faint pink, soft glossy highlight, no outlines. Most rainbow body visible. One small medieval/renaissance European hat, short collar or apron and 1-2 clearly readable occupation props. Match the finished foreign teacher's quality and simple nonhuman identity. Exactly one centered character, whole silhouette and props visible within central 80% of square canvas, generous clear transparent margin. True alpha-transparent background with CRISP clean silhouette. NO outer glow, halo, fog, vignette, background shadow, ground, scenery, text, lettering, watermark, grid, Korean hanbok or Korean hats. European historical-inspired stylization. Occupation: Medieval European royal archivist: small crimson scholar cap, dignified attentive eyes, short wine-red collar fastened by brass clasp, holding a rolled parchment with red wax seal and thick leather-bound royal chronicle, ivory feather quill at side. No writing, no crown.",
+  "references": [
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mascot.png",
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-foreign-20261110/png/02-teacher.png",
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-20261110/png/16-royal-archivist.png"
+  ],
+  "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-bc141cd2-92a3-4b6f-8e67-b54c1785aac7.png",
+  "tool": "built-in image_gen"
+}

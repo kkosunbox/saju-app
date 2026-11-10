@@ -1,0 +1,30 @@
+{
+  "tool": "OpenAI built-in image_gen",
+  "master": {
+    "references": [
+      "output/loading-mascot/source/scroll-original-v4-master.png",
+      "assets/images/mascot.png"
+    ],
+    "prompt": "Edit the first reference image, preserving its mascot EXACTLY: same body silhouette/proportions, colors, gloss, face, focused down-right gaze, same lower-right paper POSITION, same supporting hand. Second reference is original mascot for exact palette and identity only. TWO CHANGES ONLY. 1) PAPER TOP: remove the thick curled hollow top roller entirely. Top of paper is now a SIMPLE thin softly curved straight parchment EDGE, unrolled and smooth, no hollow tube, no horns, no folded triangle. Keep only the subtle rolled BOTTOM edge. Same upright blank paper back toward viewer, slight natural backward tilt toward mascot, all ink-facing inner surface hidden. 2) WRITING ACTION READABILITY: make the tool clearly a traditional CALLIGRAPHY BRUSH, not a wooden stick. Dark brown handle, tiny gold ferrule, tapered soft charcoal bristle tuft. Mascot holds it naturally nearer its lower-middle, nearly VERTICAL in a scholar's brush grip, tilted about25degrees, wrist raised beside LEFT edge of paper rather than below it. Depict the brush in the LIFTED RETURN phase of writing: tapered nib visible just ABOVE the paper's thin top edge, within the silhouette in front of the mascot chest, about15pixels above rim at1024scale. The long handle rises beside cheek. Clearly distinguish hand, handle, ferrule and brush nib. Brush points downward toward HIDDEN inner paper face, ready to lower and write, not pointing toward the eyes. Paper stays in approved lower right area and should not move. No ink marks visible, no new text. Small hand with original pastel material. ONE full mascot still only, not sprite sheet. Transparent alpha tight clean silhouette, no haze or glow/backdrop, no outline, no cast shadow, ample balanced margins, square canvas. Match first image's color and original identity, change only top paper construction and brush/hand pose.",
+    "output": "output/loading-mascot/source/scroll-original-v5-master.png"
+  },
+  "animation": {
+    "reference": "output/loading-mascot/source/scroll-original-v5-master.png"
+  },
+  "assembly": {
+    "grid": [
+      6,
+      4
+    ],
+    "fps": 12,
+    "distinctFrames": 24,
+    "durationSeconds": 2,
+    "size": [
+      256,
+      256
+    ],
+    "loop": "infinite",
+    "command": "node scripts/assemble-loading-mascot.mjs scroll-original-v5",
+    "output": "assets/images/loading-mascot/saju-writing-scroll-original-v5.gif"
+  }
+}

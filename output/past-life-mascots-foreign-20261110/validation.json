@@ -1,0 +1,282 @@
+[
+  {
+    "id": "01-physician",
+    "name": "의원",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 41354,
+    "alphaPreserved": true
+  },
+  {
+    "id": "02-teacher",
+    "name": "학당 선생",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 34690,
+    "alphaPreserved": true
+  },
+  {
+    "id": "03-herbalist",
+    "name": "약초꾼",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 41852,
+    "alphaPreserved": true
+  },
+  {
+    "id": "04-librarian",
+    "name": "사서",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 39982,
+    "alphaPreserved": true
+  },
+  {
+    "id": "05-court-painter",
+    "name": "궁정 화가",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 40262,
+    "alphaPreserved": true
+  },
+  {
+    "id": "06-wandering-performer",
+    "name": "떠돌이 광대",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 43536,
+    "alphaPreserved": true
+  },
+  {
+    "id": "07-lantern-maker",
+    "name": "등불 장인",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 42674,
+    "alphaPreserved": true
+  },
+  {
+    "id": "08-perfumer",
+    "name": "조향사",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 41284,
+    "alphaPreserved": true
+  },
+  {
+    "id": "09-merchant",
+    "name": "큰 상단의 상인",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 55834,
+    "alphaPreserved": true
+  },
+  {
+    "id": "10-potter",
+    "name": "도자기 장인",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 38128,
+    "alphaPreserved": true
+  },
+  {
+    "id": "11-innkeeper",
+    "name": "여관 주인",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 36586,
+    "alphaPreserved": true
+  },
+  {
+    "id": "12-cartographer",
+    "name": "지도 제작자",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 42144,
+    "alphaPreserved": true
+  },
+  {
+    "id": "13-bodyguard",
+    "name": "호위 무사",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 39720,
+    "alphaPreserved": true
+  },
+  {
+    "id": "14-blacksmith",
+    "name": "대장장이",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 37736,
+    "alphaPreserved": true
+  },
+  {
+    "id": "15-jeweler",
+    "name": "보석 세공사",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 42558,
+    "alphaPreserved": true
+  },
+  {
+    "id": "16-royal-archivist",
+    "name": "왕실 기록관",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 40286,
+    "alphaPreserved": true
+  },
+  {
+    "id": "17-astrologer",
+    "name": "밤하늘을 읽던 점성가",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 42098,
+    "alphaPreserved": true
+  },
+  {
+    "id": "18-wandering-poet",
+    "name": "떠돌이 시인",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 35582,
+    "alphaPreserved": true
+  },
+  {
+    "id": "19-boatman",
+    "name": "뱃사공",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 36898,
+    "alphaPreserved": true
+  },
+  {
+    "id": "20-dream-interpreter",
+    "name": "꿈을 풀던 해몽가",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 40886,
+    "alphaPreserved": true
+  }
+]

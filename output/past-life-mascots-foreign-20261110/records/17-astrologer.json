@@ -1,0 +1,12 @@
+{
+  "id": "17-astrologer",
+  "name": "밤하늘을 읽던 점성가",
+  "prompt": "Use case: stylized-concept. Asset: ONE individual transparent foreign-era past-life occupation variant of the user's EXISTING service mascot. Reference 1 is original brand identity, reference 2 is the completed foreign-era teacher defining series rendering and accessories, reference 3 is the Korean occupation counterpart for personality only. Preserve exact nonhuman asymmetrical pear-like squishy jelly blob silhouette, tall rounded upper-right lobe, broad plump base and bulging right side. NO separate head, human body, hair, legs, nose or MOUTH. Expressive simple black eyes, tiny rounded jelly flipper hands. Smooth silky 3D airbrushed pastel rainbow, lemon-yellow center, sky-blue edges, mint and faint pink, soft glossy highlight, no outlines. Most rainbow body visible. One small medieval/renaissance European hat, short collar or apron and 1-2 clearly readable occupation props. Match the finished foreign teacher's quality and simple nonhuman identity. Exactly one centered character, whole silhouette and props visible within central 80% of square canvas, generous clear transparent margin. True alpha-transparent background with CRISP clean silhouette. NO outer glow, halo, fog, vignette, background shadow, ground, scenery, text, lettering, watermark, grid, Korean hanbok or Korean hats. European historical-inspired stylization. Occupation: Medieval European astrologer: small midnight-blue pointed scholar hat with tiny gold stars, wondrous upward-looking eyes, very short navy starry shoulder cape, holding a round brass astrolabe with clear ring and pointer and little blank star chart with constellation dots. No writing.",
+  "references": [
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mascot.png",
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-foreign-20261110/png/02-teacher.png",
+    "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-20261110/png/17-astrologer.png"
+  ],
+  "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-00c44e7b-8cd5-4528-ad5a-1e3c54cdce88.png",
+  "tool": "built-in image_gen"
+}

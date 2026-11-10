@@ -1,0 +1,39 @@
+{
+  "tool": "built-in image_gen",
+  "scope": "Only the three occupations explicitly marked with foreign-era alternatives in the original list.",
+  "characters": [
+    {
+      "id": "02-teacher",
+      "name": "학당 선생",
+      "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-f64484e7-951c-4d26-98ec-66bfc1a4ca6f.png",
+      "references": [
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mascot.png",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mbti/intj.webp",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-20261110/png/02-teacher.png"
+      ],
+      "prompt": "Use case: stylized-concept. One transparent foreign-era occupation variant of the existing service mascot. Reference original mascot, MBTI INTJ rendering and Korean occupation counterpart. Preserve asymmetrical pear-like rainbow jelly blob silhouette, lemon-yellow center, sky-blue edges, mint and faint pink transitions, smooth glossy soft 3D airbrush, expressive black eyes, tiny jelly flipper hands. NO separate head, human body, hair, legs, mouth or nose. Keep rainbow body mostly uncovered. One centered character, all props visible, square transparent canvas. No text, ground, scenery, watermark or Korean accessories. Medieval/Renaissance European historical accessories. Occupation: Renaissance academy schoolmaster with black soft scholar cap, navy collar, open leather-bound book and ivory feather quill. Friendly curved eyes and NO mouth."
+    },
+    {
+      "id": "05-court-painter",
+      "name": "궁정 화가",
+      "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-0ebc2b50-e819-448e-a895-4b6c98ddd82a.png",
+      "references": [
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mascot.png",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mbti/intj.webp",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-20261110/png/05-court-painter.png"
+      ],
+      "prompt": "Use case: stylized-concept. One transparent foreign-era occupation variant of the existing service mascot. Reference original mascot, MBTI INTJ rendering and Korean occupation counterpart. Preserve asymmetrical pear-like rainbow jelly blob silhouette, lemon-yellow center, sky-blue edges, mint and faint pink transitions, smooth glossy soft 3D airbrush, expressive black eyes, tiny jelly flipper hands. NO separate head, human body, hair, legs, mouth or nose. Keep rainbow body mostly uncovered. One centered character, all props visible, square transparent canvas. No text, ground, scenery, watermark or Korean accessories. Medieval/Renaissance European historical accessories. Occupation: Renaissance court painter with plum velvet feathered beret, small cream ruffled collar, wooden palette and slender brush. Focused eyes and NO mouth."
+    },
+    {
+      "id": "09-merchant",
+      "name": "큰 상단의 상인",
+      "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-1d5a4094-37f8-4781-ae6b-f8e3e36c74bc.png",
+      "references": [
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mascot.png",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/assets/images/mbti/intj.webp",
+        "/Users/soohyun/Files/repository/hihireo08/saju-app/output/past-life-mascots-20261110/png/09-merchant.png"
+      ],
+      "prompt": "Use case: stylized-concept. One transparent foreign-era occupation variant of the existing service mascot. Reference original mascot, MBTI INTJ rendering and Korean occupation counterpart. Preserve asymmetrical pear-like rainbow jelly blob silhouette, lemon-yellow center, sky-blue edges, mint and faint pink transitions, smooth glossy soft 3D airbrush, expressive black eyes, tiny jelly flipper hands. NO separate head, human body, hair, legs, mouth or nose. Keep rainbow body mostly uncovered. One centered character, all props visible, square transparent canvas. No text, ground, scenery, watermark or Korean accessories. Medieval/Renaissance European historical accessories. Occupation: Prosperous Renaissance merchant guild trader with burgundy merchant cap, short fur-trimmed collar, brocade fabric roll and leather purse of gold coins. Bright confident eyes and NO mouth."
+    }
+  ]
+}

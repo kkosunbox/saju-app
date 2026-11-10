@@ -1,0 +1,51 @@
+{
+  "tool": "OpenAI built-in image_gen",
+  "reference": "assets/images/mascot.png",
+  "commonPrompt": "Use case: stylized-concept. Create an animation SPRITE SHEET for a mobile app loading GIF. Reference image is the exact mascot identity: glossy soft 3D asymmetrical pear/blob, luminous pastel pale yellow, mint, sky blue, white specular glints; two large white eyes with black pupils when face is visible. Preserve this identity and materials. Make a PRECISE 4-column x 2-row sprite sheet, 1536x1024 total, eight equal 384x512 cells. Each cell contains ONE full isolated same mascot and props. Sequential chronological frames read left-to-right then next row. Each cell camera, lighting, desk/paper position, character scale and center are EXACTLY locked, only intended small limb/head movements change. All artwork stays at least 35 px inside its cell. Full transparent background, no floor/environment, no labels, no grid lines, no numbers, no watermark, no speech bubbles, no UI. Soft polished 3D product mascot render, cute focused mood, simple readable silhouette at small size. Paper carries only subtle abstract dark ink marks suggesting a saju reading, no legible text. Minimal props. Animation must show actual changing brush/hand writing positions, not identical duplicated images. ",
+  "variants": [
+    {
+      "name": "front",
+      "prompt": "Front three-quarter view: the mascot seated behind a tiny low wooden writing desk, face and both big eyes visible, looking down with concentration. One small rounded hand holds a traditional black calligraphy brush and writes short ink marks on cream paper; other hand rests on paper. Eight consecutive phases of a small deliberate brush-writing stroke, slight head nod, one blink in frame 5, brush returns smoothly at end."
+    },
+    {
+      "name": "side",
+      "prompt": "Side profile facing right: mascot sitting on floor beside an unrolled cream saju reading scroll, visible near eye and far eye partly obscured by profile. Small rounded hand holds a traditional black calligraphy brush and writes on scroll. No desk. Eight consecutive phases of a small brush-writing stroke with gentle body lean toward scroll, blink in frame 5, return to initial writing position."
+    },
+    {
+      "name": "back",
+      "prompt": "Strict rear view: mascot turned entirely AWAY from camera, sitting at a tiny low wooden writing desk, back of pastel blob head and body visible, NO face NO eyes on back. View slightly elevated from behind so cream paper and brush are visible on desktop. Small right rounded hand holds traditional black calligraphy brush writing on paper. Eight consecutive phases of writing, little shoulder wiggle and subtle head tilt, return to initial position."
+    }
+  ],
+  "assembly": {
+    "grid": [
+      4,
+      2
+    ],
+    "size": [
+      288,
+      384
+    ],
+    "fps": 5,
+    "sequence": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0
+    ],
+    "durationSeconds": 3.2,
+    "loop": "infinite",
+    "script": "scripts/assemble-loading-mascot.mjs"
+  }
+}

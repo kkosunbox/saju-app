@@ -1,0 +1,161 @@
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import CategoryRow from './CategoryRow';
+import PressableScale from './PressableScale';
+import Icon from './Icon';
+import ActionTabs from './ActionTabs';
+import SectionHeader from './SectionHeader';
+import Disclaimer from './Disclaimer';
+import { Logo } from './Mascot';
+import { analysisTheme, colors, isDark, SourceKey } from '../theme/colors';
+import { sansW, txt } from '../theme/typography';
+import { KEYWORDS } from '../data/keywords';
+import { parseISO, weekdayOf } from '../utils/date';
+import PromoSlot from './PromoSlot';
+import { useNavigation } from '@/navigation/compat';
+import { promosOf } from '../services/promo/promos';
+import type { DailyFortune } from '../types';
+
+const INK = isDark ? colors.ink : '#000000';
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+const CATEGORIES = ['love', 'money', 'work', 'relationship'] as const;
+const SOURCES: Record<SourceKey, { icon: number; color: string }> = {
+  saju: { icon: require('../../assets/figma/combined/saju.svg'), color: '#FE8828' },
+  thai: { icon: require('../../assets/figma/combined/thai.svg'), color: '#61AA4D' },
+  mbti: { icon: require('../../assets/figma/combined/mbti.svg'), color: '#2885FE' },
+  tarot: { icon: require('../../assets/figma/combined/tarot.svg'), color: '#B157FB' },
+  blood: { icon: require('../../assets/figma/combined/blood.svg'), color: '#E54D4D' },
+};
+const STORIES = [
+  { icon: require('../../assets/figma/combined/flow.svg'), bg: '#F1FAFF' },
+  { icon: require('../../assets/figma/combined/perspective.svg'), bg: '#FFFAF1' },
+  { icon: require('../../assets/figma/combined/center.svg'), bg: '#F8FBF6' },
+];
+
+export default function CombinedAnalysisContent({ fortune, today }: { fortune: DailyFortune; today: string }) {
+  const nav = useNavigation();
+  const f = fortune.combined;
+  const list = [fortune.analyses.saju, fortune.analyses.thai, fortune.analyses.mbti, ...(fortune.analyses.tarot ? [fortune.analyses.tarot] : [])];
+  const common = new Set(f.commonKeywords);
+  const sections = f.storySections?.length ? f.storySections : [{ title: '오늘의 이야기', body: f.combinedStory }];
+  const tags = f.commonKeywords.length ? f.commonKeywords : f.keywords.slice(0, 1);
+  const { m, d } = parseISO(today);
+
+  return (
+    <>
+      <View style={s.hero}>
+        <Image source={require('../../assets/figma/combined/hero.png')} style={s.heroArt} contentFit="contain" />
+        <View style={s.heroTop}>
+          <Logo height={29} />
+          <Text style={s.date}>{m}.{String(d).padStart(2, '0')} ({WEEK[weekdayOf(today)]})</Text>
+        </View>
+        <Text style={s.eyebrow}>네 가지 관점이 겹친 오늘</Text>
+        <Text style={s.summary}>{f.summary}</Text>
+        <View style={s.heroTags}>
+          {tags.map(tag => <View key={tag} style={s.heroChip}><Text style={s.heroTag}>{tag}</Text></View>)}
+        </View>
+      </View>
+
+      <SectionHeader variant="figma" title="오늘 나에게 맞는 이야기" />
+      <View style={s.stories}>
+        {sections.map((section, i) => {
+          const theme = STORIES[i % STORIES.length];
+          return (
+            <View key={`${i}-${section.title}`} style={[s.section, { backgroundColor: isDark ? colors.card : theme.bg }]}>
+              <View style={s.sectionHead}>
+                <Image source={theme.icon} style={s.icon} contentFit="contain" />
+                <Text style={s.sectionTitle}>{section.title}</Text>
+              </View>
+              <Text style={s.sectionBody}>{section.body}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <SectionHeader variant="figma" title="오늘 분야별 운세" caption="눌러서 자세히 보기" />
+      <View style={s.categories}>
+        {CATEGORIES.map((category, i) => (
+          <CategoryRow
+            key={category}
+            category={category}
+            score={f[category]}
+            text={f.categoryTexts[category]}
+            delay={i * 80}
+            onPress={() => router.push({ pathname: '/category/[category]', params: { category } })}
+          />
+        ))}
+      </View>
+
+      <SectionHeader variant="figma" title="관점별 한 줄" caption="겹친 키워드는 굵게 표시됩니다." />
+      <View style={s.list}>
+        {list.map((a, i) => {
+          const source = SOURCES[a.source];
+          return (
+            <PressableScale
+              key={a.source}
+              style={[s.item, i > 0 && s.border]}
+              scaleTo={0.98}
+              onPress={() => router.push({ pathname: '/analysis/[source]', params: { source: a.source } })}
+              accessibilityLabel={`${analysisTheme[a.source].label}: ${a.headline}. 상세 풀이 보기`}
+            >
+              <View style={s.iconSlot}><Image source={source.icon} style={s.icon} contentFit="contain" /></View>
+              <View style={s.itemCopy}>
+                <Text style={s.itemTitle}>{analysisTheme[a.source].label}</Text>
+                <Text style={s.itemHeadline}>{a.headline}</Text>
+                <Text style={s.tagText}>
+                  {a.tags.map((tag, j) => {
+                    const label = KEYWORDS[tag].label;
+                    return <Text key={tag} style={common.has(label) && { color: source.color }}>{j > 0 ? '  ' : ''}#{label}</Text>;
+                  })}
+                </Text>
+              </View>
+              <View style={s.itemChevron}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      <SectionHeader variant="figma" title="그래서 오늘은" />
+      <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
+      <Text style={[txt.caption, s.caption]}>{fortune.viewpointsVersion === 'legacy' ? '종합 풀이는 뽑았을 당시의 관점으로 보관되어 있어요. 타로는 오늘의 카드로 함께 확인해보세요.' : '사주 · MBTI · 타로 · 점성술을 겹쳐 읽은 풀이예요'}</Text>
+
+      {/* 쉬어 가는 날은 고민 상담, 힘이 실리는 날은 이달의 좋은 날 */}
+      <SectionHeader variant="figma" title="더 깊이 보기" />
+      {f.totalScore < 66
+        ? <PromoSlot screen="combined" promo={promosOf(nav, today).consult} tone="mint" title="마음에 걸리는 일이 있다면" />
+        : <PromoSlot screen="combined" promo={promosOf(nav, today).monthly} tone="gold" teaser />}
+      <Disclaimer compact />
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  hero: { minHeight: 140, borderRadius: 12, backgroundColor: '#18263D', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 16 },
+  heroArt: { position: 'absolute', right: 0, bottom: 0, width: 327, height: 140 },
+  heroTop: { height: 19, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  date: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 5 },
+  eyebrow: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 14 },
+  summary: { includeFontPadding: false, ...sansW('700'), fontSize: 20, lineHeight: 28, letterSpacing: -1, color: '#FFFFFF', marginTop: 8 },
+  heroTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16, paddingLeft: 2 },
+  heroChip: { borderWidth: 0.5, borderColor: '#FFFFFF', borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
+  heroTag: { includeFontPadding: false, ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#FFFFFF', opacity: 0.8 },
+  categories: { gap: 12 },
+  list: { backgroundColor: isDark ? colors.card : '#F5F6F8', borderRadius: 12, overflow: 'hidden' },
+  item: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, minHeight: 85 },
+  border: { borderTopWidth: 1, borderTopColor: isDark ? colors.lineStrong : '#E8E8E8' },
+  iconSlot: { marginTop: 12, width: 38, height: 38, borderRadius: 6, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 20, height: 20 },
+  itemCopy: { flex: 1, gap: 4 },
+  itemChevron: { alignSelf: 'center' },
+  itemTitle: { includeFontPadding: false, ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK },
+  itemHeadline: { includeFontPadding: false, ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink },
+  tagText: { includeFontPadding: false, ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
+  stories: { gap: 16 },
+  section: { borderRadius: 12, padding: 16 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionTitle: { includeFontPadding: false, ...sansW('600'), flex: 1, fontSize: 16, lineHeight: 20, letterSpacing: -0.8, color: INK },
+  sectionBody: { includeFontPadding: false, ...sansW('400'), color: INK, fontSize: 13, lineHeight: 18, marginTop: 7, letterSpacing: -0.65 },
+  caption: { marginTop: 16, textAlign: 'center' },
+});

@@ -48,6 +48,8 @@ export interface ShareSpec {
   character?: CharacterCardData;
   /** 찰떡 MBTI: 그림 칸에 내 MBTI · 종합 궁합 링 · 찰떡 MBTI를 나란히 그린다 */
   mbti?: { mine: string; partner: string; score: number };
+  /** 전생: 결과와 동일한 직업·시대의 마스코트. */
+  pastLife?: Pick<PastLife, 'role' | 'era'>;
 }
 
 export interface CharacterCardData {
@@ -171,6 +173,7 @@ export function compatSpec(u: User, r: CompatibilityResult): ShareSpec {
 
 export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
   return {
+    pastLife: { role: P.role, era: P.era },
     kind: '전생 테스트', seal: '前', eyebrow: `${u.nickname}님의 전생은`,
     headline: P.title, sub: P.scene,
     detail: { label: '이번 생에도 남은 재능', value: P.carried },

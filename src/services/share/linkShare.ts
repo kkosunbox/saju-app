@@ -14,6 +14,22 @@ import { RELATIONSHIP_INFO } from '../../data/relationships';
 const APP_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://woonpick.com';
 export const appUrl = () => (Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : APP_URL);
 
+/** 웹 클립보드 복사 — 클립보드 API가 막힌 곳(일부 인앱 브라우저 등)은 숨긴 textarea로 복사한다 */
+export async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { return document.execCommand('copy'); } catch { return false; } finally { ta.remove(); }
+  }
+}
+
 /** 공유 결과: 'shared' | 'copied' | 'cancelled' */
 export async function shareLink(text: string, url = appUrl()): Promise<'shared' | 'copied' | 'cancelled'> {
   // 한 메시지로 보내야 공유받는 앱이 URL과 문구를 구분자 없이 붙이지 않는다.

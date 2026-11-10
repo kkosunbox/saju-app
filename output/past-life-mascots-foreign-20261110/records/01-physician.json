@@ -1,0 +1,10 @@
+{
+  "id": "01-physician",
+  "name": "의원",
+  "prompt": "Use case: background-extraction. Edit target is the supplied foreign-era rainbow jelly physician. Remove ALL the foggy white/gray outer halo, vignette, bloom and background surrounding the mascot, including above the hat and beneath the body. Make the background completely truly transparent right up to a crisp clean character silhouette. Preserve the original rainbow blob, caring closed smiling eyes, NO mouth, burgundy feathered cap, small cream collar, brass mortar and pestle, amber medicine jar, flippers, pose, palette and material. Keep the WHOLE character with comfortable clear margins. No added glow, no drop shadow, no ground. Do not redesign character or props. Square genuinely transparent PNG cutout.",
+  "references": [
+    "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-c6c614f4-3bd5-4623-bb71-4d3ec94bae30.png"
+  ],
+  "source": "/Users/soohyun/.codex/generated_images/01a1c3e7-e054-7ba3-8a45-47d6c9b1ffb3/exec-0e4060b0-8417-49c4-ae9b-b87795d40532.png",
+  "tool": "built-in image_gen"
+}

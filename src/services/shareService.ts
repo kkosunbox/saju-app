@@ -7,7 +7,7 @@ import * as Sharing from 'expo-sharing';
 export type ShareResult = 'shared' | 'saved' | 'cancelled' | 'failed' | 'unsupported';
 
 /** 웹에서 미리 그려 둔 카드 이미지 */
-export interface WebCard { dataUri: string; file: File }
+export interface WebCard { file: File }
 
 /**
  * html2canvas는 <style>을 복제할 때 지금 규칙 전체 뒤에 원래 글자를 한 번 더 붙인다.
@@ -38,7 +38,8 @@ export async function renderCardWeb(ref: RefObject<ViewInstance | null>, file = 
   const canvas = await html2canvas(node, { scale: 1080 / node.offsetWidth, backgroundColor: null, logging: false, useCORS: true, onclone: syncStyles });
   const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
   if (!blob) return null;
-  return { dataUri: canvas.toDataURL('image/png'), file: new File([blob], `${file}.png`, { type: 'image/png' }) };
+  // PNG는 toBlob으로 한 번만 만든다 — toDataURL까지 하면 같은 변환을 메인 스레드에서 한 번 더 막고 돈다
+  return { file: new File([blob], `${file}.png`, { type: 'image/png' }) };
 }
 
 /** iOS 사파리는 다운로드를 '파일' 앱에 넣는다 — 사진첩에는 공유 시트의 '이미지 저장'으로만 들어간다 */
@@ -102,9 +103,11 @@ export async function shareCardImage(
         if (mode === 'share' && fallback === 'none') return 'unsupported';
       }
       const a = document.createElement('a');
-      a.href = card.dataUri;
+      const href = URL.createObjectURL(card.file);
+      a.href = href;
       a.download = `${file}.png`;
       a.click();
+      setTimeout(() => URL.revokeObjectURL(href), 60_000);
       return 'saved';
     }
     const uri = await captureRef(ref, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: opts.aspectRatio ? Math.round(1080 / opts.aspectRatio) : 1920 });

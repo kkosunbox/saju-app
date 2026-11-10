@@ -73,10 +73,18 @@ export function useOpened(kind: OpenKind) {
   return { ready: !!stamps && (local || !!fortune || !!fortuneError), opened: !resetToday && (local || server), open, reset };
 }
 
-/** 결과 화면에 다른 길(알림·링크·기간별 운세)로 먼저 들어왔으면 그걸로 뽑은 셈 */
+/**
+ * 결과 화면(분야별·종합 풀이)에 다른 길(알림·링크)로 먼저 들어왔으면 그걸로 뽑은 셈.
+ * 단, 들어온 날짜에만 — 화면을 띄워 둔 채 자정이 지나면 새 날 운세를 대신 뽑지 않고 sealed를 돌려준다 (홈에서 직접 뽑게).
+ */
 export function useMarkOpened(kind: OpenKind) {
+  const { today } = useApp();
   const { ready, opened, open } = useOpened(kind);
-  useEffect(() => { if (ready && !opened) open(); }, [ready, opened, open]);
+  const [entered, setEntered] = useState<string | null>(null);
+  if (entered === null && ready) setEntered(today);
+  const stale = entered !== null && entered !== today;
+  useEffect(() => { if (ready && !opened && !stale) open(); }, [ready, opened, stale, open]);
+  return { sealed: ready && !opened && stale };
 }
 
 /**

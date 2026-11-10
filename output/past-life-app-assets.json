@@ -1,0 +1,282 @@
+[
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/01-physician.webp",
+    "originalBytes": 1187746,
+    "bytes": 16110,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/02-teacher.webp",
+    "originalBytes": 1023712,
+    "bytes": 15946,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/03-herbalist.webp",
+    "originalBytes": 1146812,
+    "bytes": 18562,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/04-librarian.webp",
+    "originalBytes": 1236391,
+    "bytes": 16630,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/05-court-painter.webp",
+    "originalBytes": 1179113,
+    "bytes": 20974,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/06-wandering-performer.webp",
+    "originalBytes": 1139144,
+    "bytes": 20584,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/07-lantern-maker.webp",
+    "originalBytes": 1305334,
+    "bytes": 22962,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/08-perfumer.webp",
+    "originalBytes": 1103743,
+    "bytes": 16734,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/09-merchant.webp",
+    "originalBytes": 1361410,
+    "bytes": 22706,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/10-potter.webp",
+    "originalBytes": 1108505,
+    "bytes": 15092,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/11-innkeeper.webp",
+    "originalBytes": 1054349,
+    "bytes": 15448,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/12-cartographer.webp",
+    "originalBytes": 1283279,
+    "bytes": 24372,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/13-bodyguard.webp",
+    "originalBytes": 1200389,
+    "bytes": 19544,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/14-blacksmith.webp",
+    "originalBytes": 1105409,
+    "bytes": 16944,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/15-jeweler.webp",
+    "originalBytes": 1101858,
+    "bytes": 18378,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/16-royal-archivist.webp",
+    "originalBytes": 1309982,
+    "bytes": 22426,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/17-astrologer.webp",
+    "originalBytes": 1121075,
+    "bytes": 22396,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/18-wandering-poet.webp",
+    "originalBytes": 1118145,
+    "bytes": 17044,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/19-boatman.webp",
+    "originalBytes": 1410894,
+    "bytes": 24440,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "korean",
+    "file": "assets/images/past-life/korean/20-dream-interpreter.webp",
+    "originalBytes": 1011386,
+    "bytes": 16608,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/01-physician.webp",
+    "originalBytes": 1396096,
+    "bytes": 22790,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/02-teacher.webp",
+    "originalBytes": 1146645,
+    "bytes": 19262,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/03-herbalist.webp",
+    "originalBytes": 1429473,
+    "bytes": 22190,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/04-librarian.webp",
+    "originalBytes": 1427998,
+    "bytes": 21514,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/05-court-painter.webp",
+    "originalBytes": 1309777,
+    "bytes": 22498,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/06-wandering-performer.webp",
+    "originalBytes": 1290125,
+    "bytes": 24168,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/07-lantern-maker.webp",
+    "originalBytes": 1467508,
+    "bytes": 23350,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/08-perfumer.webp",
+    "originalBytes": 1308502,
+    "bytes": 22286,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/09-merchant.webp",
+    "originalBytes": 1625851,
+    "bytes": 29742,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/10-potter.webp",
+    "originalBytes": 1329754,
+    "bytes": 19992,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/11-innkeeper.webp",
+    "originalBytes": 1244798,
+    "bytes": 20158,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/12-cartographer.webp",
+    "originalBytes": 1272145,
+    "bytes": 23688,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/13-bodyguard.webp",
+    "originalBytes": 1263339,
+    "bytes": 21948,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/14-blacksmith.webp",
+    "originalBytes": 1295939,
+    "bytes": 19870,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/15-jeweler.webp",
+    "originalBytes": 1274462,
+    "bytes": 23156,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/16-royal-archivist.webp",
+    "originalBytes": 1235776,
+    "bytes": 21940,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/17-astrologer.webp",
+    "originalBytes": 1193084,
+    "bytes": 22998,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/18-wandering-poet.webp",
+    "originalBytes": 1176017,
+    "bytes": 19374,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/19-boatman.webp",
+    "originalBytes": 1317794,
+    "bytes": 19458,
+    "alphaPreserved": true
+  },
+  {
+    "variant": "foreign",
+    "file": "assets/images/past-life/foreign/20-dream-interpreter.webp",
+    "originalBytes": 1222865,
+    "bytes": 22466,
+    "alphaPreserved": true
+  }
+]

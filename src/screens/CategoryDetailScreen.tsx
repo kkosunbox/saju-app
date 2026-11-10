@@ -14,6 +14,7 @@ import { ACTION_NOTE } from '../data/keywords';
 import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, categoryTheme, colors } from '../theme/colors';
 import { useFortuneDraw, useMarkOpened } from '../services/content/opened';
+import FortuneSealed from '../components/FortuneSealed';
 import LoadingScreen from '../components/LoadingScreen';
 import PromoSlot from '../components/PromoSlot';
 import { PROMO_OF_CATEGORY, promosOf } from '../services/promo/promos';
@@ -30,9 +31,11 @@ export default function CategoryDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'CategoryDetail'>>();
   const nav = useNavigation();
   const { fortune, today, fortuneWriting } = useApp();
-  useMarkOpened('fortune');
+  const { sealed } = useMarkOpened('fortune');
   useFortuneDraw();
   if (!fortune) return null;
+  // 화면을 띄워 둔 채 날짜가 바뀌었으면 새 날 운세는 홈에서 직접 뽑게 한다
+  if (sealed) return <Screen title={categoryTheme[params.category].label} back><FortuneSealed message={'날짜가 바뀌었어요\n홈에서 오늘의 운세를 새로 뽑아 주세요'} /></Screen>;
   const t = categoryTheme[params.category];
   // 풀이(AI)가 다 써질 때까지 기다렸다가 한 번에 보여준다
   if (fortuneWriting) return <LoadingScreen title={`오늘의 ${t.label}`} message="오늘의 풀이를 쓰고 있어요" />;

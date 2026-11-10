@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
 import Screen from '../components/Screen';
@@ -11,6 +11,7 @@ import { RootStackParamList } from '../navigation/types';
 import { WebCard, renderCardWeb, shareCardImage } from '../services/shareService';
 import { todaySpec } from '../services/share/shareSpecs';
 import { useShare } from '../services/share/useShare';
+import { copyText } from '../services/share/linkShare';
 import { colors, isDark } from '../theme/colors';
 import { sansW } from '../theme/typography';
 import { dayNumber, parseISO } from '../utils/date';
@@ -30,10 +31,14 @@ export default function ShareScreen() {
   const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
   const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
+  const pastLifeKey = spec?.pastLife ? JSON.stringify(spec.pastLife) : null;
+  const [readyPastLife, setReadyPastLife] = useState<string | null>(null);
+  const artReady = !pastLifeKey || readyPastLife === pastLifeKey;
+  const onArtReady = useCallback(() => setReadyPastLife(pastLifeKey), [pastLifeKey]);
   // 웹은 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유를 막는다 (아직 못 그렸으면 누를 때 그린다)
   const prepared = useRef<WebCard | null>(null);
   useEffect(() => {
-    if (Platform.OS !== 'web' || !spec) return;
+    if (Platform.OS !== 'web' || !spec || !artReady) return;
     let alive = true;
     const t = setTimeout(() => {
       renderCardWeb(ref, spec.file).then(c => { if (alive) prepared.current = c; }).catch(() => {});
@@ -41,18 +46,25 @@ export default function ShareScreen() {
     return () => { alive = false; clearTimeout(t); prepared.current = null; };
     // spec은 매번 새로 만들어지니 내용(파일 이름·문구)이 바뀔 때만 다시 그린다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spec?.file, spec?.text]);
+  }, [spec?.file, spec?.text, pastLifeKey, artReady]);
   if (!spec) return null;
 
   const save = async () => {
+    if (!artReady) return;
     setBusy('save');
     const r = await shareCardImage(ref, { file: spec.file, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
     setBusy(null);
     if (r === 'saved') toast('이미지를 저장했어요');
     if (r === 'saved' || r === 'shared') reward(spec);
   };
+  // 웹: PC 공유 시트는 이미지만 넘기니(shareService 참고) 문구·링크는 따로 복사해 붙여 넣게 한다
+  const copyLink = async () => {
+    const message = [spec.text, urlOf(spec)].filter(Boolean).join('\n');
+    toast((await copyText(message)) ? '문구와 링크를 복사했어요' : '복사하지 못했어요');
+  };
   // 이미지 공유가 안 되는 브라우저(데스크톱 · 일부 인앱)는 다운로드 대신 문구·링크로 공유한다
   const share = async () => {
+    if (!artReady) return;
     setBusy('share');
     await sendImage(spec, { ref, prepared: () => prepared.current });
     setBusy(null);
@@ -66,13 +78,16 @@ export default function ShareScreen() {
       contentStyle={{ alignItems: 'center', flexGrow: 1, paddingTop: 16 }}
       footer={
         <View style={{ flexDirection: 'row', gap: 12 }}>
-          <PrimaryButton size="medium" label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={save} disabled={!!busy} style={{ flex: 111 }} />
-          <PrimaryButton size="medium" label={busy === 'share' ? '만드는 중…' : '공유하기'} onPress={share} disabled={!!busy} style={{ flex: 204 }} icon={busy ? undefined : <View style={{ marginRight: -4 }}><Icon name="external" size={16} strokeWidth={1.95} color={colors.white} /></View>} />
+          <PrimaryButton size="medium" label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={save} disabled={!!busy || !artReady} style={{ flex: 111 }} icon={busy === 'save' ? undefined : <View style={{ marginRight: -4 }}><Icon name="download" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
+          {Platform.OS === 'web' && (
+            <PrimaryButton size="medium" label="링크 복사" variant="soft" onPress={copyLink} disabled={!!busy} style={{ flex: 100 }} icon={<View style={{ marginRight: -4 }}><Icon name="copy" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
+          )}
+          <PrimaryButton size="medium" label={busy === 'share' ? '만드는 중…' : '공유하기'} onPress={share} disabled={!!busy || !artReady} style={{ flex: Platform.OS === 'web' ? 111 : 204 }} icon={busy ? undefined : <View style={{ marginRight: -4 }}><Icon name="external" size={16} strokeWidth={1.95} color={colors.white} /></View>} />
         </View>
       }
     >
       <View style={s.todayShadow}>
-        <ShareCard ref={ref} spec={spec} today={today} />
+        <ShareCard ref={ref} spec={spec} today={today} onArtReady={onArtReady} />
       </View>
       <Text style={s.todayCaption}>{spec.today
         ? `올해 ${daysInYear(today)}일 중 오늘의 순위를 담았어요.`

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "01-physician",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 28756
+  },
+  {
+    "id": "02-teacher",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 28120
+  },
+  {
+    "id": "03-herbalist",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 33732
+  },
+  {
+    "id": "04-librarian",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 29788
+  },
+  {
+    "id": "05-court-painter",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 35458
+  },
+  {
+    "id": "06-wandering-performer",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 34966
+  },
+  {
+    "id": "07-lantern-maker",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 40036
+  },
+  {
+    "id": "08-perfumer",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 29758
+  },
+  {
+    "id": "09-merchant",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 39534
+  },
+  {
+    "id": "10-potter",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 26612
+  },
+  {
+    "id": "11-innkeeper",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 27112
+  },
+  {
+    "id": "12-cartographer",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 42486
+  },
+  {
+    "id": "13-bodyguard",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 33662
+  },
+  {
+    "id": "14-blacksmith",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 29990
+  },
+  {
+    "id": "15-jeweler",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 32510
+  },
+  {
+    "id": "16-royal-archivist",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 38490
+  },
+  {
+    "id": "17-astrologer",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 38456
+  },
+  {
+    "id": "18-wandering-poet",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 29108
+  },
+  {
+    "id": "19-boatman",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 44490
+  },
+  {
+    "id": "20-dream-interpreter",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "webpBytes": 28444
+  }
+]

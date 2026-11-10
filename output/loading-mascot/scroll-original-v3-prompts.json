@@ -1,0 +1,23 @@
+{
+  "tool": "OpenAI built-in image_gen",
+  "references": [
+    "assets/images/mascot.png",
+    "output/loading-mascot/source/scroll-original-v2.png"
+  ],
+  "assembly": {
+    "grid": [
+      6,
+      4
+    ],
+    "fps": 12,
+    "distinctFrames": 24,
+    "durationSeconds": 2,
+    "size": [
+      256,
+      256
+    ],
+    "loop": "infinite",
+    "command": "node scripts/assemble-loading-mascot.mjs scroll-original-v3",
+    "output": "assets/images/loading-mascot/saju-writing-scroll-original-v3.gif"
+  }
+}
