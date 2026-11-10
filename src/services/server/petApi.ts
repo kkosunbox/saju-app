@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
 import { queryClient } from '../../api/query';
 import { useApp } from '../../context/AppContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { Pet, PetInput } from '../../types/content';
 
 export const petKeys = { list: ['pets'] as const };
@@ -17,7 +18,9 @@ export const petApi = {
 /** 프로필을 바꾸면 결과도 바뀌므로 프로필 버전마다 새로 받는다 */
 export function usePets() {
   const { user } = useApp();
-  return useQuery({ queryKey: [...petKeys.list, user?.id, user?.version], queryFn: petApi.list, enabled: !!user });
+  // 공유 링크로 연 화면은 공유된 아이만 보여 주니 목록을 받지 않는다
+  const shared = useSharedView();
+  return useQuery({ queryKey: [...petKeys.list, user?.id, user?.version], queryFn: petApi.list, enabled: !!user && !shared });
 }
 
 /** 목록과 열어 둔 전체 결과(성향을 고치면 비교가 바뀐다)를 함께 새로 */

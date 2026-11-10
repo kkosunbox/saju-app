@@ -13,8 +13,10 @@ import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Para, scoreColor } from '../../components/premium/Kit';
 import { Closing, InfoRows, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
+import { useSharedArg } from '../../context/SharedViewContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
@@ -35,12 +37,16 @@ export default function MonthlyScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Monthly'>>();
   const { user: u, today } = useApp();
   const t = parseISO(today);
-  const [sel, setSel] = useState(params?.y && params?.m ? { y: Number(params.y), m: Number(params.m) } : { y: t.y, m: t.m });
+  // 공유 링크로 열면 공유된 달만 (달 고르기는 숨긴다)
+  const sharedArg = useSharedArg();
+  const [sel, setSel] = useState(sharedArg ? { y: Number(sharedArg.slice(0, 4)), m: Number(sharedArg.slice(5, 7)) }
+    : params?.y && params?.m ? { y: Number(params.y), m: Number(params.m) } : { y: t.y, m: t.m });
   const ref = { kind: 'monthly', month: `${sel.y}-${pad2(sel.m)}` } as const;
   const content = usePremiumContent<MonthContent>(ref);
   const { reading, retry } = useReading<MonthReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<MonthPreview>(ref, !content.open);
+  const making = usePreviewMaking(ref.month, !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.monthly.length);
   if (!u?.natal) return null;
   const item = ITEMS.monthly(sel.y, sel.m);
   if (content.open && gate.show) return <ReadingStepsScreen title="월별 상세운세" kind="month" reading={reading} />;
@@ -58,9 +64,10 @@ export default function MonthlyScreen() {
   return (
     <Screen title="월별 상세운세" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${sel.y}년 ${sel.m}월 1일 ~ ${daysInMonth(sel.y, sel.m)}일`} />
-      <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); }} />
-      {top ? (
-        <View style={s.hero}>
+      {sharedArg === null ? <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); }} /> : null}
+      {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.monthly} title={`${sel.m}월 미리보기를 만들고 있어요`} />
+      : top ? (
+        <PreviewReveal gate={making}><View style={s.hero}>
           <Image source={require('../../../assets/figma/monthly/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
           <ScoreRing key={item.key} score={top.avg} size={87} stroke={6} label="이달 평균" labelStyle={s.ringLabel} />
           <View style={{ flex: 1 }}>
@@ -70,7 +77,7 @@ export default function MonthlyScreen() {
             <Text style={s.heroSub}>{top.line.sub}</Text>
             <View style={s.chips}>{top.kws.map(k => <View key={k} style={s.chip}><Text style={s.chipText}>{k}</Text></View>)}</View>
           </View>
-        </View>
+        </View></PreviewReveal>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
         : R && F ? <ReadingReveal on={gate.appeared}><MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} /></ReadingReveal>

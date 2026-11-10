@@ -5,6 +5,7 @@ import PressableScale from '../PressableScale';
 import Reveal from '../Reveal';
 import SolidIcon from '../SolidIcon';
 import { deviceKey } from '../../services/storage/storageService';
+import { useSharedView } from '../../context/SharedViewContext';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW } from '../../theme/typography';
 
@@ -39,11 +40,14 @@ export default function PetLetter({ petId, name, owner, letter }: { petId: numbe
   // null: 아직 읽는 중 (깜빡임 없이 봉투·편지 중 하나만 그린다)
   const [opened, setOpened] = useState<boolean | null>(null);
   const [justOpened, setJustOpened] = useState(false);
+  // 공유 링크로 연 화면은 봉투 없이 편지를 펼쳐 둔다 (인쇄 · PDF에도 그대로 담기게)
+  const shared = !!useSharedView();
   useEffect(() => {
     let live = true;
     AsyncStorage.getItem(KEY(petId)).then(v => live && setOpened(!!letter && v === stampOf(letter))).catch(() => live && setOpened(false));
     return () => { live = false; };
   }, [petId, letter]);
+  if (shared && letter) return <Paper name={name} owner={owner} letter={letter} />;
   if (opened === null) return null;
 
   if (!opened || !letter) {

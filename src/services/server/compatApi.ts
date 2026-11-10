@@ -2,7 +2,7 @@
 import { ApiError, api, call } from '../../api/client';
 import { BirthPlace, CompatibilityResult, PartnerInput, Relationship } from '../../types';
 
-interface CompatibilityDto {
+export interface CompatibilityDto {
   id: number;
   source: 'manual' | 'invite';
   partnerNickname: string;
@@ -18,7 +18,7 @@ interface CompatibilityDto {
   createdAt: string;
 }
 
-const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult => ({
+export const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult => ({
   ...dto.result,
   id: dto.id,
   source: dto.source,

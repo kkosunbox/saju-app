@@ -11,8 +11,10 @@ import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, MonthBars, Para, Tip,
 import { Logo } from '../../components/Mascot';
 import { Closing, InfoRows, Para as LuckPara, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
+import { useSharedArg, useSharedView } from '../../context/SharedViewContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
 import { CATS, pText } from '../../services/premium/helpers';
@@ -33,12 +35,15 @@ export default function NewYearScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'NewYear'>>();
   const { user: u, today } = useApp();
   const cy = Number(today.slice(0, 4));
-  const [y, setY] = useState(Number(params?.year) || cy);
+  // 공유 링크로 열면 공유된 해만 (해 고르기는 숨긴다)
+  const sharedArg = useSharedArg();
+  const [y, setY] = useState(sharedArg ? Number(sharedArg) : Number(params?.year) || cy);
   const ref = { kind: 'newyear', year: y } as const;
   const content = usePremiumContent<YearContent>(ref);
   const { reading, retry } = useReading<YearReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<YearPreview>(ref, !content.open);
+  const making = usePreviewMaking(`newyear-${y}`, !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.newyear.length);
   if (!u) return null;
   const item = ITEMS.newyear(y);
   if (content.open && gate.show) return <ReadingStepsScreen title="신년운세" kind="year" reading={reading} />;
@@ -50,9 +55,10 @@ export default function NewYearScreen() {
   return (
     <Screen title="신년운세" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti}`} />
-      <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} />
-      {top && idiom ? (
-        <View style={s.hero}>
+      {sharedArg === null ? <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} /> : null}
+      {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.newyear} title={`${y}년 미리보기를 만들고 있어요`} />
+      : top && idiom ? (
+        <PreviewReveal gate={making}><View style={s.hero}>
           <Image source={require('../../../assets/figma/new-year/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
           <View style={s.heroLogo}><Logo height={LOGO_H} /></View>
           <Text style={s.eyebrow}>{y}년 {STEMS[top.yp.stem].ko}{BRANCHES[top.yp.branch].ko}년 · {top.animal}의 해</Text>
@@ -60,7 +66,7 @@ export default function NewYearScreen() {
           <View style={{ marginTop: 7 }}><ScoreRing key={y} score={top.total} size={96} stroke={7} label="올해 종합" /></View>
           <Text style={s.idiomLine}>{idiom[1]} · {idiom[2]}</Text>
           <View style={s.chips}>{top.kws.map(k => <View key={k} style={s.chip}><Text style={s.chipText}>{k}</Text></View>)}</View>
-        </View>
+        </View></PreviewReveal>
       ) : <BodyState error={preview.isError} />}
       {!content.open ? <LockGate key={item.key} item={item} />
         : D ? <ReadingReveal on={gate.appeared}><NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} /></ReadingReveal>
@@ -87,7 +93,9 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
   const y = D.y; const X = D.details;
   const writing = reading?.status === 'writing';
   const { overview, fields, months } = reading?.parts ?? {};
-  const goMonth = (m: number) => nav.navigate('Monthly', { y, m });
+  // 공유 링크로 연 사람은 그 달 상세운세가 없으니 이동하지 않는다
+  const shared = useSharedView();
+  const goMonth = shared ? undefined : (m: number) => nav.navigate('Monthly', { y, m });
   const L = F ? EL_LUCK[F.yong] : null;
 
   return (
@@ -157,13 +165,13 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
         })}
       </View>
 
-      <SubHead title="05 · 12개월 흐름" caption="막대를 누르면 그 달의 상세운세로 이동해요" captionStyle={{ letterSpacing: -0.91 }} />
+      <SubHead title="05 · 12개월 흐름" caption={shared ? '달마다 들어오는 기운' : '막대를 누르면 그 달의 상세운세로 이동해요'} captionStyle={{ letterSpacing: -0.91 }} />
       <MonthBars months={D.months} onPress={goMonth} />
       <View style={{ gap: 10, marginTop: 12 }}>
         {D.months.map((x, i) => {
           const mp = X.months[i]; const t = months?.months[i];
           return (
-            <Card key={x.m} onPress={() => goMonth(x.m)} accessibilityLabel={`${x.m}월 상세운세`}>
+            <Card key={x.m} onPress={goMonth && (() => goMonth(x.m))} accessibilityLabel={`${x.m}월 상세운세`}>
               <View style={s.between}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                   <Text style={{ fontSize: 17, fontWeight: '700', color: colors.ink }}>{x.m}월</Text>

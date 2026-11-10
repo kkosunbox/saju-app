@@ -196,6 +196,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** 이 안의 화면에는 앱 상태 일부를 바꿔 보여 준다 (공유 링크: 공유한 사람의 프로필과 공유한 날) */
+export function AppStateOverride({ patch, children }: { patch: Partial<AppState>; children: React.ReactNode }) {
+  const v = useApp();
+  return <Ctx.Provider value={{ ...v, ...patch }}>{children}</Ctx.Provider>;
+}
+
 export function useApp() {
   const v = useContext(Ctx);
   if (!v) throw new Error('useApp must be used within AppProvider');

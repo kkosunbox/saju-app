@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { PurposeKey, SajuFull, SajuProfile } from '../../types/premium';
 import { ReadingView } from '../../types/reading';
 import { toSajuFull } from '../premium/helpers';
@@ -83,21 +84,27 @@ function getPreview<T>(ref: PremiumRef) {
 /**
  * The paid body, fetched only once the content is unlocked.
  * `F` is the user's saju summary the screens build their sentences on.
+ * On a share link (/r/{token}) it is the copy the sharer shared, and nothing is fetched.
  */
 export function usePremiumContent<T>(ref: PremiumRef) {
   const { user, account, today } = useApp();
   const { owned } = usePremium();
+  const shared = useSharedView();
   const key = contentKeyOf(ref);
   const open = !!account && owned(key);
   const q = useQuery({
     queryKey: ['premium', key, user?.id, user?.version, today],
-    enabled: open && !!user,
+    enabled: open && !!user && !shared,
     queryFn: async (): Promise<{ data: T; F: SajuFull | null; reading: ReadingView | null }> => {
       const r = await getContent<T>(ref);
       return { data: r.data, F: r.profile ? toSajuFull(r.profile) : null, reading: r.reading ?? null };
     },
     staleTime: 10 * 60_000,
   });
+  if (shared) {
+    const data = shared.contentKey === key ? { data: shared.data as T, F: shared.F, reading: shared.reading } : undefined;
+    return { ...q, open: true, key, data, isError: !data };
+  }
   return { open, key, ...q };
 }
 
@@ -143,10 +150,11 @@ export function useReading<P>(content: { key: string; data?: { reading: ReadingV
 /** The free top part of a paid screen, shown while it is locked. */
 export function usePremiumPreview<T>(ref: PremiumRef, enabled = true) {
   const { user, today } = useApp();
+  const shared = useSharedView();
   const key = contentKeyOf(ref);
   return useQuery({
     queryKey: ['premium-preview', key, user?.id, user?.version, today],
-    enabled: enabled && !!user,
+    enabled: enabled && !!user && !shared,
     queryFn: async () => (await getPreview<T>(ref)).data,
     staleTime: 10 * 60_000,
   });

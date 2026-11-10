@@ -72,11 +72,15 @@ const EXACT: Record<string, PageMeta> = {
   '/premium/new-year': { title: '신년 운세' },
   '/premium/monthly': { title: '월별 운세' },
   '/premium/lucky': { title: '길일 찾기' },
+  '/premium/theme/love': { title: '연애·결혼 운세' },
+  '/premium/theme/money': { title: '재물 운세' },
+  '/premium/theme/career': { title: '직업·적성 운세' },
 };
 
 /** 앞부분이 같은 경로 (동적 경로) */
 const PREFIX: [string, PageMeta][] = [
   ['/invite/', { title: '궁합 초대', description: '친구가 운Pick에서 궁합을 보자고 초대했어요.' }],
+  ['/r/', { title: '공유된 풀이', description: '친구가 운Pick 풀이를 통째로 공유했어요.' }],
   ['/consult/', { title: '운알톡' }],
   ['/premium/theme/', { title: '테마 운세' }],
   ['/analysis/', { title: '관점별 분석' }],

@@ -18,6 +18,7 @@ import Icon from '../../components/Icon';
 import SolidIcon from '../../components/SolidIcon';
 import { checkBirth, fmtDate } from '../../components/BirthFields';
 import { useApp } from '../../context/AppContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ApiError } from '../../api/client';
 import { BodyState, LockedCard } from '../../components/premium/Kit';
@@ -109,7 +110,10 @@ export default function PetScreen() {
   // 새 아이 등록 화면을 연 중인지
   const [adding, setAdding] = useState(false);
   const [fresh, setFresh] = useState<number | null>(null);
+  // 공유 링크(/r/{token})로 열면 공유된 아이의 결과만 (목록 · 추가 · 지우기 없이)
+  const sharedPet = useSharedView()?.pet;
   if (!u) return null;
+  if (sharedPet) return <PetResult u={u} pet={sharedPet} pets={[sharedPet]} revealed={false} onPick={() => {}} onAdd={() => {}} onRemoved={() => {}} />;
   if (!q.data) return <LoadingScreen title="반려동물 궁합" error={q.error} onRetry={q.refetch} />;
   const pets = q.data;
   const pet = pets.find(p => p.id === selected) ?? pets[0];
@@ -149,6 +153,9 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   const fetching = useJustOpenedFetching(content);
   const spec = petSpec(u, pet);
   const name = pet.name;
+  const shared = !!useSharedView();
+  // 전체 결과를 열었으면 공유 버튼에서 전체 결과 링크도 고를 수 있다
+  const petItem = ITEMS.pet(pet.id, pet.name);
   // 새로 등록한 아이는 미리보기 전에 궁합을 보는 단계를 잠깐 보여 준다 (다른 아이를 고르면 바로)
   const steps = LOADING_STEPS(name, R.basis.kind === 'adopted' ? '가족이 된 날' : '생일', u.nickname);
   // steps.length번째 한 박자는 "궁합을 다 봤어요"
@@ -188,9 +195,9 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   );
 
   return (
-    <Screen key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton spec={spec} />}>
-      <PetSnackBanner style={s.snackTop} />
-      <View style={s.petRow}>
+    <Screen key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton item={content.open ? petItem : undefined} spec={spec} />}>
+      {shared ? null : <PetSnackBanner style={s.snackTop} />}
+      {shared ? null : <View style={s.petRow}>
         {pets.map(p => (
           <PressableScale key={p.id} onPress={() => onPick(p.id)} style={[s.petChip, p.id === pet.id && s.petChipOn]} scaleTo={0.95} accessibilityRole="tab" accessibilityState={{ selected: p.id === pet.id }}>
             <Text style={[s.petChipText, p.id === pet.id && { color: colors.white }]} numberOfLines={1}>{p.name}</Text>
@@ -199,10 +206,10 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         <PressableScale onPress={onAdd} style={[s.petChip, s.petAdd]} scaleTo={0.95} accessibilityLabel="반려동물 추가">
           <Text style={s.petAddText}>+추가</Text>
         </PressableScale>
-      </View>
+      </View>}
 
       <Appear>
-      <FriendCompare route="Pet" spec={spec} />
+      {shared ? null : <FriendCompare route="Pet" spec={spec} />}
       {hero}
       {basisNote(name, R.basis) ? <Text style={s.basisNote}>{basisNote(name, R.basis)}</Text> : null}
 
@@ -218,7 +225,7 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         <BodyState error={content.isError} onRetry={() => content.refetch()} />
       )}
 
-      <ShareActions spec={spec} title={`${name}${josa(name, '과', '와')}의 궁합 자랑하기`} outlined marginTop={16} />
+      {shared ? null : <ShareActions spec={spec} title={`${name}${josa(name, '과', '와')}의 궁합 자랑하기`} outlined marginTop={16} />}
 
       <View style={[s.card, { marginTop: 16 }]}>
         <Text accessibilityRole="header" style={s.cardTitle}>이 결과는 어떻게 만들었나요?</Text>
@@ -226,9 +233,9 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
       </View>
 
 
-      <View style={s.manage}>
+      {shared ? null : <View style={s.manage}>
         <PressableScale onPress={() => setConfirm(true)} hitSlop={8}><Text style={s.manageLink}>{name} 지우기</Text></PressableScale>
-      </View>
+      </View>}
       <Disclaimer compact />
       </Appear>
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>

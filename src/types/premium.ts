@@ -121,5 +121,11 @@ export type ThemePreview =
   | { kind: 'love'; st: string; blood: string }
   | { kind: 'money'; t: MoneyType }
   | { kind: 'career'; jobs: string[] };
-export interface LuckyPreview { top: { iso: string; s: number } }
+/** 길일 미리보기: TOP 5 중 마지막 날만 날짜·근거를 공개하고, 나머지는 순위별 점수만 (1위는 열람 후) */
+export interface LuckyPreview {
+  pick?: { rank: number; iso: string; s: number; dp: Pillar; gw: boolean; harmony: boolean; tg: number; st: number; hit: string[]; luckyTime: string };
+  /** TOP 5 점수, 1위부터 */
+  scores?: number[];
+  avoid?: number;
+}
 export interface SpousePreview { spouseEl: Element; headline: string; mbti: MBTI; animal: string; ageGap: string; thisYear: number; bestYear: number }

@@ -8,8 +8,10 @@ import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Para, SubHead, heroTxt,
 import { Image } from 'expo-image';
 import { Closing, InfoRows, SajuIcon, SajuIconName } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsKind, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
+import { useSharedArg } from '../../context/SharedViewContext';
 import { RootStackParamList } from '../../navigation/types';
 import { ITEMS, ThemeKind } from '../../services/premium/catalog';
 import { pText } from '../../services/premium/helpers';
@@ -46,15 +48,18 @@ const THEME_STEPS = { love: 'themeLove', money: 'themeMoney', career: 'themeCare
 export default function ThemeScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Theme'>>();
   const { user: u } = useApp();
-  const kind = params.kind;
+  // 공유 링크로 열면 공유된 테마
+  const sharedArg = useSharedArg();
+  const kind = (sharedArg || params?.kind) as ThemeKind;
   const ref = { kind: 'theme', theme: kind } as const;
   const content = usePremiumContent<ThemeContent<ThemeKind> & { details: ThemeDetails }>(ref);
   const { reading, retry } = useReading<ThemeReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<ThemePreview>(ref, !content.open);
+  const making = usePreviewMaking(kind, preview.data?.kind === kind, !content.open && !preview.isError, PREVIEW_STEPS[kind].length);
   if (!u?.natal) return null;
   const item = ITEMS.theme(kind);
-  if (content.open && gate.show) return <ReadingStepsScreen title="테마 운세" kind={THEME_STEPS[kind]} reading={reading} />;
+  if (content.open && gate.show) return <ReadingStepsScreen title={item.title} kind={THEME_STEPS[kind]} reading={reading} />;
   const data = content.data?.data; const F = content.data?.F;
   // 상단 요약(무료): 열람했으면 본문에서, 아니면 미리보기에서
   const top = (data ? { kind, ...data } : preview.data?.kind === kind ? preview.data : undefined) as (ThemePreview & Partial<ThemeLove & ThemeMoney & ThemeCareer>) | undefined;
@@ -86,9 +91,9 @@ export default function ThemeScreen() {
   }
 
   return (
-    <Screen title="테마 운세" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen title={item.title} back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti}`} />
-      {hero}
+      {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS[kind]} /> : top ? <PreviewReveal gate={making}>{hero}</PreviewReveal> : hero}
       {!content.open ? <LockGate key={item.key} item={item} />
         : data && F ? <ReadingReveal on={gate.appeared}><ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}

@@ -9,6 +9,7 @@ import Icon from './Icon';
 import { colors, gradients } from '../theme/colors';
 import { SCREEN_PX, txt } from '../theme/typography';
 import { useWebTopBar } from '../utils/webThemeColor';
+import { useSharedView } from '../context/SharedViewContext';
 
 interface Props {
   children: React.ReactNode;
@@ -48,8 +49,10 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   const scrollBottom = footer || largeTitle ? 0 : insets.bottom;
   // 웹: 상단 바 색을 화면 맨 위 그라디언트에 맞춘다. 그라디언트는 스크롤해도 제자리라 한 번만 맞추면 된다
   useWebTopBar(sky ? [[0, gradients.skySoft[0]], [SKY_H * SKY_FADE, gradients.skySoft[1]]] : null);
-  // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다
-  const showBack = back || !!onBack;
+  // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다.
+  // 공유 링크(/r/{token})로 연 화면은 돌아갈 곳이 없으니 뒤로 가기를 두지 않는다
+  const sharedView = !!useSharedView();
+  const showBack = (back || !!onBack) && !sharedView;
   const goBack = onBack ?? (() => nav.goBack());
   const heading = title ?? largeTitle;
   const bar = (heading || showBack || right) && (

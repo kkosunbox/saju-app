@@ -962,7 +962,7 @@ export interface paths {
         put?: never;
         /**
          * 공유 보상 (+10P)
-         * @description 콘텐츠마다 하루 1회, 하루 최대 3회. 다 받았으면 granted=false (오류 아님)
+         * @description 하루 1회 (어떤 콘텐츠든). 이미 받았으면 granted=false (오류 아님)
          */
         post: operations["PointsController_rewardShare_v1"];
         delete?: never;
@@ -1437,7 +1437,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 길일 찾기 미리보기 (1위 날짜) */
+        /** 길일 찾기 미리보기 (5위 날짜 · TOP 5 점수) */
         get: operations["PremiumPreviewController_lucky_v1"];
         put?: never;
         post?: never;
@@ -1615,6 +1615,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/premium/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 유료 콘텐츠 전체 공유 링크 만들기
+         * @description 열람한 콘텐츠의 지금 내용(엔진 결과 · AI 풀이 · 내 프로필)을 복사해 두고 링크 토큰을 줍니다. 공유를 취소할 때까지 열립니다. 같은 내용의 살아 있는 링크가 있으면 그것을 줍니다. AI 풀이가 아직 쓰는 중이면 400. 심층 궁합 · 속마음은 궁합 기록(상대 정보 포함)을, 반려동물은 그 아이 정보를 함께 복사합니다.
+         */
+        post: operations["PremiumShareController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/premium/shares/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 공유 링크 (콘텐츠별)
+         * @description 이 콘텐츠의 살아 있는 링크 중 가장 최근 것. 없으면 data = null (공유 안 하는 중).
+         */
+        get: operations["PremiumShareController_findMine_v1"];
+        put?: never;
+        post?: never;
+        /**
+         * 콘텐츠 공유 취소
+         * @description 이 콘텐츠로 만든 내 링크를 모두 끕니다. 이미 보낸 링크도 더 이상 열리지 않습니다.
+         */
+        delete: operations["PremiumShareController_revokeContent_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/premium/shares/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 공유 링크로 전체 내용 보기 (로그인 불필요)
+         * @description 공유한 시점의 내용 그대로. 없거나 꺼진 링크는 404. IP당 시간당 120회로 제한합니다.
+         */
+        get: operations["PremiumShareController_view_v1"];
+        put?: never;
+        post?: never;
+        /**
+         * 내 공유 링크 끄기
+         * @description 링크가 더 이상 열리지 않습니다.
+         */
+        delete: operations["PremiumShareController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 반려동물과 궁합 목록
+         * @description 등록한 순서대로, 아이마다 지금 내 프로필로 계산한 궁합(result)을 함께 줍니다. 프로필이 없으면 404.
+         */
+        get: operations["PetController_list_v1"];
+        put?: never;
+        /**
+         * 반려동물 등록
+         * @description 생일이나 가족이 된 날 중 하나는 꼭 필요합니다 (1990-01-01 ~ 오늘). 한 사람에 10마리까지.
+         */
+        post: operations["PetController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 반려동물 지우기 */
+        delete: operations["PetController_delete_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/consults": {
         parameters: {
             query?: never;
@@ -1734,31 +1843,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/pets": {
+    "/v1/push/devices": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        get?: never;
         /**
-         * 내 반려동물과 궁합 목록
-         * @description 등록한 순서대로, 아이마다 지금 내 프로필로 계산한 궁합(result)을 함께 줍니다. 프로필이 없으면 404.
+         * 푸시 받을 기기 등록
+         * @description 알림 권한을 받은 뒤, 앱을 열 때마다 불러 주세요. 같은 토큰이 다른 계정에 있으면 이 계정으로 옮깁니다 (같은 폰에서 다시 로그인). 오늘의 운세 알림 시각(dailyFortuneMinute)도 함께 보내 주세요 — 꺼 두고 이벤트·혜택 알림만 받는 기기는 null.
          */
-        get: operations["PetController_list_v1"];
-        put?: never;
-        /**
-         * 반려동물 등록
-         * @description 생일이나 가족이 된 날 중 하나는 꼭 필요합니다 (1990-01-01 ~ 오늘). 한 사람에 10마리까지.
-         */
-        post: operations["PetController_create_v1"];
+        put: operations["PushController_register_v1"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/pets/{id}": {
+    "/v1/push/devices/{token}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1768,8 +1873,35 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** 반려동물 지우기 */
-        delete: operations["PetController_delete_v1"];
+        /**
+         * 푸시 받을 기기 해제
+         * @description 알림을 끄거나 로그아웃할 때 불러 주세요. 토큰은 URL 인코딩해서 넣어 주세요.
+         */
+        delete: operations["PushController_unregister_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/push/marketing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 이벤트·혜택 알림 수신 동의 조회
+         * @description 광고성 정보 (이벤트·혜택) 앱 푸시 수신 동의 여부. 계정 단위입니다.
+         */
+        get: operations["PushController_getMarketing_v1"];
+        /**
+         * 이벤트·혜택 알림 수신 동의 변경
+         * @description 마이 메뉴 토글·알림 권유 시트에서 부릅니다 (게스트 가능). 동의하면 동의 시각을 새로 남깁니다. 바뀐 뒤 앱이 "○년 ○월 ○일 수신 동의(철회) 처리되었어요"를 보여 주세요 (정보통신망법 처리 결과 통지).
+         */
+        put: operations["PushController_updateMarketing_v1"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2090,7 +2222,7 @@ export interface components {
             username: string;
             name: string;
             /** @enum {string} */
-            role: "admin" | "store_owner";
+            role: "admin";
         };
         AdminLoginResponse: {
             accessToken: string;
@@ -2168,6 +2300,51 @@ export interface components {
             isActive?: boolean;
             /** @description 같은 그룹 안의 순서 */
             sortOrder?: number;
+        };
+        PushAudienceRequest: {
+            /**
+             * @description users · all
+             * @enum {string}
+             */
+            target: "users" | "all";
+            /**
+             * @description ad · info
+             * @enum {string}
+             */
+            kind: "ad" | "info";
+            /** @description target=users일 때 고른 user.id */
+            userIds?: number[];
+        };
+        SendPushCampaignRequest: {
+            /**
+             * @description users · all
+             * @enum {string}
+             */
+            target: "users" | "all";
+            /**
+             * @description ad · info
+             * @enum {string}
+             */
+            kind: "ad" | "info";
+            /** @description target=users일 때 고른 user.id */
+            userIds?: number[];
+            title?: string;
+            body: string;
+            /**
+             * @description 알림을 누르면 열 앱 경로 (data.url)
+             * @example /fortune
+             */
+            url?: string;
+        };
+        ChangelogRequest: {
+            /**
+             * @description 사용자에게 반영한 날 (KST)
+             * @example 2026-11-10
+             */
+            date: string;
+            areas: ("frontend" | "backend")[];
+            title: string;
+            detail: string;
         };
         LabelValueDto: {
             label: string;
@@ -2277,11 +2454,23 @@ export interface components {
             title: string;
             body: string;
         };
-        LuckyReasonsDto: {
-            /** @example 내 사주에 필요한 용신 화(火)의 색 가운데, 오늘 일지 유(酉)에 맞춰 코랄을 골랐어요 */
+        LuckyBasisDto: {
+            /** @example 용신 火 */
             color: string;
+            /** @example 火의 수 2·7 · 양(陽)의 날이라 생수 */
             number: string;
+            /** @example 병진(丙辰)시 · 火 기운 · 子辰합 */
             time: string;
+        };
+        LuckyReasonsDto: {
+            /** @example 내 사주에 부족한 불 기운을 채워 주는 색이에요. 코랄 소품 하나만 곁에 둬도 좋아요 */
+            color: string;
+            /** @example 2는 불 기운을 뜻하는 숫자예요. 순서나 자리, 개수를 고를 때 떠올려 보세요 */
+            number: string;
+            /** @example 내게 필요한 불 기운이 들어오고 오늘 하루 흐름과도 잘 맞는 시간이에요. 중요한 연락이나 결정은 이때 해 보세요 */
+            time: string;
+            /** @description 각 이유의 명리 근거 (용어). 예전에 저장된 운세에는 없음 */
+            basis?: components["schemas"]["LuckyBasisDto"];
         };
         CombinedFortuneDto: {
             /** @description 각 관점 제외 전후의 분야 점수 차이. 합산 값이 아님 */
@@ -2898,6 +3087,127 @@ export interface components {
             /** @description 아직 쓰기 시작하지 않았으면 null */
             reading: components["schemas"]["ReadingViewDto"] | null;
         };
+        PremiumShareDto: {
+            /** @description 링크에 넣을 토큰 (/r/{token}) */
+            token: string;
+            /** @example saju */
+            contentKey: string;
+            /**
+             * Format: date-time
+             * @description 링크를 만든 시각
+             */
+            createdAt: string;
+        };
+        CreatePremiumShareRequest: {
+            /**
+             * @description 공유할 콘텐츠 (saju · life · spouse · newyear:{YYYY} · monthly:{YYYY-MM} · theme:{kind} · lucky:{purpose} · compat:{id} · crush:{id} · pet:{id})
+             * @example saju
+             */
+            contentKey: string;
+        };
+        PremiumShareOwnerDto: {
+            nickname: string;
+            /** @enum {string} */
+            calendarType: "solar" | "lunar";
+            /** @description 입력한 달력 기준 생일 */
+            birthDate: string;
+            isLeapMonth: boolean;
+            birthDateSolar: string;
+            birthTime: string | null;
+            useYajasi: boolean;
+            gender: string;
+            mbti: string;
+            mbtiIsEstimated: boolean;
+            natal: components["schemas"]["NatalDto"];
+        };
+        PetTraitsDto: {
+            /** @enum {string} */
+            energy?: "active" | "middle" | "calm";
+            /** @enum {string} */
+            affection?: "clingy" | "middle" | "independent";
+            /** @enum {string} */
+            courage?: "bold" | "middle" | "shy";
+            /** @enum {string} */
+            appetite?: "foodie" | "middle" | "picky";
+        };
+        PetDto: {
+            id: number;
+            name: string;
+            /** @enum {string} */
+            species: "dog" | "cat" | "other";
+            /** @enum {string|null} */
+            gender: "male" | "female" | null;
+            birthDate: string | null;
+            birthDateIsEstimated: boolean;
+            adoptedDate: string | null;
+            adoptedDateIsEstimated: boolean;
+            traits: components["schemas"]["PetTraitsDto"];
+            /** @enum {string|null} */
+            ownerTitle: "엄마" | "아빠" | "언니" | "누나" | "오빠" | "형" | "집사" | null;
+            /** @description 반려동물 궁합 미리보기 (내 지금 프로필로 계산: 유형 · 점수 · 첫 성격 풀이). 전체는 pet:{id}로 열어 /premium/contents/pet/{petId} */
+            result: Record<string, never>;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PremiumShareViewDto: {
+            /** @example saju */
+            contentKey: string;
+            /** @description 공유 시점의 콘텐츠 (GET /premium/contents/* 응답과 같은 모양) */
+            content: components["schemas"]["PremiumContentDto"];
+            owner: components["schemas"]["PremiumShareOwnerDto"];
+            /**
+             * @description 공유한 날 (화면의 오늘 기준)
+             * @example 2026-11-10
+             */
+            sharedOn: string;
+            /** @description 심층 궁합 · 속마음: 궁합 기록 (상대 정보 포함) */
+            compat: components["schemas"]["CompatibilityDto"] | null;
+            /** @description 반려동물 궁합: 그 아이 */
+            pet: components["schemas"]["PetDto"] | null;
+        };
+        PetListDto: {
+            list: components["schemas"]["PetDto"][];
+        };
+        SavePetRequest: {
+            /** @description 이름 */
+            name: string;
+            /**
+             * @description dog · cat · other
+             * @enum {string}
+             */
+            species: "dog" | "cat" | "other";
+            /** @enum {string|null} */
+            gender?: "male" | "female" | null;
+            /**
+             * @description 생일 (양력). 모르면 null
+             * @example 2021-04-10
+             */
+            birthDate?: string | null;
+            /**
+             * @description 생일을 짐작해서 넣었는지
+             * @default false
+             */
+            birthDateIsEstimated: boolean;
+            /**
+             * @description 가족이 된 날. 생일을 모를 때만 받아요 (생일이 있으면 저장하지 않아요)
+             * @example 2021-06-01
+             */
+            adoptedDate?: string | null;
+            /**
+             * @description 가족이 된 날을 짐작해서 넣었는지
+             * @default false
+             */
+            adoptedDateIsEstimated: boolean;
+            traits?: components["schemas"]["PetTraitsDto"];
+            /**
+             * @description 아이가 나를 부르는 말 (편지에 쓴다). 없으면 닉네임님
+             * @enum {string|null}
+             */
+            ownerTitle?: "엄마" | "아빠" | "언니" | "누나" | "오빠" | "형" | "집사" | null;
+        };
+        DeletePetDto: {
+            deleted: boolean;
+        };
         ConsultTeaserDto: {
             /** @description 이번 달 이 고민을 대하는 법 (움직일 때 …) */
             modeLabel: string;
@@ -3014,77 +3324,42 @@ export interface components {
         RecordPromoEventsRequest: {
             events: components["schemas"]["PromoEventItem"][];
         };
-        PetTraitsDto: {
-            /** @enum {string} */
-            energy?: "active" | "middle" | "calm";
-            /** @enum {string} */
-            affection?: "clingy" | "middle" | "independent";
-            /** @enum {string} */
-            courage?: "bold" | "middle" | "shy";
-            /** @enum {string} */
-            appetite?: "foodie" | "middle" | "picky";
+        RegisterPushDeviceDto: {
+            registered: boolean;
         };
-        PetDto: {
-            id: number;
-            name: string;
-            /** @enum {string} */
-            species: "dog" | "cat" | "other";
-            /** @enum {string|null} */
-            gender: "male" | "female" | null;
-            birthDate: string | null;
-            birthDateIsEstimated: boolean;
-            adoptedDate: string | null;
-            adoptedDateIsEstimated: boolean;
-            traits: components["schemas"]["PetTraitsDto"];
-            /** @enum {string|null} */
-            ownerTitle: "엄마" | "아빠" | "언니" | "누나" | "오빠" | "형" | "집사" | null;
-            /** @description 반려동물 궁합 미리보기 (내 지금 프로필로 계산: 유형 · 점수 · 첫 성격 풀이). 전체는 pet:{id}로 열어 /premium/contents/pet/{petId} */
-            result: Record<string, never>;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        PetListDto: {
-            list: components["schemas"]["PetDto"][];
-        };
-        SavePetRequest: {
-            /** @description 이름 */
-            name: string;
+        RegisterPushDeviceRequest: {
             /**
-             * @description dog · cat · other
+             * @description getExpoPushTokenAsync로 받은 Expo 푸시 토큰
+             * @example ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]
+             */
+            token: string;
+            /**
+             * @description ios · android
              * @enum {string}
              */
-            species: "dog" | "cat" | "other";
-            /** @enum {string|null} */
-            gender?: "male" | "female" | null;
+            platform: "ios" | "android";
             /**
-             * @description 생일 (양력). 모르면 null
-             * @example 2021-04-10
+             * @description 오늘의 운세 알림 시각 (KST 자정부터 분, 06:00~22:00 사이 30분 단위 — 예: 510 = 오전 8시 30분). null이면 끔. 빼면 원래 값 유지 (새 기기는 오전 8시)
+             * @example 480
              */
-            birthDate?: string | null;
-            /**
-             * @description 생일을 짐작해서 넣었는지
-             * @default false
-             */
-            birthDateIsEstimated: boolean;
-            /**
-             * @description 가족이 된 날. 생일을 모르면 이 날로 봐요
-             * @example 2021-06-01
-             */
-            adoptedDate?: string | null;
-            /**
-             * @description 가족이 된 날도 짐작해서 넣었는지 (생일을 모를 때만 쓰여요)
-             * @default false
-             */
-            adoptedDateIsEstimated: boolean;
-            traits?: components["schemas"]["PetTraitsDto"];
-            /**
-             * @description 아이가 나를 부르는 말 (편지에 쓴다). 없으면 닉네임님
-             * @enum {string|null}
-             */
-            ownerTitle?: "엄마" | "아빠" | "언니" | "누나" | "오빠" | "형" | "집사" | null;
+            dailyFortuneMinute?: number | null;
         };
-        DeletePetDto: {
+        DeletePushDeviceDto: {
+            /** @description 지운 토큰이 있었는지 */
             deleted: boolean;
+        };
+        PushMarketingDto: {
+            /** @description 이벤트·혜택 (광고성 정보) 알림 수신 동의 여부 */
+            agreed: boolean;
+            /**
+             * Format: date-time
+             * @description 동의한 시각 (동의하지 않았으면 null) — 앱이 수신 동의 결과로 보여 준다
+             */
+            agreedAt: string | null;
+        };
+        UpdatePushMarketingRequest: {
+            /** @description 이벤트·혜택 (광고성 정보) 알림 수신 동의 */
+            agreed: boolean;
         };
     };
     responses: never;
@@ -8516,6 +8791,544 @@ export interface operations {
             };
         };
     };
+    PremiumShareController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePremiumShareRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PremiumShareDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY, CONTENT_LOCKED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PremiumShareController_findMine_v1: {
+        parameters: {
+            query: {
+                contentKey: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PremiumShareDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PremiumShareController_revokeContent_v1: {
+        parameters: {
+            query: {
+                contentKey: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PremiumShareController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PremiumShareViewDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example TOO_MANY_REQUESTS */
+                        code?: string;
+                        /** @example TOO_MANY_REQUESTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PremiumShareController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PetListDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST, INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PetController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DeletePetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     ConsultController_list_v1: {
         parameters: {
             query?: {
@@ -9258,66 +10071,7 @@ export interface operations {
             };
         };
     };
-    PetController_list_v1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example true */
-                        result?: boolean;
-                        data?: components["schemas"]["PetListDto"];
-                    };
-                };
-            };
-            /** @description Possible error codes: UNAUTHORIZED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example false */
-                        result?: boolean;
-                        /** @example UNAUTHORIZED */
-                        code?: string;
-                        /** @example UNAUTHORIZED */
-                        message?: string;
-                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
-                        traceId?: string;
-                    };
-                };
-            };
-            /** @description Possible error codes: CONTENT_NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example false */
-                        result?: boolean;
-                        /** @example CONTENT_NOT_FOUND */
-                        code?: string;
-                        /** @example CONTENT_NOT_FOUND */
-                        message?: string;
-                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
-                        traceId?: string;
-                    };
-                };
-            };
-        };
-    };
-    PetController_create_v1: {
+    PushController_register_v1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9326,7 +10080,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SavePetRequest"];
+                "application/json": components["schemas"]["RegisterPushDeviceRequest"];
             };
         };
         responses: {
@@ -9338,11 +10092,11 @@ export interface operations {
                     "application/json": {
                         /** @example true */
                         result?: boolean;
-                        data?: components["schemas"]["PetDto"];
+                        data?: components["schemas"]["RegisterPushDeviceDto"];
                     };
                 };
             };
-            /** @description Possible error codes: BAD_REQUEST, INVALID_BIRTH_DATE */
+            /** @description Possible error codes: BAD_REQUEST */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9378,32 +10132,14 @@ export interface operations {
                     };
                 };
             };
-            /** @description Possible error codes: CONTENT_NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example false */
-                        result?: boolean;
-                        /** @example CONTENT_NOT_FOUND */
-                        code?: string;
-                        /** @example CONTENT_NOT_FOUND */
-                        message?: string;
-                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
-                        traceId?: string;
-                    };
-                };
-            };
         };
     };
-    PetController_delete_v1: {
+    PushController_unregister_v1: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                token: string;
             };
             cookie?: never;
         };
@@ -9417,7 +10153,7 @@ export interface operations {
                     "application/json": {
                         /** @example true */
                         result?: boolean;
-                        data?: components["schemas"]["DeletePetDto"];
+                        data?: components["schemas"]["DeletePushDeviceDto"];
                     };
                 };
             };
@@ -9439,8 +10175,31 @@ export interface operations {
                     };
                 };
             };
-            /** @description Possible error codes: CONTENT_NOT_FOUND */
-            404: {
+        };
+    };
+    PushController_getMarketing_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PushMarketingDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9448,9 +10207,54 @@ export interface operations {
                     "application/json": {
                         /** @example false */
                         result?: boolean;
-                        /** @example CONTENT_NOT_FOUND */
+                        /** @example UNAUTHORIZED */
                         code?: string;
-                        /** @example CONTENT_NOT_FOUND */
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    PushController_updateMarketing_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePushMarketingRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PushMarketingDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

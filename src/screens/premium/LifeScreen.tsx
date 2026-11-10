@@ -9,8 +9,10 @@ import Disclaimer from '../../components/Disclaimer';
 import { BodyState, HeadRow, Hero, LockGate, Para, heroTxt, scoreColor } from '../../components/premium/Kit';
 import { Bullet, Closing, SubHead, Tip } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { ageNow, currentDaeun, mainStem, pText, stage12, stageKeyOfAge, strength3, tenGod, tenName } from '../../services/premium/helpers';
 import { DaeunTable, LifePreview, LifeStage } from '../../types/premium';
@@ -78,6 +80,7 @@ export default function LifeScreen() {
   const { reading, retry } = useReading<LifeReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<LifePreview>({ kind: 'life' }, !content.open);
+  const making = usePreviewMaking('life', !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.life.length);
   if (!u?.natal) return null;
   const item = ITEMS.life();
   if (content.open && gate.show) return <ReadingStepsScreen title="평생운" kind="life" reading={reading} />;
@@ -91,9 +94,13 @@ export default function LifeScreen() {
     <Screen title="평생운" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`만 ${now}세 · ${pText(u.natal.chart.day)}일주${strength ? ' · ' + strength : ''}`} />
       <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님의{'\n'}인생 지도</Text>
-      <Card style={{ marginTop: 20, paddingVertical: 16, paddingHorizontal: 14 }}>
-        {chart ? <LifeChart pts={chart} now={now} /> : <BodyState error={preview.isError} />}
-      </Card>
+      {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.life} title="인생 지도를 그리고 있어요" style={{ marginTop: 20 }} /> : (
+        <PreviewReveal gate={making}>
+          <Card style={{ marginTop: 20, paddingVertical: 16, paddingHorizontal: 14 }}>
+            {chart ? <LifeChart pts={chart} now={now} /> : <BodyState error={preview.isError} />}
+          </Card>
+        </PreviewReveal>
+      )}
       {!content.open ? <LockGate item={item} />
         : L && F ? <ReadingReveal on={gate.appeared}><LifeBody u={u} L={L} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
@@ -106,6 +113,8 @@ export default function LifeScreen() {
 /** 점수·나이·간지는 서버 계산값, 글은 AI 풀이 */
 function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: ReadingView<LifeReading> | null; onRetry(): void }) {
   const nav = useNavigation();
+  // 공유 링크로 연 사람은 그해 신년운세가 없으니 이동하지 않는다
+  const shared = !!useSharedView();
   const { today } = useApp();
   const now = ageNow(u, today);
   const dae = L.daeun;
@@ -239,7 +248,7 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
         {L.seun.map((x, i) => {
           const t = years?.years[i];
           return (
-            <PressableScale key={x.year} disabled={i >= 2} onPress={() => nav.navigate('NewYear', { year: x.year })} style={[s.drow, i ? s.topLine : null]} scaleTo={0.98}>
+            <PressableScale key={x.year} disabled={i >= 2 || shared} onPress={() => nav.navigate('NewYear', { year: x.year })} style={[s.drow, i ? s.topLine : null]} scaleTo={0.98}>
               <View style={s.dd}><Text style={s.year}>{x.year}</Text><Text style={{ fontSize: 11, color: colors.inkMute }}>{x.age}세</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.ink }}>{t?.title ?? `${pText(x.pillar)} · ${x.group}`}</Text>

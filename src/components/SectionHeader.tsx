@@ -5,6 +5,7 @@ import Icon from './Icon';
 import { HomeOutlineIcon } from './home/HomeDesignAssets';
 import { fonts, txt, sansW } from '../theme/typography';
 import { colors, isDark } from '../theme/colors';
+import { PRINT_HEAD } from '../utils/printHead';
 
 /**
  * 섹션 제목 한 줄 — "제목 | 설명" (설명은 caption 으로 옆에 붙는다).
@@ -34,7 +35,7 @@ export function HeadTitle({ title, caption, variant = 'default', titleStyle }: {
 export default function SectionHeader({ title, caption, action, onAction, first, showAction, variant = 'default', style, titleStyle }: { title: string; caption?: string; action?: string; onAction?(): void; first?: boolean; showAction?: boolean; variant?: 'default' | 'figma'; style?: StyleProp<ViewStyle>; titleStyle?: StyleProp<TextStyle> }) {
   const ActionIcon = variant === 'figma' ? HomeOutlineIcon : Icon;
   return (
-    <View style={[{ marginTop: first ? 8 : 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, style]}>
+    <View style={[{ marginTop: first ? 8 : 32, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, style]} {...PRINT_HEAD}>
       <View style={{ flex: 1 }}><HeadTitle title={title} caption={caption} variant={variant} titleStyle={titleStyle} /></View>
       {action ? (
         <PressableScale onPress={onAction} hitSlop={12} scaleTo={0.9} accessibilityLabel={action} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>

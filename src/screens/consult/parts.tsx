@@ -94,7 +94,7 @@ export function MyBubble({ children, at }: { children: string; at?: string | nul
 export function CounselorAvatar() {
   return (
     <View style={s.avatar} accessibilityLabel="운알이">
-      <Image source={require('../../../assets/figma/consult/coin.png')} style={{ width: 21, height: 19 }} contentFit="contain" />
+      <Image source={require('../../../assets/figma/consult/counselor-mascot.webp')} style={s.avatarImg} contentFit="fill" />
     </View>
   );
 }
@@ -202,7 +202,9 @@ const s = StyleSheet.create({
   mine: { maxWidth: '82%', padding: 12, borderRadius: 16, borderBottomRightRadius: 0, backgroundColor: colors.card },
   mineText: { ...sansW('500'), fontSize: 14, lineHeight: 22, color: isDark ? colors.ink : '#000000', letterSpacing: 0.1, opacity: 0.95 },
   time: { ...sansW('400'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: isDark ? colors.inkMute : '#808080' },
-  avatar: { width: 28, height: 28, borderRadius: 18, backgroundColor: colors.heroBg, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.heroBg, overflow: 'hidden' },
+  // 피그마: 30 동그라미 마스크 안에 36.5×32.08 그림을 (-4.29, 1.07)에 둔다
+  avatarImg: { position: 'absolute', left: -4.29, top: 1.07, width: 36.5, height: 32.08 },
   counselor: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 20 },
   typing: { paddingTop: 4 },
   replyText: { ...sansW('400'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.7, marginRight: 5 },

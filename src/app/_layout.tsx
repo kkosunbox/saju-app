@@ -134,6 +134,8 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
         {/* 친구 초대 링크는 온보딩·프로필 여부와 상관없이 연다.
             보호된 화면에서 밀려나면 목록의 첫 화면으로 가므로, 파라미터가 필요한 이 화면은 맨 뒤에 둔다. */}
         <Stack.Screen name="invite/[token]" />
+        {/* 유료 풀이 전체 공유 링크: 로그인·프로필 없이 누구나 연다 */}
+        <Stack.Screen name="r/[token]" />
         {/* 약관은 웹 랜딩(온보딩 전)에서도 연다 */}
         <Stack.Screen name="legal/[doc]" />
         {/* 서비스 소개는 누구나 (웹 검색 유입) */}

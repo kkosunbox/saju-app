@@ -9,6 +9,10 @@ export type ShareResult = 'shared' | 'saved' | 'cancelled' | 'failed' | 'unsuppo
 /** 웹에서 미리 그려 둔 카드 이미지 */
 export interface WebCard { file: File }
 
+/** 공유 · 저장 파일 이름: '이름 · 콘텐츠 이름 · 운Pick' (파일 이름에 못 쓰는 글자는 뺀다) */
+export const shareFileName = (nickname: string, content: string) =>
+  [nickname, content, '운Pick'].map(p => p.replace(/[\\/:*?"<>|]/g, '').trim()).filter(Boolean).join(' · ');
+
 /**
  * html2canvas는 <style>을 복제할 때 지금 규칙 전체 뒤에 원래 글자를 한 번 더 붙인다.
  * 정적 export 웹은 RN 웹 스타일이 글자로 미리 들어 있어서, 뒤에 붙은 기본 글자 스타일(검정)이
@@ -110,7 +114,7 @@ export async function shareCardImage(
       setTimeout(() => URL.revokeObjectURL(href), 60_000);
       return 'saved';
     }
-    const uri = await captureRef(ref, { format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: opts.aspectRatio ? Math.round(1080 / opts.aspectRatio) : 1920 });
+    const uri = await captureRef(ref, { format: 'png', quality: 1, result: 'tmpfile', fileName: file, width: 1080, height: opts.aspectRatio ? Math.round(1080 / opts.aspectRatio) : 1920 });
     if (mode === 'save') return await saveToPhotos(uri);
     // iOS 공유 시트는 이미지와 함께 문구·링크도 넘길 수 있다 (안드로이드는 이미지만)
     if (Platform.OS === 'ios' && message) {

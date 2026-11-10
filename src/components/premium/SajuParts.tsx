@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { colors, isDark } from '../../theme/colors';
 import { sansW } from '../../theme/typography';
 import { SrcKey } from '../../types/premium';
+import { PRINT_HEAD } from '../../utils/printHead';
 
 const ICONS = {
   user: require('../../../assets/figma/saju/user.svg'),
@@ -58,7 +59,7 @@ export function SajuHeading({ title, icon, small = false }: { title: string; ico
 export function SubHead({ title, caption, captionStyle }: { title: string; caption?: string; captionStyle?: StyleProp<TextStyle> }) {
   // "01 · 초년 · 중년 · 말년" — 번호 뒤는 모두 제목
   const [number, ...rest] = title.split(' · '); const label = rest.join(' · ');
-  return <View style={s.section}>
+  return <View style={s.section} {...PRINT_HEAD}>
     <Text style={s.number}>{number}</Text>
     <View style={s.sectionTitle}>
       <Text style={s.sectionLabel} accessibilityRole="header">{label}</Text>

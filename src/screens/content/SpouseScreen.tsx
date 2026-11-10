@@ -6,6 +6,7 @@ import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, HeadRow, LockGate, Para, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
+import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
@@ -30,6 +31,7 @@ export default function SpouseScreen() {
   const { reading, retry } = useReading<SpouseReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
+  const making = usePreviewMaking('spouse', !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.spouse.length);
   // 카드는 Figma 327×168 비율을 지킨다 — 폭이 넓은 기기에서도 그림이 카드 전체를 채우게
   const [heroW, setHeroW] = React.useState(327);
   if (!u) return null;
@@ -40,6 +42,15 @@ export default function SpouseScreen() {
   const sum: SpousePreview | undefined = R
     ? { spouseEl: R.spouseEl, headline: R.headline, mbti: R.mbti[0], animal: R.animals[0], ageGap: R.ageGap, thisYear: R.yearIdx[0].v, bestYear: R.bestYear.yy }
     : preview.data;
+  if (making.making || (!sum && !content.open)) {
+    return (
+      <Screen title="미래 배우자 리포트" back>
+        <HeadRow item={item} caption="배우자의 별을 찾는 중" />
+        {preview.isError ? <BodyState error onRetry={() => preview.refetch()} />
+          : <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.spouse} title="미래 배우자를 그리고 있어요" />}
+      </Screen>
+    );
+  }
   if (!sum) return <LoadingScreen />;
   const el = ELEMENT_INFO[sum.spouseEl];
   const spec = spouseSpec(u, sum);
@@ -49,6 +60,7 @@ export default function SpouseScreen() {
       <FriendCompare route="Spouse" spec={spec} />
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
       {/* Figma 운픽_22 히어로 — 그림 카드 위 로고 · 한 줄 · 칩, 아래 회색 지수 줄 */}
+      <PreviewReveal gate={making}>
       <View style={[s.hero, { minHeight: Math.round((heroW * 168) / 327) }]} onLayout={(e) => setHeroW(e.nativeEvent.layout.width)}>
         <Image source={require('../../../assets/figma/spouse/hero.webp')} style={s.heroArt} contentFit="cover" contentPosition="right bottom" accessible={false} />
         <View style={s.heroTop}><Logo height={29} /></View>
@@ -64,6 +76,7 @@ export default function SpouseScreen() {
         <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
         <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
       </View>
+      </PreviewReveal>
 
       {!content.open ? <LockGate item={item} />
         : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>

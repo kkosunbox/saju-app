@@ -5,6 +5,7 @@
  * 궁합 초대 링크에는 서버가 발급한 무작위 토큰만 담는다(/invite/{token}). 생년월일은 링크에 넣지 않는다.
  */
 import { Platform, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, call } from '../../api/client';
 import { Relationship } from '../../types';
@@ -28,6 +29,12 @@ export async function copyText(text: string) {
     ta.select();
     try { return document.execCommand('copy'); } catch { return false; } finally { ta.remove(); }
   }
+}
+
+/** 웹 · 앱 공통 클립보드 복사 */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (Platform.OS === 'web') return copyText(text);
+  try { await Clipboard.setStringAsync(text); return true; } catch { return false; }
 }
 
 /** 공유 결과: 'shared' | 'copied' | 'cancelled' */

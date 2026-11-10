@@ -8,7 +8,7 @@ import Icon from '../components/Icon';
 import { useApp } from '../context/AppContext';
 import { usePremium } from '../context/PremiumContext';
 import { RootStackParamList } from '../navigation/types';
-import { WebCard, renderCardWeb, shareCardImage } from '../services/shareService';
+import { WebCard, renderCardWeb, shareCardImage, shareFileName } from '../services/shareService';
 import { todaySpec } from '../services/share/shareSpecs';
 import { useShare } from '../services/share/useShare';
 import { copyText } from '../services/share/linkShare';
@@ -31,6 +31,8 @@ export default function ShareScreen() {
   const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
   const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
+  // 받는 쪽에 보이는 파일 이름 (spec.file은 공유 보상 기준이라 그대로 둔다)
+  const fileName = spec ? shareFileName(user?.nickname ?? '', spec.kind) : 'woonpick';
   const pastLifeKey = spec?.pastLife ? JSON.stringify(spec.pastLife) : null;
   const [readyPastLife, setReadyPastLife] = useState<string | null>(null);
   const artReady = !pastLifeKey || readyPastLife === pastLifeKey;
@@ -41,18 +43,18 @@ export default function ShareScreen() {
     if (Platform.OS !== 'web' || !spec || !artReady) return;
     let alive = true;
     const t = setTimeout(() => {
-      renderCardWeb(ref, spec.file).then(c => { if (alive) prepared.current = c; }).catch(() => {});
+      renderCardWeb(ref, fileName).then(c => { if (alive) prepared.current = c; }).catch(() => {});
     }, 300);
     return () => { alive = false; clearTimeout(t); prepared.current = null; };
     // spec은 매번 새로 만들어지니 내용(파일 이름·문구)이 바뀔 때만 다시 그린다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spec?.file, spec?.text, pastLifeKey, artReady]);
+  }, [fileName, spec?.text, pastLifeKey, artReady]);
   if (!spec) return null;
 
   const save = async () => {
     if (!artReady) return;
     setBusy('save');
-    const r = await shareCardImage(ref, { file: spec.file, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
+    const r = await shareCardImage(ref, { file: fileName, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
     setBusy(null);
     if (r === 'saved') toast('이미지를 저장했어요');
     if (r === 'saved' || r === 'shared') reward(spec);

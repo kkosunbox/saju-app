@@ -11,11 +11,13 @@ import Icon from '../Icon';
 import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
 import { usePremium } from '../../context/PremiumContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
 import { analysisTheme, colors, gradients } from '../../theme/colors';
 import { fonts, radius, SCREEN_PX, shadow, txt, sansW } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
+import { PRINT_HEAD } from '../../utils/printHead';
 import { ART, MascotPeek } from '../Mascot';
 import GradientBorder from '../GradientBorder';
 import HScroll from '../HScroll';
@@ -65,7 +67,11 @@ export function PriceTag({ item, small, variant = 'default' }: { item: Item; sma
 /** 화면 상단: 열람 중 / 미리보기 */
 export function StatusBadge({ item }: { item?: Item | null }) {
   const { owned } = usePremium();
+  const shared = useSharedView();
   if (!item) return <View />;
+  if (shared) {
+    return <Pill tone="ok"><Text style={[s.pillText, { color: colors.success, fontSize: 11 }]}>{shared.owner.nickname}님이 공유한 풀이</Text></Pill>;
+  }
   if (owned(item.key)) {
     return <Pill tone="ok"><View style={s.row4}><Icon name="check" size={12} color={colors.success} strokeWidth={2.6} /><Text style={[s.pillText, { color: colors.success, fontSize: 11 }]}>열람 중</Text></View></Pill>;
   }
@@ -84,7 +90,7 @@ export function HeadRow({ item, caption }: { item?: Item | null; caption: string
 /* ---------- 글 ---------- */
 export function SubHead({ title, caption, first, variant = 'default' }: { title: string; caption?: string; first?: boolean; variant?: 'default' | 'figma' }) {
   return (
-    <View style={{ marginTop: first ? 12 : 32, marginBottom: 16 }}>
+    <View style={{ marginTop: first ? 12 : 32, marginBottom: 16 }} {...PRINT_HEAD}>
       <HeadTitle title={title} caption={caption} variant={variant} />
     </View>
   );

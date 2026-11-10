@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ShareSpec } from './shareSpecs';
 import { resultUrl, shareLink } from './linkShare';
-import { WebCard, shareCardImage } from '../shareService';
+import { WebCard, shareCardImage, shareFileName } from '../shareService';
 
 /** 링크 대신 이미지로 보낼 결과 (예: 오늘의 부적) — prepared는 웹에서 미리 그려 둔 이미지 */
 export interface ShareImage { ref: RefObject<ViewInstance | null>; aspectRatio?: number; prepared?: () => WebCard | null }
@@ -30,7 +30,7 @@ export function useShare() {
   };
   /** 이미지에 문구·링크를 붙여 보낸다. 이미지 공유가 안 되는 브라우저(데스크톱 등)는 링크로 보낸다. */
   const sendImage = async (spec: ShareSpec, image: ShareImage) => {
-    const r = await shareCardImage(image.ref, { file: spec.file, text: spec.text, url: urlOf(spec), mode: 'share', fallback: 'none', aspectRatio: image.aspectRatio, prepared: image.prepared?.() });
+    const r = await shareCardImage(image.ref, { file: shareFileName(user?.nickname ?? '', spec.kind), text: spec.text, url: urlOf(spec), mode: 'share', fallback: 'none', aspectRatio: image.aspectRatio, prepared: image.prepared?.() });
     if (r === 'unsupported') return sendLink(spec);
     if (r === 'shared' || r === 'saved') void rewardShare(spec.file);
     return r;

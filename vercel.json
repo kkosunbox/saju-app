@@ -11,6 +11,7 @@
   ],
   "rewrites": [
     { "source": "/invite/:token", "destination": "/invite/[token]" },
-    { "source": "/consult/:id", "destination": "/consult/[id]" }
+    { "source": "/consult/:id", "destination": "/consult/[id]" },
+    { "source": "/r/:token", "destination": "/r/[token]" }
   ]
 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { RouteProp, useFocusEffect, useRoute } from '@/navigation/compat';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
 import { ImageBackground, ImageSourcePropType, Keyboard, StyleSheet, Text, View } from 'react-native';
@@ -20,6 +20,7 @@ import Mascot, { ART, Logo } from '../components/Mascot';
 import SolidIcon, { RelationIcon, SolidIconName } from '../components/SolidIcon';
 import Disclaimer from '../components/Disclaimer';
 import { useApp } from '../context/AppContext';
+import { useSharedView } from '../context/SharedViewContext';
 import { usePremium } from '../context/PremiumContext';
 import { BodyState, LockedCard } from '../components/premium/Kit';
 import CompatDeep from '../components/premium/CompatDeep';
@@ -105,6 +106,9 @@ export default function CompatibilityScreen() {
   const { sendInvite, inviteShareSheet } = useInviteShare();
   const { user } = useApp();
   const { toast, owned } = usePremium();
+  // 공유 링크(/r/{token})로 열면 공유된 궁합 결과를 바로 보여 주고, 입력 · 기록 · 지우기는 숨긴다
+  const sharedView = useSharedView();
+  const nav = useNavigation();
   const [relationship, setRelationship] = useState<Relationship | null>(null);
   const [name, setName] = useState('');
   const [birth, setBirth] = useState('');
@@ -119,14 +123,14 @@ export default function CompatibilityScreen() {
   const [showPlace, setShowPlace] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [mbti, setMbti] = useState<MBTI | null>(null);
-  const [result, setResult] = useState<CompatibilityResult | null>(null);
+  const [result, setResult] = useState<CompatibilityResult | null>(sharedView?.compat ?? null);
   const [showMbti, setShowMbti] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 저장된 상대 = 궁합 기록 (상대마다 하나, 최근에 본 순)
-  const saved = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user });
+  const saved = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user && !sharedView });
   // 내 링크로 상대가 본 궁합이 언제든 들어오니 탭에 올 때마다 새로
   const { refetch } = saved;
-  useFocusEffect(useCallback(() => { if (user) refetch(); }, [user, refetch]));
+  useFocusEffect(useCallback(() => { if (user && !sharedView) refetch(); }, [user, sharedView, refetch]));
 
   const { ok: dateOk, iso: birthISO } = checkBirth(birth, calendar);
   const timeOk = sijin !== 0 || !!jasi;
@@ -239,8 +243,11 @@ export default function CompatibilityScreen() {
   if (result) {
     const rel = RELATIONSHIP_INFO[result.relationship];
     const Appear = isFresh ? Reveal : React.Fragment;
+    // 심층 궁합을 열었으면 공유 버튼에서 전체 리포트 링크도 고를 수 있다
+    const deepItem = result.id != null ? ITEMS.compat(result.id, result.target.nickname, result.relationship, !!result.target.mbti) : null;
+    const shareItem = deepItem && owned(deepItem.key) ? deepItem : undefined;
     return (
-      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={() => setResult(null)} right={<ShareIconButton spec={compatSpec(user, result)} />}>
+      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={sharedView ? () => nav.goBack() : () => setResult(null)} right={<ShareIconButton item={shareItem} spec={compatSpec(user, result)} />}>
         <Appear>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={29} /></View>
@@ -270,7 +277,7 @@ export default function CompatibilityScreen() {
           ))}
         </Card>
 
-        <ShareCta spec={compatSpec(user, result)} style={{ marginTop: 12 }} />
+        <ShareCta item={shareItem} spec={compatSpec(user, result)} style={{ marginTop: 12 }} />
 
         <SectionHeader title="관점별 풀이" variant="figma" />
         <View style={{ gap: 16 }}>
@@ -298,8 +305,8 @@ export default function CompatibilityScreen() {
           </>
         ) : null}
 
-        <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" size="medium" labelStyle={{ ...sansW('600'), fontSize: 14, letterSpacing: 0, color: colors.ink }} onPress={() => setResult(null)} style={{ marginTop: 24 }} />
-        {result.id != null ? (
+        {sharedView ? null : <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" size="medium" labelStyle={{ ...sansW('600'), fontSize: 14, letterSpacing: 0, color: colors.ink }} onPress={() => setResult(null)} style={{ marginTop: 24 }} />}
+        {result.id != null && !sharedView ? (
           <PressableScale onPress={() => setConfirmDelete(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 12 }}>
             <Text style={s.deleteLink}>{result.target.nickname}님 정보 지우기</Text>
           </PressableScale>
@@ -477,6 +484,9 @@ function DeepSection({ u, r, id }: { u: User; r: CompatibilityResult; id: number
   const content = usePremiumContent<DeepCompatibility>({ kind: 'compat', id });
   const { reading, retry } = useReading<CompatReading>(content);
   const fetching = useJustOpenedFetching(content);
+  // 공유 링크에는 공유된 리포트만
+  const shared = useSharedView();
+  if (shared && shared.contentKey !== item.key) return null;
   if (!content.open) return <LockedCard item={item} />;
   return (
     <>
@@ -492,12 +502,14 @@ function CrushSection({ u, r, id }: { u: User; r: CompatibilityResult; id: numbe
   const content = usePremiumContent<CrushReport>({ kind: 'crush', id });
   const { reading, retry } = useReading<CrushReading>(content);
   const fetching = useJustOpenedFetching(content);
+  const shared = useSharedView();
+  if (shared && shared.contentKey !== item.key) return null;
   if (!content.open) return <LockedCard item={item} />;
   if (!content.data) return fetching ? <ReadingOpeningCard kind="crush" /> : <BodyState error={content.isError} onRetry={() => content.refetch()} />;
   return (
     <>
-      <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} shareAction={<ShareIconButton spec={crushSpec(u, r, content.data.data)} />} />
-      <ShareCta spec={crushSpec(u, r, content.data.data)} />
+      <CrushView r={r} R={content.data.data} reading={reading} onRetry={retry} shareAction={<ShareIconButton item={item} spec={crushSpec(u, r, content.data.data)} />} />
+      <ShareCta item={item} spec={crushSpec(u, r, content.data.data)} />
     </>
   );
 }

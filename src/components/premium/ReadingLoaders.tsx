@@ -204,7 +204,7 @@ export function StepReadingLoader({ title, steps, note, doneTitle = '풀이를 �
   );
 }
 
-function StepRow({ step, activeText }: { step: LoaderStep; activeText: string }) {
+export function StepRow({ step, activeText }: { step: LoaderStep; activeText: string }) {
   const waiting = !step.done && step.state === 'waiting';
   const pop = useRef(new Animated.Value(step.done ? 1 : 0)).current;
   useEffect(() => {
