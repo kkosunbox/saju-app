@@ -258,9 +258,9 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
 const s = StyleSheet.create({
   bannerBox: { marginTop: 16 },
   banner: { aspectRatio: 984 / 204, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 84, paddingRight: 20 },
-  // 그림은 위아래좌우 0으로 상자 전체에 편다. '100%'는 앱(iOS·Android의 Yoga)에서 패딩(84+20)을 뺀 폭이 돼 그림이 오른쪽에서 잘렸다 (웹은 멀쩡).
-  // 상자를 잘라내지 않고 그림 자체를 둥글게 깎는다
-  bannerImage: { width: undefined, height: undefined, borderRadius: radius.sm },
+  // 그림을 상자 전체에 편다. 앱(iOS·Android의 Yoga)은 '100%'를 패딩(84+20)을 뺀 폭으로 재서 오른쪽이 비니 위아래좌우 0으로만 펴고,
+  // 웹은 크기를 비우면 그림 원래 크기(984×204)로 넘쳐 나오니 '100%'를 둔다. 상자를 잘라내지 않고 그림 자체를 둥글게 깎는다
+  bannerImage: { ...(Platform.OS === 'web' ? { width: '100%', height: '100%' } : { width: undefined, height: undefined }), borderRadius: radius.sm },
   bannerBorder: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: radius.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent },
   bannerTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: BANNER_INK },
   bannerSub: { ...sansW('400'), marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#000000' },
