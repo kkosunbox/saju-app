@@ -109,7 +109,7 @@ export default function CharacterScreen() {
             {c.bestFriendReasons.map(r => <Bullet key={r} textStyle={[txt.body, { fontSize: 14 }]}>{r}</Bullet>)}
           </View>
         ) : null}
-        <Text style={[txt.small, { marginTop: 10 }]}>친구에게 공유해서 찰떡 캐릭터인지 확인해 보세요</Text>
+        <Text style={[txt.small, { marginTop: 10 }]}>공유하고 찰떡 캐릭터를 비교해 보세요</Text>
       </Card>
 
       <View style={s.cta}><PromoSlot screen="character" promo={promosOf(nav, today).sajuDeep} tone="mint" title="내 사주를 더 깊이 알고 싶다면" /></View>

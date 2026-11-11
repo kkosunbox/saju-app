@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react';
+import React, { RefObject, useEffect, useLayoutEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
@@ -90,45 +90,14 @@ export function MyBubble({ children, at }: { children: string; at?: string | nul
   );
 }
 
-// ── [임시 테스트] 운알이 얼굴 개선안 돌려 보기 — 확인 끝나면 이 블록과 AvatarTestToggle 을 지운다 ──
-const AVATAR_VARIANTS = ['지금 (남색)', '① 파스텔 배경', '② 동그라미 없이', '③ 크게 + 얼굴 확대', '④ 남색 + 빛·테두리'] as const;
-let avatarVariant = 0;
-const avatarSubs = new Set<() => void>();
-function useAvatarVariant() {
-  return useSyncExternalStore(cb => { avatarSubs.add(cb); return () => { avatarSubs.delete(cb); }; }, () => avatarVariant);
-}
-export function AvatarTestToggle() {
-  const v = useAvatarVariant();
-  return (
-    <PressableScale
-      onPress={() => { avatarVariant = (avatarVariant + 1) % AVATAR_VARIANTS.length; avatarSubs.forEach(f => f()); }}
-      style={s.testBtn}
-      accessibilityLabel="운알이 얼굴 시안 바꾸기"
-    >
-      <Text style={s.testBtnT}>시안 {v}/4 · {AVATAR_VARIANTS[v]} ›</Text>
-    </PressableScale>
-  );
-}
-const MASCOT = require('../../../assets/figma/consult/counselor-mascot.webp');
-
-/** 운알이 얼굴 (동그라미 안의 마스코트) */
+/** 운알이 얼굴 (배경 동그라미 없이 마스코트만) */
 export function CounselorAvatar() {
-  const v = useAvatarVariant();
-  if (v === 2) {
-    return (
-      <View style={s.avatarBare} accessibilityLabel="운알이">
-        <Image source={MASCOT} style={s.avatarBareImg} contentFit="contain" />
-      </View>
-    );
-  }
   return (
-    <View style={[s.avatar, v === 1 && s.avatarPastel, v === 3 && s.avatarBig, v === 4 && s.avatarRim]} accessibilityLabel="운알이">
-      {v === 4 ? <View style={s.avatarGlow} /> : null}
-      <Image source={MASCOT} style={v === 3 ? s.avatarImgZoom : s.avatarImg} contentFit="fill" />
+    <View style={s.avatar} accessibilityLabel="운알이">
+      <Image source={require('../../../assets/figma/consult/counselor-mascot.webp')} style={s.avatarImg} contentFit="contain" />
     </View>
   );
 }
-// ── [임시 테스트] 끝 ──
 
 /** 운알이가 하는 말 묶음 — 왼쪽에 얼굴, 오른쪽에 내용 */
 export function Counselor({ children, at }: { children: React.ReactNode; at?: string | null }) {
@@ -233,19 +202,9 @@ const s = StyleSheet.create({
   mine: { maxWidth: '82%', padding: 12, borderRadius: 16, borderBottomRightRadius: 0, backgroundColor: colors.card },
   mineText: { ...sansW('500'), fontSize: 14, lineHeight: 22, color: isDark ? colors.ink : '#000000', letterSpacing: 0.1, opacity: 0.95 },
   time: { ...sansW('400'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: isDark ? colors.inkMute : '#808080' },
-  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.heroBg, overflow: 'hidden' },
-  // 30 동그라미 안에 384×343 그림을 34×30.4로, 구름 아래가 살짝 잘리게 둔다
-  avatarImg: { position: 'absolute', left: -2, top: 2, width: 34, height: 30.4 },
-  // [임시 테스트] 개선안 스타일
-  avatarPastel: { backgroundColor: isDark ? '#3A3F5C' : '#EEF0FF' },
-  avatarBig: { width: 36, height: 36, borderRadius: 18, backgroundColor: isDark ? '#3A3F5C' : '#EEF0FF' },
-  avatarImgZoom: { position: 'absolute', left: -9, top: -1, width: 54, height: 48.2 },
-  avatarRim: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  avatarGlow: { position: 'absolute', left: 1, top: 1, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(170,180,255,0.35)' },
-  avatarBare: { width: 34, height: 30.4 },
-  avatarBareImg: { width: 34, height: 30.4 },
-  testBtn: { position: 'absolute', top: 8, right: 12, zIndex: 10, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: '#FF4D6D' },
-  testBtnT: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  // 384×343 그림을 30px 줄 높이에 맞춰 34×30.4로 (동그라미·배경 없이)
+  avatar: { width: 34, height: 30.4 },
+  avatarImg: { width: 34, height: 30.4 },
   counselor: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 20 },
   typing: { paddingTop: 4 },
   replyText: { ...sansW('400'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.7, marginRight: 5 },

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
@@ -22,7 +22,7 @@ import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { AvatarTestToggle, Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
+import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -90,7 +90,6 @@ function PendingChat({ askKey }: { askKey?: string }) {
   }
   return (
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky>
-      <AvatarTestToggle />{/* [임시 테스트] */}
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
@@ -237,7 +236,6 @@ function Chat({ id }: { id: number }) {
   return (
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky scroll={false}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
-      <AvatarTestToggle />{/* [임시 테스트] */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
         {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
@@ -410,8 +408,67 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
   );
 }
 
-/** 흐름 막대 높이 — 68점 44 · 85점 67 (디자인) */
-const barH = (score: number) => Math.max(8, Math.round((score - 35) * 4 / 3));
+// 3개월 흐름 꺾은선 (Figma 492:4034 — 295×115 흰 칸)
+const FLOW_H = 115;
+const FLOW_PAD = 6.5; // 칸 폭을 3등분한 가운데에 점 (375 화면에서 55 · 149 · 243)
+const FLOW_TOP = 41; // 가장 높은 점
+const FLOW_LOW = 70; // 가장 낮을 수 있는 점
+const FLOW_K = 1.2; // 1점당 px (68 → 71 → 85 가 62 → 58 → 41)
+const FLOW_BASE = 90; // 점선·채움이 끝나는 곳
+const FLOW_LABEL = 91; // 월 글자 위
+const FLOW_BLUE = isDark ? colors.accent : '#1474FC';
+const FLOW_LINE_L = isDark ? colors.accent : '#2F9FFD';
+const FLOW_INK = isDark ? colors.ink : '#263245';
+const FLOW_BG = isDark ? colors.surface : '#FFFFFF';
+
+/** 지금의 흐름 — 3개월 점수 꺾은선, 가장 좋은 달은 파란 말풍선 */
+function FlowChart({ flow }: { flow: ConsultFacts['flow'] }) {
+  const [w, setW] = useState(0);
+  const n = flow.length;
+  const scores = flow.map(f => f.score);
+  const max = Math.max(...scores);
+  const best = scores.indexOf(max);
+  const k = Math.min(FLOW_K, (FLOW_LOW - FLOW_TOP) / Math.max(1, max - Math.min(...scores)));
+  const col = n ? (w - FLOW_PAD * 2) / n : 0;
+  const pts = flow.map((f, i) => ({ x: FLOW_PAD + col * (i + 0.5), y: FLOW_TOP + (max - f.score) * k }));
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ');
+  const area = n ? `${line} L${pts[n - 1].x} ${FLOW_BASE} L${pts[0].x} ${FLOW_BASE} Z` : '';
+  const b = pts[best];
+  return (
+    <View style={s.flow} onLayout={e => setW(e.nativeEvent.layout.width)} accessible accessibilityLabel={flow.map(f => `${f.label} ${f.score}점`).join(', ')}>
+      {w > 0 && n > 0 ? (
+        <>
+          <Svg width={w} height={FLOW_H} style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id="consultFlowArea" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={FLOW_BLUE} stopOpacity={0.14} />
+                <Stop offset="1" stopColor={FLOW_BLUE} stopOpacity={0} />
+              </LinearGradient>
+              <LinearGradient id="consultFlowLine" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0" stopColor={FLOW_LINE_L} />
+                <Stop offset="1" stopColor={FLOW_BLUE} />
+              </LinearGradient>
+            </Defs>
+            <Path d={area} fill="url(#consultFlowArea)" />
+            {pts.map((p, i) => (
+              <Line key={`g${i}`} x1={p.x} y1={p.y} x2={p.x} y2={FLOW_BASE} stroke="#BBBBBB" strokeWidth={1} strokeDasharray="2 2" />
+            ))}
+            <Path d={line} stroke="url(#consultFlowLine)" strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+            {pts.map((p, i) => <Circle key={`p${i}`} cx={p.x} cy={p.y} r={3.5} fill={FLOW_BG} stroke={i ? FLOW_BLUE : FLOW_LINE_L} strokeWidth={2} />)}
+            <Rect x={b.x - 17.5} y={b.y - 31.5} width={35} height={18.5} rx={5} fill={FLOW_BLUE} />
+            <Path d={`M${b.x - 4} ${b.y - 13.5} L${b.x} ${b.y - 9} L${b.x + 4} ${b.y - 13.5} Z`} fill={FLOW_BLUE} />
+          </Svg>
+          {pts.map((p, i) => (
+            <Text key={`s${i}`} style={[s.flowScore, i === best ? [s.flowBubble, { top: p.y - 31.5 }] : { top: p.y - 22 }, { left: p.x - 20 }]}>{flow[i].score}</Text>
+          ))}
+          {pts.map((p, i) => (
+            <Text key={`l${i}`} style={[s.flowScore, { left: p.x - 20, top: FLOW_LABEL }, i === best && s.flowBest]}>{flow[i].label}</Text>
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
+}
 
 /** "11/6 (금)" → ["11/6", "금요일"] */
 const splitDay = (label: string) => {
@@ -420,7 +477,6 @@ const splitDay = (label: string) => {
 };
 
 function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; facts: ConsultFacts; label: string }) {
-  const mx = Math.max(...F.flow.map(f => f.score));
   return (
     <>
       <View style={[s.box, { marginTop: 24 }]}>
@@ -431,15 +487,7 @@ function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; fac
       <View style={[s.box, { marginTop: 16 }]}>
         <BoxHead icon={<TrendIcon />} title="지금의 흐름" caption={`앞으로 3개월 · ${label} 운`} />
         <Text style={s.boxText}>{A.now}</Text>
-        <View style={s.bars}>
-          {F.flow.map(f => (
-            <View key={f.label} style={s.barCol}>
-              <Text style={[s.barV, f.score === mx && s.barTop]}>{f.score}</Text>
-              <View style={[s.bar, { height: barH(f.score), backgroundColor: f.score === mx ? colors.accent : colors.surface }]} />
-              <Text style={[s.barV, s.barLabel, f.score === mx && s.barTop]}>{f.label}</Text>
-            </View>
-          ))}
-        </View>
+        <FlowChart flow={F.flow} />
       </View>
 
       <Text style={[s.sectionT, { marginTop: 24 }]}>이렇게 해 보세요</Text>
@@ -582,12 +630,10 @@ const s = StyleSheet.create({
   headBar: { width: 1, height: 14, backgroundColor: isDark ? colors.lineStrong : '#999999' },
   headCap: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
   boxText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, marginTop: 7 },
-  bars: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 40, marginTop: 12 },
-  barCol: { width: 44, alignItems: 'center' },
-  barV: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, textAlign: 'center' },
-  barTop: sansW('700'),
-  barLabel: { marginTop: 4 },
-  bar: { width: 44, marginTop: 8, borderRadius: 4 },
+  flow: { height: FLOW_H, marginTop: 12, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: FLOW_BG },
+  flowScore: { position: 'absolute', width: 40, textAlign: 'center', ...sansW('400'), fontSize: 12, lineHeight: 16, letterSpacing: -0.24, color: FLOW_INK },
+  flowBubble: { ...sansW('700'), fontSize: 13, lineHeight: 18.5, color: '#FFFFFF' },
+  flowBest: sansW('700'),
   sectionT: { ...sansW('600'), fontSize: 16, lineHeight: 19, color: INK },
   acts: { gap: 14, marginTop: 18, paddingLeft: 4 },
   act: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },

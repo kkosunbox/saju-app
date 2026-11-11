@@ -143,7 +143,7 @@ export default function TalismanScreen() {
       if (result === 'shared') void rewardShare(GIFT_FILE); // 저장으로 끝난 경우는 보상 없음
       if (result === 'unsupported') {
         const r = await shareLink(text);
-        if (r === 'copied') toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
+        if (r === 'copied') toast('링크를 복사했어요.');
         if (r === 'shared') void rewardShare(GIFT_FILE); // 복사만 한 경우는 보상 없음
       }
     } finally {
@@ -177,9 +177,8 @@ export default function TalismanScreen() {
               <Text style={[s.footText, { color: colors.ink }]}>링크 복사</Text>
             </PressableScale>
           )}
-          <PressableScale onPress={sendGift} disabled={!giftReady || busy} style={[s.footBtn, s.footSend]} scaleTo={0.96} haptic accessibilityLabel="친구에게 부적 보내기">
-            {/* 웹은 링크 복사까지 세 버튼이 한 줄이라 짧게 */}
-            <Text style={[s.footText, { color: colors.white }]} numberOfLines={1}>{Platform.OS === 'web' ? '부적 보내기' : '친구에게 부적 보내기'}</Text>
+          <PressableScale onPress={sendGift} disabled={!giftReady || busy} style={[s.footBtn, s.footSend]} scaleTo={0.96} haptic accessibilityLabel="부적 보내기">
+            <Text style={[s.footText, { color: colors.white }]} numberOfLines={1}>부적 보내기</Text>
           </PressableScale>
         </View>
       )}
@@ -211,7 +210,7 @@ export default function TalismanScreen() {
           </>
         ) : <>
           <Text style={s.effect}>{EFFECT}</Text>
-          <ShareActions spec={spec} title="오늘의 부적, 친구에게도 건네 볼까요?" sub="친구에게는 어떤 부적이 나올지 확인해 보세요" pose="clover" outlined image={{ ref: card, aspectRatio: W / H, prepared: () => preparedMine.ref.current }} />
+          <ShareActions spec={spec} title="오늘의 부적, 공유해 볼까요?" sub="서로 어떤 부적이 나왔는지 확인해 보세요" pose="clover" outlined image={{ ref: card, aspectRatio: W / H, prepared: () => preparedMine.ref.current }} />
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle} accessibilityRole="header">부적과 함께하는 행운</Text>
             <View style={s.sectionCaption}>

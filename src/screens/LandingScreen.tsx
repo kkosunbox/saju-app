@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router, type Href } from "expo-router";
 import { useState } from "react";
@@ -14,7 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandMark from "../components/BrandMark";
 import BusinessFooter from "../components/BusinessFooter";
 import Card from "../components/Card";
-import { CategoryGlyph } from "../components/CategoryIcon";
+import {
+  HomeAnalysisArt,
+  HomeCategoryGlyph,
+} from "../components/home/HomeDesignAssets";
 import Mascot, { ArtName } from "../components/Mascot";
 import MascotCarousel from "../components/MascotCarousel";
 import PressableScale from "../components/PressableScale";
@@ -22,6 +26,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import PromoCard from "../components/PromoCard";
 import { promoDesign } from "../components/PromoSlot";
 import ReviewCarousel from "../components/ReviewCarousel";
+import ScoreDelta from "../components/ScoreDelta";
 import ScoreRing from "../components/ScoreRing";
 import { COPY } from "../content/copy";
 import { GUIDE_SLUGS, GUIDES } from "../content/guides";
@@ -34,31 +39,67 @@ import {
   categoryTheme,
   colors,
   gradients,
+  isDark,
 } from "../theme/colors";
-import { fonts, radius, shadow, txt } from "../theme/typography";
+import { fonts, radius, sansW, shadow, txt } from "../theme/typography";
 import { todayISO } from "../utils/date";
 import { useWebTopBar, webSafeTop } from "../utils/webThemeColor";
 
-const SOURCES = ["saju", "thai", "mbti", "tarot"] as const;
-const POSE = {
-  saju: "pose-saju",
-  thai: "pose-thai",
-  mbti: "pose-mbti",
-  tarot: "soon-tarot",
-} as const;
-const SOURCE_LINE: Record<(typeof SOURCES)[number], string> = {
-  saju: "태어난 날의 네 기둥과 오늘의 일진이 만나는 자리",
-  thai: "서양 · 인도 · 태국, 세 갈래 별점이 오늘 건네는 힌트",
-  mbti: "지금의 성향이 오늘의 흐름을 어떻게 받는지",
-  tarot: "카드 한 장으로 생각해보는 오늘의 선택",
+/**
+ * 4가지 관점 — 홈의 관점 타일과 같은 그라디언트 · 그림 (Figma 501:2916). 두 칸씩 두 줄.
+ * place: 94 높이 타일 안 그림 자리 (오른쪽 · 위)
+ */
+const SOURCES = [
+  ["saju", "mbti"],
+  ["thai", "tarot"],
+] as const;
+type SourceKey = (typeof SOURCES)[number][number];
+const SOURCE_CARD: Record<
+  SourceKey,
+  {
+    sub: string;
+    title: string;
+    tile: readonly [string, string];
+    place: { right: number; top: number; width?: number; height?: number };
+  }
+> = {
+  saju: {
+    sub: "사주 · 타고난 기운",
+    title: "나의 기질과\n오늘의 흐름",
+    tile: isDark ? analysisTheme.saju.tile : analysisTheme.thai.tile,
+    place: { right: 12, top: 28 },
+  },
+  mbti: {
+    sub: "MBTI · 지금의 성향",
+    title: "내 성향으로\n바라본 오늘",
+    tile: analysisTheme.mbti.tile,
+    place: { right: 8, top: 28 },
+  },
+  thai: {
+    sub: "태국 점성술 · 요일의 행성",
+    title: "오늘의 별이\n전하는 힌트",
+    tile: isDark ? analysisTheme.thai.tile : analysisTheme.saju.tile,
+    place: { right: 9, top: 37 },
+  },
+  tarot: {
+    sub: "타로 · 오늘의 선택",
+    title: "카드 한 장이\n건네는 메시지",
+    tile: analysisTheme.tarot.tile,
+    place: { right: 12, top: 33, width: 58, height: 50 },
+  },
 };
-/** 예시 화면의 점수 — 홈의 분야별 링과 같은 색 */
-const SAMPLE: { k: CategoryKey; score: number; ring: string }[] = [
-  { k: "love", score: 78, ring: "#C93B3B" },
-  { k: "money", score: 64, ring: "#E1A338" },
-  { k: "work", score: 88, ring: "#28B2FE" },
-  { k: "relationship", score: 71, ring: "#06C755" },
-];
+/** 예시 화면의 점수 — 홈의 분야별 링과 같은 색 · 어제 점수(before)로 +/- 를 붙인다 */
+const SAMPLE: { k: CategoryKey; score: number; before: number; ring: string }[] =
+  [
+    { k: "love", score: 86, before: 91, ring: "#C93B3B" },
+    { k: "money", score: 79, before: 82, ring: "#E1A338" },
+    { k: "work", score: 84, before: 81, ring: "#28B2FE" },
+    { k: "relationship", score: 81, before: 79, ring: "#06C755" },
+  ];
+/** 히어로 하늘 (Figma 501:2754) — 구름 그림 위에 파랑 → 투명 그라디언트, 그림 끝(아래 58)은 흰색으로 덮어 걷는다 */
+const HERO_TOP = isDark ? gradients.sky[0] : "#21AFFE";
+/** Figma 프레임은 위 44 상태바를 포함한다 — 상단 바 위치에 맞춰 배경을 그만큼 올린다 */
+const FIGMA_STATUS = 44;
 const STEPS: [string, string][] = [
   [
     "몇 가지만 답해요",
@@ -82,7 +123,7 @@ const FREE: [ArtName, number, string, string][] = [
     "종합 점수와 연애·재물·일·관계, 오늘 할 일과 피할 일",
   ],
   ["month", 30, "주간 · 월간 · 연간 흐름", "분야별로 좋은 날과 조심할 날"],
-  ["friends", 22, "궁합", "상대 정보를 넣거나, 링크 하나로 친구에게 신청받기"],
+  ["friends", 22, "궁합", "상대 정보를 넣거나, 링크 하나로 신청받기"],
   [
     "talisman",
     32,
@@ -126,6 +167,10 @@ const PAID_MORE = [
   "길일 찾기",
 ];
 const CTA = "내 운세 보기 · 무료";
+/** 예시 링 숫자 색 (Figma #4F4F4F) */
+const SCORE_INK = isDark ? colors.inkSub : "#4F4F4F";
+/** 칩 테두리 · 글자 파랑 (Figma #00A3FF, 글자는 80%) */
+const CHIP_BLUE = "#00A3FF";
 // TODO: 임시 리뷰 — 실제 사용자 리뷰가 쌓이면 교체
 const REVIEWS = [
   "출근길 지하철에서 보는 게 루틴이 됐어요. 말조심 하라는 날에는 확실히 조심해야할 일이 생기더라구요",
@@ -166,6 +211,7 @@ export default function LandingScreen() {
   // 히어로는 상단 바(상태바 + 로고 줄)까지 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 하고,
   // 웹에서는 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
   const heroHold = safeTop + 52;
+  const skyTop = safeTop - FIGMA_STATUS;
   const heroGradient =
     heroH > heroHold * 2
       ? {
@@ -174,7 +220,14 @@ export default function LandingScreen() {
         }
       : { colors: gradients.sky, locations: [0, 0.5, 0.92] as const };
   const onScrollTopBar = useWebTopBar(
-    heroH > heroHold * 2
+    !isDark
+      ? [
+          [0, HERO_TOP],
+          [skyTop + 64, HERO_TOP],
+          [skyTop + 225, "#E3F4FF"],
+          [skyTop + 362, colors.cream],
+        ]
+      : heroH > heroHold * 2
       ? [
           [0, gradients.sky[0]],
           [heroHold, gradients.sky[0]],
@@ -200,7 +253,7 @@ export default function LandingScreen() {
       {/* 당겨도 위가 하얗게 비지 않게 */}
       <View
         pointerEvents="none"
-        style={[s.overscroll, { backgroundColor: gradients.sky[0] }]}
+        style={[s.overscroll, { backgroundColor: HERO_TOP }]}
       />
       <ScrollView
         onScroll={onScroll}
@@ -209,10 +262,39 @@ export default function LandingScreen() {
       >
         <View onLayout={(e) => setHeroH(e.nativeEvent.layout.height)}>
           <LinearGradient
-            colors={heroGradient.colors}
-            locations={heroGradient.locations}
+            colors={isDark ? heroGradient.colors : [colors.cream, colors.cream]}
+            locations={isDark ? heroGradient.locations : undefined}
             style={[s.hero, { paddingTop: safeTop }]}
           >
+            {isDark ? null : (
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <Image
+                  source={require("../../assets/images/landing-hero-bg.webp")}
+                  style={[s.heroBg, { top: skyTop - 20 }]}
+                  contentFit="fill"
+                  accessible={false}
+                />
+                <LinearGradient
+                  colors={[
+                    "rgba(33,175,254,1)",
+                    "rgba(33,175,254,1)",
+                    "rgba(200,235,255,0.55)",
+                    "rgba(255,255,255,0)",
+                  ]}
+                  locations={[0, 0.16, 0.56, 0.9]}
+                  style={[s.heroSky, { top: skyTop }]}
+                />
+                <LinearGradient
+                  colors={[
+                    "rgba(255,255,255,0)",
+                    "rgba(255,255,255,0.55)",
+                    "rgba(255,255,255,1)",
+                  ]}
+                  locations={[0.12, 0.52, 1]}
+                  style={[s.heroFade, { top: skyTop + 328 }]}
+                />
+              </View>
+            )}
             <View style={s.top}>
               <BrandMark light />
               <PressableScale
@@ -224,27 +306,28 @@ export default function LandingScreen() {
                 <Text style={s.topLink}>로그인</Text>
               </PressableScale>
             </View>
-            <View style={{ marginTop: 12 }}>
-              <MascotCarousel size={150} />
+            <View style={s.mascot}>
+              <MascotCarousel size={136} />
             </View>
-            <Text style={[txt.title, s.headline]} accessibilityRole="header">
-              {COPY.ask.replace("어떤 운을 ", "어떤 운을\n")}
+            <Text style={s.headline} accessibilityRole="header">
+              {COPY.ask.replace("어떤 운을 ", "어떤 운을\n").replace("PICK하", "PICK 하")}
             </Text>
-            <Text style={[txt.body, s.lead]}>
+            <Text style={s.lead}>
               사주 · MBTI · 타로 · 별자리, 네 가지로 읽는 오늘.{"\n"}1분이면
               나오고, 가입하지 않아도 돼요.
             </Text>
             <PrimaryButton
               label={CTA}
               onPress={start}
-              style={{ marginTop: 20 }}
+              size="medium"
+              style={{ marginTop: 24 }}
             />
           </LinearGradient>
         </View>
 
         <View style={s.body}>
           {/* 실제로 받게 될 화면을 먼저 보여준다 */}
-          <Card style={[s.preview, shadow.card]}>
+          <View style={s.preview}>
             <View style={s.previewHead}>
               <Text style={s.previewTitle}>오늘의 운세</Text>
               <View style={s.sampleTag}>
@@ -253,41 +336,64 @@ export default function LandingScreen() {
             </View>
             <View style={s.previewMain}>
               <ScoreRing
-                score={82}
-                size={88}
-                stroke={5}
+                score={86}
+                size={78}
+                stroke={4}
+                inset={0}
                 color={colors.accent}
+                gradientEndColor={isDark ? undefined : "#D3ECFB"}
                 track={colors.line}
-                textColor={colors.ink}
-                fontSize={30}
+                inner={colors.white}
+                innerSize={59}
+                textColor={SCORE_INK}
+                numberStyle={s.previewScore}
                 delay={300}
               />
-              <Text style={[txt.bodyStrong, { flex: 1 }]}>
-                막혀 있던 일이 풀리는 날이에요. 미뤄 둔 연락을 먼저 해 보세요.
+              <Text style={s.previewText}>
+                막혀 있던 일이 풀리는 날이에요.{"\n"}미뤄 둔 연락을 먼저 해
+                보세요.
               </Text>
             </View>
+            <View style={s.previewLine} />
             <View style={s.rings}>
               {SAMPLE.map((c, i) => (
-                <View key={c.k} style={{ alignItems: "center", gap: 6 }}>
+                <View key={c.k} style={s.ringCell}>
                   <ScoreRing
                     score={c.score}
-                    size={52}
-                    stroke={3}
+                    size={58}
+                    stroke={2}
+                    inset={0}
                     color={c.ring}
+                    gradientEndColor={isDark ? undefined : "#F1F1F1"}
                     track="transparent"
-                    inner={colors.card}
-                    textColor={colors.inkSub}
-                    fontSize={19}
+                    inner={colors.white}
+                    innerSize={50}
+                    textColor={SCORE_INK}
+                    numberStyle={s.ringNumber}
                     delay={450 + i * 120}
-                  />
+                  >
+                    <ScoreDelta
+                      now={c.score}
+                      before={c.before}
+                      delay={450 + i * 120 + 1100}
+                      small
+                      style={{ marginTop: -2 }}
+                      textStyle={[
+                        s.ringDelta,
+                        !isDark && {
+                          color: c.score > c.before ? "#DD2828" : "#3D79D4",
+                        },
+                      ]}
+                    />
+                  </ScoreRing>
                   <View style={s.ringLabel}>
-                    <CategoryGlyph category={c.k} size={12} />
+                    <HomeCategoryGlyph category={c.k} />
                     <Text style={s.ringText}>{categoryTheme[c.k].short}</Text>
                   </View>
                 </View>
               ))}
             </View>
-          </Card>
+          </View>
 
           <Text style={s.h}>1분이면 시작해요</Text>
           <View>
@@ -316,24 +422,26 @@ export default function LandingScreen() {
             ))}
           </View>
 
-          <Text style={s.h}>네 가지 관점으로 나를 읽어요</Text>
-          <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
-            {SOURCES.map((k, i) => (
-              <View key={k} style={[s.row, i > 0 && s.line]}>
-                <LinearGradient colors={analysisTheme[k].tile} style={s.seal}>
-                  <Mascot name={POSE[k]} size={30} />
-                </LinearGradient>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.rowTitle}>
-                    {analysisTheme[k].label}{" "}
-                    <Text style={s.rowSub}>· {analysisTheme[k].sub}</Text>
-                  </Text>
-                  <Text style={txt.small}>{SOURCE_LINE[k]}</Text>
-                </View>
+          <Text style={[s.h, s.hPlain]}>4가지 관점으로 나를 읽어요</Text>
+          <View style={s.sources}>
+            {SOURCES.map((row) => (
+              <View key={row[0]} style={s.sourceRow}>
+                {row.map((k) => {
+                  const c = SOURCE_CARD[k];
+                  return (
+                    <LinearGradient key={k} colors={c.tile} style={s.source}>
+                      <HomeAnalysisArt source={k} place={c.place} />
+                      <Text style={s.sourceSub} numberOfLines={1}>
+                        {c.sub}
+                      </Text>
+                      <Text style={s.sourceTitle}>{c.title}</Text>
+                    </LinearGradient>
+                  );
+                })}
               </View>
             ))}
-          </Card>
-          <Text style={[txt.small, { marginTop: 10 }]}>
+          </View>
+          <Text style={s.sourceNote}>
             타고난 바탕과 오늘의 흐름, 나의 성향과 카드의 메시지를 함께 읽어요.
           </Text>
 
@@ -446,48 +554,139 @@ const s = StyleSheet.create({
     right: 0,
     height: "50%",
   },
-  hero: { paddingHorizontal: 24, paddingBottom: 28 },
+  hero: { paddingHorizontal: 24, paddingBottom: 32, overflow: "hidden" },
+  heroBg: { position: "absolute", left: 0, right: 0, height: 396 },
+  heroSky: { position: "absolute", left: 0, right: 0, height: 402 },
+  heroFade: { position: "absolute", left: 0, right: 0, height: 58 },
+  // 상단 바(56) 안 로그인 글자 아래 18 (Figma 81 → 99) — 바 아래 여백이 19.5라 살짝 당긴다
+  mascot: { alignItems: "center", marginTop: -2 },
   top: {
     height: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   }, // 홈 상단 바와 같은 높이 · 로고 크기 (좌우 24는 hero가 준다)
-  topLink: { fontSize: 14, fontWeight: "700", color: colors.white },
+  topLink: {
+    ...sansW("700"),
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: -0.56,
+    color: colors.white,
+  },
   headline: {
-    fontSize: 28,
-    lineHeight: 38,
+    ...sansW("800"),
+    fontSize: 24,
+    lineHeight: 29,
+    letterSpacing: -0.96,
+    color: colors.ink,
+    marginTop: 10,
+    textAlign: "center",
+  },
+  lead: {
+    ...sansW("500"),
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: -0.56,
+    color: isDark ? colors.inkSub : "#333333",
     marginTop: 16,
     textAlign: "center",
   },
-  lead: { marginTop: 10, textAlign: "center" },
   body: {
     paddingHorizontal: 24,
     paddingBottom: 40,
     backgroundColor: colors.cream,
   },
-  preview: { padding: 18, gap: 16 },
+  // Figma 501:3080 — 327×258 연회색 카드, 안쪽 16
+  preview: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 22,
+  },
   previewHead: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  previewTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
-  sampleTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+  previewTitle: {
+    ...sansW("700"),
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: -0.56,
+    color: colors.ink,
   },
-  sampleText: { fontSize: 11, fontWeight: "700", color: colors.purpleSoft },
-  previewMain: { flexDirection: "row", alignItems: "center", gap: 16 },
+  // Figma는 0.5 테두리를 칩 안쪽에 그린다 — 패딩에서 빼서 크기를 맞춘다
+  sampleTag: {
+    paddingHorizontal: 7.5,
+    paddingVertical: 1.5,
+    borderRadius: 24,
+    borderWidth: 0.5,
+    borderColor: CHIP_BLUE,
+    backgroundColor: colors.white,
+  },
+  sampleText: {
+    ...sansW("600"),
+    fontSize: 12,
+    lineHeight: 14,
+    color: CHIP_BLUE,
+    opacity: 0.8,
+  },
+  previewMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 21,
+    marginTop: 7.5,
+    paddingLeft: 3.5,
+  },
+  previewScore: {
+    ...sansW("700"),
+    fontSize: 26,
+    lineHeight: 31,
+    letterSpacing: -1.04,
+  },
+  previewText: {
+    ...sansW("600"),
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.6,
+    color: isDark ? colors.ink : "#000000",
+  },
+  previewLine: {
+    height: 1,
+    marginTop: 12.5,
+    marginHorizontal: 4,
+    backgroundColor: isDark ? colors.lineStrong : "#E8E8E8",
+  },
   rings: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
+    marginTop: 18,
+    paddingLeft: 2,
+    paddingRight: 1,
   },
-  ringLabel: { flexDirection: "row", alignItems: "center", gap: 4 },
-  ringText: { fontSize: 12, fontWeight: "600", color: colors.inkSub },
+  ringCell: { alignItems: "center", gap: 10 },
+  ringNumber: {
+    ...sansW("700"),
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: -0.8,
+  },
+  ringDelta: {
+    ...sansW("600"),
+    fontSize: 12,
+    lineHeight: 14,
+    letterSpacing: -0.48,
+  },
+  ringLabel: { flexDirection: "row", alignItems: "center", gap: 6 },
+  ringText: {
+    ...sansW("600"),
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: -0.56,
+    color: colors.ink,
+  },
   h: {
     fontFamily: fonts.display,
     fontSize: 19,
@@ -495,6 +694,47 @@ const s = StyleSheet.create({
     color: colors.ink,
     marginTop: 36,
     marginBottom: 12,
+  },
+  // Figma 501:2919 — 18 Bold, 자간 없음
+  hPlain: {
+    ...sansW("700"),
+    fontSize: 18,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: isDark ? colors.ink : "#000000",
+    marginBottom: 16,
+  },
+  sources: { gap: 16 },
+  sourceRow: { flexDirection: "row", gap: 16 },
+  source: {
+    flex: 1,
+    height: 94,
+    borderRadius: radius.lg,
+    padding: 16,
+    overflow: "hidden",
+  },
+  sourceSub: {
+    ...sansW("500"),
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.65,
+    color: colors.inkMute,
+  },
+  sourceTitle: {
+    ...sansW("700"),
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: -0.56,
+    color: colors.ink,
+    marginTop: 4,
+  },
+  sourceNote: {
+    ...sansW("400"),
+    fontSize: 12,
+    lineHeight: 17,
+    letterSpacing: -0.48,
+    color: isDark ? colors.inkMute : "#838383",
+    marginTop: 12,
   },
   step: { flexDirection: "row", alignItems: "stretch", gap: 12 },
   stepRail: { width: 28, alignItems: "center" },
@@ -568,16 +808,19 @@ const s = StyleSheet.create({
     letterSpacing: -0.5,
   },
   guideShort: { ...txt.caption, color: colors.inkSub, minHeight: 34 },
+  // Figma 505:3158 — 테두리 0.5 파랑 칩, 바탕 없음
   guideBadge: {
     alignSelf: "flex-start",
     marginTop: 6,
+    ...sansW("600"),
     fontSize: 11,
-    fontWeight: "700",
-    color: colors.purpleSoft,
-    backgroundColor: colors.accentSoft,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
+    lineHeight: 13,
+    color: "rgba(0,163,255,0.8)",
+    paddingHorizontal: 3.5,
+    paddingVertical: 1.5,
+    borderWidth: 0.5,
+    borderColor: CHIP_BLUE,
+    borderRadius: radius.xs,
     overflow: "hidden",
   },
   floatBar: {

@@ -31,7 +31,7 @@ export default function ShareCta({ item, spec, style }: { item?: Item; spec?: Sh
         <ImageBackground source={ART.shareBanner} style={s.banner} imageStyle={s.fill} resizeMode="stretch">
           <View style={{ flex: 1 }}>
             <Text style={s.bannerTitle}>{share.full ? '결과 공유하기' : '결과를 카드로 공유하기'}</Text>
-            <Text style={s.bannerSub}>{share.full ? '전체 풀이 링크나 카드로 전해 보세요' : '나의 운세를 친구에게 전해 보세요'}</Text>
+            <Text style={s.bannerSub}>{share.full ? '전체 풀이 링크나 카드로 전해 보세요' : '나의 운세를 공유해 보세요'}</Text>
           </View>
           <Icon name="external" size={24} color={BANNER_INK} />
         </ImageBackground>
@@ -108,7 +108,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     if (r === 'cancelled') return;
     setVisible(false);
     // 복사만으로는 보냈는지 알 수 없어 공유 보상은 OS 공유로 보냈을 때만 (카드 공유와 같은 보상 — 콘텐츠마다 한 번)
-    if (r === 'copied') toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
+    if (r === 'copied') toast('링크를 복사했어요.');
     else void rewardShare(spec.file);
   };
   // 시트가 떠 있는 동안은 토스트가 시트에 가려지니 버튼 글자로 알려 준다

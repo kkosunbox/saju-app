@@ -87,9 +87,10 @@ const ANALYSIS = {
   blood: { right: 10, top: 51, width: 64, height: 56, x: -1.3025, y: -1.1083, w: 2.3546, h: 2.0411 },
 } as const;
 
-export function HomeAnalysisArt({ source }: { source: keyof typeof ANALYSIS | 'tarot' }) {
-  if (source === 'tarot') return <Image source={require('../../../assets/figma/home/analysis-tarot.webp')} style={{ position: 'absolute', right: 16, top: 55, width: 61, height: 53 }} contentFit="fill" pointerEvents="none" accessible={false} />;
-  const a = ANALYSIS[source];
+/** place: 타일마다 그림 자리가 다른 화면(웹 랜딩)에서 오른쪽·위 위치와 크기를 바꾼다 */
+export function HomeAnalysisArt({ source, place }: { source: keyof typeof ANALYSIS | 'tarot'; place?: { right: number; top: number; width?: number; height?: number } }) {
+  if (source === 'tarot') return <Image source={require('../../../assets/figma/home/analysis-tarot.webp')} style={{ position: 'absolute', right: 16, top: 55, width: 61, height: 53, ...place }} contentFit="fill" pointerEvents="none" accessible={false} />;
+  const a = { ...ANALYSIS[source], ...place };
   return (
     <View style={{ position: 'absolute', right: a.right, top: a.top, width: a.width, height: a.height, overflow: 'hidden' }} pointerEvents="none">
       <Image source={require('../../../assets/figma/home/analysis-sheet.webp')} style={{ position: 'absolute', left: a.x * a.width, top: a.y * a.height, width: a.w * a.width, height: a.h * a.height }} contentFit="fill" accessible={false} />

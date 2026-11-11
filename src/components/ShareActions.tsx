@@ -49,7 +49,7 @@ export default function ShareActions({ spec, title = COPY.friend, sub = '보내�
         </View>
       </View>
       <View style={s.row}>
-        <PressableScale onPress={() => (image ? sendImage(spec, image) : sendLink(spec))} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="친구에게 공유하기">
+        <PressableScale onPress={() => (image ? sendImage(spec, image) : sendLink(spec))} style={[s.btn, s.solid]} scaleTo={0.96} haptic accessibilityLabel="공유하기">
           <Text style={[s.text, { color: colors.white }]}>공유하기</Text>
           {shareRewardsLeft > 0 ? <View style={s.badge}><Text style={s.badgeText}>+{SHARE_P}알</Text></View> : null}
         </PressableScale>

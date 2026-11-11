@@ -93,7 +93,7 @@ export default function ShareScreen() {
       </View>
       <Text style={s.todayCaption}>{spec.today
         ? `올해 ${daysInYear(today)}일 중 오늘의 순위를 담았어요.`
-        : '나의 결과를 친구에게 공유해 보세요.'}</Text>
+        : '나의 결과를 공유해 보세요.'}</Text>
     </Screen>
   );
 }
