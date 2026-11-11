@@ -117,7 +117,8 @@ export function mbtiSpec(u: User, m: MbtiMatches): ShareSpec {
   return {
     kind: '찰떡 MBTI', seal: '性', eyebrow: `${u.nickname}님의 찰떡 MBTI는`,
     headline: top.type, sub: top.together,
-    // 점수는 그림 칸의 링에 있어 가운데 보조 제목(detail)은 두지 않는다
+    // 액자 가운데: 찰떡 유형의 별명과 종합 궁합 점수 (피그마 272:2030)
+    detail: { label: top.nickname, value: `종합 궁합 ${top.score}점` },
     mbti: { mine: u.mbti, partner: top.type, score: top.score },
     stats: [['2위', best[1].type], ['3위', best[2].type], ['조심', worst.type]],
     teaser: `${top.type}와 잘 맞는 진짜 이유`,

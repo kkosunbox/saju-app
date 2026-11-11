@@ -79,6 +79,8 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   const [expanded, setExpanded] = useState(false);
   /** 공유 취소 확인 중 (시트 내용을 통째로 바꿔 묻는다) */
   const [confirming, setConfirming] = useState(false);
+  /** PDF 저장 안내 중 (브라우저 인쇄 화면으로 넘어간다고 먼저 알려 준다) */
+  const [pdfGuide, setPdfGuide] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -92,6 +94,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     if (!full) return toCard();
     setExpanded(false);
     setConfirming(false);
+    setPdfGuide(false);
     setError(null);
     // 공유 중이면 처음부터 펼쳐 둔다
     setMine(undefined);
@@ -113,7 +116,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   };
   // 시트가 떠 있는 동안은 토스트가 시트에 가려지니 버튼 글자로 알려 준다
   const copy = async (share: MyShare) => {
-    if (!(await copyToClipboard(share.url))) return setError('복사하지 못했어요. 링크를 길게 눌러 복사해 주세요');
+    if (!(await copyToClipboard(share.url))) return setError(Platform.OS === 'android' ? '복사하지 못했어요. 공유하기로 보내 주세요' : '복사하지 못했어요. 링크를 길게 눌러 복사해 주세요');
     setError(null);
     setCopied(true);
     clearTimeout(copiedTimer.current);
@@ -161,14 +164,15 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     linkBody = (
       <>
         <View style={s.urlBox}>
-          <Text style={s.url} numberOfLines={1} ellipsizeMode="middle" selectable>{mine.url.replace(/^https?:\/\//, '')}</Text>
+          {/* 안드로이드는 selectable이면 줄임(…)을 무시하고 개행돼서 거기선 끈다 (복사 버튼이 옆에 있다) */}
+          <Text style={s.url} numberOfLines={1} ellipsizeMode="middle" selectable={Platform.OS !== 'android'}>{mine.url.replace(/^https?:\/\//, '')}</Text>
           <PressableScale onPress={() => copy(mine)} style={s.copyBtn} scaleTo={0.94} accessibilityLabel="링크 복사">
             <Icon name={copied ? 'check' : 'copy'} size={14} strokeWidth={2} color={copied ? colors.success : colors.ink} />
             <Text style={[s.copyText, copied && { color: colors.success }]}>{copied ? '복사됨' : '복사'}</Text>
           </PressableScale>
         </View>
         <View style={s.row}>
-          <PrimaryButton size="medium" variant="soft" label="PDF 저장" onPress={() => savePdf(mine)} disabled={!!busy} style={[s.flex, s.softBtn]}
+          <PrimaryButton size="medium" variant="soft" label="PDF 저장" onPress={() => { setError(null); setPdfGuide(true); }} disabled={!!busy} style={[s.flex, s.softBtn]}
             icon={<View style={{ marginRight: -4 }}><Icon name="download" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
           <PrimaryButton size="medium" label={busy === 'send' ? '보내는 중…' : '공유하기'} onPress={() => send(mine)} disabled={!!busy} style={s.flex}
             icon={busy ? undefined : <View style={{ marginRight: -4 }}><Icon name="external" size={16} strokeWidth={1.95} color={colors.white} /></View>} />
@@ -228,9 +232,22 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     </>
   );
 
+  // PDF 저장 안내 — 앱 밖(브라우저)으로 나가 인쇄 화면이 뜨니 미리 알려 주고 넘긴다
+  const pdf = mine ? (
+    <>
+      <Text style={[txt.h2, s.center]}>{Platform.OS === 'web' ? '새 탭이 열려요' : '브라우저가 열려요'}</Text>
+      <Text style={[txt.small, s.center, { marginTop: 8 }]}>
+        {Platform.OS === 'web' ? '새 탭' : '브라우저'}에서 풀이 페이지가 열리고 인쇄 화면이 떠요.{'\n'}인쇄 화면에서 'PDF로 저장'을 골라 저장해 주세요.
+      </Text>
+      {error ? <Text style={[txt.small, s.error, s.center]}>{error}</Text> : null}
+      <PrimaryButton label="PDF 저장" onPress={() => { setPdfGuide(false); savePdf(mine); }} style={{ marginTop: 20 }} />
+      <PrimaryButton label="돌아가기" variant="soft" onPress={() => setPdfGuide(false)} style={{ marginTop: 8 }} />
+    </>
+  ) : null;
+
   const sheet = full ? (
-    <BottomSheet visible={visible} onClose={() => setVisible(false)}>
-      {confirming ? confirm : menu}
+    <BottomSheet visible={visible} onClose={() => setVisible(false)} transitionKey={confirming ? 'revoke' : pdfGuide && pdf ? 'pdf' : 'menu'}>
+      {confirming ? confirm : pdfGuide && pdf ? pdf : menu}
     </BottomSheet>
   ) : null;
   return { open, full, sheet };

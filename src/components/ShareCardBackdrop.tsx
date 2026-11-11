@@ -54,9 +54,21 @@ function TarotBackdrop() {
   </View>;
 }
 
+/**
+ * 찰떡 MBTI 카드 (피그마 272:2030) — 전생 카드와 같은 남색 배경, 액자는 별 없는 어두운 구름 밤하늘.
+ * 그라디언트 테두리(3)까지 함께 내보낸 271×416 그림을 쓴다.
+ */
+function MbtiBackdrop() {
+  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <LinearGradient colors={['#091228', '#223B77', '#42639F']} locations={NIGHT_LOCATIONS} {...BLUE_LINE} style={StyleSheet.absoluteFill} />
+    <Image source={require('../../assets/figma/share/mbti-night.webp')} style={s.tarotFrame} contentFit="fill" accessible={false} testID="share-frame" />
+  </View>;
+}
+
 /** Shared Figma artwork: explicit image dimensions prevent intrinsic-size cropping on web. */
-export default function ShareCardBackdrop({ gold = false, night = false, tarot = false }: { gold?: boolean; night?: boolean; tarot?: boolean }) {
+export default function ShareCardBackdrop({ gold = false, night = false, tarot = false, mbti = false }: { gold?: boolean; night?: boolean; tarot?: boolean; mbti?: boolean }) {
   if (tarot) return <TarotBackdrop />;
+  if (mbti) return <MbtiBackdrop />;
   if (night) return <NightBackdrop />;
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
     <LinearGradient

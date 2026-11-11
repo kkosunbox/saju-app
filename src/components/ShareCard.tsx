@@ -10,7 +10,7 @@ import CharacterShareCard from './CharacterShareCard';
 import TarotCard from './tarot/TarotCard';
 import MbtiArt from './MbtiArt';
 import PastLifeArt from './PastLifeArt';
-import MbtiScoreRing from './MbtiScoreRing';
+import Svg, { Path } from 'react-native-svg';
 import { ShareSpec } from '../services/share/shareSpecs';
 import { formatKoreanDate } from '../utils/date';
 import { sansW } from '../theme/typography';
@@ -24,8 +24,8 @@ const fit = (text: string, base: number, width: number, tracking = -0.05) => {
 };
 const EXTRA = Platform.OS === 'web' ? sansW('800') : { fontFamily: 'Pretendard-ExtraBold' };
 const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
-/** 찰떡 MBTI 카드 가운데 종합 궁합 링 지름 */
-const MBTI_RING = 58;
+/** 찰떡 MBTI 카드 두 캐릭터 사이 하트 (피그마 Favorite_fill 20 틀, 채움 + 선 2) */
+const MBTI_HEART = 'M3.70887 11.5901L9.50272 17.0328C9.64787 17.1691 9.72044 17.2373 9.79936 17.2719C9.92724 17.3279 10.0727 17.3279 10.2006 17.2719C10.2795 17.2373 10.3521 17.1691 10.4972 17.0328L16.2911 11.5901C17.9212 10.0587 18.1192 7.53875 16.7482 5.77164L16.4904 5.43937C14.8502 3.3254 11.558 3.67993 10.4055 6.09463C10.2427 6.43572 9.75722 6.43572 9.59442 6.09463C8.44196 3.67993 5.14975 3.3254 3.5096 5.43937L3.2518 5.77164C1.88077 7.53875 2.07873 10.0587 3.70887 11.5901Z';
 // Figma's 110 × 110 illustration slots, including each source image's crop transform.
 const ART = {
   Monthly: { source: require('../../assets/figma/share/monthly.webp'), x: -118.5, y: -8.18, w: 329.24, h: 107.6 },
@@ -46,8 +46,8 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
   const gold = !!spec.talisman;
-  // 전생: 밤하늘 카드 — 글자는 흰색·연회색, 지표 칸은 남색
-  const night = !!spec.pastLife;
+  // 전생·찰떡 MBTI: 밤하늘 카드 — 글자는 흰색·연회색, 지표 칸은 남색
+  const night = !!spec.pastLife || !!spec.mbti;
   // 오늘의 타로: 남색 밤하늘 카드 — 위쪽 글자는 흰색·연회색, 아래 구름 위 글자는 검정
   const tarot = !!spec.tarot;
   const art = ART[spec.route as keyof typeof ART] ?? ART.SajuDeep;
@@ -65,7 +65,7 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
   const statFontSize = tarot ? 16 : Math.max(14, Math.min(compactStats ? 16 : 18, ...statFits));
   return (
     <View ref={ref} collapsable={false} style={s.card} testID="share-card">
-      <ShareCardBackdrop gold={gold} night={night} tarot={tarot} />
+      <ShareCardBackdrop gold={gold} night={night} tarot={tarot} mbti={!!spec.mbti} />
       <View style={s.logo}><Logo height={49} /></View>
       <Text style={[s.date, gold && { color: '#5D0000' }, (night || tarot) && n.mute]}>{formatKoreanDate(today)}</Text>
       {spec.talisman ? <>
@@ -73,20 +73,20 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
         <Text style={s.mantra} numberOfLines={2} adjustsFontSizeToFit>{spec.talisman.mantra}</Text>
         <View style={s.chipRow}><View style={s.chip}><Text style={s.chipText}>{spec.talisman.nickname} · 오늘의 {spec.talisman.keyword}</Text></View></View>
       </> : <>
-        {spec.mbti ? <View style={s.mbtiRow}>
-          <View style={s.mbtiCell}><MbtiArt type={spec.mbti.mine} size={72} /><Text style={s.mbtiType}>{spec.mbti.mine}</Text></View>
-          <View style={s.mbtiRing}><MbtiScoreRing score={spec.mbti.score} size={MBTI_RING} color="#000000" /></View>
-          <View style={s.mbtiCell}><MbtiArt type={spec.mbti.partner} size={72} /><Text style={s.mbtiType}>{spec.mbti.partner}</Text></View>
-        </View> : tarot ? <View style={t.card}><View style={t.cardClip}><TarotCard reading={spec.tarot} width={80} /></View></View> : <View style={s.artSlot}>
+        {spec.mbti ? <>
+          <View style={[s.mbtiCell, { left: 52 }]}><MbtiArt type={spec.mbti.mine} size={80} /><Text style={s.mbtiType}>{spec.mbti.mine}</Text></View>
+          <View style={s.mbtiHeart}><Svg width={20} height={20} viewBox="0 0 20 20"><Path d={MBTI_HEART} fill="#28B2FE" stroke="#28B2FE" strokeWidth={2} strokeLinecap="round" /></Svg></View>
+          <View style={[s.mbtiCell, { left: 179 }]}><MbtiArt type={spec.mbti.partner} size={80} /><Text style={s.mbtiType}>{spec.mbti.partner}</Text></View>
+        </> : tarot ? <View style={t.card}><View style={t.cardClip}><TarotCard reading={spec.tarot} width={80} /></View></View> : <View style={s.artSlot}>
           {spec.pastLife ? <PastLifeArt result={spec.pastLife} size={110} onDisplay={onArtReady} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
         </View>}
-        <Text style={[s.eyebrow, spec.mbti && { top: 254 }, tarot && n.white]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
-        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, (night || tarot) && n.white, spec.mbti && { top: 276 }, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
+        <Text style={[s.eyebrow, tarot && n.white]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
+        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, (night || tarot) && n.white, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
         {detail ? <>
           <Text style={[s.detailLabel, night && n.mute, tarot && t.ink]} numberOfLines={1} adjustsFontSizeToFit>{detail.label}</Text>
           <Text style={[s.detailValue, { fontSize: detailSize, letterSpacing: -detailSize * 0.05 }, multilineDetail && s.multilineDetail]} numberOfLines={multilineDetail ? 2 : 1} adjustsFontSizeToFit>{detail.value}</Text>
         </> : null}
-        {spec.sub ? <Text style={[s.line, spec.mbti && { top: 330 }, night && n.mute, tarot && t.ink, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
+        {spec.sub ? <Text style={[s.line, night && n.mute, tarot && t.ink, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
       </>}
       <View style={[s.stats, night && n.stats]} testID="share-stats">
         {spec.stats.map(([label, value], i) => <View key={label} style={[s.stat, gold && { flex: [1.1, 0.55, 1.35][i] ?? 1 }]}>
@@ -127,12 +127,10 @@ const s = StyleSheet.create({
   logo: { position: 'absolute', left: 20, top: 9 },
   date: { ...sansW('500'), position: 'absolute', left: 36, right: 36, top: 72, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, textAlign: 'center', color: '#777777' },
   artSlot: { position: 'absolute', left: 100, top: 106, width: 110, height: 110, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  // 찰떡 MBTI — 그림 칸 자리에 내 MBTI · 링 · 찰떡 MBTI. 보조 제목이 없어 아래 글줄을 24 내린다 (eyebrow 254 · headline 276 · line 330)
-  mbtiRow: { position: 'absolute', left: 36, right: 36, top: 124, height: 102, flexDirection: 'row', justifyContent: 'space-between' },
-  mbtiCell: { width: 76, alignItems: 'center' },
-  mbtiType: { ...EXTRA, marginTop: 4, fontSize: 18, lineHeight: 22, letterSpacing: -0.9, color: '#000000' },
-  // 링은 양옆 칸(그림 72 + 간격 4 + MBTI 글자 22 = 98)의 세로 가운데에
-  mbtiRing: { marginTop: (98 - MBTI_RING) / 2 },
+  // 찰떡 MBTI (피그마 272:2030) — 그림 칸 자리에 내 MBTI(52) · 하트(146, 146) · 찰떡 MBTI(179), 그림 80 아래 1 띄워 유형 20/600
+  mbtiCell: { position: 'absolute', top: 108, width: 80, alignItems: 'center' },
+  mbtiType: { ...sansW('600'), marginTop: 1, fontSize: 20, lineHeight: 24, letterSpacing: -1, color: '#FFFFFF' },
+  mbtiHeart: { position: 'absolute', left: 146, top: 146, width: 20, height: 20 },
   eyebrow: { ...sansW('700'), position: 'absolute', left: 28, right: 28, top: 230, fontSize: 14, lineHeight: 17, letterSpacing: -0.56, textAlign: 'center', color: '#28B2FE' },
   headline: { ...EXTRA, position: 'absolute', left: 25, right: 25, top: 252, fontSize: 32, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center', color: '#000000' },
   multilineTitle: { top: 248, fontSize: 20, lineHeight: 24, height: 48, letterSpacing: -1 },

@@ -531,19 +531,23 @@ export default function HomeScreen() {
           ))}
           </View>
 
-          <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 79 }} title="4가지 관점" caption="오늘의 운세는 이렇게 만들어져요" action="종합 풀이 보기" onAction={openCombined} />
-          <View style={s.grid}>
-            <View style={s.gridRow}>
-              <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
-              <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
-            </View>
-            <View style={s.gridRow}>
-              <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
-              {a.tarot ? <AnalysisTile analysis={a.tarot} onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })} /> : null}
-            </View>
-          </View>
+          {draw.ready && !hidden && later(1050, (
+            <>
+              <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0, width: 79 }} title="4가지 관점" caption="오늘의 운세는 이렇게 만들어져요" action="종합 풀이 보기" onAction={openCombined} />
+              <View style={s.grid}>
+                <View style={s.gridRow}>
+                  <AnalysisTile analysis={a.saju} onPress={() => nav.navigate('AnalysisDetail', { source: 'saju' })} />
+                  <AnalysisTile analysis={a.mbti} onPress={() => nav.navigate('AnalysisDetail', { source: 'mbti' })} />
+                </View>
+                <View style={s.gridRow}>
+                  <AnalysisTile analysis={a.thai} onPress={() => nav.navigate('AnalysisDetail', { source: 'thai' })} />
+                  {a.tarot ? <AnalysisTile analysis={a.tarot} onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })} /> : null}
+                </View>
+              </View>
+            </>
+          ))}
 
-          {hidden ? null : later(1050, (
+          {hidden ? null : later(1200, (
             <View style={{ marginTop: 32 }}>
               <ActionTabs good={f.goodActions} avoid={f.avoidActions} />
             </View>

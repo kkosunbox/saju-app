@@ -59,11 +59,11 @@ export default function NewYearScreen() {
       {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.newyear} title={`${y}년 미리보기를 만들고 있어요`} />
       : top && idiom ? (
         <PreviewReveal gate={making}><View style={s.hero}>
-          <Image source={require('../../../assets/figma/new-year/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
+          <Image source={YEAR_HERO[y] ?? DEFAULT_YEAR_HERO} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
           <View style={s.heroLogo}><Logo height={LOGO_H} /></View>
           <Text style={s.eyebrow}>{y}년 {STEMS[top.yp.stem].ko}{BRANCHES[top.yp.branch].ko}년 · {top.animal}의 해</Text>
           <Text accessibilityRole="header" style={s.idiom}>{idiom[0]}</Text>
-          <View style={{ marginTop: 7 }}><ScoreRing key={y} score={top.total} size={96} stroke={7} label="올해 종합" /></View>
+          <View style={{ marginTop: 7 }}><ScoreRing key={y} score={top.total} size={96} stroke={7} color="#8B8050" gradientEndColor={IDIOM_GOLD} track="#535353" fontSize={32} label="올해 종합" /></View>
           <Text style={s.idiomLine}>{idiom[1]} · {idiom[2]}</Text>
           <View style={s.chips}>{top.kws.map(k => <View key={k} style={s.chip}><Text style={s.chipText}>{k}</Text></View>)}</View>
         </View></PreviewReveal>
@@ -239,6 +239,11 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
 
 const CAUTION_DOT = '#E54D4D';
 const CAUTION_BG = '#FFF2F2';
+const DEFAULT_YEAR_HERO = require('../../../assets/figma/new-year/hero.webp');
+const YEAR_HERO: Partial<Record<number, number>> = {
+  2026: require('../../../assets/figma/new-year/hero-2026.webp'),
+  2027: require('../../../assets/figma/new-year/hero-2027.webp'),
+};
 // Figma 운픽_16 상단 카드: 흰 로고 레터링이 28.76×16 — Logo 는 65×55 틀이라 너비에 맞춘 높이
 const LOGO_H = 28.76 / 65 * 55;
 const IDIOM_GOLD = '#F2DE6B';
@@ -247,9 +252,9 @@ const FLAG_ICON: Record<string, string> = { zodiac: '合', dohwa: '桃', yeokma:
 
 const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  // 327×259 카드: 위 18 · 눈썹글 18 · 4 · 사자성어 26 · 7 · 링 96 · 8 · 한자줄 18 · 17 · 칩 18 · 아래 29
-  // 폭이 달라도 그림이 보이는 영역이 같게 Figma 비율(327:259)로 두고, 남는 높이는 위아래로 나눈다
-  hero: { aspectRatio: 327 / 259, minHeight: 259, marginTop: 12, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingTop: 18, paddingBottom: 29, paddingHorizontal: 16, backgroundColor: colors.heroBg },
+  // 두 연도 모두 Figma 327×264: 링 y=73, 설명 y=177, 칩 y=212.
+  // 넓은 화면은 같은 배경 비율을 유지하고, 늘어난 높이를 위아래로 나눈다.
+  hero: { aspectRatio: 327 / 264, minHeight: 264, marginTop: 12, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingTop: 18, paddingBottom: 34, paddingHorizontal: 16, backgroundColor: colors.heroBg },
   heroLogo: { position: 'absolute', left: 12, top: 9 },
   eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', textAlign: 'center', ...TIGHT },
   // Figma 줄 높이 18은 26px 글자에 너무 낮아 26으로 두고 위 간격을 4로 줄여 글자 위치를 맞춘다

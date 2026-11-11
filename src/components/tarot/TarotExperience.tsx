@@ -38,7 +38,7 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
   const visible = ready && opened;
   const spec = visible && reading && user ? tarotSpec(user, reading) : null;
   return <Screen title="오늘의 타로" back right={<ShareIconButton spec={spec} />}>
-    <ImageBackground source={HERO_BG} style={s.hero} imageStyle={s.heroImg} resizeMode="cover">
+    <ImageBackground source={HERO_BG} style={s.hero} resizeMode="cover">
       <View style={s.logo}><Logo height={36 * 55 / 65} /></View>
       <Text style={s.date}>{today.replaceAll('-', '.')} · 하루 한 장</Text>
       <Text style={s.title}>{visible && reading ? reading.name : '오늘, 나에게 온 카드'}</Text>
@@ -89,7 +89,6 @@ const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 const TAROT_PURPLE = '#B157FB';
 const s = StyleSheet.create({
   hero: { minHeight: 393, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 32, paddingHorizontal: 16, paddingBottom: 22, marginTop: 4 },
-  heroImg: { width: '100%', height: '100%', borderRadius: radius.lg },
   logo: { position: 'absolute', left: 16, top: 12 },
   // 그림이 어두워 화면 모드와 상관없이 밝은 글자
   date: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD' },
