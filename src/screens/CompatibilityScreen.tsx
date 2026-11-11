@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@/navigation/compat';
 import { TabParamList } from '../navigation/types';
 import CrushView from '../components/premium/Crush';
-import { ImageBackground, ImageSourcePropType, Keyboard, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageBackground, ImageSourcePropType, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Screen from '../components/Screen';
@@ -46,10 +46,11 @@ import ShareCta, { ShareIconButton } from '../components/ShareCta';
 import { compatSpec, crushSpec } from '../services/share/shareSpecs';
 import { useInviteShare } from '../services/share/useInviteShare';
 
-const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; icon: SolidIconName }[] = [
+// 성격·대화는 3D 그림 아이콘(피그마: 20칸 / 대화는 그 안의 18), 연애·금전은 단색 아이콘
+const BARS: { k: 'love' | 'personality' | 'conversation' | 'money'; c: string; icon: SolidIconName | { src: ImageSourcePropType; size: number } }[] = [
   { k: 'love', c: colors.love, icon: 'heart' },
-  { k: 'personality', c: '#FCBD51', icon: 'happy' },
-  { k: 'conversation', c: colors.purpleSoft, icon: 'chat' },
+  { k: 'personality', c: '#FCBD51', icon: { src: require('../../assets/compatibility/field-personality.webp'), size: 20 } },
+  { k: 'conversation', c: colors.purpleSoft, icon: { src: require('../../assets/compatibility/field-conversation.webp'), size: 18 } },
   { k: 'money', c: '#5FB884', icon: 'coins' },
 ];
 /** 두 사람 카드 바탕 — 옅은 하늘이 가운데서 밝아진다 */
@@ -265,7 +266,9 @@ export default function CompatibilityScreen() {
         <Card style={{ padding: 12, gap: 16 }}>
           {BARS.map((b, i) => (
             <View key={b.k} style={s.barRow}>
-              <View style={s.barIco}><SolidIcon name={b.icon} size={b.icon === 'coins' ? 15 : b.icon === 'heart' ? 18 : 16} color={b.c} /></View>
+              <View style={s.barIco}>{typeof b.icon === 'string'
+                ? <SolidIcon name={b.icon} size={b.icon === 'coins' ? 15 : 18} color={b.c} />
+                : <Image source={b.icon.src} style={{ width: b.icon.size, height: b.icon.size }} resizeMode="contain" accessible={false} />}</View>
               <View style={{ flex: 1, gap: 8 }}>
                 <View style={s.barHead}>
                   <Text style={s.barLabel}>{rel.bars[b.k]}</Text>
@@ -305,7 +308,7 @@ export default function CompatibilityScreen() {
           </>
         ) : null}
 
-        {sharedView ? null : <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" size="medium" labelStyle={{ ...sansW('600'), fontSize: 14, letterSpacing: 0, color: colors.ink }} onPress={() => setResult(null)} style={{ marginTop: 24 }} />}
+        {sharedView ? null : <PrimaryButton label="다른 사람과 궁합 보기" variant="soft" size="medium" labelStyle={{ ...sansW('600'), fontSize: 14, letterSpacing: 0, color: colors.ink }} onPress={() => setResult(null)} style={{ marginTop: 16 }} />}
         {result.id != null && !sharedView ? (
           <PressableScale onPress={() => setConfirmDelete(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 12 }}>
             <Text style={s.deleteLink}>{result.target.nickname}님 정보 지우기</Text>

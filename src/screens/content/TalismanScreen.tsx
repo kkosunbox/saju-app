@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Image as AssetImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,8 +16,9 @@ import { sansW, txt } from '../../theme/typography';
 import { colors } from '../../theme/colors';
 import { talismanSpec } from '../../services/share/shareSpecs';
 import { shareLink, appUrl, copyText } from '../../services/share/linkShare';
-import { WebCard, renderCardWeb, shareCardImage } from '../../services/shareService';
-import TalismanPaper, { GiftTalismanPaper, PAPER_H as H, PAPER_W as W } from '../../components/TalismanPaper';
+import { WebCard, canvasToCard, shareCardImage } from '../../services/shareService';
+import TalismanPaper, { GiftTalismanPaper, PAPER_H as H, PAPER_W as W, giftPaperDrawing, todayPaperDrawing } from '../../components/TalismanPaper';
+import { PaperDrawing, drawPaperCanvas } from '../../components/talismanPaperCanvas';
 import FriendCompare from '../../components/FriendCompare';
 import ScratchCover from '../../components/ScratchCover';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -41,22 +42,30 @@ const TABS: { key: Tab; label: string }[] = [{ key: 'mine', label: '오늘 나�
 const GIFT_FILE = 'woonpick-talisman-gift';
 const EFFECT = '효력은 오늘 자정까지 지속되어요.';
 
+/** 웹: 부적 종이를 html2canvas 없이 캔버스에 직접 그려 PNG로 (흐림 · 사파리 한자 깨짐 방지) */
+const paperCard = async (drawing: PaperDrawing, file: string) => canvasToCard(await drawPaperCanvas(drawing), file);
+
 /**
  * 웹은 부적을 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유(사진첩 저장)를 막는다.
- * 그리는 동안 화면이 잠깐 멈추니, 부적을 고르거나 이름을 치는 중에는 그리지 않고 손을 멈춘 뒤 한 번만 그린다.
+ * 부적을 고르거나 이름을 치는 중에는 그리지 않고 손을 멈춘 뒤 한 번만 그린다.
  */
 const PREPARE_DELAY = 800;
-function usePreparedCard(ref: RefObject<ViewInstance | null>, ready: boolean, file: string, key: string) {
+function usePreparedCard(drawing: PaperDrawing | null, ready: boolean, file: string, key: string) {
   const prepared = useRef<WebCard | null>(null);
+  const latest = useRef(drawing);
+  latest.current = drawing;
   useEffect(() => {
-    if (Platform.OS !== 'web' || !ready) return;
+    if (Platform.OS !== 'web' || !ready || !latest.current) return;
     let alive = true;
+    const d = latest.current;
     const t = setTimeout(() => {
-      renderCardWeb(ref, file).then(c => { if (alive) prepared.current = c; }).catch(() => {});
+      paperCard(d, file).then(c => { if (alive) prepared.current = c; }).catch(e => console.warn('[talisman] draw failed', e));
     }, PREPARE_DELAY);
     return () => { alive = false; clearTimeout(t); prepared.current = null; };
-  }, [ready, key, ref, file]);
-  return prepared;
+  }, [ready, key, file]);
+  /** 미리 그린 게 없으면(손을 멈추자마자 누른 경우) 지금 그린다 */
+  const get = async () => prepared.current ?? (Platform.OS === 'web' && latest.current ? paperCard(latest.current, file).catch(() => null) : null);
+  return { ref: prepared, get };
 }
 
 /** 무료: 매일 바뀌는 오늘의 부적 + 친구에게 보내는 선물 부적 */
@@ -80,8 +89,10 @@ export default function TalismanScreen() {
   const opened = draw.ready && draw.opened;
   const gift = GIFT_TALISMANS.find(g => g.key === giftKey) ?? GIFT_TALISMANS[0];
   const receiver = to.trim();
-  const preparedMine = usePreparedCard(card, tab === 'mine' && opened && paperReady, 'woonpick-talisman', `${q.data?.hanja}|${q.data?.mantra}|${today}`);
-  const preparedGift = usePreparedCard(giftCard, tab === 'gift' && giftReady, GIFT_FILE, `${giftKey}|${receiver}|${today}|${showFrom ? u?.nickname : ''}`);
+  const fromName = showFrom ? u?.nickname ?? '' : '';
+  const preparedMine = usePreparedCard(q.data && u ? todayPaperDrawing({ hanja: q.data.hanja, mantra: q.data.mantra, keyword: q.data.keyword, nickname: u.nickname }, today) : null,
+    tab === 'mine' && opened && paperReady, 'woonpick-talisman', `${q.data?.hanja}|${q.data?.mantra}|${q.data?.keyword}|${u?.nickname}|${today}`);
+  const preparedGift = usePreparedCard(giftPaperDrawing(gift, receiver, fromName, today), tab === 'gift' && giftReady, GIFT_FILE, `${giftKey}|${receiver}|${today}|${fromName}`);
   if (!u) return null;
   if (!q.data) return <LoadingScreen title="오늘의 부적" error={q.error} onRetry={q.refetch} />;
   const t = q.data;
@@ -106,7 +117,7 @@ export default function TalismanScreen() {
     setBusy(true);
     try {
       const result = await shareCardImage(mine ? card : giftCard, {
-        file: mine ? spec.file : GIFT_FILE, mode: 'save', aspectRatio: W / H, prepared: (mine ? preparedMine : preparedGift).current,
+        file: mine ? spec.file : GIFT_FILE, mode: 'save', aspectRatio: W / H, prepared: await (mine ? preparedMine : preparedGift).get(),
       });
       if (result === 'saved') toast('부적 이미지를 저장했어요');
     } finally {
@@ -128,8 +139,8 @@ export default function TalismanScreen() {
     setBusy(true);
     try {
       const text = giftText();
-      const result = await shareCardImage(giftCard, { file: GIFT_FILE, text, url: appUrl(), mode: 'share', fallback: 'none', aspectRatio: W / H, prepared: preparedGift.current });
-      if (result === 'shared' || result === 'saved') void rewardShare(GIFT_FILE);
+      const result = await shareCardImage(giftCard, { file: GIFT_FILE, text, url: appUrl(), mode: 'share', fallback: 'none', aspectRatio: W / H, prepared: await preparedGift.get() });
+      if (result === 'shared') void rewardShare(GIFT_FILE); // 저장으로 끝난 경우는 보상 없음
       if (result === 'unsupported') {
         const r = await shareLink(text);
         if (r === 'copied') toast('링크를 복사했어요. 친구에게 붙여 넣어 보내세요');
@@ -200,7 +211,7 @@ export default function TalismanScreen() {
           </>
         ) : <>
           <Text style={s.effect}>{EFFECT}</Text>
-          <ShareActions spec={spec} title="친구의 운도 PICK해 볼까요?" outlined image={{ ref: card, aspectRatio: W / H, prepared: () => preparedMine.current }} />
+          <ShareActions spec={spec} title="오늘의 부적, 친구에게도 건네 볼까요?" sub="친구에게는 어떤 부적이 나올지 확인해 보세요" pose="clover" outlined image={{ ref: card, aspectRatio: W / H, prepared: () => preparedMine.ref.current }} />
           <View style={s.sectionHead}>
             <Text style={s.sectionTitle} accessibilityRole="header">부적과 함께하는 행운</Text>
             <View style={s.sectionCaption}>

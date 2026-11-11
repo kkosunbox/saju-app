@@ -90,7 +90,7 @@ export default function MbtiMatchScreen() {
           <Text style={[s.rankType, { color: colors.love }]}>{worst.type}</Text>
         </View>
       </View>
-      <ShareActions spec={mbtiSpec(u, q.data)} />
+      <ShareActions spec={mbtiSpec(u, q.data)} title="나의 찰떡 MBTI를 공유해 볼까요?" sub="친구와 내가 서로 찰떡인지 확인해 보세요" />
 
       <SubHead title="TOP3 찰떡궁합" caption="함께하면 서로를 빛내주는 성향" />
       <View style={{ gap: 12 }}>

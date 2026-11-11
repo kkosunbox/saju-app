@@ -115,14 +115,16 @@ export function useReadingGate(reading: ReadingView<unknown> | null | undefined,
   const writing = reading?.status === 'writing';
   const done = reading?.status === 'done';
   const [hold, setHold] = useState(false);
-  const [appeared, setAppeared] = useState(false);
-  const was = useRef(false);
-  useEffect(() => {
-    if (writing) { was.current = true; setAppeared(true); return; }
+  const [appeared, setAppeared] = useState(writing);
+  // 쓰는 중 → 다 씀으로 바뀐 그 렌더에서 바로 hold를 켠다. effect로 켜면 그 사이 한 렌더 동안 show가 false가 되어
+  // 체크리스트 화면이 내려갔다 다시 올라오고(새로 마운트), 이미 체크한 항목까지 처음부터 다시 체크된다
+  const [prevWriting, setPrevWriting] = useState(writing);
+  if (prevWriting !== writing) {
+    setPrevWriting(writing);
+    if (writing) setAppeared(true);
     // 쓰다 실패하면 본문(실패 안내 · 다시 쓰기)으로 바로
-    if (was.current && done) setHold(true);
-    was.current = false;
-  }, [writing, done]);
+    else if (done) setHold(true);
+  }
   // 남은 항목을 하나씩 체크하는 시간(ReadingStepsScreen) + "다 썼어요"
   const holdMs = (reading?.total ?? 0) * CHECK_GAP_MS + HOLD_MS;
   useEffect(() => {
@@ -130,7 +132,7 @@ export function useReadingGate(reading: ReadingView<unknown> | null | undefined,
     const t = setTimeout(() => setHold(false), holdMs);
     return () => clearTimeout(t);
   }, [hold, holdMs]);
-  return { show: writing || hold || fetching, appeared: appeared || fetching };
+  return { show: writing || hold || fetching, appeared: appeared || writing || fetching };
 }
 
 /** 풀이를 쓰는 동안의 화면 — 상단 바(뒤로 가기)는 그대로, 아래는 체크리스트 로딩 */
@@ -181,36 +183,50 @@ export interface ReadingSections {
   reading: ReadingView<unknown> | null | undefined;
   writing: boolean;
   parts: Record<string, unknown>;
-  /** 아직 안 쓴 파트 중 화면에서 가장 먼저 나오는 것 — 로딩 카드는 그 자리에 하나만 둔다 */
-  firstPending: string | null;
+  /**
+   * 로딩 카드를 둘 파트 — 쓰기 시작한 걸 처음 봤을 때 아직 안 쓴 첫 파트. 쓰는 동안 바뀌지 않는다.
+   * (먼저 끝난 파트를 따라 카드가 다음 섹션으로 옮겨 가면 카드가 새로 그려져 마스코트·구름이 처음부터 다시 돈다)
+   */
+  anchor: string | null;
   /** 이 화면에서 쓰는 중인 걸 처음 본 시각 (로딩 카드의 진행 막대가 이어지게) */
   startedAt: number;
 }
 
+/** 방금 열어 콘텐츠를 받는 동안 띄운 로딩 카드의 시작 시각 — 본문의 로딩 카드가 이어받아 체크리스트가 처음으로 돌아가지 않게 */
+const openingStartedAt = new Map<ReadingStepsKind, number>();
+const OPENING_CARRY_MS = 60_000;
+function takeOpeningStartedAt(kind: ReadingStepsKind) {
+  const t = openingStartedAt.get(kind);
+  openingStartedAt.delete(kind);
+  return t != null && Date.now() - t < OPENING_CARRY_MS ? t : Date.now();
+}
+
 /** kind의 단계 순서 = 화면에 나오는 순서 */
 export function useReadingSections(reading: ReadingView<unknown> | null | undefined, kind: ReadingStepsKind): ReadingSections {
-  const order = READING_STEPS[kind].steps.map(x => x.key);
   const writing = reading?.status === 'writing';
   const parts = (reading?.parts ?? {}) as Record<string, unknown>;
-  const [startedAt, setStartedAt] = useState(() => Date.now());
-  const was = useRef(writing);
-  useEffect(() => {
-    if (writing && !was.current) setStartedAt(Date.now());
-    was.current = writing;
-  }, [writing]);
-  return { kind, reading, writing, parts, startedAt, firstPending: writing ? order.find(k => parts[k] == null) ?? null : null };
+  const firstPending = READING_STEPS[kind].steps.map(x => x.key).find(k => parts[k] == null) ?? null;
+  // 쓰기 시작 · 끝을 그 렌더에서 바로 반영한다 (effect로 하면 한 렌더 동안 카드 자리가 어긋난다)
+  const [run, setRun] = useState(() => ({ writing, startedAt: takeOpeningStartedAt(kind), anchor: writing ? firstPending : null }));
+  if (run.writing !== writing) {
+    setRun({ writing, startedAt: writing ? Date.now() : run.startedAt, anchor: writing ? firstPending : null });
+  }
+  return { kind, reading, writing, parts, startedAt: run.startedAt, anchor: writing ? run.anchor : null };
 }
 
 /**
- * 풀이 파트 하나에 딸린 섹션(제목 포함). 그 파트를 쓰는 중이면 제목·계산 결과까지 숨기고,
- * 아직 안 쓴 첫 파트의 첫 섹션(lead) 자리에만 로딩 카드를 하나 둔다. 다 쓰면 부드럽게 나타난다.
+ * 풀이 파트 하나에 딸린 섹션(제목 포함). 쓰는 동안은 카드 자리(anchor)부터 아래 파트의 섹션을 제목·계산 결과까지 숨기고,
+ * anchor 파트의 첫 섹션(lead) 자리에만 로딩 카드를 하나 둔다. 다 쓰면 한꺼번에 부드럽게 나타난다.
+ * (서버는 파트를 동시에 써서 1~2초 안에 함께 끝나니, 먼저 끝난 파트만 따로 띄우지 않는다)
  * 쓰지 못했으면(실패 · 쓸 수 없음) 본문이 계산 결과의 문장으로 채운다.
  */
 export function ReadingPart({ s, part, lead, children }: { s: ReadingSections; part: string; lead?: boolean; children: React.ReactNode }) {
   const waited = useRef(false);
-  if (s.writing && s.parts[part] == null) {
+  const order = READING_STEPS[s.kind].steps.map(x => x.key);
+  const hidden = s.writing && (s.parts[part] == null || (s.anchor != null && order.indexOf(part) >= order.indexOf(s.anchor)));
+  if (hidden) {
     waited.current = true;
-    return lead && s.firstPending === part ? <ReadingWritingCard startedAt={s.startedAt} steps={READING_STEPS[s.kind].steps} doneKeys={Object.keys(s.parts)} /> : null;
+    return lead && s.anchor === part ? <ReadingWritingCard startedAt={s.startedAt} steps={READING_STEPS[s.kind].steps} doneKeys={Object.keys(s.parts)} /> : null;
   }
   return waited.current ? <Reveal>{children}</Reveal> : <>{children}</>;
 }
@@ -218,6 +234,7 @@ export function ReadingPart({ s, part, lead, children }: { s: ReadingSections; p
 /** C방식에서 방금 열어 콘텐츠를 받아 오는 동안 — 본문 자리에 로딩 카드를 바로 둔다 */
 export function ReadingOpeningCard({ kind }: { kind: ReadingStepsKind }) {
   const [startedAt] = useState(() => Date.now());
+  useEffect(() => { openingStartedAt.set(kind, startedAt); }, [kind, startedAt]);
   return <ReadingWritingCard startedAt={startedAt} steps={READING_STEPS[kind].steps} doneKeys={[]} />;
 }
 

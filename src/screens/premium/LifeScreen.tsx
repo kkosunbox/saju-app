@@ -232,7 +232,7 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
           <Hero style={{ marginTop: 0 }}>
             {daeun?.now ? (
               <>
-                <Text style={[heroTxt.body, { fontSize: 14.5, lineHeight: 23 }]}>{daeun.now.text}</Text>
+                <Text style={[heroTxt.body, { fontSize: 14, lineHeight: 23 }]}>{daeun.now.text}</Text>
                 <View style={{ marginTop: 12, gap: 6 }}>
                   {daeun.now.focus.map((t, i) => <Text key={i} style={s.focus}>{i + 1}. {t}</Text>)}
                 </View>
@@ -300,6 +300,6 @@ const s = StyleSheet.create({
   nowText: { color: colors.white, fontSize: 10.5, fontWeight: '700' },
   drow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   dd: { width: 40, alignItems: 'center' },
-  heroBody: { fontSize: 14.5, lineHeight: 23, marginTop: 10 },
+  heroBody: { fontSize: 14, lineHeight: 23, marginTop: 10 },
   focus: { fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.92)' },
 });

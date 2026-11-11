@@ -6,6 +6,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import BottomSheet from '../components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FullWindowOverlay } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
@@ -229,7 +230,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
           <ChargeSheet i={sheet.i} points={points} onConfirm={() => doCharge(sheet.i)} onClose={() => setSheet(null)} />
         ) : null}
       </BottomSheet>
-      {toastMsg ? <Toast msg={toastMsg.msg} onPress={toastMsg.onPress && (() => { const go = toastMsg.onPress!; setToastMsg(null); go(); })} /> : null}
+      {toastMsg ? (
+        <ToastLayer>
+          <Toast msg={toastMsg.msg} onPress={toastMsg.onPress && (() => { const go = toastMsg.onPress!; setToastMsg(null); go(); })} />
+        </ToastLayer>
+      ) : null}
     </Ctx.Provider>
   );
 }
@@ -301,6 +306,14 @@ function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: num
       <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
     </View>
   );
+}
+
+/**
+ * iOS는 공유 화면처럼 네이티브 모달(page sheet)로 뜬 화면이 앱 루트 위를 덮어서, 루트에 그린 토스트가 모달 아래에 가려진다.
+ * 모달보다 위 창(FullWindowOverlay)에 그린다 — 토스트 밖 빈 곳의 터치는 아래 화면으로 그대로 넘어간다.
+ */
+function ToastLayer({ children }: { children: React.ReactNode }) {
+  return Platform.OS === 'ios' ? <FullWindowOverlay>{children}</FullWindowOverlay> : <>{children}</>;
 }
 
 /** 알림 토스트. onPress가 있으면 눌러서 이동할 수 있고, 끝에 › 를 붙여 누를 수 있다는 걸 보여 준다 */

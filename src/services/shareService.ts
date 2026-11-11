@@ -40,6 +40,11 @@ export async function renderCardWeb(ref: RefObject<ViewInstance | null>, file = 
   const html2canvas = (await import('html2canvas')).default;
   await (document as any).fonts?.ready;
   const canvas = await html2canvas(node, { scale: 1080 / node.offsetWidth, backgroundColor: null, logging: false, useCORS: true, onclone: syncStyles });
+  return canvasToCard(canvas, file);
+}
+
+/** 웹: 다 그린 캔버스를 저장 · 공유할 PNG 파일로 */
+export async function canvasToCard(canvas: HTMLCanvasElement, file = 'woonpick'): Promise<WebCard | null> {
   const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'));
   if (!blob) return null;
   // PNG는 toBlob으로 한 번만 만든다 — toDataURL까지 하면 같은 변환을 메인 스레드에서 한 번 더 막고 돈다

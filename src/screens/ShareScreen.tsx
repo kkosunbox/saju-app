@@ -27,7 +27,7 @@ export default function ShareScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Share'>>();
   const { fortune, user, today } = useApp();
   const { toast } = usePremium();
-  const { sendImage, urlOf, reward } = useShare();
+  const { sendImage, urlOf } = useShare();
   const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
   const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
@@ -57,7 +57,7 @@ export default function ShareScreen() {
     const r = await shareCardImage(ref, { file: fileName, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
     setBusy(null);
     if (r === 'saved') toast('이미지를 저장했어요');
-    if (r === 'saved' || r === 'shared') reward(spec);
+    // 저장은 친구에게 보낸 게 아니니 공유 보상을 주지 않는다
   };
   // 웹: PC 공유 시트는 이미지만 넘기니(shareService 참고) 문구·링크는 따로 복사해 붙여 넣게 한다
   const copyLink = async () => {
@@ -88,7 +88,7 @@ export default function ShareScreen() {
         </View>
       }
     >
-      <View style={s.todayShadow}>
+      <View style={[s.todayShadow, spec.tarot && { backgroundColor: '#1B2D65' }]}>
         <ShareCard ref={ref} spec={spec} today={today} onArtReady={onArtReady} />
       </View>
       <Text style={s.todayCaption}>{spec.today

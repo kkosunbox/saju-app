@@ -26,9 +26,13 @@ const ICONS = {
   mbti: require('../../../assets/figma/saju/mbti.svg'),
   blood: require('../../../assets/figma/saju/blood.svg'),
   tarot: require('../../../assets/tarot/icon.svg'),
-  // 신년운세 분야 아이콘
-  pulse: require('../../../assets/figma/new-year/health.svg'),
-  study: require('../../../assets/figma/new-year/study.svg'),
+  // 신년운세 분야 아이콘 (입체, 20 틀)
+  'field-money': require('../../../assets/figma/new-year/field-money.webp'),
+  'field-work': require('../../../assets/figma/new-year/field-work.webp'),
+  'field-love': require('../../../assets/figma/new-year/field-love.webp'),
+  'field-health': require('../../../assets/figma/new-year/field-health.webp'),
+  'field-people': require('../../../assets/figma/new-year/field-people.webp'),
+  'field-study': require('../../../assets/figma/new-year/field-study.webp'),
   users: require('../../../assets/figma/new-year/people.svg'),
   // 월별 분야 아이콘 (20 틀 그대로)
   coins: require('../../../assets/figma/monthly/coins.svg'),

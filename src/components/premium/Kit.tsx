@@ -14,7 +14,8 @@ import { usePremium } from '../../context/PremiumContext';
 import { useSharedView } from '../../context/SharedViewContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
-import { analysisTheme, colors, gradients } from '../../theme/colors';
+import { analysisTheme, colors, gradients, isDark } from '../../theme/colors';
+import Svg, { Circle, Defs, G, Line, LinearGradient as SvgGrad, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import { fonts, radius, SCREEN_PX, shadow, txt, sansW } from '../../theme/typography';
 import { HeadTitle } from '../SectionHeader';
 import { PRINT_HEAD } from '../../utils/printHead';
@@ -140,7 +141,7 @@ export function ActRow({ ok = true, children, icon, variant = 'default' }: { ok?
       ) : (
         <View style={[s.mark, { backgroundColor: ok ? colors.okBg : colors.careBg }]}><Icon name={icon ?? (ok ? 'check' : 'sparkle')} size={14} color={ok ? colors.success : colors.thai} strokeWidth={2.4} /></View>
       )}
-      <Text style={{ ...sansW('400'), flex: 1, fontSize: 15, lineHeight: 22, letterSpacing: -0.5, color: colors.ink }}>{children}</Text>
+      <Text style={{ ...sansW('400'), flex: 1, fontSize: 14, lineHeight: 22, letterSpacing: -0.5, color: colors.ink }}>{children}</Text>
     </View>
   );
 }
@@ -357,24 +358,68 @@ export function LockedCard({ item, onUnlocked }: { item: Item; onUnlocked?(): vo
 }
 
 /* ---------- 차트 ---------- */
-export function MonthBars({ months, height = 170, onPress, max = 95 }: { months: { m: number; total: number }[]; height?: number; onPress?(m: number): void; max?: number }) {
+// Figma 운픽_16 12개월 흐름: 334×130 카드 좌표 그대로 (폭에 맞춰 같은 비율로 줄어든다)
+const ML = { W: 334, H: 130, x0: 20.75, dx: 26.5, top: 38.75, bot: 67.75, base: 92.5, left: 9, right: 325 };
+const ML_LINE = '#0B93FD';
+const ML_BOLD = sansW('700').fontFamily; const ML_SEMI = sansW('600').fontFamily;
+
+/** 12개월 점수 꺾은선 — 가장 높은 달은 말풍선과 파란 칸으로 표시, 누르면 그 달로 이동 */
+export function MonthLine({ months, onPress }: { months: { m: number; total: number }[]; onPress?(m: number): void }) {
   const mx = Math.max(...months.map(x => x.total)), mn = Math.min(...months.map(x => x.total));
+  const X = (i: number) => ML.x0 + i * ML.dx;
+  const Y = (v: number) => mx === mn ? (ML.top + ML.bot) / 2 : ML.top + (mx - v) / (mx - mn) * (ML.bot - ML.top);
+  const pts = months.map((x, i) => [X(i), Y(x.total)] as const);
+  const line = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ');
+  const area = `M${ML.left},${pts[0][1]} ${pts.map(([x, y]) => `L${x},${y}`).join(' ')} L${ML.right},${pts[pts.length - 1][1]} L${ML.right},${ML.base} L${ML.left},${ML.base}Z`;
   return (
-    <Card style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height, paddingTop: 18, paddingHorizontal: 12, paddingBottom: 12 }}>
-      {months.map(x => {
-        const top = x.total === mx;
-        const h = Math.max(8, ((x.total - mn + 4) / (mx - mn + 4)) * max);
-        return (
-          <PressableScale key={x.m} onPress={onPress ? () => onPress(x.m) : undefined} disabled={!onPress} scaleTo={0.92} style={s.barCol} accessibilityLabel={`${x.m}월 ${x.total}점`}>
-            <Text style={[s.barScore, top && { color: colors.purple }]}>{x.total}</Text>
-            <View style={{ width: '70%', height: h, borderRadius: 5, backgroundColor: top ? colors.accent : x.total === mn ? colors.line : colors.lavender }} />
-            <Text style={[s.barLabel, top && { color: colors.purple, fontWeight: '700' }]}>{x.m}</Text>
-          </PressableScale>
-        );
-      })}
-    </Card>
+    <View style={s.lineCard}>
+      <Svg viewBox={`0 0 ${ML.W} ${ML.H}`} width="100%" style={{ aspectRatio: ML.W / ML.H }} accessibilityLabel="12개월 점수 흐름">
+        <Defs>
+          <SvgGrad id="mlArea" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={ML_LINE} stopOpacity={0.24} />
+            <Stop offset="1" stopColor={ML_LINE} stopOpacity={0} />
+          </SvgGrad>
+        </Defs>
+        {[9.25, 23, 57.5, 74.5].map(y => <Line key={y} x1={ML.left} x2={ML.right} y1={y} y2={y} stroke={ML_GRID} strokeWidth={0.5} strokeDasharray="3 3" />)}
+        <Path d={area} fill="url(#mlArea)" />
+        <Line x1={ML.left} x2={ML.right} y1={ML.base} y2={ML.base} stroke={ML_GRID} strokeWidth={0.5} />
+        <Path d={line} fill="none" stroke={ML_LINE} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+        {months.map((x, i) => {
+          const [cx, cy] = pts[i]; const top = x.total === mx;
+          return (
+            <G key={x.m}>
+              {top ? (
+                <>
+                  <Rect x={cx - 10.5} y={cy - 18.75} width={21} height={10.5} rx={5.25} fill={ML_LINE} />
+                  <Path d={`M${cx - 2},${cy - 8.5} L${cx},${cy - 6.25} L${cx + 2},${cy - 8.5}Z`} fill={ML_LINE} />
+                  <SvgText x={cx} y={cy - 10.5} textAnchor="middle" fill={colors.white} fontSize={8} fontFamily={ML_BOLD} fontWeight="700">{x.total}</SvgText>
+                  <Circle cx={cx} cy={cy} r={3.25} fill={ML_LINE} stroke={colors.white} strokeWidth={0.75} />
+                  <Circle cx={cx} cy={cy} r={1.25} fill={colors.white} />
+                </>
+              ) : (
+                <>
+                  <SvgText x={cx} y={cy - 6} textAnchor="middle" fill={colors.ink} fontSize={8} fontFamily={ML_SEMI} fontWeight="600">{x.total}</SvgText>
+                  <Circle cx={cx} cy={cy} r={2.5} fill={colors.white} stroke={ML_LINE} strokeWidth={1.25} />
+                </>
+              )}
+              {top ? <Rect x={cx - 10.5} y={97.5} width={21} height={13} rx={6.5} fill={ML_PILL} /> : null}
+              <SvgText x={cx} y={107.25} textAnchor="middle" fill={top ? ML_PILL_TEXT : ML_LABEL} fontSize={9} fontFamily={top ? ML_BOLD : ML_SEMI} fontWeight={top ? '700' : '600'}>{x.m}</SvgText>
+            </G>
+          );
+        })}
+      </Svg>
+      {onPress ? (
+        <View style={s.lineHits}>
+          {months.map(x => <PressableScale key={x.m} onPress={() => onPress(x.m)} scaleTo={0.92} style={{ flex: 1 }} accessibilityLabel={`${x.m}월 ${x.total}점`} />)}
+        </View>
+      ) : null}
+    </View>
   );
 }
+const ML_GRID = isDark ? colors.lineStrong : '#E3E9F1';
+const ML_PILL = isDark ? colors.surface : '#DEEDFC';
+const ML_PILL_TEXT = isDark ? colors.purpleSoft : '#086DDE';
+const ML_LABEL = isDark ? colors.inkMute : '#767C8D';
 
 /** 운세 달력 — 진할수록 흐름이 좋은 날, 노란 점은 최고의 날 */
 export function FortuneCalendar({ days, first, today, sel, best, onSelect }: { days: { iso: string; d: number; total: number }[]; first: number; today: string; sel: string | null; best: Set<number>; onSelect(iso: string): void }) {
@@ -434,7 +479,7 @@ const s = StyleSheet.create({
   lineTag: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, opacity: 0.85 },
   lineTagText: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   // 본문 글자는 글꼴·자간을 직접 준다 (기본값에 맡기면 자간 -0.2로 그려져 디자인의 -0.04em 본문과 달라 보인다)
-  para: { ...sansW('400'), fontSize: 14.5, lineHeight: 23, letterSpacing: -0.5, color: colors.inkSub },
+  para: { ...sansW('400'), fontSize: 14, lineHeight: 23, letterSpacing: -0.5, color: colors.inkSub },
   bullet: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 4 },
   bulletDot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
   tip: { marginTop: 12, backgroundColor: colors.accentSoft, borderRadius: radius.md, paddingVertical: 12, paddingHorizontal: 14 },
@@ -473,9 +518,9 @@ const s = StyleSheet.create({
   lockedBtn: { marginTop: 12, marginHorizontal: -4, height: 40, borderRadius: radius.sm, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   lockedBtnText: { fontSize: 14, fontWeight: '500', color: colors.white },
   priceCard: { marginTop: 24, backgroundColor: colors.cream, borderRadius: radius.lg, padding: 18, borderWidth: 1, borderColor: colors.accent },
-  barCol: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
-  barScore: { fontSize: 10.5, fontWeight: '700', color: colors.inkMute },
-  barLabel: { fontSize: 11, color: colors.inkSub, fontWeight: '500' },
+  lineCard: { backgroundColor: isDark ? colors.card : '#F7F7FC', borderRadius: 12, overflow: 'hidden' },
+  // 달 칸 12개를 점 위치에 맞춰 겹친다 (x0 - dx/2 = 7.5 부터 dx 간격)
+  lineHits: { position: 'absolute', top: 0, bottom: 0, flexDirection: 'row', left: `${7.5 / 334 * 100}%`, right: `${(334 - 7.5 - 12 * 26.5) / 334 * 100}%` },
   calRow: { flexDirection: 'row', gap: 5 },
   cw: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700', color: colors.inkMute, paddingBottom: 4 },
   cdEmpty: { flex: 1, aspectRatio: 1 },

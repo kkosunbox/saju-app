@@ -46,6 +46,10 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
   const gold = !!spec.talisman;
+  // 전생: 밤하늘 카드 — 글자는 흰색·연회색, 지표 칸은 남색
+  const night = !!spec.pastLife;
+  // 오늘의 타로: 남색 밤하늘 카드 — 위쪽 글자는 흰색·연회색, 아래 구름 위 글자는 검정
+  const tarot = !!spec.tarot;
   const art = ART[spec.route as keyof typeof ART] ?? ART.SajuDeep;
   const detail = spec.detail ?? (spec.big ? { label: spec.big.label, value: `${spec.big.value}${spec.big.unit ?? ''}` } : undefined);
   const longTitle = spec.route === 'Life' || spec.route === 'Theme' || spec.headline.length > 13;
@@ -57,12 +61,13 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
   // Keep a row's values the same size. Let the actual text height determine centering;
   // a length estimate must never move a one-line value to the top of a two-line slot.
   const statFits = spec.stats.map(([, value], i) => fit(value, compactStats ? 16 : 18, gold ? 255 * ([1.1, 0.55, 1.35][i] ?? 1) / 3 - 6 : 79));
-  const statFontSize = Math.max(14, Math.min(compactStats ? 16 : 18, ...statFits));
+  // 타로는 피그마대로 지표 값 16 (메이저 22장도 한 줄에 들어간다)
+  const statFontSize = tarot ? 16 : Math.max(14, Math.min(compactStats ? 16 : 18, ...statFits));
   return (
     <View ref={ref} collapsable={false} style={s.card} testID="share-card">
-      <ShareCardBackdrop gold={gold} />
+      <ShareCardBackdrop gold={gold} night={night} tarot={tarot} />
       <View style={s.logo}><Logo height={49} /></View>
-      <Text style={[s.date, gold && { color: '#5D0000' }]}>{formatKoreanDate(today)}</Text>
+      <Text style={[s.date, gold && { color: '#5D0000' }, (night || tarot) && n.mute]}>{formatKoreanDate(today)}</Text>
       {spec.talisman ? <>
         <View style={s.hanjaBox}><Text style={s.hanja} numberOfLines={1} adjustsFontSizeToFit>{spec.talisman.hanja}</Text></View>
         <Text style={s.mantra} numberOfLines={2} adjustsFontSizeToFit>{spec.talisman.mantra}</Text>
@@ -72,32 +77,50 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
           <View style={s.mbtiCell}><MbtiArt type={spec.mbti.mine} size={72} /><Text style={s.mbtiType}>{spec.mbti.mine}</Text></View>
           <View style={s.mbtiRing}><MbtiScoreRing score={spec.mbti.score} size={MBTI_RING} color="#000000" /></View>
           <View style={s.mbtiCell}><MbtiArt type={spec.mbti.partner} size={72} /><Text style={s.mbtiType}>{spec.mbti.partner}</Text></View>
-        </View> : <View style={s.artSlot}>
-          {spec.pastLife ? <PastLifeArt result={spec.pastLife} size={110} onDisplay={onArtReady} /> : spec.tarot ? <TarotCard reading={spec.tarot} width={73} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
+        </View> : tarot ? <View style={t.card}><View style={t.cardClip}><TarotCard reading={spec.tarot} width={80} /></View></View> : <View style={s.artSlot}>
+          {spec.pastLife ? <PastLifeArt result={spec.pastLife} size={110} onDisplay={onArtReady} /> : spec.pillar ? <CharacterArt hanja={spec.pillar} size={110} /> : <Image source={art.source} style={{ position: 'absolute', left: art.x * 1.1, top: art.y * 1.1, width: art.w * 1.1, height: art.h * 1.1 }} contentFit="fill" accessible={false} />}
         </View>}
-        <Text style={[s.eyebrow, spec.mbti && { top: 254 }]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
-        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, spec.mbti && { top: 276 }, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
+        <Text style={[s.eyebrow, spec.mbti && { top: 254 }, tarot && n.white]} numberOfLines={1} adjustsFontSizeToFit>{spec.eyebrow}</Text>
+        <Text style={[s.headline, { fontSize: titleSize, letterSpacing: -titleSize * 0.05 }, multilineTitle && s.multilineTitle, (night || tarot) && n.white, spec.mbti && { top: 276 }, KEEP]} numberOfLines={multilineTitle ? 2 : 1} adjustsFontSizeToFit>{spec.headline}</Text>
         {detail ? <>
-          <Text style={s.detailLabel} numberOfLines={1} adjustsFontSizeToFit>{detail.label}</Text>
+          <Text style={[s.detailLabel, night && n.mute, tarot && t.ink]} numberOfLines={1} adjustsFontSizeToFit>{detail.label}</Text>
           <Text style={[s.detailValue, { fontSize: detailSize, letterSpacing: -detailSize * 0.05 }, multilineDetail && s.multilineDetail]} numberOfLines={multilineDetail ? 2 : 1} adjustsFontSizeToFit>{detail.value}</Text>
         </> : null}
-        {spec.sub ? <Text style={[s.line, spec.mbti && { top: 330 }, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
+        {spec.sub ? <Text style={[s.line, spec.mbti && { top: 330 }, night && n.mute, tarot && t.ink, KEEP]} numberOfLines={2} adjustsFontSizeToFit>“{spec.sub}”</Text> : null}
       </>}
-      <View style={s.stats} testID="share-stats">
+      <View style={[s.stats, night && n.stats]} testID="share-stats">
         {spec.stats.map(([label, value], i) => <View key={label} style={[s.stat, gold && { flex: [1.1, 0.55, 1.35][i] ?? 1 }]}>
           <View style={s.statValueBox}>
-            <Text style={[s.statValue, { fontSize: statFontSize, lineHeight: statFontSize > 14 ? 21 : 15 }]} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
+            <Text style={[s.statValue, { fontSize: statFontSize, lineHeight: statFontSize > 14 ? 21 : 15 }, night && n.white, tarot && t.statValue]} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
           </View>
-          <Text style={[s.statLabel, { fontSize: Math.max(10, fit(label, 12, 79, -0.04)) }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+          <Text style={[s.statLabel, { fontSize: Math.max(10, fit(label, 12, 79, -0.04)) }, night && n.mute]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
         </View>)}
       </View>
-      <Text style={[s.hook, spec.hook.length > 15 && s.longHook, KEEP]} numberOfLines={2}>{spec.hook}</Text>
-      <Text style={s.url}>생일만 넣으면 30초 · 운픽</Text>
+      <Text style={[s.hook, spec.hook.length > 15 && s.longHook, night && n.white, KEEP]} numberOfLines={2}>{spec.hook}</Text>
+      <Text style={[s.url, night && n.white]}>생일만 넣으면 30초 · 운픽</Text>
       <ShareLinkBadge style={s.link} />
     </View>
   );
 });
 export default ShareCard;
+
+/** 오늘의 타로 (피그마 482:2937) — 카드 그림 (115, 104) 80×115, 모서리 7, 빛 2 2 12 2 rgba(254,247,219,.5) */
+const t = StyleSheet.create({
+  card: { position: 'absolute', left: 115, top: 104, width: 80, height: 115, borderRadius: 7, backgroundColor: '#FEF7DB',
+    ...(Platform.OS === 'web' ? { boxShadow: '2px 2px 12px 2px rgba(254, 247, 219, 0.5)' } : { shadowColor: '#FEF7DB', shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 2, height: 2 } }) },
+  // 2:3 카드 그림(80×120)을 115 높이에 맞춰 위아래 2.5씩 잘라 낸다
+  cardClip: { width: 80, height: 115, borderRadius: 7, overflow: 'hidden', justifyContent: 'center' },
+  ink: { color: '#000000' },
+  // 피그마 지표 값 16/800 자간 -0.04em (카드 번호만 -0.08em)
+  statValue: { letterSpacing: -0.64 },
+});
+
+/** 전생 밤하늘 카드 색 (피그마 286:1955) */
+const n = StyleSheet.create({
+  white: { color: '#FFFFFF' },
+  mute: { color: '#DDDDDD' },
+  stats: { backgroundColor: '#0C1E4A' },
+});
 
 const s = StyleSheet.create({
   card: { width: CARD_W, height: CARD_H, borderRadius: 20, overflow: 'hidden', backgroundColor: '#8ACAFF' },

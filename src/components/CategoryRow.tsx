@@ -5,7 +5,7 @@ import ScoreBar from './ScoreBar';
 import Icon from './Icon';
 import CategoryIcon from './CategoryIcon';
 import { CategoryKey, categoryTheme, colors, isDark } from '../theme/colors';
-import { radius } from '../theme/typography';
+import { radius, sansW } from '../theme/typography';
 
 /**
  * 분야별 운세 카드 한 장: 아이콘 · 이름 · (최고의 날) · 점수 · 막대 · 풀이.
@@ -36,11 +36,11 @@ export default function CategoryRow({ category, score, text, onPress, delay, bad
 
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { fontSize: 14, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
-  score: { fontSize: 14, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  text: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.6 },
+  head: { height: 17, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  label: { fontSize: 14, ...sansW('700'), color: colors.ink, letterSpacing: -0.56 },
+  score: { fontSize: 14, ...sansW('700'), letterSpacing: -0.56, fontVariant: ['tabular-nums'] },
+  text: { fontSize: 13, lineHeight: 18, ...sansW('400'), color: colors.ink, letterSpacing: -0.65 },
   badge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.surface },
-  badgeText: { fontSize: 12, fontWeight: '600', letterSpacing: -0.4 },
+  badgeText: { fontSize: 12, ...sansW('600'), letterSpacing: -0.48 },
   chev: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
 });

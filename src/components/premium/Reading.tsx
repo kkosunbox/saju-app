@@ -23,6 +23,7 @@ export function ReadingBanner({ reading, onRetry }: { reading: ReadingView<unkno
   return (
     <Card style={[s.card, { padding: 12 }]}>
       <View style={s.alertRow}>
+        {/* 피그마: 흰 원 32 안의 exclamation-circle(20칸, 원 16) — 원은 (16,16), 제목은 (60,12) */}
         <View style={s.alertIco}><SolidIcon name="alert" size={16} color={colors.love} /></View>
         <View style={{ flex: 1 }}>
           <Text style={s.alertTitle}>{title}</Text>
@@ -64,8 +65,8 @@ export function PartPending({ lines = 4, writing }: { lines?: number; writing: b
 
 const s = StyleSheet.create({
   card: { marginTop: 16 },
-  alertRow: { flexDirection: 'row', gap: 12, paddingTop: 4, paddingRight: 4 },
-  alertIco: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  alertRow: { flexDirection: 'row', gap: 12, paddingLeft: 4, paddingRight: 4 },
+  alertIco: { width: 32, height: 32, marginTop: 4, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   alertTitle: { fontSize: 14, fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
   alertText: { marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },

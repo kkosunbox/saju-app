@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
@@ -159,20 +160,9 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
         </Card>
 
         <SubHead title="06 · 언제 만날까요?" caption="앞으로 6년 인연 지수" />
-        <Card style={{ paddingTop: 20 }}>
-          <View style={s.bars}>
-            {R.yearIdx.map(x => {
-              const top = x.yy === R.bestYear.yy;
-              return (
-                <View key={x.yy} style={s.barCol}>
-                  <Text style={[s.barVal, top && { color: colors.love }]}>{x.v}</Text>
-                  <View style={[s.bar, { height: barH(x.v), backgroundColor: top ? colors.love : colors.surface }]} />
-                  <Text style={txt.caption}>{String(x.yy).slice(2)}년</Text>
-                </View>
-              );
-            })}
-          </View>
-          <View style={{ marginTop: 14 }}>
+        <Card style={{ paddingTop: 13 }}>
+          <YearChart data={R.yearIdx} best={R.bestYear.yy} />
+          <View style={{ marginTop: 4 }}>
             {R.yearIdx.map((x, i) => {
               const t = timing?.years[i];
               return (
@@ -231,29 +221,84 @@ function SpouseBody({ R, reading, onRetry }: { R: SpouseReport; reading: Reading
   );
 }
 
-// Figma 운픽_22 아이콘 — 31칸(흰 네모 안)과 20칸(제목 옆)
+// Figma 운픽_22 아이콘 — 01은 하늘색 선 아이콘, 02·05는 입체 그림(제목 옆 20 · 흰 네모 31 안)
 const ICONS = {
   user: require('../../../assets/figma/saju/user.svg'),
-  heart: require('../../../assets/figma/saju/heart.svg'),
-  money: require('../../../assets/figma/spouse/money.svg'),
-  work: require('../../../assets/figma/spouse/work.svg'),
-  star: require('../../../assets/figma/spouse/star.svg'),
-  users: require('../../../assets/figma/spouse/users.svg'),
-  heartBox: require('../../../assets/figma/spouse/heart.svg'),
+  heart: require('../../../assets/figma/spouse/love3d.webp'),
+  money: require('../../../assets/figma/spouse/money3d.webp'),
+  work: require('../../../assets/figma/spouse/work3d.webp'),
+  star: require('../../../assets/figma/spouse/star3d.webp'),
+  users: require('../../../assets/figma/spouse/users3d.webp'),
+  heartBox: require('../../../assets/figma/spouse/love3d.webp'),
 };
 type IconName = keyof typeof ICONS;
-// 31칸 아이콘은 svg가 칸 크기 그대로, 나머지는 20 아이콘을 가운데에
-const BOXED: IconName[] = ['star', 'users', 'heartBox'];
+// 흰 네모 안 그림 크기 (Figma: 별·커플 17 · 하트 20, 나머지 20)
+const INNER: Partial<Record<IconName, number>> = { star: 17, users: 17 };
 const INK = isDark ? colors.ink : '#000000';
 const TIGHT = Platform.OS === 'android' ? { includeFontPadding: false } : {};
 const GOLD = '#FFE54A';
+// 06 꺾은선 — Figma 빨강 · 연분홍
+const RED = isDark ? colors.love : '#E5363B';
+const PINK = isDark ? colors.loveBg : '#FDE5E9';
 
-/** 흰 바탕 둥근 네모 + 하늘색 아이콘 (회색 카드 위) */
+/** 흰 바탕 둥근 네모 + 아이콘 (회색 카드 위) */
 function IconBox({ icon, size = 31 }: { icon: IconName; size?: number }) {
-  const boxed = BOXED.includes(icon);
+  const inner = INNER[icon] ?? 20;
   return (
     <View style={[s.iconBox, { width: size, height: size }]}>
-      <Image source={ICONS[icon]} style={boxed ? { width: size, height: size } : { width: 20, height: 20 }} contentFit="contain" accessible={false} />
+      <Image source={ICONS[icon]} style={{ width: inner, height: inner }} contentFit="contain" accessible={false} />
+    </View>
+  );
+}
+
+// 흰 칸 124 높이 안 위치 (Figma 297×135 그림을 칸 기준으로 옮긴 값)
+const CH = { h: 124, pad: 12, top: 30, bottom: 71, base: 99, year: 110, grid: [22, 59, 78] };
+
+/** 06 · 앞으로 6년 인연 지수 — 흰 칸 위 빨간 꺾은선, 가장 높은 해는 말풍선 + 분홍 알약 */
+function YearChart({ data, best }: { data: { yy: number; v: number }[]; best: number }) {
+  const [w, setW] = React.useState(295);
+  const col = (w - CH.pad * 2) / data.length;
+  const vs = data.map(d => d.v);
+  const lo = Math.min(...vs);
+  const hi = Math.max(...vs);
+  const pts = data.map((d, i) => ({
+    x: CH.pad + col * (i + 0.5),
+    y: hi === lo ? (CH.top + CH.bottom) / 2 : CH.bottom - ((d.v - lo) / (hi - lo)) * (CH.bottom - CH.top),
+  }));
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const area = pts.length ? `${line} L${pts[pts.length - 1].x.toFixed(1)} ${CH.base} L${pts[0].x.toFixed(1)} ${CH.base} Z` : '';
+  return (
+    <View style={s.chart} onLayout={(e) => setW(e.nativeEvent.layout.width)} accessibilityLabel={data.map(d => `${d.yy}년 ${d.v}`).join(', ')}>
+      <Svg width={w} height={CH.h} style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgGradient id="spouseArea" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={RED} stopOpacity={0.14} />
+            <Stop offset="1" stopColor={RED} stopOpacity={0} />
+          </SvgGradient>
+        </Defs>
+        {CH.grid.map(y => <Line key={y} x1={CH.pad} x2={w - CH.pad} y1={y} y2={y} stroke={colors.line} strokeWidth={0.5} strokeDasharray="2 2" />)}
+        <Line x1={CH.pad} x2={w - CH.pad} y1={CH.base} y2={CH.base} stroke={colors.line} strokeWidth={1} />
+        <Path d={area} fill="url(#spouseArea)" />
+        <Path d={line} stroke={RED} strokeWidth={1.3} fill="none" strokeLinejoin="round" />
+        {pts.map((p, i) => <Circle key={i} cx={p.x} cy={p.y} r={3.2} fill={colors.surface} stroke={RED} strokeWidth={1.3} />)}
+      </Svg>
+      {data.map((d, i) => {
+        const top = d.yy === best;
+        const p = pts[i];
+        return (
+          <React.Fragment key={d.yy}>
+            {top ? (
+              <View style={[s.bubble, { left: p.x - 20, top: p.y - 22 }]}>
+                <View style={s.bubbleBody}><Text style={s.bubbleText}>{d.v}</Text></View>
+                <View style={s.bubbleTail} />
+              </View>
+            ) : <Text style={[s.chartVal, { left: p.x - 20, top: p.y - 19 }]}>{d.v}</Text>}
+            <View style={[s.yearPill, { left: p.x - 18, top: CH.year - 7.5 }, top && { backgroundColor: PINK }]}>
+              <Text style={[s.yearText, top && { color: RED, ...sansW('700') }]}>{String(d.yy).slice(2)}년</Text>
+            </View>
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }
@@ -280,9 +325,6 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
   );
 }
 
-// Figma 막대: 52→25 · 94→82.5 (같은 기울기로 이어 그린다)
-const barH = (v: number) => Math.max(10, (v - 34) * 1.375);
-
 const s = StyleSheet.create({
   // 카드 327×168 · 로고 12 · 한 줄 44 · 제목 70 · 칩 130 (폭에 맞춰 비율대로 커지고, 글이 길어지면 아래로 늘어도 그림은 카드를 꽉 채운 채 오른쪽 아래에 붙는다)
   hero: { marginTop: 12, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 19 },
@@ -307,18 +349,22 @@ const s = StyleSheet.create({
   headingText: { ...sansW('600'), fontSize: 16, lineHeight: 20, letterSpacing: -0.8, color: INK, flexShrink: 1, ...TIGHT },
   sign: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   signMark: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  signText: { flex: 1, fontSize: 15, lineHeight: 22, color: colors.ink },
+  signText: { flex: 1, fontSize: 14, lineHeight: 22, color: colors.ink },
   grid: { flexDirection: 'row', gap: 12 },
   cell: { flex: 1, alignItems: 'center', gap: 4 },
   big: { fontFamily: fonts.serif, fontSize: 18, fontWeight: '600', color: colors.purple, textAlign: 'center' },
   avoid: { marginTop: 14, padding: 12, borderRadius: radius.md, backgroundColor: colors.cream },
   lrow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 13 },
   line: { borderTopWidth: 1, borderTopColor: colors.line },
-  // 막대 27 · 간격 52 (375 화면에서 Figma 위치 그대로)
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 17, height: 130 },
-  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  barVal: { fontFamily: fonts.serif, fontSize: 13, fontWeight: '600', color: colors.inkMute },
-  bar: { width: 27, borderRadius: 4 },
+  // 꺾은선 흰 칸 — 카드 안 위 13 · 높이 124 · 반경 12
+  chart: { height: CH.h, borderRadius: 12, backgroundColor: colors.surface, overflow: 'hidden' },
+  chartVal: { position: 'absolute', width: 40, textAlign: 'center', ...sansW('600'), fontSize: 11, lineHeight: 13, color: INK, opacity: 0.8, ...TIGHT },
+  bubble: { position: 'absolute', width: 40, alignItems: 'center' },
+  bubbleBody: { minWidth: 27, height: 14, paddingHorizontal: 5, borderRadius: 7, backgroundColor: RED, alignItems: 'center', justifyContent: 'center' },
+  bubbleText: { ...sansW('700'), fontSize: 10, lineHeight: 12, color: colors.white, ...TIGHT },
+  bubbleTail: { width: 0, height: 0, borderLeftWidth: 3, borderRightWidth: 3, borderTopWidth: 3, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: RED },
+  yearPill: { position: 'absolute', width: 36, height: 15, borderRadius: 7.5, alignItems: 'center', justifyContent: 'center' },
+  yearText: { ...sansW('500'), fontSize: 11, lineHeight: 13, color: colors.inkMute, ...TIGHT },
   month: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: radius.lg, backgroundColor: colors.loveBg },
   label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
   yrow: { paddingVertical: 10 },

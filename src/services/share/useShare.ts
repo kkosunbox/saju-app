@@ -32,8 +32,8 @@ export function useShare() {
   const sendImage = async (spec: ShareSpec, image: ShareImage) => {
     const r = await shareCardImage(image.ref, { file: shareFileName(user?.nickname ?? '', spec.kind), text: spec.text, url: urlOf(spec), mode: 'share', fallback: 'none', aspectRatio: image.aspectRatio, prepared: image.prepared?.() });
     if (r === 'unsupported') return sendLink(spec);
-    if (r === 'shared' || r === 'saved') void rewardShare(spec.file);
+    if (r === 'shared') void rewardShare(spec.file); // 저장으로 끝난 경우는 보상 없음
     return r;
   };
-  return { sendLink, sendImage, urlOf, reward: (spec: ShareSpec) => rewardShare(spec.file) };
+  return { sendLink, sendImage, urlOf };
 }

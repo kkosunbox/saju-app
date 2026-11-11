@@ -9,6 +9,20 @@ export const CHARACTER_PALETTES = {
   water: { background: '#DEE8F3', floor: '#BECEE2', accent: '#49698F', ink: '#263E5D', soft: '#F1F6FC' },
 } satisfies Record<Element, { background: string; floor: string; accent: string; ink: string; soft: string }>;
 
+/**
+ * 공유 카드 배경 5종 (Figma 505:3403 — 금 489:3136 · 화 491:3576 · 목 505:3188 · 토 505:3256 · 수 505:3323).
+ * card: 카드 바탕 그라디언트 3색 · frame: 액자 안쪽 위 색(아래는 흰색으로 흐린다)
+ * border: 액자 테두리 그라디언트 4색 · core: 한 줄 성격 글자색.
+ * frame은 캐릭터 화면 첫 정보 박스 색, heart는 그 박스의 특징 하트 색(금은 Figma 489:3030 #9687E2, 나머지는 박스 색에 맞춘 중간 톤).
+ */
+export const CHARACTER_SHARE_THEMES = {
+  metal: { card: ['#3E4C6D', '#C8CEE0', '#EBEEF3'], frame: '#D9E1FF', border: ['#2E489B', '#E7EAB8', '#B1BEF5', '#AEB9EA'], core: '#1FA6FD', heart: '#9687E2' },
+  fire: { card: ['#FA7D68', '#FBE8E2', '#FFF6F1'], frame: '#FBE7E6', border: ['#E09575', '#E7EAB8', '#FBD9BD', '#FEECD4'], core: '#653F3A', heart: '#EE8C7C' },
+  wood: { card: ['#A5C69D', '#F4F8E7', '#E3F3E9'], frame: '#F4F7E2', border: ['#5CC867', '#E7EAB8', '#ACE3A9', '#A2DFA3'], core: '#3A6540', heart: '#74BC7C' },
+  earth: { card: ['#ECAC65', '#F8EEE7', '#F3E9D1'], frame: '#FCF1CF', border: ['#C88E5C', '#E7EAB8', '#E3CBA9', '#DFCDA2'], core: '#654C3A', heart: '#D9A066' },
+  water: { card: ['#6297D1', '#E7ECF8', '#D1E0F3'], frame: '#DEE6FF', border: ['#5C7CC8', '#B8CEEA', '#A9B3E3', '#C5C1E4'], core: '#3A3D65', heart: '#7C9BDB' },
+} satisfies Record<Element, { card: readonly [string, string, string]; frame: string; border: readonly [string, string, string, string]; core: string; heart: string }>;
+
 /** 캐릭터 크기에 대한 풍경 높이의 비율. */
 export const CHARACTER_SCENE_HEIGHT = 1.35;
 

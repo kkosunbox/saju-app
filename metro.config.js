@@ -25,4 +25,17 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return upstream ? upstream(context, moduleName, platform) : context.resolveRequest(context, moduleName, platform);
 };
 
+/**
+ * 앱 코드가 쓰지 않는 큰 폴더는 Metro가 훑지 않게 한다.
+ * dist(웹 빌드 결과)·output(이미지 생성 작업물)·ios 빌드·docs·타로 원본 PNG는 수백 MB라
+ * 파일 목록과 감시에 메모리를 크게 먹어 `npm run web` 이 heap out of memory 로 꺼졌다.
+ */
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SEP = '[\\\\/]';
+const IGNORED = ['dist', 'output', 'docs', 'example', `ios${SEP}build`, `assets${SEP}tarot${SEP}source`];
+config.resolver.blockList = [
+  ...[].concat(config.resolver.blockList || []),
+  new RegExp(`^${escapeRe(__dirname)}${SEP}(${IGNORED.join('|')})(${SEP}.*)?$`),
+];
+
 module.exports = config;

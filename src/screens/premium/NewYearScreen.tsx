@@ -7,7 +7,7 @@ import Card from '../../components/Card';
 import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, MonthBars, Para, Tip, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, HeadRow, LockGate, MonthLine, Para, Tip, scoreColor } from '../../components/premium/Kit';
 import { Logo } from '../../components/Mascot';
 import { Closing, InfoRows, Para as LuckPara, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
@@ -24,7 +24,7 @@ import { ReadingView, YearReading } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { EL_LUCK } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
-import { categoryTheme, colors } from '../../theme/colors';
+import { colors, isDark } from '../../theme/colors';
 import { sansW, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { newYearSpec } from '../../services/share/shareSpecs';
@@ -85,7 +85,11 @@ interface YearDetails {
 }
 type YearContent = YearData & { details: YearDetails };
 
-const FIELD_ICON: Record<FieldKey, SajuIconName> = { money: 'database', work: 'work', love: 'heart', health: 'pulse', people: 'users', study: 'study' };
+// Figma 운픽_16 분야 카드: 입체 아이콘(20 틀)과 분야별 막대 색
+const FIELD_ICON: Record<FieldKey, SajuIconName> = { money: 'field-money', work: 'field-work', love: 'field-love', health: 'field-health', people: 'field-people', study: 'field-study' };
+const FIELD_BAR: Record<FieldKey, string> = { money: '#FCA542', work: '#7E4607', love: '#E77A7A', health: '#B13535', people: '#5FB884', study: colors.purpleSoft };
+// 달 카드 아래 분야 점수 이름 (Figma 문구)
+const CAT_LABEL: Record<(typeof CATS)[number], string> = { love: '인연운', money: '재물운', work: '학업운', relationship: '대인운' };
 
 /** 점수·간지·신살은 서버 계산값, 글은 AI 풀이 */
 function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull | null; reading: ReadingView<YearReading> | null; onRetry(): void }) {
@@ -152,7 +156,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
                 <SajuHeading title={f.label} icon={FIELD_ICON[f.key]} />
                 <Text style={{ fontSize: 18, fontWeight: '700', color: scoreColor(f.score) }}>{f.score}</Text>
               </View>
-              <View style={{ marginTop: 10, marginBottom: 2 }}><ScoreBar value={f.score} color={colors.purpleSoft} /></View>
+              <View style={{ marginTop: 10, marginBottom: 2 }}><ScoreBar value={f.score} color={FIELD_BAR[f.key]} /></View>
               {t ? (
                 <>
                   <Text style={[txt.bodyStrong, { marginTop: 8 }]}>{t.headline}</Text>
@@ -166,7 +170,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
       </View>
 
       <SubHead title="05 · 12개월 흐름" caption={shared ? '달마다 들어오는 기운' : '막대를 누르면 그 달의 상세운세로 이동해요'} captionStyle={{ letterSpacing: -0.91 }} />
-      <MonthBars months={D.months} onPress={goMonth} />
+      <MonthLine months={D.months} onPress={goMonth} />
       <View style={{ gap: 10, marginTop: 12 }}>
         {D.months.map((x, i) => {
           const mp = X.months[i]; const t = months?.months[i];
@@ -186,7 +190,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
                 </>
               ) : <PartPending writing={writing} lines={2} />}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                {CATS.map(c => <Text key={c} style={s.catScore}>{categoryTheme[c].short}운 · {x[c]}</Text>)}
+                {CATS.map(c => <Text key={c} style={s.catScore}>{CAT_LABEL[c]} · {x[c]}</Text>)}
               </View>
             </Card>
           );
@@ -225,7 +229,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
       <SubHead title="08 · 주의할 점" />
       {overview ? (
         <>
-          <Card>{overview.cautions.map((t, i) => <Bullet key={i} color={CAUTION_DOT}>{t}</Bullet>)}</Card>
+          <Card style={s.caution}>{overview.cautions.map((t, i) => <Bullet key={i} color={CAUTION_DOT}>{t}</Bullet>)}</Card>
           <Closing title="올해를 위한 한마디" top={10}>{overview.closing}</Closing>
         </>
       ) : <Card><PartPending writing={writing} lines={3} /></Card>}
@@ -234,6 +238,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
 }
 
 const CAUTION_DOT = '#E54D4D';
+const CAUTION_BG = '#FFF2F2';
 // Figma 운픽_16 상단 카드: 흰 로고 레터링이 28.76×16 — Logo 는 65×55 틀이라 너비에 맞춘 높이
 const LOGO_H = 28.76 / 65 * 55;
 const IDIOM_GOLD = '#F2DE6B';
@@ -261,6 +266,7 @@ const s = StyleSheet.create({
   flag: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 14 },
   label: { ...sansW('600'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, color: colors.ink },
   catScore: { ...sansW('500'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
+  caution: { backgroundColor: isDark ? colors.card : CAUTION_BG },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
 });
 

@@ -115,6 +115,6 @@ const s = StyleSheet.create({
     shadowColor: '#8A6A3A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   to: { ...sansW('600'), fontSize: 14, lineHeight: LINE_H, color: INK, letterSpacing: -0.4 },
   rule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: RULE },
-  body: { ...sansW('400'), fontSize: 15, lineHeight: LINE_H, letterSpacing: -0.4, color: INK },
+  body: { ...sansW('400'), fontSize: 14, lineHeight: LINE_H, letterSpacing: -0.4, color: INK },
   from: { ...sansW('600'), fontSize: 14, lineHeight: LINE_H, color: INK, letterSpacing: -0.4, textAlign: 'right', marginTop: 8 },
 });

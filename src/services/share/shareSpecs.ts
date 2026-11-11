@@ -74,7 +74,7 @@ export interface TodayCardData {
 }
 
 /** 받침이 있으면 a, 없으면 b (예: 훈장이에요 / 화가예요) */
-const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
+export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
 const md = (iso: string) => { const p = parseISO(iso); return `${p.m}/${p.d}`; };
 const mdw = (iso: string) => `${md(iso)} ${WEEK[weekdayOf(iso)]}`;
 const ieyo = (w: string) => josa(w, '이에요', '예요');
@@ -176,8 +176,8 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
     pastLife: { role: P.role, era: P.era },
     kind: '전생 테스트', seal: '前', eyebrow: `${u.nickname}님의 전생은`,
     headline: P.title, sub: P.scene,
-    detail: { label: '이번 생에도 남은 재능', value: P.carried },
-    stats: [['살았던 시대', P.era.split('의 ')[0]], ['나의 강점', carriedTalent(P.carried)], ['전생 인연', P.bond]],
+    detail: { label: '타고난 재능은?', value: P.carried },
+    stats: [['시대', P.era.split('의 ')[0]], ['타고난 재능', carriedTalent(P.carried)], ['전생 인연', P.bond]],
     teaser: '이번 생에 풀어야 할 숙제',
     hook: '너는 전생에 누구였을까?',
     text: `${u.nickname}님의 전생은 '${P.title}'${ieyo(P.title)}.\n${seeMine('전생')}`, file: 'woonpick-pastlife', route: 'PastLife', short: P.title,

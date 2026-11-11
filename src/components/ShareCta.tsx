@@ -9,8 +9,9 @@ import PrimaryButton from './PrimaryButton';
 import { usePremium } from '../context/PremiumContext';
 import { useSharedView } from '../context/SharedViewContext';
 import { ApiError } from '../api/client';
-import { Item } from '../services/premium/catalog';
-import { ShareSpec } from '../services/share/shareSpecs';
+import { useApp } from '../context/AppContext';
+import { Item, titleOfKey } from '../services/premium/catalog';
+import { ShareSpec, josa } from '../services/share/shareSpecs';
 import { MyShare, canShareFull, createFullShare, getMyShare, revokeMyShare } from '../services/share/fullShare';
 import { copyToClipboard, shareLink } from '../services/share/linkShare';
 import { colors } from '../theme/colors';
@@ -69,6 +70,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   const nav = useNavigation();
   const { owned, toast, rewardShare } = usePremium();
   const shared = useSharedView();
+  const { user } = useApp();
   const [visible, setVisible] = useState(false);
   /** undefined: 확인 중 · null: 공유 안 하는 중 */
   const [mine, setMine] = useState<MyShare | null | undefined>(undefined);
@@ -99,7 +101,9 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   };
   const send = async (share: MyShare) => {
     setBusy('send');
-    const r = await shareLink(`${spec.text}\n전체 풀이는 링크에서 볼 수 있어요.`, share.url);
+    // 전체 풀이 링크는 결과 한 줄 대신 '누가 무엇을 공유했는지'만 알린다
+    const title = item?.title ?? titleOfKey(key!);
+    const r = await shareLink(`${user?.nickname ?? ''}님이 ${title}${josa(title, '을', '를')} 공유했어요.\n링크에서 바로 확인할 수 있어요.`, share.url);
     setBusy(null);
     if (r === 'cancelled') return;
     setVisible(false);

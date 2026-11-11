@@ -12,7 +12,6 @@ import Disclaimer from '../../components/Disclaimer';
 import FriendCompare from '../../components/FriendCompare';
 import LoadingScreen from '../../components/LoadingScreen';
 import Reveal from '../../components/Reveal';
-import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import Icon from '../../components/Icon';
 import SolidIcon from '../../components/SolidIcon';
@@ -225,7 +224,6 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
         <BodyState error={content.isError} onRetry={() => content.refetch()} />
       )}
 
-      {shared ? null : <ShareActions spec={spec} title={`${name}${josa(name, '과', '와')}의 궁합 자랑하기`} outlined marginTop={16} />}
 
       <View style={[s.card, { marginTop: 16 }]}>
         <Text accessibilityRole="header" style={s.cardTitle}>이 결과는 어떻게 만들었나요?</Text>

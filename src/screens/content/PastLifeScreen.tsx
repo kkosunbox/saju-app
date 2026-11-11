@@ -108,7 +108,7 @@ export default function PastLifeScreen() {
         <Text style={s.bondNote}>띠는 이야기의 단서예요. 실제 인연은 함께 쌓는 시간 속에서 알아가세요.</Text>
       </View>
 
-      <ShareActions spec={spec} title="우리, 전생에도 알던 사이일까?" outlined marginTop={16} />
+      <ShareActions spec={spec} title="우리, 전생에도 알던 사이일까?" sub="서로의 전생이 어떤 인연이었는지 확인해 보세요" pose="question" outlined marginTop={16} />
 
       <View style={[s.card, s.basis]}>
         <Text accessibilityRole="header" style={s.cardTitle}>이 기록은 어떻게 만들었나요?</Text>
@@ -156,7 +156,7 @@ const s = StyleSheet.create({
   introMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   kicker: { ...sansW('600'), color: colors.inkMute, fontSize: 12, letterSpacing: 1.2 },
   introTitle: { ...txt.title, fontSize: 29, lineHeight: 40, marginTop: 20 },
-  introBody: { ...txt.body, fontSize: 15, lineHeight: 25, marginTop: 14 },
+  introBody: { ...txt.body, fontSize: 14, lineHeight: 25, marginTop: 14 },
   index: { marginTop: 24, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, gap: 14 },
   indexRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   indexNumber: { ...txt.caption, color: colors.inkMute, fontVariant: ['tabular-nums'] },

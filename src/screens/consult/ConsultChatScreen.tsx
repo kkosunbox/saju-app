@@ -22,7 +22,7 @@ import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
+import { AvatarTestToggle, Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -90,6 +90,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
   }
   return (
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky>
+      <AvatarTestToggle />{/* [임시 테스트] */}
       <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
@@ -236,6 +237,7 @@ function Chat({ id }: { id: number }) {
   return (
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky scroll={false}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
+      <AvatarTestToggle />{/* [임시 테스트] */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
         {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
