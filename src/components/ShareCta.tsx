@@ -35,7 +35,7 @@ export default function ShareCta({ item, spec, style }: { item?: Item; spec?: Sh
           </View>
           <Icon name="external" size={24} color={BANNER_INK} />
         </ImageBackground>
-        {/* 점선은 그림 위에 따로 얹는다 — iOS는 점선 테두리 + overflow:hidden 상자의 잘라내기 영역이 크기 변화를 못 따라가 그림이 중간에 잘렸다 */}
+        {/* 점선은 그림 위에 따로 얹는다 */}
         <View pointerEvents="none" style={s.bannerBorder} />
       </PressableScale>
       {share.sheet}
@@ -258,8 +258,9 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
 const s = StyleSheet.create({
   bannerBox: { marginTop: 16 },
   banner: { aspectRatio: 984 / 204, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 84, paddingRight: 20 },
+  // 그림은 위아래좌우 0으로 상자 전체에 편다. '100%'는 앱(iOS·Android의 Yoga)에서 패딩(84+20)을 뺀 폭이 돼 그림이 오른쪽에서 잘렸다 (웹은 멀쩡).
   // 상자를 잘라내지 않고 그림 자체를 둥글게 깎는다
-  bannerImage: { width: '100%', height: '100%', borderRadius: radius.sm },
+  bannerImage: { width: undefined, height: undefined, borderRadius: radius.sm },
   bannerBorder: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: radius.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent },
   bannerTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: BANNER_INK },
   bannerSub: { ...sansW('400'), marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#000000' },
