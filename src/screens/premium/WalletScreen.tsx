@@ -10,7 +10,7 @@ import SolidIcon from '../../components/SolidIcon';
 import PressableScale from '../../components/PressableScale';
 import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
-import { PACKS, PRICE_TABLE, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
+import { PACKS, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
 import { TransactionDirection, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { useStoreBilling } from '../../context/StoreBillingContext';
@@ -166,18 +166,6 @@ export default function WalletScreen() {
         })}
       </View>
 
-      <SubHead title="콘텐츠 이용 요금" caption="운세와 4가지 분석은 평생 무료예요" />
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        {PRICE_TABLE.map(([a, b], i) => (
-          <View key={a} style={[s.priceRow, i > 0 && s.line]}>
-            <Text style={s.priceName}>{a}</Text>
-            {b === '무료'
-              ? <View style={s.free}><Text style={s.chipText}>무료</Text></View>
-              : <Text style={s.priceValue}>{b}</Text>}
-          </View>
-        ))}
-      </Card>
-
       <SubHead title="이용내역" />
       <View style={s.filters}>
         {FILTERS.map(([k, l]) => {
@@ -237,10 +225,6 @@ const s = StyleSheet.create({
   flow: { position: 'absolute', top: 0, bottom: 0, left: -FLOW_PAD },
   bestTag: { position: 'absolute', top: -9, right: 24, backgroundColor: colors.accent, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
   bestText: { ...sansW('600'), fontSize: 12, color: colors.white },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 42, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-  priceName: { ...sansW('400'), flex: 1, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
-  priceValue: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
-  free: { borderWidth: 0.5, borderColor: SKY, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
   filters: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filter: { height: 31, paddingHorizontal: 16, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.cream },
   filterOn: { backgroundColor: '#000000', borderColor: '#000000' },
