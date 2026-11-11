@@ -28,13 +28,15 @@ export default function ShareCta({ item, spec, style }: { item?: Item; spec?: Sh
   return (
     <>
       <PressableScale onPress={share.open} style={[s.bannerBox, style]} scaleTo={0.98} accessibilityLabel={share.full ? '결과 공유하기' : '결과를 카드로 공유하기'}>
-        <ImageBackground source={ART.shareBanner} style={s.banner} imageStyle={s.fill} resizeMode="stretch">
+        <ImageBackground source={ART.shareBanner} style={s.banner} imageStyle={s.bannerImage} resizeMode="stretch">
           <View style={{ flex: 1 }}>
             <Text style={s.bannerTitle}>{share.full ? '결과 공유하기' : '결과를 카드로 공유하기'}</Text>
             <Text style={s.bannerSub}>{share.full ? '전체 풀이 링크나 카드로 전해 보세요' : '나의 운세를 공유해 보세요'}</Text>
           </View>
           <Icon name="external" size={24} color={BANNER_INK} />
         </ImageBackground>
+        {/* 점선은 그림 위에 따로 얹는다 — iOS는 점선 테두리 + overflow:hidden 상자의 잘라내기 영역이 크기 변화를 못 따라가 그림이 중간에 잘렸다 */}
+        <View pointerEvents="none" style={s.bannerBorder} />
       </PressableScale>
       {share.sheet}
     </>
@@ -254,9 +256,11 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
 }
 
 const s = StyleSheet.create({
-  bannerBox: { marginTop: 16, borderRadius: radius.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent, overflow: 'hidden' },
+  bannerBox: { marginTop: 16 },
   banner: { aspectRatio: 984 / 204, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 84, paddingRight: 20 },
-  fill: { width: '100%', height: '100%' },
+  // 상자를 잘라내지 않고 그림 자체를 둥글게 깎는다
+  bannerImage: { width: '100%', height: '100%', borderRadius: radius.sm },
+  bannerBorder: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderRadius: radius.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent },
   bannerTitle: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: BANNER_INK },
   bannerSub: { ...sansW('400'), marginTop: 4, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#000000' },
   center: { textAlign: 'center' },
