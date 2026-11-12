@@ -9,6 +9,8 @@ import { PRINT_HEAD } from '../../utils/printHead';
 const ICONS = {
   user: require('../../../assets/figma/saju/user.svg'),
   heart: require('../../../assets/figma/saju/heart.svg'),
+  // 상세사주 01 속마음 (빨강)
+  'heart-red': require('../../../assets/figma/saju/heart-red.svg'),
   puzzle: require('../../../assets/figma/saju/puzzle.svg'),
   database: require('../../../assets/figma/saju/database.svg'),
   work: require('../../../assets/figma/saju/work.svg'),

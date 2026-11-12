@@ -207,7 +207,7 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
             {P(TEXT.outer, 7)}
           </Card>
           <Card style={{ marginTop: 16 }}>
-            <SajuHeading title="속마음" icon="heart" />
+            <SajuHeading title="속마음" icon="heart-red" />
             {P(TEXT.inner, 7)}
           </Card>
         </>) : pendingCard('core')}
@@ -236,12 +236,12 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
       {has('fields') ? Show(<>
           <View style={{ gap: 16 }}>
             <Card>
-              <SajuHeading title="연애 · 결혼" icon="heart" small />
+              <SajuHeading title="연애 · 결혼" icon="field-love" small />
               {P(TEXT.love, 12)}
               <Tip title="이렇게 해 보세요" style={{ marginTop: 12 }}>고마운 마음은 그날 바로 말로 전해 보세요.</Tip>
             </Card>
             <Card>
-              <SajuHeading title="재물" icon="database" small />
+              <SajuHeading title="재물" icon="field-money" small />
               {P(TEXT.money, 12)}
             </Card>
           </View>

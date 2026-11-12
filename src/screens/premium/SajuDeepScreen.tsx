@@ -5,7 +5,7 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, HeadRow, LockGate, Hero, Pill, heroTxt } from '../../components/premium/Kit';
-import { Bullet, Closing, InfoRows, Para, SajuHeading, SourceMark, SubHead, Tip, ViewRow } from '../../components/premium/SajuParts';
+import { Bullet, Closing, InfoRows, Para, SajuHeading, SajuIconName, SourceMark, SubHead, Tip, ViewRow } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
@@ -163,7 +163,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
             <Para mt={7}>{core.outer}</Para>
           </Card>
           <Card style={[{ marginTop: 16 }, CORE_BG.inner]}>
-            <SajuHeading title="속마음" icon="heart" />
+            <SajuHeading title="속마음" icon="heart-red" />
             <Para mt={7}>{core.inner}</Para>
           </Card>
           <Card style={[{ marginTop: 16 }, CORE_BG.last]}>
@@ -335,8 +335,9 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
   );
 }
 
-const FIELD_ORDER: [keyof SajuReading['fields'], string, 'heart' | 'database' | 'work' | 'people' | 'health'][] = [
-  ['love', '연애 · 결혼', 'heart'], ['money', '재물', 'database'], ['work', '일 · 적성', 'work'], ['people', '인간관계', 'people'], ['health', '건강', 'health'],
+// 분야 아이콘은 신년운세와 같은 입체 아이콘 (20 틀)
+const FIELD_ORDER: [keyof SajuReading['fields'], string, SajuIconName][] = [
+  ['love', '연애 · 결혼', 'field-love'], ['money', '재물', 'field-money'], ['work', '일 · 적성', 'field-work'], ['people', '인간관계', 'field-people'], ['health', '건강', 'field-health'],
 ];
 
 function TitledRow({ t, color }: { t: Titled; color: string }) {

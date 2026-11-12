@@ -52,7 +52,7 @@ export function ShareIconButton({ item, spec }: { item?: Item; spec?: ShareSpec 
   if (!share) return null;
   return (
     <>
-      <PressableScale onPress={share.open} scaleTo={0.9} accessibilityLabel={share.full ? '결과 공유하기' : '결과를 카드로 공유하기'} style={{ width: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center' }}>
+      <PressableScale onPress={share.open} scaleTo={0.9} hitSlop={10} accessibilityLabel={share.full ? '결과 공유하기' : '결과를 카드로 공유하기'} style={{ width: 24, height: 44, justifyContent: 'center' }}>
         <Icon name="external" size={24} strokeWidth={2} color={colors.ink} />
       </PressableScale>
       {share.sheet}

@@ -6,6 +6,8 @@ import PrimaryButton from '../PrimaryButton';
 import ShareCta, { ShareIconButton } from '../ShareCta';
 import SectionHeader from '../SectionHeader';
 import SolidIcon from '../SolidIcon';
+import Disclaimer from '../Disclaimer';
+import { PointPill } from '../HeaderPoints';
 import { Logo } from '../Mascot';
 import { useApp } from '../../context/AppContext';
 import { useTarotDraw } from '../../services/content/opened';
@@ -37,8 +39,8 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
   }, [opened, reduced, scale]);
   const visible = ready && opened;
   const spec = visible && reading && user ? tarotSpec(user, reading) : null;
-  return <Screen title="오늘의 타로" back right={<ShareIconButton spec={spec} />}>
-    <ImageBackground source={HERO_BG} style={s.hero} resizeMode="cover">
+  return <Screen title="오늘의 타로" back right={<><PointPill attendHint quiet /><ShareIconButton spec={spec} /></>}>
+    <ImageBackground source={HERO_BG} style={s.hero} imageStyle={s.heroImage} resizeMode="cover">
       <View style={s.logo}><Logo height={36 * 55 / 65} /></View>
       <Text style={s.date}>{today.replaceAll('-', '.')} · 하루 한 장</Text>
       <Text style={s.title}>{visible && reading ? reading.name : '오늘, 나에게 온 카드'}</Text>
@@ -71,7 +73,7 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
         <View style={{ marginTop: 12 }}><PromoSlot screen="tarot" promo={promosOf(nav, today).consult} tone="mint" title="카드의 질문, 더 이야기해 보고 싶다면" /></View>
         {fortune?.viewpointsVersion === 'legacy' ? <Text style={s.note}>종합 운세는 뽑았을 당시의 풀이로 보관하고, 타로는 오늘의 메시지로 함께 보여드려요.</Text> : null}
       </>}
-    <Text style={[s.note, KEEP]}>메이저 아르카나 22장의 상징으로 생각을 돌아보는 콘텐츠예요. 카드는 미래의 사건을 확정하지 않아요.</Text>
+    <Disclaimer mt={24} />
   </Screen>;
 }
 
@@ -89,13 +91,15 @@ const KEEP = (Platform.OS === 'web' ? { wordBreak: 'keep-all' } : {}) as object;
 const TAROT_PURPLE = '#B157FB';
 const s = StyleSheet.create({
   hero: { minHeight: 393, borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 32, paddingHorizontal: 16, paddingBottom: 22, marginTop: 4 },
+  // 웹에서는 크기를 주지 않으면 그림이 원본 크기(654×786)로 그려져 왼쪽 위만 보인다
+  heroImage: { width: '100%', height: '100%' },
   logo: { position: 'absolute', left: 16, top: 12 },
   // 그림이 어두워 화면 모드와 상관없이 밝은 글자
   date: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD' },
   title: { ...sansW('700'), fontSize: 28, lineHeight: 34, letterSpacing: -1.4, color: '#FFF386', marginTop: 8, textAlign: 'center' },
   intro: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#FFFFFF', textAlign: 'center', marginTop: 2, maxWidth: 280 },
   card: { marginTop: 25 },
-  cardGlow: { borderRadius: 7, shadowColor: '#FEF7DB', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 2, height: 2 } },
+  cardGlow: { borderRadius: 7, boxShadow: '2px 2px 12px 2px rgba(254, 247, 219, 0.5)' },
   chip: { marginTop: 11, borderWidth: 1, borderColor: '#6270B7', borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
   chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#6270B7' },
   // 아래쪽 밝은 구름 위라 어두운 글자
