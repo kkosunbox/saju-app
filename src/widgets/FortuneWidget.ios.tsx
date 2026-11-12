@@ -8,8 +8,9 @@
  *
  * 상태
  * - ready + 안 뽑음: '오늘의 운세 뽑기' 버튼 (iOS 17+). 누르면 앱을 열지 않고 위젯 안에서 점수·요약을 보여 준다.
- *   서버의 뽑기(POST daily/draw, AI 문장)는 부르지 않는다 — 자세히 보기로 앱의 종합풀이를 열 때 그 화면이 부른다.
- * - ready + 뽑음: 점수 · 어제 대비 · 요약. 위젯을 누르면 종합풀이(/combined).
+ *   규칙 엔진 운세만 보여 주고 서버의 뽑기(POST daily/draw, AI 문장)는 부르지 않는다. 앱의 뽑기 상태도 바꾸지 않아서,
+ *   AI 문장은 앱 홈에서 마스코트를 꾹 눌러 뽑을 때만 쓴다.
+ * - ready + 뽑음: 점수 · 어제 대비 · 요약. 위젯을 누르면 앱 홈 (종합풀이로 바로 가면 그 화면이 뽑기를 해 버린다).
  * - stale: 앱이 넣어 둔 날짜가 지났다 (앱을 이틀 넘게 안 열었음). 누르면 앱 홈.
  * - signedOut: 프로필이 없다. 누르면 앱 홈.
  */
@@ -93,7 +94,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
     );
   }
 
-  // 뽑음: 점수 · 어제 대비 · 요약. 누르면 종합풀이 (거기서 AI 문장을 쓴다)
+  // 뽑음: 점수 · 어제 대비 · 요약. 누르면 앱 홈 (뽑기·AI 문장은 홈에서 마스코트를 눌렀을 때)
   const delta = typeof props.delta === 'number' ? props.delta : null;
   const deltaText = delta === null ? null : delta === 0 ? '어제와 같아요' : `어제보다 ${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}`;
   const deltaColor = delta === null || delta === 0 ? c.mute : delta > 0 ? c.up : c.down;
@@ -107,11 +108,10 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
     <Text modifiers={[font({ size: 11, weight: 'semibold' }), foregroundStyle(deltaColor)]}>{deltaText}</Text>
   );
   const more = <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle(c.accent)]}>자세히 보기 →</Text>;
-  const detailUrl = `${app}combined`;
 
   if (small) {
     return (
-      <VStack alignment="leading" spacing={4} modifiers={[full(), sky(), widgetURL(detailUrl)]}>
+      <VStack alignment="leading" spacing={4} modifiers={[full(), sky(), widgetURL(app)]}>
         {header}
         {score}
         {deltaView}
@@ -124,7 +124,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
 
   const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
   return (
-    <HStack alignment="top" spacing={14} modifiers={[full(), sky(), widgetURL(detailUrl)]}>
+    <HStack alignment="top" spacing={14} modifiers={[full(), sky(), widgetURL(app)]}>
       <VStack alignment="leading" spacing={4} modifiers={[frame({ width: 104, alignment: 'topLeading' })]}>
         {header}
         {score}

@@ -1,8 +1,9 @@
 /**
  * Android 홈 화면 위젯 '오늘의 운세' (react-native-android-widget).
  * iOS(FortuneWidget.ios.tsx)와 같은 상태·문구를 쓴다. 그리는 일은 fortuneWidgetTask.android.tsx 가 한다.
- * - 안 뽑음: '운세 뽑기'(clickAction 'reveal') — 앱을 열지 않고 위젯 안에서 점수·요약을 보여 준다 (AI 없음)
- * - 뽑음: 누르면 종합풀이(woonpick://combined) — 거기서 AI 문장을 쓴다
+ * - 안 뽑음: '운세 뽑기'(clickAction 'reveal') — 앱을 열지 않고 위젯 안에서 점수·요약을 보여 준다 (규칙 엔진, AI 없음).
+ *   앱의 뽑기 상태는 바꾸지 않는다 — AI 문장은 앱 홈에서 마스코트를 꾹 눌러 뽑을 때만.
+ * - 뽑음: 누르면 앱 홈 (종합풀이로 바로 가면 그 화면이 뽑기를 해 버린다)
  * - 그 밖: 누르면 앱
  */
 import React from 'react';
@@ -14,7 +15,6 @@ const LIGHT = { ink: '#222222', sub: '#4F4F4F', mute: '#777777', accent: '#28B2F
 const DARK = { ink: '#EEF0F5', sub: '#C2C6D0', mute: '#9095A1', accent: '#28B2FE', card: '#1D2027', up: '#F07E7E', down: '#7EA6EE', button: '#3A4152', buttonInk: '#FFFFFF', skyFrom: '#15283A', skyTo: '#121418' } as const;
 
 const F = { medium: 'Pretendard-Medium', semibold: 'Pretendard-SemiBold', bold: 'Pretendard-Bold', heavy: 'Pretendard-ExtraBold' };
-const DETAIL = 'woonpick://combined';
 
 export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProps; dark: boolean; small: boolean }) {
   const c = dark ? DARK : LIGHT;
@@ -98,10 +98,9 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
   );
   const deltaView = deltaText === null ? null : text(deltaText, 11, F.semibold, deltaColor);
   const more = text('자세히 보기 →', 12, F.semibold, c.accent);
-  const open = { uri: DETAIL };
 
   if (small) {
-    return root('OPEN_URI', open, <>
+    return root('OPEN_APP', undefined, <>
       {header}
       {score}
       {deltaView}
@@ -114,8 +113,7 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
   const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
   return (
     <FlexWidget
-      clickAction="OPEN_URI"
-      clickActionData={open}
+      clickAction="OPEN_APP"
       style={{
         width: 'match_parent',
         height: 'match_parent',

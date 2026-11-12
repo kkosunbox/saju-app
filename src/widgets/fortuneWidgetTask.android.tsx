@@ -1,7 +1,7 @@
 /**
  * Android 위젯 작업 (앱이 꺼져 있어도 위젯이 부르는 헤드리스 JS). index.ts 에서 등록한다.
  * 추가 · 30분 주기 · 크기 변경 때 다시 그리고, '운세 뽑기'를 누르면 오늘을 뽑은 날로 적고 다시 그린다.
- * 서버는 부르지 않는다 (뽑기의 AI 문장은 종합풀이 화면을 열 때).
+ * 서버는 부르지 않는다 (AI 문장은 앱 홈에서 마스코트를 눌러 뽑을 때).
  */
 import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
