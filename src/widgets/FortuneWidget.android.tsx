@@ -33,7 +33,10 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
         width: 'match_parent',
         height: 'match_parent',
         flexDirection: 'column',
-        padding: 16,
+        // 워드마크의 말풍선이 글자 위로 솟아 있어 위쪽 여백이 넓어 보인다 — 위만 4dp 줄여 위·아래가 같아 보이게
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 16,
         borderRadius: 22,
         backgroundGradient: { from: c.skyFrom as Hex, to: c.skyTo as Hex, orientation: 'TOP_BOTTOM' },
       }}
@@ -52,7 +55,7 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
   );
   const fill = <FlexWidget style={{ flex: 1 }} />;
   const header = (
-    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'flex-end' }}>
       <ImageWidget image={dark ? LOGO.dark : LOGO.light} imageWidth={32} imageHeight={18} resizeMode="contain" />
       <FlexWidget style={{ flex: 1 }} />
       {text(props.dateLabel ?? '', 11, F.medium, c.mute)}

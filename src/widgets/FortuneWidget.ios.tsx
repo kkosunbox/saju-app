@@ -47,15 +47,17 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
   const one = (size: number, weight: 'medium' | 'semibold' | 'bold' | 'heavy', color: string) => [font({ size, weight }), foregroundStyle(color), lineLimit(1)];
 
   const logo = dark ? props.logoDark : props.logo;
+  // 워드마크는 말풍선이 글자 위로 솟아 있어 글자가 아래로 내려가 보인다 — 머리줄을 4pt 올려 위·아래 여백이 같아 보이게 하고,
+  // 날짜는 말풍선이 아니라 '운PICK' 글자 아랫줄에 맞춘다
   const header = (
-    <HStack spacing={4}>
+    <HStack spacing={4} alignment="bottom" modifiers={[padding({ top: -4 })]}>
       {logo ? (
         <Image uiImage={logo} modifiers={[resizable(), aspectRatio({ contentMode: 'fit' }), frame({ height: 18 })]} />
       ) : (
         <Text modifiers={one(12, 'heavy', c.ink)}>운Pick</Text>
       )}
       <Spacer />
-      <Text modifiers={one(11, 'medium', c.mute)}>{props.dateLabel ?? ''}</Text>
+      <Text modifiers={[...one(11, 'medium', c.mute), padding({ bottom: 1 })]}>{props.dateLabel ?? ''}</Text>
     </HStack>
   );
 
