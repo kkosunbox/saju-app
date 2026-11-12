@@ -110,9 +110,9 @@ function LastBadge({ side = 'top' }: { side?: 'top' | 'right' }) {
   const right = side === 'right';
   return (
     <View style={right ? s.badgeRight : s.badgeTop} pointerEvents="none">
-      {right ? <View style={[s.badgeTail, { marginRight: -4 }]} /> : null}
+      {right ? <View style={s.tailLeft} /> : null}
       <View style={s.badge}><Text style={s.badgeText}>최근 로그인</Text></View>
-      {right ? null : <View style={[s.badgeTail, { marginTop: -4 }]} />}
+      {right ? null : <View style={s.tailDown} />}
     </View>
   );
 }
@@ -140,5 +140,15 @@ const s = StyleSheet.create({
   badgeRight: { position: 'absolute', left: '100%', top: 0, bottom: 0, marginLeft: 8, flexDirection: 'row', alignItems: 'center' },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.navy },
   badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '700', color: colors.white },
-  badgeTail: { width: 8, height: 8, backgroundColor: colors.navy, transform: [{ rotate: '45deg' }], zIndex: -1 },
+  // 꼬리는 테두리로 만든 삼각형 — 45° 돌린 네모는 둥근 알약 끝과 어긋나 혹처럼 튀어나온다
+  tailLeft: {
+    width: 0, height: 0, marginRight: -1,
+    borderTopWidth: 5, borderBottomWidth: 5, borderRightWidth: 6,
+    borderTopColor: 'transparent', borderBottomColor: 'transparent', borderRightColor: colors.navy,
+  },
+  tailDown: {
+    width: 0, height: 0, marginTop: -1,
+    borderLeftWidth: 5, borderRightWidth: 5, borderTopWidth: 6,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: colors.navy,
+  },
 });

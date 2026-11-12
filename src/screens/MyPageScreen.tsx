@@ -255,14 +255,12 @@ export default function MyPageScreen() {
             <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
           </PressableScale>
         ))}
-        {subscription ? (
-          // 구독 중: 구독 관리로 바로
-          <PressableScale onPress={() => router.push('/subscription')} style={s.walletRow} scaleTo={0.98} accessibilityLabel="정기 구독 관리">
-            <View style={s.subIcon}><SolidIcon name="crown" size={13} color={CROWN} /></View>
-            <Text style={s.menuLabel}>정기 구독 관리</Text>
-            <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
-          </PressableScale>
-        ) : null}
+        {/* 구독 중이면 구독 관리로, 아니면 구독 안내로 */}
+        <PressableScale onPress={() => router.push(subscription ? '/subscription' : '/subscribe')} style={s.walletRow} scaleTo={0.98} accessibilityLabel={subscription ? '정기 구독 관리' : '정기 구독 안내'}>
+          <View style={s.subIcon}><SolidIcon name="crown" size={13} color={CROWN} /></View>
+          <Text style={s.menuLabel}>{subscription ? '정기 구독 관리' : '정기 구독'}</Text>
+          <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
+        </PressableScale>
       </Card>
 
       <ProfileHeading title="계정" />
