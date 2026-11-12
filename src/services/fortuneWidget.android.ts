@@ -16,7 +16,7 @@ async function save(update: (store: FortuneWidgetStore) => FortuneWidgetStore): 
     const props = currentWidgetProps(store);
     await requestWidgetUpdate({
       widgetName: 'FortuneWidget',
-      renderWidget: info => renderFortuneWidget(props, info.width),
+      renderWidget: info => renderFortuneWidget(props, info.width, info.height),
     });
   } catch {
     // 위젯은 부가 기능이라 앱 흐름을 막지 않는다

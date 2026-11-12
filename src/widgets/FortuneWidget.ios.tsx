@@ -15,7 +15,7 @@
  * - signedOut: 프로필이 없다. 누르면 앱 홈.
  */
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
-import { Button, HStack, Image, Spacer, Text, VStack } from '@expo/ui/swift-ui';
+import { Button, HStack, Image, Spacer, Text, VStack, ZStack } from '@expo/ui/swift-ui';
 import {
   aspectRatio, background, buttonStyle, containerBackground, fixedSize, font, foregroundStyle, frame, lineLimit, lineSpacing,
   monospacedDigit, padding, resizable, shapes, widgetURL,
@@ -34,19 +34,33 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
   'widget';
   const dark = env.colorScheme === 'dark';
   const c = dark
-    ? { chip: '#2A2E38', ink: '#EEF0F5', sub: '#C2C6D0', mute: '#9095A1', accent: '#28B2FE', up: '#F07E7E', down: '#7EA6EE', button: '#EEF0F5', buttonInk: '#1D212D' }
-    : { chip: '#EEF1F5', ink: '#222222', sub: '#4F4F4F', mute: '#777777', accent: '#28B2FE', up: '#E54D4D', down: '#3B74D6', button: '#1D212D', buttonInk: '#FFFFFF' };
-  // 앱 홈처럼 위는 하늘색, 아래로 갈수록 바탕색
-  const sky = () => containerBackground(
-    { type: 'linearGradient', colors: dark ? ['#15283A', '#121418'] : ['#DDF2FF', '#FFFFFF'], startPoint: { x: 0.5, y: 0 }, endPoint: { x: 0.5, y: 0.75 } },
-    'widget',
-  );
+    ? { chip: '#22344A', ink: '#EEF0F5', sub: '#C2C6D0', mute: '#A9B4C4', accent: '#5CC6FF', up: '#F07E7E', down: '#8CB4F5', button: '#EEF0F5', buttonInk: '#1D212D' }
+    : { chip: '#D3ECFC', ink: '#1D212D', sub: '#3F4B5A', mute: '#2F4256', accent: '#0E8FE0', up: '#E54D4D', down: '#2F6AD0', button: '#1D212D', buttonInk: '#FFFFFF' };
   const small = env.widgetFamily !== 'systemMedium';
   const app = 'woonpick://';
-  const root = () => [frame({ maxWidth: 10000, maxHeight: 10000, alignment: 'topLeading' }), sky(), widgetURL(app)];
+  // 배경: 앱 홈의 구름 하늘 그림 (앱이 공유 폴더에 복사해 둔 것). 그림이 없으면 같은 색의 그라디언트
+  const sky = containerBackground(
+    { type: 'linearGradient', colors: dark ? ['#164A6E', '#121418'] : ['#3DB8FE', '#DDF2FF'], startPoint: { x: 0.5, y: 0 }, endPoint: { x: 0.5, y: 1 } },
+    'widget',
+  );
+  const m = env.widgetContentMargins ?? { top: 16, bottom: 16, leading: 16, trailing: 16 };
+  const art = props.art
+    ? <Image
+        uiImage={`${props.art}bg-${small ? 'small' : 'medium'}-${dark ? 'dark' : 'light'}.jpg`}
+        // 위젯 안쪽 여백(content margins)만큼 밖으로 늘려 가장자리까지 채운다
+        modifiers={[resizable(), frame({ maxWidth: 10000, maxHeight: 10000 }), padding({ top: -m.top, bottom: -m.bottom, leading: -m.leading, trailing: -m.trailing })]}
+      />
+    : null;
+  const wrap = (content: JSX.Element) => (
+    <ZStack alignment="topLeading" modifiers={[sky, widgetURL(app)]}>
+      {art}
+      {content}
+    </ZStack>
+  );
+  const root = () => [frame({ maxWidth: 10000, maxHeight: 10000, alignment: 'topLeading' })];
   const one = (size: number, weight: 'medium' | 'semibold' | 'bold' | 'heavy', color: string) => [font({ size, weight }), foregroundStyle(color), lineLimit(1)];
 
-  const logo = dark ? props.logoDark : props.logo;
+  const logo = props.art ? `${props.art}logo-${dark ? 'dark' : 'light'}.png` : null;
   // 워드마크는 말풍선이 글자 위로 솟아 있어 글자가 아래로 내려가 보인다 — 머리줄을 4pt 올려 위·아래 여백이 같아 보이게 하고,
   // 날짜는 말풍선이 아니라 '운PICK' 글자 아랫줄에 맞춘다
   const header = (
@@ -64,7 +78,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
   // 앱에 데이터가 없을 때 (프로필 전 · 일주일 넘게 앱을 안 열어 날짜가 지남)
   if (props.state !== 'ready') {
     const message = props.state === 'signedOut' ? '프로필을 만들면\n매일 운세가 여기 떠요' : '앱을 열면 오늘의\n운세를 받아 올게요';
-    return (
+    return wrap(
       <VStack alignment="leading" spacing={0} modifiers={root()}>
         {header}
         <Spacer />
@@ -84,7 +98,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
       </Button>
     );
     if (small) {
-      return (
+      return wrap(
         <VStack alignment="leading" spacing={0} modifiers={root()}>
           {header}
           <Spacer />
@@ -93,7 +107,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
         </VStack>
       );
     }
-    return (
+    return wrap(
       <VStack alignment="leading" spacing={0} modifiers={root()}>
         {header}
         <Spacer />
@@ -127,7 +141,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
   );
 
   if (small) {
-    return (
+    return wrap(
       <VStack alignment="leading" spacing={0} modifiers={root()}>
         {header}
         <Spacer />
@@ -138,7 +152,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
   }
 
   const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
-  return (
+  return wrap(
     <VStack alignment="leading" spacing={0} modifiers={root()}>
       {header}
       <Spacer />

@@ -13,11 +13,11 @@ import type { FortuneWidgetProps } from './fortuneWidgetProps';
 /** 이 너비(dp)보다 좁으면 작은 위젯 배치 */
 const SMALL_MAX_WIDTH = 250;
 
-export function renderFortuneWidget(props: FortuneWidgetProps, width: number) {
-  const small = width < SMALL_MAX_WIDTH;
+export function renderFortuneWidget(props: FortuneWidgetProps, width: number, height: number) {
+  const size = { small: width < SMALL_MAX_WIDTH, width, height };
   return {
-    light: <FortuneWidget props={props} dark={false} small={small} />,
-    dark: <FortuneWidget props={props} dark small={small} />,
+    light: <FortuneWidget props={props} dark={false} {...size} />,
+    dark: <FortuneWidget props={props} dark {...size} />,
   };
 }
 
@@ -28,7 +28,7 @@ export async function fortuneWidgetTaskHandler(task: WidgetTaskHandlerProps) {
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED': {
       const store = await readWidgetStore();
-      task.renderWidget(renderFortuneWidget(currentWidgetProps(store), task.widgetInfo.width));
+      task.renderWidget(renderFortuneWidget(currentWidgetProps(store), task.widgetInfo.width, task.widgetInfo.height));
       break;
     }
     case 'WIDGET_CLICK': {
@@ -38,7 +38,7 @@ export async function fortuneWidgetTaskHandler(task: WidgetTaskHandlerProps) {
         if (!store.revealed.includes(today)) store.revealed.push(today);
         await writeWidgetStore(store);
       }
-      task.renderWidget(renderFortuneWidget(currentWidgetProps(store), task.widgetInfo.width));
+      task.renderWidget(renderFortuneWidget(currentWidgetProps(store), task.widgetInfo.width, task.widgetInfo.height));
       break;
     }
     default:

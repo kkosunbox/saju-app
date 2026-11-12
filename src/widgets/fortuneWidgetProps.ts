@@ -19,9 +19,11 @@ export interface FortuneWidgetProps {
   luckyColor?: string;
   luckyNumber?: number;
   luckyTime?: string;
-  /** iOS: 앱이 공유 폴더(App Group)에 복사해 둔 운Pick 워드마크 (밝은 바탕용 · 어두운 바탕용 file:// 주소) */
-  logo?: string;
-  logoDark?: string;
+  /**
+   * iOS: 앱이 공유 폴더(App Group)에 복사해 둔 위젯 그림의 폴더 (file://…/ 로 끝남).
+   * 안에 logo-light/dark.png(운Pick 워드마크) · bg-small|medium-light|dark.jpg(구름 하늘 배경)
+   */
+  art?: string;
 }
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];

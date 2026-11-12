@@ -8,41 +8,63 @@
  * 디자인 수정은 OTA로 반영된다 (위젯을 JS로 그림). 새 글꼴·크기 설정은 새 빌드가 필요하다.
  */
 import React from 'react';
-import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, ImageWidget, OverlapWidget, TextWidget } from 'react-native-android-widget';
 import type { FortuneWidgetProps } from './fortuneWidgetProps';
 
 type Hex = `#${string}`;
-const LIGHT = { chip: '#EEF1F5', ink: '#222222', sub: '#4F4F4F', mute: '#777777', accent: '#28B2FE', up: '#E54D4D', down: '#3B74D6', button: '#1D212D', buttonInk: '#FFFFFF', skyFrom: '#DDF2FF', skyTo: '#FFFFFF' } as const;
-const DARK = { chip: '#2A2E38', ink: '#EEF0F5', sub: '#C2C6D0', mute: '#9095A1', accent: '#28B2FE', up: '#F07E7E', down: '#7EA6EE', button: '#EEF0F5', buttonInk: '#1D212D', skyFrom: '#15283A', skyTo: '#121418' } as const;
+const LIGHT = { chip: '#D3ECFC', ink: '#1D212D', sub: '#3F4B5A', mute: '#2F4256', accent: '#0E8FE0', up: '#E54D4D', down: '#2F6AD0', button: '#1D212D', buttonInk: '#FFFFFF', skyFrom: '#3DB8FE', skyTo: '#DDF2FF' } as const;
+const DARK = { chip: '#22344A', ink: '#EEF0F5', sub: '#C2C6D0', mute: '#A9B4C4', accent: '#5CC6FF', up: '#F07E7E', down: '#8CB4F5', button: '#EEF0F5', buttonInk: '#1D212D', skyFrom: '#164A6E', skyTo: '#121418' } as const;
 
 /** 앱과 같은 Pretendard (app.config.js 의 위젯 플러그인 fonts) */
 const F = { medium: 'Pretendard-Medium', semibold: 'Pretendard-SemiBold', bold: 'Pretendard-Bold', heavy: 'Pretendard-ExtraBold' };
 /** 운Pick 워드마크 (앱 로고 그대로, 390×216) */
 const LOGO = { light: require('../../assets/widget/logo-light.png'), dark: require('../../assets/widget/logo-dark.png') };
+/** 앱 홈의 구름 하늘 배경 (iOS와 같은 그림) */
+const SKY = {
+  small: { light: require('../../assets/widget/bg-small-light.jpg'), dark: require('../../assets/widget/bg-small-dark.jpg') },
+  medium: { light: require('../../assets/widget/bg-medium-light.jpg'), dark: require('../../assets/widget/bg-medium-dark.jpg') },
+};
 
 /**
  * 디자인 규칙은 iOS와 같다 — 머리줄 11 · 본문 13(작은)/15(중간) · 보조 12 · 점수 38(작은)/44(중간),
  * 머리줄은 맨 위 한 줄(왼쪽 워드마크, 오른쪽 날짜), 작은 위젯에는 '상세 풀이 보기'를 두지 않는다.
  */
-export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProps; dark: boolean; small: boolean }) {
+export function FortuneWidget({ props, dark, small, width, height }: { props: FortuneWidgetProps; dark: boolean; small: boolean; width: number; height: number }) {
   const c = dark ? DARK : LIGHT;
+  // 구름 하늘 그림을 깔고 그 위에 내용을 올린다 (그림은 위젯 크기에 맞춰 늘린다)
   const col = (children: React.ReactNode, clickAction = 'OPEN_APP') => (
-    <FlexWidget
+    <OverlapWidget
       clickAction={clickAction}
       style={{
         width: 'match_parent',
         height: 'match_parent',
-        flexDirection: 'column',
-        // 워드마크의 말풍선이 글자 위로 솟아 있어 위쪽 여백이 넓어 보인다 — 위만 4dp 줄여 위·아래가 같아 보이게
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 16,
         borderRadius: 22,
+        overflow: 'hidden',
         backgroundGradient: { from: c.skyFrom as Hex, to: c.skyTo as Hex, orientation: 'TOP_BOTTOM' },
       }}
     >
-      {children}
-    </FlexWidget>
+      <ImageWidget
+        image={SKY[small ? 'small' : 'medium'][dark ? 'dark' : 'light']}
+        imageWidth={Math.max(1, Math.round(width))}
+        imageHeight={Math.max(1, Math.round(height))}
+        resizeMode="cover"
+        style={{ width: 'match_parent', height: 'match_parent' }}
+      />
+      <FlexWidget
+        clickAction={clickAction}
+        style={{
+          width: 'match_parent',
+          height: 'match_parent',
+          flexDirection: 'column',
+          // 워드마크의 말풍선이 글자 위로 솟아 있어 위쪽 여백이 넓어 보인다 — 위만 4dp 줄여 위·아래가 같아 보이게
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: 16,
+        }}
+      >
+        {children}
+      </FlexWidget>
+    </OverlapWidget>
   );
   const text = (value: string, size: number, family: string, color: string, maxLines = 1, extra?: { lineHeight?: number; clickAction?: string }) => (
     <TextWidget

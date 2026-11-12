@@ -26,32 +26,35 @@ function widget(): WidgetHandle | null {
 }
 
 /**
- * 위젯 머리줄의 운Pick 워드마크. 위젯은 앱 번들을 못 읽어서, 앱이 공유 폴더(App Group)로 복사해 주고 주소를 props로 넘긴다.
- * 앱을 실행할 때 한 번 (OTA로 그림이 바뀌어도 다음 실행 때 덮어쓴다).
+ * 위젯 그림(운Pick 워드마크 · 구름 하늘 배경). 위젯은 앱 번들을 못 읽어서, 앱이 공유 폴더(App Group)로 복사해 주고
+ * 그 폴더 주소를 props.art 로 넘긴다. 앱을 실행할 때 한 번 (OTA로 그림이 바뀌어도 다음 실행 때 덮어쓴다).
  */
-let logos: Promise<Pick<FortuneWidgetProps, 'logo' | 'logoDark'>> | null = null;
-function widgetLogos(): Promise<Pick<FortuneWidgetProps, 'logo' | 'logoDark'>> {
-  logos ??= (async () => {
+const ART: [number, string][] = [
+  [require('../../assets/widget/logo-light.png'), 'logo-light.png'],
+  [require('../../assets/widget/logo-dark.png'), 'logo-dark.png'],
+  [require('../../assets/widget/bg-small-light.jpg'), 'bg-small-light.jpg'],
+  [require('../../assets/widget/bg-small-dark.jpg'), 'bg-small-dark.jpg'],
+  [require('../../assets/widget/bg-medium-light.jpg'), 'bg-medium-light.jpg'],
+  [require('../../assets/widget/bg-medium-dark.jpg'), 'bg-medium-dark.jpg'],
+];
+let artReady: Promise<Pick<FortuneWidgetProps, 'art'>> | null = null;
+function widgetArt(): Promise<Pick<FortuneWidgetProps, 'art'>> {
+  artReady ??= (async () => {
     try {
       const { widgetsDirectory } = require('expo-widgets') as typeof import('expo-widgets');
       const { Asset } = require('expo-asset') as typeof import('expo-asset');
       const { File } = require('expo-file-system') as typeof import('expo-file-system');
       if (!widgetsDirectory) return {};
-      const copy = async (source: number, name: string) => {
+      for (const [source, name] of ART) {
         const asset = await Asset.fromModule(source).downloadAsync();
-        const target = new File(widgetsDirectory, name);
-        new File(asset.localUri ?? asset.uri).copy(target, { overwrite: true });
-        return target.uri;
-      };
-      return {
-        logo: await copy(require('../../assets/widget/logo-light.png'), 'logo-light.png'),
-        logoDark: await copy(require('../../assets/widget/logo-dark.png'), 'logo-dark.png'),
-      };
+        new File(asset.localUri ?? asset.uri).copy(new File(widgetsDirectory, name), { overwrite: true });
+      }
+      return { art: widgetsDirectory.endsWith('/') ? widgetsDirectory : `${widgetsDirectory}/` };
     } catch {
-      return {}; // 그림이 없으면 위젯이 글자 '운Pick'으로 그린다
+      return {}; // 그림이 없으면 위젯이 글자 '운Pick'과 그라디언트로 그린다
     }
   })();
-  return logos;
+  return artReady;
 }
 
 async function revealedDates(w: WidgetHandle): Promise<Set<string>> {
@@ -69,16 +72,16 @@ export async function syncFortuneWidget(today: DailyFortune, ahead: DailyFortune
   if (!w) return;
   try {
     const revealed = await revealedDates(w);
-    const logo = await widgetLogos();
+    const art = await widgetArt();
     const days = consecutiveDays(today, ahead);
     const entries: { date: Date; props: FortuneWidgetProps }[] = days.map((f, i) => {
-      const props = { ...toFortuneWidgetProps(f), ...logo };
+      const props = { ...toFortuneWidgetProps(f), ...art };
       if (revealed.has(f.date)) props.revealed = true;
       // 오늘 항목은 지금부터 (자정 시각을 넣어도 되지만, 이미 지난 시각이면 WidgetKit이 바로 쓴다)
       return { date: i === 0 ? new Date() : kstMidnight(f.date), props };
     });
     const last = days[days.length - 1].date;
-    entries.push({ date: kstMidnight(nextISO(last)), props: { state: 'stale', ...logo } });
+    entries.push({ date: kstMidnight(nextISO(last)), props: { state: 'stale', ...art } });
     w.updateTimeline(entries);
   } catch {
     // 위젯은 부가 기능이라 앱 흐름을 막지 않는다
@@ -89,9 +92,9 @@ export async function syncFortuneWidget(today: DailyFortune, ahead: DailyFortune
 export function clearFortuneWidget(): void {
   const w = widget();
   if (!w) return;
-  void widgetLogos().then(logo => {
+  void widgetArt().then(art => {
     try {
-      w.updateSnapshot({ state: 'signedOut', ...logo });
+      w.updateSnapshot({ state: 'signedOut', ...art });
     } catch {
       // 무시
     }
