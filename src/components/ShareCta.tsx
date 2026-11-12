@@ -230,7 +230,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
       <Text style={[txt.small, s.center, { marginTop: 8 }]}>이미 보낸 링크도 더 이상 열리지 않아요.{'\n'}다시 공유하면 새 링크가 만들어져요.</Text>
       {error ? <Text style={[txt.small, s.error, s.center]}>{error}</Text> : null}
       <PrimaryButton label={busy === 'revoke' ? '취소하는 중…' : '공유 취소하기'} onPress={revoke} disabled={!!busy} style={{ marginTop: 20 }} />
-      <PrimaryButton label="돌아가기" variant="soft" onPress={() => { setConfirming(false); setError(null); }} disabled={!!busy} style={{ marginTop: 8 }} />
+      <PrimaryButton label="돌아가기" variant="text" onPress={() => { setConfirming(false); setError(null); }} disabled={!!busy} style={[{ marginTop: 8 }, s.backBtn]} />
     </>
   );
 
@@ -243,7 +243,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
       </Text>
       {error ? <Text style={[txt.small, s.error, s.center]}>{error}</Text> : null}
       <PrimaryButton label="PDF 저장" onPress={() => { setPdfGuide(false); savePdf(mine); }} style={{ marginTop: 20 }} />
-      <PrimaryButton label="돌아가기" variant="soft" onPress={() => setPdfGuide(false)} style={{ marginTop: 8 }} />
+      <PrimaryButton label="돌아가기" variant="text" onPress={() => setPdfGuide(false)} style={[{ marginTop: 8 }, s.backBtn]} />
     </>
   ) : null;
 
@@ -278,6 +278,8 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8, marginTop: 10 },
   flex: { flex: 1 },
   softBtn: { borderWidth: 1, borderColor: colors.lineStrong },
+  // 시트 바탕이 soft 버튼과 같은 card 색이라, 시트 안 보조 버튼은 한 톤 진한 회색으로 채운다
+  backBtn: { borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.lineStrong },
   revokeLink: { alignSelf: 'center', marginTop: 10, paddingVertical: 4, paddingHorizontal: 8 },
   revokeText: { ...sansW('500'), fontSize: 13, letterSpacing: -0.3, color: colors.inkMute, textDecorationLine: 'underline' },
   error: { marginTop: 8, color: colors.danger },
