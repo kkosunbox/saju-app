@@ -42,6 +42,19 @@ export function toFortuneWidgetProps(f: DailyFortune): FortuneWidgetProps {
   };
 }
 
+/** 오늘 말고 미리 넣어 두는 날 수 (서버가 7일 뒤까지 준다 — 오늘 포함 일주일) */
+export const WIDGET_DAYS_AHEAD = 6;
+
+/** 오늘 다음으로 하루씩 이어지는 날만 (빠진 날이 있으면 거기서 끊는다) */
+export function consecutiveDays(today: DailyFortune, ahead: DailyFortune[]): DailyFortune[] {
+  const days = [today];
+  for (const f of ahead) {
+    if (f.date !== nextISO(days[days.length - 1].date)) break;
+    days.push(f);
+  }
+  return days;
+}
+
 /** 그 KST 날짜가 시작하는 순간 (00:00 KST) */
 export function kstMidnight(iso: string): Date {
   return new Date(`${iso}T00:00:00+09:00`);

@@ -1,9 +1,9 @@
 /**
  * Android '오늘의 운세' 위젯에 운세를 넣는다 (src/widgets/FortuneWidget.android.tsx).
- * 오늘과 내일 운세를 저장해 두고, 위젯 작업이 그릴 때마다 지금 날짜에 맞는 날을 고른다.
+ * 오늘부터 일주일 치 운세를 저장해 두고, 위젯 작업이 그릴 때마다 지금 날짜에 맞는 날을 고른다.
  */
 import type { DailyFortune } from '../types';
-import { nextISO, toFortuneWidgetProps } from '../widgets/fortuneWidgetProps';
+import { consecutiveDays, toFortuneWidgetProps } from '../widgets/fortuneWidgetProps';
 import { currentWidgetProps, readWidgetStore, writeWidgetStore, type FortuneWidgetStore } from '../widgets/fortuneWidgetStore.android';
 
 async function save(update: (store: FortuneWidgetStore) => FortuneWidgetStore): Promise<void> {
@@ -23,8 +23,8 @@ async function save(update: (store: FortuneWidgetStore) => FortuneWidgetStore): 
   }
 }
 
-export async function syncFortuneWidget(today: DailyFortune, tomorrow: DailyFortune | null): Promise<void> {
-  const days = [today, ...(tomorrow && tomorrow.date === nextISO(today.date) ? [tomorrow] : [])].map(toFortuneWidgetProps);
+export async function syncFortuneWidget(today: DailyFortune, ahead: DailyFortune[]): Promise<void> {
+  const days = consecutiveDays(today, ahead).map(toFortuneWidgetProps);
   await save(store => ({ ...store, signedOut: false, days }));
 }
 

@@ -1,7 +1,7 @@
 /**
- * Android 위젯이 그릴 값. 앱이 오늘·내일 운세를 넣어 두고(services/fortuneWidget.android.ts),
+ * Android 위젯이 그릴 값. 앱이 오늘부터 일주일 치 운세를 넣어 두고(services/fortuneWidget.android.ts),
  * 위젯 작업(fortuneWidgetTask.android.tsx)은 그릴 때마다 지금 KST 날짜에 맞는 날을 고른다.
- * 위젯을 30분마다 다시 그리므로 앱을 안 열어도 자정이 지나면 내일 운세(안 뽑음)로 바뀐다.
+ * 위젯을 30분마다 다시 그리므로 앱을 안 열어도 자정이 지나면 그날 운세(안 뽑음)로 바뀐다.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { todayISO } from '../utils/date';
@@ -11,7 +11,7 @@ const KEY = 'fortune-widget:v1';
 
 export interface FortuneWidgetStore {
   signedOut: boolean;
-  /** 앱이 넣어 둔 날들 (오늘 · 내일) */
+  /** 앱이 넣어 둔 날들 (오늘부터 일주일) */
   days: FortuneWidgetProps[];
   /** 위젯에서 뽑은 날짜 */
   revealed: string[];

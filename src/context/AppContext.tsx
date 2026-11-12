@@ -17,7 +17,7 @@ import { queryClient } from '../api/query';
 import { todayISO } from '../utils/date';
 import { captureInvite } from '../services/share/linkShare';
 import { clearFortuneWidget, syncFortuneWidget } from '../services/fortuneWidget';
-import { nextISO } from '../widgets/fortuneWidgetProps';
+import { WIDGET_DAYS_AHEAD, nextISO } from '../widgets/fortuneWidgetProps';
 
 interface AppState {
   booting: boolean;
@@ -149,24 +149,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { clearInterval(timer); subscription.remove(); };
   }, [user, refreshFortune]);
 
-  // 홈 화면 위젯: 오늘 운세가 바뀔 때마다(불러옴 · 뽑음 · 프로필 수정) 오늘과 내일 운세를 넣어 둔다.
-  // 내일 운세도 규칙 엔진이라 AI 비용이 없고, 덕분에 내일 앱을 안 열어도 위젯이 새 날 운세를 보여 준다.
-  const widgetTomorrow = useRef<{ key: string; fortune: DailyFortune | null } | null>(null);
+  // 홈 화면 위젯: 오늘 운세가 바뀔 때마다(불러옴 · 뽑음 · 프로필 수정) 오늘부터 일주일 치를 넣어 둔다.
+  // 앞날 운세도 규칙 엔진이라 AI 비용이 없고, 덕분에 앱을 일주일 안 열어도 위젯이 매일 새 운세를 보여 준다.
+  const widgetAhead = useRef<{ key: string; days: DailyFortune[] } | null>(null);
   useEffect(() => {
-    if (!fortune || !user || fortune.date !== todayISO()) return;
+    // 웹에는 위젯이 없다
+    if (IS_WEB || !fortune || !user || fortune.date !== todayISO()) return;
     let live = true;
     const key = `${fortune.userId}:${fortune.date}:${user.version ?? ''}`;
     (async () => {
-      if (widgetTomorrow.current?.key !== key) {
-        let tomorrow: DailyFortune | null = null;
-        try {
-          tomorrow = await fortuneApi.daily(fortune.userId, nextISO(fortune.date));
-        } catch {
-          // 내일 것이 없으면 오늘만 넣는다 (자정부터는 '앱을 열어 주세요')
-        }
-        widgetTomorrow.current = { key, fortune: tomorrow };
+      if (widgetAhead.current?.key !== key) {
+        const dates: string[] = [];
+        for (let i = 0, d = fortune.date; i < WIDGET_DAYS_AHEAD; i++) dates.push((d = nextISO(d)));
+        const got = await Promise.all(dates.map(date => fortuneApi.daily(fortune.userId, date).catch(() => null)));
+        // 이어지는 날까지만 쓴다 (중간에 빠지면 그 날부터는 '앱을 열어 주세요')
+        const days: DailyFortune[] = [];
+        for (const f of got) { if (!f) break; days.push(f); }
+        widgetAhead.current = { key, days };
       }
-      if (live) await syncFortuneWidget(fortune, widgetTomorrow.current.fortune);
+      if (live) await syncFortuneWidget(fortune, widgetAhead.current.days);
     })();
     return () => { live = false; };
   }, [fortune, user]);
