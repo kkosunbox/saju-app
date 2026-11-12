@@ -76,4 +76,11 @@ export const pointsApi = {
 
   confirmToss: (body: { paymentKey: string; orderId: string; amount: number }) =>
     call(api.POST('/v1/payments/toss/confirm', { body })),
+
+  /** 정기 구독 카드 등록 준비 — 받은 키로 토스 requestBillingAuth 를 연다 */
+  subscriptionBillingAuth: () => call<{ clientKey: string; customerKey: string }>(api.GET('/v1/subscriptions/toss/billing-auth')),
+
+  /** 카드 등록 successUrl 의 authKey 로 구독 시작 (첫 결제까지). 첫 결제가 실패하면 구독은 만들어지지 않는다 */
+  startTossSubscription: (productId: string, authKey: string) =>
+    call(api.POST('/v1/subscriptions/toss', { body: { productId, authKey } })),
 };

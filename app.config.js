@@ -77,6 +77,45 @@ module.exports = ({ config }) => ({
     ['@react-native-seoul/naver-login', { urlScheme: NAVER_URL_SCHEME }],
     ['@react-native-google-signin/google-signin', { iosUrlScheme: GOOGLE.iosUrlScheme }],
     ['./plugins/withSocialLoginScene', { naverUrlScheme: NAVER_URL_SCHEME }],
+    // 홈 화면 위젯 '오늘의 운세' (iOS). 화면은 src/widgets/FortuneWidget.ios.tsx, 데이터는 src/services/fortuneWidget.ios.ts
+    // App Group(group.com.woonpick.ios)으로 앱과 위젯이 값을 나눈다 — 처음 넣은 뒤 첫 EAS iOS 빌드는 대화형으로 (프로파일 재발급)
+    [
+      'expo-widgets',
+      {
+        widgets: [
+          {
+            name: 'FortuneWidget',
+            displayName: '오늘의 운세',
+            description: '홈 화면에서 오늘의 운세를 뽑고 점수와 한 줄 요약을 봐요',
+            ios: { supportedFamilies: ['systemSmall', 'systemMedium'], initialLayout: './src/widgets/FortuneWidget.ios.tsx' },
+            android: null,
+          },
+        ],
+      },
+    ],
+    // 홈 화면 위젯 '오늘의 운세' (Android). 화면은 src/widgets/FortuneWidget.android.tsx, 작업은 index.ts 에서 등록
+    [
+      'react-native-android-widget',
+      {
+        fonts: ['./assets/fonts/Pretendard-Medium.otf', './assets/fonts/Pretendard-SemiBold.otf', './assets/fonts/Pretendard-Bold.otf', './assets/fonts/Pretendard-ExtraBold.otf'],
+        widgets: [
+          {
+            name: 'FortuneWidget',
+            label: '오늘의 운세',
+            description: '홈 화면에서 오늘의 운세를 뽑고 점수와 한 줄 요약을 봐요',
+            minWidth: '180dp',
+            minHeight: '110dp',
+            targetCellWidth: 2,
+            targetCellHeight: 2,
+            maxResizeWidth: '420dp',
+            maxResizeHeight: '220dp',
+            resizeMode: 'horizontal|vertical',
+            // 자정이 지나면 앱을 안 열어도 내일 운세(미리 받아 둔 것)로 바뀌게 30분마다 다시 그린다
+            updatePeriodMillis: 1800000,
+          },
+        ],
+      },
+    ],
   ],
   extra: {
     ...config.extra,

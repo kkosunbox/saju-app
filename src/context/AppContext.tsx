@@ -16,6 +16,8 @@ import { setOnSessionLost } from '../api/client';
 import { queryClient } from '../api/query';
 import { todayISO } from '../utils/date';
 import { captureInvite } from '../services/share/linkShare';
+import { clearFortuneWidget, syncFortuneWidget } from '../services/fortuneWidget';
+import { nextISO } from '../widgets/fortuneWidgetProps';
 
 interface AppState {
   booting: boolean;
@@ -72,6 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setFortune(null);
     setEditingProfile(false);
+    clearFortuneWidget();
   }, []);
 
   /** Reads who we are and our profile from the server. */
@@ -145,6 +148,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const subscription = NativeAppState.addEventListener('change', state => { if (state === 'active') checkDate(); });
     return () => { clearInterval(timer); subscription.remove(); };
   }, [user, refreshFortune]);
+
+  // 홈 화면 위젯: 오늘 운세가 바뀔 때마다(불러옴 · 뽑음 · 프로필 수정) 오늘과 내일 운세를 넣어 둔다.
+  // 내일 운세도 규칙 엔진이라 AI 비용이 없고, 덕분에 내일 앱을 안 열어도 위젯이 새 날 운세를 보여 준다.
+  const widgetTomorrow = useRef<{ key: string; fortune: DailyFortune | null } | null>(null);
+  useEffect(() => {
+    if (!fortune || !user || fortune.date !== todayISO()) return;
+    let live = true;
+    const key = `${fortune.userId}:${fortune.date}:${user.version ?? ''}`;
+    (async () => {
+      if (widgetTomorrow.current?.key !== key) {
+        let tomorrow: DailyFortune | null = null;
+        try {
+          tomorrow = await fortuneApi.daily(fortune.userId, nextISO(fortune.date));
+        } catch {
+          // 내일 것이 없으면 오늘만 넣는다 (자정부터는 '앱을 열어 주세요')
+        }
+        widgetTomorrow.current = { key, fortune: tomorrow };
+      }
+      if (live) await syncFortuneWidget(fortune, widgetTomorrow.current.fortune);
+    })();
+    return () => { live = false; };
+  }, [fortune, user]);
 
   // 날짜별로 한 번만 요청한다 — 서버가 실패를 돌려줘도 다음에 앱을 열 때 다시
   const drawing = useRef<string | null>(null);

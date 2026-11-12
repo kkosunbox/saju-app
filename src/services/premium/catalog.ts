@@ -75,8 +75,8 @@ export const PACKS: [number, number, number, string][] = [
 ];
 
 /**
- * 정기 구독 — 서버 상품 premium_monthly 와 같은 ID. 서버는 가격이 비어 있어 아직 판매하지 않는다 (docs/payment-design.md 4.6).
- * 화면에는 상품으로 보여 주고, 구독하기는 준비 중 안내로 끝난다.
+ * 정기 구독 — 서버 상품 premium_monthly 와 같은 ID (docs/payment-design.md 4.6).
+ * 웹에서 토스 정기결제로 구독한다. 계약 키를 받기 전까지 서버는 토스 테스트 키로 결제한다.
  */
 export const SUBSCRIPTION = {
   productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',

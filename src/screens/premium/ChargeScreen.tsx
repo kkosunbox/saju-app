@@ -9,38 +9,9 @@ import { usePremium, refreshPoints } from '../../context/PremiumContext';
 import { PACKS, fmtP } from '../../services/premium/catalog';
 import { TossOrder, pointsApi } from '../../services/server/pointsApi';
 import { ApiError } from '../../api/client';
+import { TOSS_FAIL_MESSAGE as FAIL_MESSAGE, TossWidgets, loadToss } from '../../services/premium/tossSdk';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
-
-/** 토스페이먼츠 결제위젯 v2 (https://docs.tosspayments.com/sdk/v2/js) 중 쓰는 부분만 */
-interface TossWidgets {
-  setAmount(amount: { currency: 'KRW'; value: number }): Promise<void>;
-  renderPaymentMethods(p: { selector: string; variantKey?: string }): Promise<unknown>;
-  renderAgreement(p: { selector: string; variantKey?: string }): Promise<unknown>;
-  requestPayment(p: { orderId: string; orderName: string; successUrl: string; failUrl: string }): Promise<void>;
-}
-type TossPaymentsFn = (clientKey: string) => { widgets(p: { customerKey: string }): TossWidgets };
-
-const TOSS_SDK = 'https://js.tosspayments.com/v2/standard';
-let sdkLoading: Promise<TossPaymentsFn> | null = null;
-function loadToss(): Promise<TossPaymentsFn> {
-  const w = window as unknown as { TossPayments?: TossPaymentsFn };
-  if (w.TossPayments) return Promise.resolve(w.TossPayments);
-  sdkLoading ??= new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = TOSS_SDK;
-    el.onload = () => (w.TossPayments ? resolve(w.TossPayments) : reject(new Error('TossPayments missing')));
-    el.onerror = () => { sdkLoading = null; reject(new Error('TossPayments load failed')); };
-    document.head.appendChild(el);
-  });
-  return sdkLoading;
-}
-
-const FAIL_MESSAGE: Record<string, string> = {
-  PAY_PROCESS_CANCELED: '결제를 취소했어요.',
-  PAY_PROCESS_ABORTED: '결제가 중단됐어요. 다시 시도해 주세요.',
-  REJECT_CARD_COMPANY: '카드사에서 결제를 거절했어요. 다른 카드로 시도해 주세요.',
-};
 
 type Phase = 'loading' | 'ready' | 'paying' | 'confirming' | 'error';
 
