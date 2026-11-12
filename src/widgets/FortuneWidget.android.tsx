@@ -22,7 +22,7 @@ const LOGO = { light: require('../../assets/widget/logo-light.png'), dark: requi
 
 /**
  * 디자인 규칙은 iOS와 같다 — 머리줄 11 · 본문 13(작은)/15(중간) · 보조 12 · 점수 38(작은)/44(중간),
- * 머리줄은 맨 위 한 줄(왼쪽 워드마크, 오른쪽 날짜), 작은 위젯에는 '자세히 보기'를 두지 않는다.
+ * 머리줄은 맨 위 한 줄(왼쪽 워드마크, 오른쪽 날짜), 작은 위젯에는 '상세 풀이 보기'를 두지 않는다.
  */
 export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProps; dark: boolean; small: boolean }) {
   const c = dark ? DARK : LIGHT;
@@ -131,11 +131,11 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
     <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
       {lucky ? (
         <FlexWidget style={{ backgroundColor: c.chip as Hex, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }}>
-          {text(`행운 ${lucky}`, 11, F.semibold, c.sub)}
+          {text(lucky, 11, F.semibold, c.sub)}
         </FlexWidget>
       ) : null}
       <FlexWidget style={{ flex: 1 }} />
-      {text('자세히 보기 →', 12, F.semibold, c.accent)}
+      {text('상세 풀이 보기 →', 12, F.semibold, c.accent)}
     </FlexWidget>
   </>);
 }

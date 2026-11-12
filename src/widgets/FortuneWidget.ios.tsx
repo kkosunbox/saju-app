@@ -29,7 +29,7 @@ import type { FortuneWidgetProps } from './fortuneWidgetProps';
 // - 글자: 머리줄 11 · 본문 13(작은)/15(중간) · 보조 12 · 점수 38(작은)/44(중간). 한 줄로 끝나야 하는 글은 lineLimit(1)
 // - 두 줄 요약은 fixedSize(vertical)로 높이를 지켜서, 자리가 빠듯해도 한 줄로 잘리지 않게 한다
 // - 머리줄은 위젯 맨 위 한 줄: 왼쪽 운Pick 워드마크(앱 로고 그대로), 오른쪽 날짜
-// - 위젯 전체를 누르면 앱 홈이 열리므로 작은 위젯에는 '자세히 보기'를 두지 않는다
+// - 위젯 전체를 누르면 앱 홈이 열리므로 작은 위젯에는 '상세 풀이 보기'를 두지 않는다
 const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) => JSX.Element = (props, env) => {
   'widget';
   const dark = env.colorScheme === 'dark';
@@ -151,10 +151,10 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
       <Spacer />
       <HStack alignment="center" spacing={8}>
         {lucky ? (
-          <Text modifiers={[...one(11, 'semibold', c.sub), padding({ horizontal: 8, vertical: 4 }), background(c.chip, shapes.capsule())]}>{`행운 ${lucky}`}</Text>
+          <Text modifiers={[...one(11, 'semibold', c.sub), padding({ horizontal: 8, vertical: 4 }), background(c.chip, shapes.capsule())]}>{lucky}</Text>
         ) : null}
         <Spacer />
-        <Text modifiers={one(12, 'semibold', c.accent)}>자세히 보기 →</Text>
+        <Text modifiers={one(12, 'semibold', c.accent)}>상세 풀이 보기 →</Text>
       </HStack>
     </VStack>
   );
