@@ -5,23 +5,30 @@
  *   앱의 뽑기 상태는 바꾸지 않는다 — AI 문장은 앱 홈에서 마스코트를 꾹 눌러 뽑을 때만.
  * - 뽑음: 누르면 앱 홈 (종합풀이로 바로 가면 그 화면이 뽑기를 해 버린다)
  * - 그 밖: 누르면 앱
+ * 디자인 수정은 OTA로 반영된다 (위젯을 JS로 그림). 새 글꼴·크기 설정은 새 빌드가 필요하다.
  */
 import React from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
 import type { FortuneWidgetProps } from './fortuneWidgetProps';
 
 type Hex = `#${string}`;
-const LIGHT = { ink: '#222222', sub: '#4F4F4F', mute: '#777777', accent: '#28B2FE', card: '#F5F6F8', up: '#E54D4D', down: '#3B74D6', button: '#1D212D', buttonInk: '#FFFFFF', skyFrom: '#DDF2FF', skyTo: '#FFFFFF' } as const;
-const DARK = { ink: '#EEF0F5', sub: '#C2C6D0', mute: '#9095A1', accent: '#28B2FE', card: '#1D2027', up: '#F07E7E', down: '#7EA6EE', button: '#3A4152', buttonInk: '#FFFFFF', skyFrom: '#15283A', skyTo: '#121418' } as const;
+const LIGHT = { chip: '#EEF1F5', ink: '#222222', sub: '#4F4F4F', mute: '#777777', accent: '#28B2FE', up: '#E54D4D', down: '#3B74D6', button: '#1D212D', buttonInk: '#FFFFFF', skyFrom: '#DDF2FF', skyTo: '#FFFFFF' } as const;
+const DARK = { chip: '#2A2E38', ink: '#EEF0F5', sub: '#C2C6D0', mute: '#9095A1', accent: '#28B2FE', up: '#F07E7E', down: '#7EA6EE', button: '#EEF0F5', buttonInk: '#1D212D', skyFrom: '#15283A', skyTo: '#121418' } as const;
 
+/** 앱과 같은 Pretendard (app.config.js 의 위젯 플러그인 fonts) */
 const F = { medium: 'Pretendard-Medium', semibold: 'Pretendard-SemiBold', bold: 'Pretendard-Bold', heavy: 'Pretendard-ExtraBold' };
+/** 운Pick 워드마크 (앱 로고 그대로, 390×216) */
+const LOGO = { light: require('../../assets/widget/logo-light.png'), dark: require('../../assets/widget/logo-dark.png') };
 
+/**
+ * 디자인 규칙은 iOS와 같다 — 머리줄 11 · 본문 13(작은)/15(중간) · 보조 12 · 점수 38(작은)/44(중간),
+ * 머리줄은 맨 위 한 줄(왼쪽 워드마크, 오른쪽 날짜), 작은 위젯에는 '자세히 보기'를 두지 않는다.
+ */
 export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProps; dark: boolean; small: boolean }) {
   const c = dark ? DARK : LIGHT;
-  const root = (clickAction: string, clickActionData?: Record<string, unknown>, children?: React.ReactNode) => (
+  const col = (children: React.ReactNode, clickAction = 'OPEN_APP') => (
     <FlexWidget
       clickAction={clickAction}
-      clickActionData={clickActionData}
       style={{
         width: 'match_parent',
         height: 'match_parent',
@@ -34,113 +41,101 @@ export function FortuneWidget({ props, dark, small }: { props: FortuneWidgetProp
       {children}
     </FlexWidget>
   );
-  const text = (value: string, size: number, family: string, color: string, extra?: { maxLines?: number; clickAction?: string; clickActionData?: Record<string, unknown> }) => (
+  const text = (value: string, size: number, family: string, color: string, maxLines = 1, extra?: { lineHeight?: number; clickAction?: string }) => (
     <TextWidget
       text={value}
-      maxLines={extra?.maxLines}
-      truncate={extra?.maxLines ? 'END' : undefined}
+      maxLines={maxLines}
+      truncate="END"
       clickAction={extra?.clickAction}
-      clickActionData={extra?.clickActionData}
-      style={{ fontSize: size, fontFamily: family, color: color as Hex }}
+      style={{ fontSize: size, fontFamily: family, color: color as Hex, lineHeight: extra?.lineHeight }}
     />
   );
+  const fill = <FlexWidget style={{ flex: 1 }} />;
   const header = (
-    <FlexWidget style={{ flexDirection: 'row', flexGap: 4 }}>
-      {text('운Pick', 12, F.bold, c.accent)}
-      {text(props.dateLabel ?? '오늘의 운세', 12, F.medium, c.mute)}
+    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+      <ImageWidget image={dark ? LOGO.dark : LOGO.light} imageWidth={32} imageHeight={18} resizeMode="contain" />
+      <FlexWidget style={{ flex: 1 }} />
+      {text(props.dateLabel ?? '', 11, F.medium, c.mute)}
     </FlexWidget>
   );
-  const fill = <FlexWidget style={{ flex: 1 }} />;
 
+  // 앱에 데이터가 없을 때 (프로필 전 · 일주일 넘게 앱을 안 열어 날짜가 지남)
   if (props.state !== 'ready') {
-    const message = props.state === 'signedOut'
-      ? '운Pick에서 프로필을 만들면\n매일 운세가 여기 떠요'
-      : '앱을 열면 오늘의\n운세를 받아 올게요';
-    return root('OPEN_APP', undefined, <>
+    const message = props.state === 'signedOut' ? '프로필을 만들면\n매일 운세가 여기 떠요' : '앱을 열면 오늘의\n운세를 받아 올게요';
+    return col(<>
       {header}
       {fill}
-      {text(message, small ? 15 : 17, F.bold, c.ink, { maxLines: 2 })}
-      {text('운Pick 열기 →', 12, F.semibold, c.accent)}
+      {text(message, small ? 15 : 17, F.bold, c.ink, 2, { lineHeight: small ? 21 : 24 })}
+      <FlexWidget style={{ paddingTop: 6 }}>{text('운Pick 열기 →', 12, F.semibold, c.accent)}</FlexWidget>
     </>);
   }
 
+  // 오늘 운세가 있지만 아직 안 뽑음: 위젯 안에서 뽑기 (점수·요약만, AI 없음)
   if (!props.revealed) {
-    return root('OPEN_APP', undefined, <>
-      {header}
-      {fill}
-      {text(small ? '오늘의 운세가\n도착했어요' : '오늘의 운세가 도착했어요', small ? 17 : 19, F.bold, c.ink, { maxLines: 2 })}
-      {small ? null : text('버튼을 누르면 오늘의 점수와 한 줄 요약을 보여 드려요', 13, F.medium, c.sub, { maxLines: 1 })}
+    const draw = (
       <FlexWidget
         clickAction="reveal"
-        style={{
-          marginTop: 8,
-          height: 36,
-          width: small ? 'match_parent' : 160,
-          borderRadius: 18,
-          backgroundColor: c.button as Hex,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
+        style={{ marginTop: 12, height: 36, width: small ? 'match_parent' : 150, borderRadius: 18, backgroundColor: c.button as Hex, justifyContent: 'center', alignItems: 'center' }}
       >
-        {text('운세 뽑기', 14, F.bold, c.buttonInk, { clickAction: 'reveal' })}
+        {text('운세 뽑기', 14, F.bold, c.buttonInk, 1, { clickAction: 'reveal' })}
       </FlexWidget>
+    );
+    return col(<>
+      {header}
+      {fill}
+      {small
+        ? text('오늘의 운세가\n도착했어요', 16, F.bold, c.ink, 2, { lineHeight: 22 })
+        : <>
+          {text('오늘의 운세가 도착했어요', 17, F.bold, c.ink)}
+          <FlexWidget style={{ paddingTop: 4 }}>{text('뽑으면 점수와 한 줄 요약을 보여 드려요', 12, F.medium, c.sub)}</FlexWidget>
+        </>}
+      {draw}
     </>);
   }
 
+  // 뽑음: 점수 · 어제 대비 · 요약. 누르면 앱 홈
   const delta = typeof props.delta === 'number' ? props.delta : null;
   const deltaText = delta === null ? null : delta === 0 ? '어제와 같아요' : `어제보다 ${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}`;
   const deltaColor = delta === null || delta === 0 ? c.mute : delta > 0 ? c.up : c.down;
   const score = (
-    <FlexWidget style={{ flexDirection: 'row', alignItems: 'flex-end', flexGap: 2 }}>
-      {text(String(props.score ?? 0), small ? 38 : 42, F.heavy, c.ink)}
-      <FlexWidget style={{ paddingBottom: 6 }}>{text('점', 15, F.bold, c.sub)}</FlexWidget>
+    <FlexWidget style={{ flexDirection: 'column' }}>
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'flex-end', flexGap: 2 }}>
+        {text(String(props.score ?? 0), small ? 38 : 44, F.heavy, c.ink, 1, { lineHeight: small ? 42 : 48 })}
+        <FlexWidget style={{ paddingBottom: 7 }}>{text('점', 15, F.bold, c.sub)}</FlexWidget>
+      </FlexWidget>
+      {deltaText === null ? null : text(deltaText, 12, F.semibold, deltaColor)}
     </FlexWidget>
   );
-  const deltaView = deltaText === null ? null : text(deltaText, 11, F.semibold, deltaColor);
-  const more = text('자세히 보기 →', 12, F.semibold, c.accent);
 
   if (small) {
-    return root('OPEN_APP', undefined, <>
+    return col(<>
       {header}
-      {score}
-      {deltaView}
       {fill}
-      {text(props.summary ?? '', 13, F.medium, c.ink, { maxLines: 2 })}
-      {more}
+      {score}
+      <FlexWidget style={{ paddingTop: 6 }}>{text(props.summary ?? '', 13, F.medium, c.ink, 2, { lineHeight: 18 })}</FlexWidget>
     </>);
   }
 
   const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
-  return (
-    <FlexWidget
-      clickAction="OPEN_APP"
-      style={{
-        width: 'match_parent',
-        height: 'match_parent',
-        flexDirection: 'row',
-        flexGap: 14,
-        padding: 16,
-        borderRadius: 22,
-        backgroundGradient: { from: c.skyFrom as Hex, to: c.skyTo as Hex, orientation: 'TOP_BOTTOM' },
-      }}
-    >
-      <FlexWidget style={{ width: 104, height: 'match_parent', flexDirection: 'column' }}>
-        {header}
-        {score}
-        {deltaView}
-        {fill}
-        {more}
-      </FlexWidget>
-      <FlexWidget style={{ flex: 1, height: 'match_parent', flexDirection: 'column', flexGap: 8 }}>
-        {text(props.summary ?? '', 14, F.semibold, c.ink, { maxLines: 3 })}
-        {fill}
-        {props.keywords ? text(props.keywords, 12, F.medium, c.sub, { maxLines: 1 }) : null}
-        {lucky ? (
-          <FlexWidget style={{ backgroundColor: c.card as Hex, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }}>
-            {text(`행운 ${lucky}`, 11, F.semibold, c.sub, { maxLines: 1 })}
-          </FlexWidget>
-        ) : null}
+  return col(<>
+    {header}
+    {fill}
+    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center', flexGap: 16 }}>
+      {score}
+      <FlexWidget style={{ flex: 1, flexDirection: 'column', flexGap: 6 }}>
+        {text(props.summary ?? '', 15, F.semibold, c.ink, 2, { lineHeight: 21 })}
+        {props.keywords ? text(props.keywords, 12, F.medium, c.sub) : null}
       </FlexWidget>
     </FlexWidget>
-  );
+    {fill}
+    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+      {lucky ? (
+        <FlexWidget style={{ backgroundColor: c.chip as Hex, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }}>
+          {text(`행운 ${lucky}`, 11, F.semibold, c.sub)}
+        </FlexWidget>
+      ) : null}
+      <FlexWidget style={{ flex: 1 }} />
+      {text('자세히 보기 →', 12, F.semibold, c.accent)}
+    </FlexWidget>
+  </>);
 }

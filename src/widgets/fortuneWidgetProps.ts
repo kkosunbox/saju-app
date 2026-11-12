@@ -6,7 +6,7 @@ export interface FortuneWidgetProps {
   state: 'ready' | 'stale' | 'signedOut';
   /** KST 날짜 (YYYY-MM-DD) */
   date?: string;
-  /** 머리줄 날짜 (예: '11월 12일 목') */
+  /** 머리줄 날짜 (예: '11.12 목') */
   dateLabel?: string;
   /** 점수·요약을 보여 주는지 (위젯에서 뽑았거나, 앱·다른 기기에서 이미 뽑음) */
   revealed?: boolean;
@@ -19,6 +19,9 @@ export interface FortuneWidgetProps {
   luckyColor?: string;
   luckyNumber?: number;
   luckyTime?: string;
+  /** iOS: 앱이 공유 폴더(App Group)에 복사해 둔 운Pick 워드마크 (밝은 바탕용 · 어두운 바탕용 file:// 주소) */
+  logo?: string;
+  logoDark?: string;
 }
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
@@ -30,7 +33,7 @@ export function toFortuneWidgetProps(f: DailyFortune): FortuneWidgetProps {
   return {
     state: 'ready',
     date: f.date,
-    dateLabel: `${m}월 ${d}일 ${WEEK[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}`,
+    dateLabel: `${m}.${d} ${WEEK[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]}`,
     revealed: !!f.drawn,
     score: c.totalScore,
     delta: f.yesterdayScores ? c.totalScore - f.yesterdayScores.totalScore : null,
