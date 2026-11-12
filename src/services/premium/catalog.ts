@@ -80,7 +80,8 @@ export const PACKS: [number, number, number, string][] = [
  */
 export const SUBSCRIPTION = {
   productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',
-  benefits: ['운알톡 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
+  // 서버 SUBSCRIPTION_BENEFITS 와 같은 내용. 광고 제거는 광고가 생기면 붙인다
+  benefits: ['운알톡 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배'],
 };
 
 /** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */

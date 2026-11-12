@@ -11,6 +11,7 @@ import Icon from '../Icon';
 import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
 import { usePremium } from '../../context/PremiumContext';
+import { SubscriptionBadge } from './SubscriptionBadge';
 import { useSharedView } from '../../context/SharedViewContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
 import { SrcKey } from '../../types/premium';
@@ -60,8 +61,9 @@ export function LineTag({ label, color = FREE_BLUE, variant = 'default' }: { lab
 
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
 export function PriceTag({ item, small, variant = 'default' }: { item: Item; small?: boolean; variant?: 'default' | 'figma' }) {
-  const { owned } = usePremium();
+  const { owned, subscriptionFree } = usePremium();
   if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} variant={variant} />;
+  if (subscriptionFree(item.key)) return <SubscriptionBadge label="구독 무료" small={small} />;
   return <CostPill cost={item.cost} small={small} variant={variant} />;
 }
 
@@ -269,8 +271,9 @@ function GhostBody() {
 
 /** 잠긴 본문: 가짜 줄을 흐리게 깔고 그 위에 열람 패널. 열려 있으면 children(본문) */
 export function LockGate({ item, children, onUnlocked }: { item: Item; children?: React.ReactNode; onUnlocked?(): void }) {
-  const { owned, points, openUnlock } = usePremium();
+  const { owned, points, openUnlock, subscriptionFree } = usePremium();
   if (owned(item.key)) return <>{children}</>;
+  const free = subscriptionFree(item.key);
   const blur = Platform.OS === 'web' ? ({ filter: 'blur(3px)' } as object) : null;
   return (
     <View style={s.lockWrap}>
@@ -280,10 +283,13 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
       </View>
       <View style={s.lockPanel}>
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
+        {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} /> : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
         <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{item.desc}</Text>
-        <PrimaryButton label={`${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
-        <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>보유 {fmtP(points)} · {item.scope}</Text>
+        {free
+          ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
+          : <PrimaryButton label={`${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />}
+        <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
       </View>
     </View>
   );

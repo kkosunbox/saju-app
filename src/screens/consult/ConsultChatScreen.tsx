@@ -17,13 +17,15 @@ import { refreshPoints, usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
 import { fmtN, ro } from '../../services/premium/catalog';
-import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
+import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, SubscriptionQuota, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
 import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
+import { CROWN, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
+import SolidIcon from '../../components/SolidIcon';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,7 +58,7 @@ export default function ConsultChatScreen() {
 /** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 운알이가 답을 쓰는 중 */
 function PendingChat({ askKey }: { askKey?: string }) {
   const nav = useNavigation<Nav>();
-  const { goWallet } = usePremium();
+  const { goWallet, toast } = usePremium();
   const [key, setKey] = useState(askKey);
   const [state, setState] = useState<{ kind: 'wait' } | { kind: 'error'; message: string }>({ kind: 'wait' });
   const ask = getAsk(key);
@@ -67,6 +69,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
       v => {
         if (!live) return;
         dropAsk(key);
+        if (v.viaSubscription) toast('구독 혜택으로 운알톡 1회를 썼어요. 알은 쓰지 않았어요');
         nav.replace('ConsultChat', { id: String(v.id) });
       },
       err => {
@@ -132,6 +135,9 @@ function Chat({ id }: { id: number }) {
   const cost = status.data?.cost ?? 100;
   const limit = status.data?.followUpLimit ?? 10;
   const hours = status.data?.followUpHours ?? 24;
+  // 구독 운알톡 횟수가 남았으면 알 대신 그걸로 연다 (서버가 먼저 쓴다)
+  const sub = status.data?.subscription ?? null;
+  const viaSub = !!sub && sub.left > 0;
   const full = isFullAnswer(e.answer) && e.facts ? { answer: e.answer, facts: e.facts } : null;
   const turns = e.turns ?? [];
   const suggestions = (turns.length ? turns[turns.length - 1].followUps : e.answer.followUps) ?? [];
@@ -178,7 +184,8 @@ function Chat({ id }: { id: number }) {
       put(v);
       refreshPoints();
       opened = true;
-      toast(question ? '전체 답변을 열었어요. 물어본 질문에 바로 답해 드릴게요' : `전체 답변을 열었어요. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
+      const left = v.viaSubscription && sub ? ` · 구독 운알톡 ${Math.max(0, sub.left - 1)}회 남음` : '';
+      toast(question ? `전체 답변을 열었어요${left}. 물어본 질문에 바로 답해 드릴게요` : `전체 답변을 열었어요${left}. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
     } catch (err) {
       if (err instanceof ApiError && err.code === 'INSUFFICIENT_POINTS') {
         toast(`${cost}알이 필요해요. 충전 후 다시 시도해 주세요`);
@@ -222,7 +229,7 @@ function Chat({ id }: { id: number }) {
       </View>
       <Text style={s.footCap}>
         {e.locked
-          ? (unlocking ? '나머지 답을 쓰고 있어요' : `${cost}알로 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
+          ? (unlocking ? '나머지 답을 쓰고 있어요' : `${viaSub ? '구독 혜택으로' : `${cost}알로`} 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
           : `${e.followUpsLeft}번 더 물어볼 수 있어요${e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}`}
       </Text>
     </>
@@ -262,7 +269,7 @@ function Chat({ id }: { id: number }) {
         ) : unlocking ? (
           <ReplyBubble typing={STAGES.rest} />
         ) : (
-          <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} onUnlock={() => setUnlockOpen(true)} />
+          <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => setUnlockOpen(true)} />
         )}
 
         {turns.map(t => (
@@ -281,7 +288,7 @@ function Chat({ id }: { id: number }) {
         {!sending && !unlocking && (e.locked || canAsk) ? (
           <SuggestionChips
             items={suggestions}
-            caption={e.locked ? `궁금한 질문을 누르면 ${cost}알로 열고 바로 답해 드려요` : '이어서 물어보기'}
+            caption={e.locked ? `궁금한 질문을 누르면 ${viaSub ? '구독 혜택으로' : `${cost}알로`} 열고 바로 답해 드려요` : '이어서 물어보기'}
             onPick={send}
           />
         ) : null}
@@ -304,11 +311,20 @@ function Chat({ id }: { id: number }) {
             <Text style={[txt.h2, { textAlign: 'center', marginTop: 12 }]}>열고 이 질문에 바로 답해 드릴게요</Text>
           </>
         ) : (
-          <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 전부 열까요?</Text>
+          <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{viaSub ? '구독 혜택으로 전부 열까요?' : `${cost}알로 전부 열까요?`}</Text>
         )}
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>사주로 본 나 · 3개월 흐름 · 해 볼 것과 피할 것 · 행동하기 좋은 날{'\n'}그리고 {hours}시간 동안 {limit}번 이어서 물어볼 수 있어요.</Text>
-        <PrimaryButton label={`${cost}${ro(cost)} 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
-        <Balance cost={cost} points={points} />
+        {viaSub && sub ? (
+          <>
+            <PrimaryButton label="구독 혜택으로 열기" onPress={unlock} style={{ marginTop: 20 }} />
+            <SubQuota sub={sub} />
+          </>
+        ) : (
+          <>
+            <PrimaryButton label={`${cost}${ro(cost)} 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
+            <Balance cost={cost} points={points} />
+          </>
+        )}
         <PrimaryButton label="취소" variant="soft" onPress={closeUnlock} style={{ marginTop: 8 }} />
       </BottomSheet>
       <BottomSheet visible={del} onClose={() => setDel(false)}>
@@ -344,8 +360,18 @@ function Balance({ cost, points }: { cost: number; points: number }) {
   );
 }
 
+/** 구독 운알톡 남은 횟수 — 알 대신 이걸 쓴다는 걸 왕관 칩과 함께 */
+function SubQuota({ sub, style }: { sub: SubscriptionQuota; style?: object }) {
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }, style]}>
+      <SubscriptionBadge label="구독 혜택" small />
+      <Text style={txt.caption}>이번 달 운알톡 {sub.total}회 중 {sub.left}회 남음 · 알은 쓰지 않아요</Text>
+    </View>
+  );
+}
+
 /** 무료 미리보기에서 잠긴 부분 — 내 사주의 일부(이번 달 흐름 · 이어진 기운)와 함께 무엇이 열리는지 보여 준다 */
-function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { teaser: ConsultTeaser | null; cost: number; points: number; hours: number; limit: number; onUnlock(): void }) {
+function LockedRest({ teaser: T, cost, points, hours, limit, sub, onUnlock }: { teaser: ConsultTeaser | null; cost: number; points: number; hours: number; limit: number; sub: SubscriptionQuota | null; onUnlock(): void }) {
   // 잠긴 사주 일부를 보여 주면 목록에서는 그 항목을 뺀다
   const rows = [
     ...(T ? [] : ['사주로 본 나', '지금의 흐름 · 앞으로 3개월']),
@@ -397,13 +423,15 @@ function LockedRest({ teaser: T, cost, points, hours, limit, onUnlock }: { tease
           </View>
         ))}
       </View>
-      <PressableScale onPress={onUnlock} haptic style={s.lockUnlock} accessibilityLabel={`${cost}알로 전부 열기`}>
+      <PressableScale onPress={onUnlock} haptic style={s.lockUnlock} accessibilityLabel={sub ? '구독 혜택으로 전부 열기' : `${cost}알로 전부 열기`}>
         <View style={s.lockUnlockInner}>
-          <Image source={LOCK_COIN} style={s.lockCoin} contentFit="contain" />
-          <Text style={s.lockUnlockText}>{cost}알로 전부 열기</Text>
+          {sub ? <SolidIcon name="crown" size={16} color={CROWN} /> : <Image source={LOCK_COIN} style={s.lockCoin} contentFit="contain" />}
+          <Text style={s.lockUnlockText}>{sub ? '구독 혜택으로 전부 열기' : `${cost}알로 전부 열기`}</Text>
         </View>
       </PressableScale>
-      <Text style={s.lockBalance}>보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}</Text>
+      {sub
+        ? <SubQuota sub={sub} />
+        : <Text style={s.lockBalance}>보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}</Text>}
     </View>
   );
 }

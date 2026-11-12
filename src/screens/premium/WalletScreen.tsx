@@ -10,6 +10,8 @@ import SolidIcon from '../../components/SolidIcon';
 import PressableScale from '../../components/PressableScale';
 import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
+import { CROWN, SUB_BG, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
+import { subscriptionLine } from './subscriptionText';
 import { PACKS, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
 import { TransactionDirection, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
@@ -25,9 +27,6 @@ const kstDate = (iso: string) => new Date(Date.parse(iso) + 9 * 3600_000).toISOS
 const SKY = '#00A3FF';
 /** 이용내역 한 번에 불러오는 개수 */
 const PAGE = 20;
-/** 정기 구독 카드 바탕 · 왕관 색 (디자인 값) */
-const SUB_BG = '#FFF5E4';
-const CROWN = '#FCBD51';
 /** 이용내역에서 빠져나간 알 숫자 색 */
 const MINUS = '#F47A7A';
 /** 이용내역 필터 — 사용은 나간 알, 적립은 들어온 알 (서버가 거른다) */
@@ -97,7 +96,7 @@ const FLOW_PAD = 30;
 export default function WalletScreen() {
   const { account } = useApp();
   const billing = useStoreBilling();
-  const { points, expiringSoon, attendedToday: att, ownedCount, attend, openCharge } = usePremium();
+  const { points, expiringSoon, attendedToday: att, attendanceReward: reward, attendanceDoubled: doubled, ownedCount, attend, openCharge, subscription } = usePremium();
   const [filter, setFilter] = useState<TransactionDirection>();
   const q = useInfiniteQuery({
     queryKey: [...pointsKeys.transactions, account?.id, filter],
@@ -124,24 +123,41 @@ export default function WalletScreen() {
       <Card onPress={att ? undefined : attend} style={[s.attend, att && { opacity: 0.6 }]} accessibilityLabel="출석 체크">
         <View style={s.attendIcon}><SolidIcon name="calendar" size={16} color={colors.accent} /></View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={s.attendTitle}>출석 체크</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={s.attendTitle}>출석 체크</Text>
+            {doubled ? <SubscriptionBadge label="구독 2배" small /> : null}
+          </View>
           {/* 받기 전에는 메인 알약의 금색 +10 칸과 같은 색으로 보상을 칠해, 그걸 누르고 온 자리임을 알아보게 */}
-          <Text style={s.attendSub}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : <>매일 방문하고 <Text style={s.attendGold}>+10알</Text>을 받으세요!</>}</Text>
+          <Text style={s.attendSub}>{att ? '오늘은 이미 받았어요. 내일 또 만나요' : <>매일 방문하고 <Text style={s.attendGold}>+{reward}알</Text>을 받으세요!</>}</Text>
         </View>
-        {att ? <View style={s.coinPill}><Text style={s.coinPillText}>완료</Text></View> : <CoinPill label="10 받기" />}
+        {att ? <View style={s.coinPill}><Text style={s.coinPillText}>완료</Text></View> : <CoinPill label={`${reward} 받기`} />}
       </Card>
 
       <SubHead title="정기 구독" />
-      <Card onPress={() => router.push('/subscribe')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 월 ${SUBSCRIPTION.won}원`}>
-        <View style={s.crown}><SolidIcon name="crown" size={16} color={CROWN} /></View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={[s.attendTitle, { lineHeight: 16 }]}>{SUBSCRIPTION.name}</Text>
-          {/* 혜택 한 줄을 괄호 앞에서 끊어 두 줄로 */}
-          <Text style={s.subBenefit}>{SUBSCRIPTION.benefits[0].replace(' (', '\n(')}</Text>
-        </View>
-        <Text style={s.won}>월 {SUBSCRIPTION.won.toLocaleString('ko-KR')}원</Text>
-        <View style={s.subChevron}><Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} /></View>
-      </Card>
+      {subscription ? (
+        // 구독 중: 상태와 이번 회차 운알톡 남은 횟수를 보여 주고 구독 관리로
+        <Card onPress={() => router.push('/subscription')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 구독 관리`}>
+          <View style={s.crown}><SolidIcon name="crown" size={16} color={CROWN} /></View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={[s.attendTitle, { lineHeight: 16 }]}>{SUBSCRIPTION.name}</Text>
+            <Text style={s.subBenefit}>{subscriptionLine(subscription)}</Text>
+            {subscription.benefits.active ? <Text style={s.subBenefit}>운알톡 {subscription.benefits.consultLeft}/{subscription.benefits.consultTotal}회 남음</Text> : null}
+          </View>
+          <Text style={s.won}>구독 관리</Text>
+          <View style={s.subChevron}><Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} /></View>
+        </Card>
+      ) : (
+        <Card onPress={() => router.push('/subscribe')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 월 ${SUBSCRIPTION.won}원`}>
+          <View style={s.crown}><SolidIcon name="crown" size={16} color={CROWN} /></View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={[s.attendTitle, { lineHeight: 16 }]}>{SUBSCRIPTION.name}</Text>
+            {/* 혜택 한 줄을 괄호 앞에서 끊어 두 줄로 */}
+            <Text style={s.subBenefit}>{SUBSCRIPTION.benefits[0].replace(' (', '\n(')}</Text>
+          </View>
+          <Text style={s.won}>월 {SUBSCRIPTION.won.toLocaleString('ko-KR')}원</Text>
+          <View style={s.subChevron}><Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} /></View>
+        </Card>
+      )}
 
       <SubHead title="알 충전하기" />
       <View style={{ gap: 12 }}>

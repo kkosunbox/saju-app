@@ -21,6 +21,8 @@ import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref'
 import { useApp } from '../context/AppContext';
 import { useOpened } from '../services/content/opened';
 import { usePremium } from '../context/PremiumContext';
+import SolidIcon from '../components/SolidIcon';
+import { CROWN, SubscriptionBadge } from '../components/premium/SubscriptionBadge';
 import { fmtN } from '../services/premium/catalog';
 import { NotificationSettings, formatMinute, notificationService } from '../services/notificationService';
 import FortuneTimeWheel from '../components/notification/FortuneTimeWheel';
@@ -68,7 +70,7 @@ function ProfileRow({ icon, label, value, last }: { icon: ProfileAssetName; labe
 
 export default function MyPageScreen() {
   const { user, fortune, account, signOut, deleteAccount } = useApp();
-  const { points, ownedCount, toast } = usePremium();
+  const { points, ownedCount, toast, subscription } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [theme] = useState<ThemePref>(readThemePrefSync());
   const [themeAsk, setThemeAsk] = useState<ThemePref | null>(null);
@@ -134,7 +136,15 @@ export default function MyPageScreen() {
           <View style={s.cardTop}>
             <View style={s.avatar}><Text style={s.avatarText}>{user.nickname.slice(0, 1)}</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={s.name}>{user.nickname}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={s.name}>{user.nickname}</Text>
+                {/* 구독 중이면 이름 옆 왕관 칩 — 누르면 구독 관리 */}
+                {subscription ? (
+                  <PressableScale onPress={() => router.push('/subscription')} scaleTo={0.95} accessibilityLabel="프리미엄 구독 관리">
+                    <SubscriptionBadge label="프리미엄" small />
+                  </PressableScale>
+                ) : null}
+              </View>
               <Text style={s.meta}>{MBTI_INFO[user.mbti].nickname} {user.mbti}</Text>
             </View>
             <View style={s.heroMascot}><MbtiArt type={user.mbti} size={46} /></View>
@@ -245,6 +255,14 @@ export default function MyPageScreen() {
             <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
           </PressableScale>
         ))}
+        {subscription ? (
+          // 구독 중: 구독 관리로 바로
+          <PressableScale onPress={() => router.push('/subscription')} style={s.walletRow} scaleTo={0.98} accessibilityLabel="정기 구독 관리">
+            <View style={s.subIcon}><SolidIcon name="crown" size={13} color={CROWN} /></View>
+            <Text style={s.menuLabel}>정기 구독 관리</Text>
+            <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
+          </PressableScale>
+        ) : null}
       </Card>
 
       <ProfileHeading title="계정" />
@@ -373,6 +391,7 @@ const s = StyleSheet.create({
   walletCount: { ...profileType(24, '700', 29, -1.2), marginTop: 1 },
   walletRow: { height: 55, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: profileLine },
   menuLabel: { ...profileType(14, '600', 18, -0.7), flex: 1 },
+  subIcon: { width: 20, height: 20, borderRadius: 5, backgroundColor: colors.heroBg, alignItems: 'center', justifyContent: 'center' },
   menuArrow: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   accountActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 16 },
   accountLink: { fontSize: 14, color: colors.inkMute, fontWeight: '500' },

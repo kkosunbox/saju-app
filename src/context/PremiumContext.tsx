@@ -14,7 +14,8 @@ import { Item, PACKS, fmtP, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
-import { pointsApi, pointsKeys } from '../services/server/pointsApi';
+import { MySubscription, pointsApi, pointsKeys } from '../services/server/pointsApi';
+import { SubscriptionBadge } from '../components/premium/SubscriptionBadge';
 import { listReadings, readingsKey } from '../services/server/premiumReadings';
 import { ApiError } from '../api/client';
 import { queryClient } from '../api/query';
@@ -31,6 +32,15 @@ interface PremiumState {
   /** 30일 안에 만료되는 포인트 */
   expiringSoon: number;
   attendedToday: boolean;
+  /** 오늘 출석 체크로 받는 알 (구독 중이면 2배) */
+  attendanceReward: number;
+  attendanceDoubled: boolean;
+  /** 끝나지 않은 내 구독 (없으면 null, 결제 실패 재시도 중 포함) */
+  subscription: MySubscription | null;
+  /** 지금 구독 혜택을 받는 중 */
+  subscribed: boolean;
+  /** 구독 혜택으로 무료로 열 수 있는 콘텐츠 (이번 달 월별 상세운세, 아직 안 열림) */
+  subscriptionFree(key: string): boolean;
   missions: Record<string, boolean>;
   owned(key: string): boolean;
   ownedCount: number;
@@ -56,6 +66,7 @@ export const SHARE_P = 10;
 const UNLOCK_ERROR: Record<string, string> = {
   INSUFFICIENT_POINTS: '알이 모자라요. 충전 후 다시 열어 주세요',
   CONTENT_NOT_FOR_SALE: '지금은 열 수 없는 콘텐츠예요',
+  READING_UNAVAILABLE: '지금은 AI 풀이를 쓸 수 없어 잠시 열 수 없어요. 알은 쓰이지 않았어요',
 };
 
 /** 지갑·내역·열람권을 서버에서 다시 읽는다 */
@@ -82,6 +93,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     enabled: member,
   });
   const unlocks = useQuery({ queryKey: [...pointsKeys.unlocks, account?.id], queryFn: pointsApi.unlocks, enabled: member });
+  const sub = useQuery({ queryKey: [...pointsKeys.subscription, account?.id], queryFn: pointsApi.mySubscription, enabled: member });
   // AI 풀이는 서버가 백그라운드로 쓴다. 쓰는 중인 게 있으면 지켜보다가 다 쓰면 어디에 있든 알려 준다
   const readings = useQuery({
     queryKey: [...readingsKey, account?.id],
@@ -118,6 +130,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const ownedKeys = useMemo(() => new Set((unlocks.data ?? []).map(e => e.contentKey)), [unlocks.data]);
   const owned = useCallback((key: string) => ownedKeys.has(key), [ownedKeys]);
   const points = wallet.data?.balance ?? 0;
+  const subscription = member ? sub.data ?? null : null;
+  const subscribed = !!subscription?.benefits.active;
+  const subscriptionFree = useCallback(
+    (key: string) => subscribed && key === subscription?.benefits.monthlyContentKey && !ownedKeys.has(key),
+    [subscribed, subscription, ownedKeys],
+  );
 
   const toast = useCallback((msg: string, onPress?: () => void) => {
     setToastMsg({ msg, onPress });
@@ -130,10 +148,10 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     if (busy) return;
     setBusy(true);
     try {
-      await pointsApi.unlock(it.key);
+      const r = await pointsApi.unlock(it.key);
       await refreshPoints();
       setSheet(null);
-      toast(`${it.title}이(가) 열렸어요`);
+      toast(r.viaSubscription ? `구독 혜택으로 ${it.title}이(가) 무료로 열렸어요` : `${it.title}이(가) 열렸어요`);
       onDone?.();
     } catch (e) {
       toast((e instanceof ApiError && UNLOCK_ERROR[e.code]) || '열지 못했어요. 잠시 후 다시 시도해 주세요');
@@ -175,6 +193,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     points, missions, owned,
     expiringSoon: wallet.data?.expiringSoon ?? 0,
     attendedToday: !!wallet.data?.attendedToday,
+    attendanceReward: wallet.data?.attendanceReward ?? 10,
+    attendanceDoubled: !!wallet.data?.attendanceDoubled,
+    subscription,
+    subscribed,
+    subscriptionFree,
     ownedCount: [...ownedKeys].filter(k => !k.startsWith('bundle:')).length,
     openUnlock: (item, onDone) => {
       if (requireLogin()) return;
@@ -185,8 +208,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     attend: async () => {
       if (requireLogin() || wallet.data?.attendedToday) return;
       try {
-        await pointsApi.attend();
-        toast('출석 체크 +10알');
+        const t = await pointsApi.attend();
+        toast(t.amount > 10 ? `출석 체크 +${t.amount}알 · 구독 혜택 2배` : `출석 체크 +${t.amount}알`);
       } catch (e) {
         if (!(e instanceof ApiError && e.code === 'ALREADY_CHECKED_IN')) toast('출석 체크를 하지 못했어요. 잠시 후 다시 시도해 주세요');
       }
@@ -225,7 +248,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       {children}
       <BottomSheet visible={!!sheet} onClose={() => setSheet(null)}>
         {sheet?.type === 'unlock' ? (
-          <UnlockSheet item={sheet.item} points={points} busy={busy} onConfirm={() => doUnlock(sheet.item, sheet.onDone)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
+          <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key)} busy={busy} onConfirm={() => doUnlock(sheet.item, sheet.onDone)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
         ) : sheet?.type === 'charge' ? (
           <ChargeSheet i={sheet.i} points={points} onConfirm={() => doCharge(sheet.i)} onClose={() => setSheet(null)} />
         ) : null}
@@ -258,7 +281,26 @@ function SumRow({ label, value, color, sign }: { label: string; value: string | 
   );
 }
 
-function UnlockSheet({ item: it, points, busy, onConfirm, onClose, onWallet }: { item: Item; points: number; busy: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
+function UnlockSheet({ item: it, points, free, busy, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
+  if (free) {
+    // 구독 혜택: 알을 쓰지 않는다는 것과 그게 구독 덕분이라는 걸 함께 보여 준다
+    return (
+      <View>
+        <SubscriptionBadge style={{ alignSelf: 'center' }} />
+        <Text style={[txt.h2, s.center, { marginTop: 8 }]}>{it.title}</Text>
+        <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
+        <View style={s.sumBox}>
+          <SumRow label="원래 가격" value={it.cost} />
+          <SumRow label="구독 혜택" value="이번 달 무료" color={colors.purple} />
+          <View style={s.hr} />
+          <SumRow label="보유 알" value={`${fmtP(points)} 그대로`} />
+        </View>
+        <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>한 번 열면 구독이 끝나도 계속 볼 수 있어요</Text>
+        <PrimaryButton label={busy ? '여는 중…' : '구독 혜택으로 무료 열기'} onPress={onConfirm} disabled={busy} />
+        <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
+      </View>
+    );
+  }
   const enough = points >= it.cost;
   return (
     <View>

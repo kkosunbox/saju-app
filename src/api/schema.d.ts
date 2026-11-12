@@ -941,7 +941,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 출석 체크 (+10P)
+         * 출석 체크 (+10P, 구독 중이면 +20P)
          * @description KST 하루 1회. 두 번째는 409 ALREADY_CHECKED_IN
          */
         post: operations["PointsController_attend_v1"];
@@ -1575,6 +1575,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/subscriptions/me/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 결제 카드 변경 (웹)
+         * @description GET /subscriptions/toss/billing-auth로 카드 등록창을 다시 열고, successUrl의 authKey를 보냅니다. 예전 카드는 토스에서 지웁니다. 결제 실패(grace) 중이면 새 카드로 바로 다시 결제합니다.
+         */
+        post: operations["SubscriptionsController_changeCard_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subscriptions/me/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 구독 결제 내역 (최신순, 페이지)
+         * @description 결제 대기는 빼고 돌려줍니다. data.total = 전체 건수.
+         */
+        get: operations["SubscriptionsController_payments_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/premium/readings": {
         parameters: {
             query?: never;
@@ -1739,7 +1779,7 @@ export interface paths {
         put?: never;
         /**
          * 고민 상담 시작 (하루 5번 무료 미리보기, 그다음은 100P)
-         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
+         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 구독 중이면 100P 대신 구독 운알톡 횟수(결제 회차당 20회)를 먼저 씁니다(viaSubscription=true, charged=0). 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
          */
         post: operations["ConsultController_ask_v1"];
         delete?: never;
@@ -1775,8 +1815,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 무료 미리보기 잠금 해제 (100P)
-         * @description 이미 열린 상담이면 결제 없이 그대로 돌려줍니다.
+         * 무료 미리보기 잠금 해제 (구독 운알톡 1회 또는 100P)
+         * @description 구독 운알톡 횟수가 남았으면 그걸 먼저 씁니다. 이미 열린 상담이면 결제 없이 그대로 돌려줍니다.
          */
         post: operations["ConsultController_unlock_v1"];
         delete?: never;
@@ -2300,6 +2340,10 @@ export interface components {
             isActive?: boolean;
             /** @description 같은 그룹 안의 순서 */
             sortOrder?: number;
+        };
+        AdminSubscriptionRefundRequest: {
+            /** @example 결제 후 3일, 혜택 미사용 — 고객 문의 #123 */
+            reason: string;
         };
         PushAudienceRequest: {
             /**
@@ -2861,6 +2905,10 @@ export interface components {
             /** @description 30일 안에 만료되는 포인트 */
             expiringSoon: number;
             attendedToday: boolean;
+            /** @description 오늘 출석 체크로 받는 알 (구독 중이면 2배) */
+            attendanceReward: number;
+            /** @description 구독 혜택으로 출석 알이 2배 */
+            attendanceDoubled: boolean;
             /** @description 오늘 남은 공유 보상 횟수 */
             shareRewardsLeft: number;
             /** @description 이번 호출로 준 가입 축하 포인트 (지갑을 처음 만든 호출만, 그 밖엔 0) */
@@ -2902,7 +2950,7 @@ export interface components {
             /** @example bundle:life */
             contentKey: string;
             title: string;
-            /** @description 지금 열면 쓰는 포인트 (이미 열려 있으면 0) */
+            /** @description 지금 열면 쓰는 포인트 (이미 열려 있거나 구독 혜택이면 0) */
             cost: number;
             /** @description 같은 항목을 하나씩 살 때의 가격 */
             originalCost: number;
@@ -2912,6 +2960,8 @@ export interface components {
             forSale: boolean;
             /** @description 이미 열려 있음 */
             open: boolean;
+            /** @description 구독 혜택으로 무료로 열 수 있음 (구독 중 · 이번 달 월별 상세운세 · 아직 안 열림) */
+            viaSubscription: boolean;
         };
         EntitlementDto: {
             /** @example monthly:2026-10 */
@@ -2927,8 +2977,10 @@ export interface components {
             createdAt: string;
         };
         UnlockDto: {
-            /** @description 이번에 쓴 포인트 (이미 열려 있으면 0) */
+            /** @description 이번에 쓴 포인트 (이미 열려 있거나 구독 혜택으로 열면 0) */
             charged: number;
+            /** @description 구독 혜택으로 열었음 (이번 달 월별 상세운세) */
+            viaSubscription: boolean;
             balance: number;
             entitlements: components["schemas"]["EntitlementDto"][];
         };
@@ -3038,6 +3090,23 @@ export interface components {
             clientKey: string;
             customerKey: string;
         };
+        SubscriptionBenefitsDto: {
+            /** @description 지금 혜택을 받는 중 (active · 해지 예약 기간 안). 결제 실패 재시도(grace) 중에는 false */
+            active: boolean;
+            /** @description 운알톡 결제 회차당 무료 횟수 */
+            consultTotal: number;
+            /** @description 이번 회차에 쓴 운알톡 횟수 */
+            consultUsed: number;
+            /** @description 이번 회차 남은 운알톡 횟수 */
+            consultLeft: number;
+            /**
+             * @description 무료로 열 수 있는 이번 달 월별 상세운세 키 (KST)
+             * @example monthly:2026-11
+             */
+            monthlyContentKey: string;
+            /** @description 출석 알 배수 */
+            attendanceMultiplier: number;
+        };
         SubscriptionDto: {
             id: number;
             /** @enum {string} */
@@ -3063,10 +3132,15 @@ export interface components {
             graceUntil: string | null;
             /** @description 카드사 · 마스킹 번호 */
             cardLabel: string | null;
+            benefits: components["schemas"]["SubscriptionBenefitsDto"];
         };
         StartTossSubscriptionRequest: {
             /** @example premium_monthly */
             productId: string;
+            /** @description successUrl 쿼리의 authKey */
+            authKey: string;
+        };
+        ChangeSubscriptionCardRequest: {
             /** @description successUrl 쿼리의 authKey */
             authKey: string;
         };
@@ -3257,6 +3331,8 @@ export interface components {
             followUpUntil: string | null;
             /** @description 이번 요청에서 쓴 포인트 */
             charged: number;
+            /** @description 이번 요청에서 구독 운알톡 횟수 1회를 써서 열었음 (포인트 안 씀) */
+            viaSubscription: boolean;
             /** Format: date-time */
             createdAt: string | null;
             /**
@@ -3277,6 +3353,17 @@ export interface components {
              */
             topic?: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
         };
+        ConsultSubscriptionQuotaDto: {
+            /** @description 결제 회차당 횟수 */
+            total: number;
+            /** @description 이번 회차 남은 횟수 */
+            left: number;
+            /**
+             * Format: date-time
+             * @description 이번 회차가 끝나는 시각 (다시 채워짐)
+             */
+            periodEnd: string;
+        };
         ConsultStatusDto: {
             /** @description 오늘 무료 미리보기가 남았는지 (KST) */
             freeToday: boolean;
@@ -3292,6 +3379,8 @@ export interface components {
             followUpHours: number;
             minLength: number;
             maxLength: number;
+            /** @description 구독 운알톡 이번 결제 회차 남은 횟수 (구독 혜택이 없으면 null). 하루 무료를 다 쓰면 알보다 먼저 쓰여요 */
+            subscription: components["schemas"]["ConsultSubscriptionQuotaDto"] | null;
         };
         FollowUpConsultRequest: {
             /**
@@ -4732,7 +4821,7 @@ export interface operations {
     FortuneController_getDailyFortune_v1: {
         parameters: {
             query?: {
-                /** @description KST 날짜. 생략하면 오늘. 오늘 ±1일만 허용 */
+                /** @description KST 날짜. 생략하면 오늘. 조회는 어제부터 7일 뒤까지 (위젯용), 뽑기는 오늘 ±1일만 */
                 date?: string;
             };
             header?: never;
@@ -4812,7 +4901,7 @@ export interface operations {
     FortuneController_drawDailyFortune_v1: {
         parameters: {
             query?: {
-                /** @description KST 날짜. 생략하면 오늘. 오늘 ±1일만 허용 */
+                /** @description KST 날짜. 생략하면 오늘. 조회는 어제부터 7일 뒤까지 (위젯용), 뽑기는 오늘 ±1일만 */
                 date?: string;
             };
             header?: never;
@@ -6942,6 +7031,24 @@ export interface operations {
                     };
                 };
             };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
         };
     };
     PaymentsController_listPurchases_v1: {
@@ -8510,6 +8617,24 @@ export interface operations {
                     };
                 };
             };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
         };
     };
     SubscriptionsController_mine_v1: {
@@ -8648,6 +8773,136 @@ export interface operations {
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    SubscriptionsController_changeCard_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeSubscriptionCardRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["SubscriptionDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_FAILED */
+                        code?: string;
+                        /** @example PAYMENT_FAILED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: SUBSCRIPTION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example SUBSCRIPTION_NOT_FOUND */
+                        code?: string;
+                        /** @example SUBSCRIPTION_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: DUPLICATE_REQUEST */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example DUPLICATE_REQUEST */
+                        code?: string;
+                        /** @example DUPLICATE_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    SubscriptionsController_payments_v1: {
+        parameters: {
+            query?: {
+                page?: number;
+                /** @description 최대 50 */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: {
+                            /** @example 0 */
+                            total?: number;
+                            list?: components["schemas"]["PurchaseDto"][];
+                        };
                     };
                 };
             };

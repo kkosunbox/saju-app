@@ -11,7 +11,7 @@ import { radius } from '../theme/typography';
 import { profileType } from '../theme/profileDesign';
 import { motion, useReducedMotion } from '../utils/motion';
 
-// 출석 말풍선은 앱을 켠 뒤 처음 한 번만 보여 주고, 그 뒤로는 알약 속 +10만 남긴다
+// 출석 말풍선은 앱을 켠 뒤 처음 한 번만 보여 주고, 그 뒤로는 알약 속 +10(구독 중이면 +20)만 남긴다
 let attendBubbleShown = false;
 
 /** 상단 오른쪽: 내 포인트 알약(누르면 지갑).
@@ -19,7 +19,8 @@ let attendBubbleShown = false;
  *  알약 → 알충전소 길을 익히게 하려는 것(비로그인도 똑같이). quiet면 말풍선 없이 +10만 바로 붙인다(메인 밖 화면) */
 export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?: boolean }) {
   const nav = useNavigation();
-  const { points, ready, attendedToday } = usePremium();
+  // 구독 중이면 출석 보상이 2배(20)라 서버가 알려 준 값을 그대로 쓴다
+  const { points, ready, attendedToday, attendanceReward: reward } = usePremium();
   const reduced = useReducedMotion();
   const goWallet = () => nav.navigate('Wallet');
   const show = !!attendHint && ready && !attendedToday;
@@ -82,10 +83,10 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
   return (
     <View>
       <Animated.View style={{ transform: [{ scale: lerp(gulp, [0, 1], [1, 1.06]) }] }}>
-        <PillButton points={points} onPress={goWallet} label={`내 알 ${points}개, 오늘 출석하면 10알을 받아요`}>
+        <PillButton points={points} onPress={goWallet} label={`내 알 ${points}개, 오늘 출석하면 ${reward}알을 받아요`}>
           <Animated.View style={{ maxWidth: lerp(chip, [0, 1], [0, 40]), opacity: chip, overflow: 'hidden' }}>
             <View style={s.chip}>
-              <Animated.Text style={[s.chipText, { opacity: chipPop, transform: [{ scale: lerp(chipPop, [0, 1], [0.85, 1]) }] }]}>+10</Animated.Text>
+              <Animated.Text style={[s.chipText, { opacity: chipPop, transform: [{ scale: lerp(chipPop, [0, 1], [0.85, 1]) }] }]}>+{reward}</Animated.Text>
             </View>
           </Animated.View>
         </PillButton>
@@ -103,7 +104,7 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
               ],
             }]}
           >
-            <PressableScale onPress={goWallet} style={s.bubble} scaleTo={0.96} hitSlop={6} accessibilityLabel="출석 체크하고 10알 받기">
+            <PressableScale onPress={goWallet} style={s.bubble} scaleTo={0.96} hitSlop={6} accessibilityLabel={`출석 체크하고 ${reward}알 받기`}>
               <View style={s.tail} />
               <Animated.Text
                 style={[s.bubbleText, {
@@ -121,7 +122,7 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
                   ],
                 }]}
                 numberOfLines={1}
-              >+10알</Animated.Text>
+              >+{reward}알</Animated.Text>
             </PressableScale>
           </Animated.View>
         </View>

@@ -1,6 +1,7 @@
 /**
  * 고민 상담 (서버 AI). 하루 5번까지 무료 미리보기(결론까지만), 100알로 열면 전체 답변과
- * 24시간 동안 이어 묻기 10번. 포인트는 답변이 만들어진 뒤에만 차감. 회원 전용.
+ * 24시간 동안 이어 묻기 10번. 구독 중이면 100알 대신 구독 운알톡 횟수(회차당 20회)를 먼저 쓴다.
+ * 포인트는 답변이 만들어진 뒤에만 차감. 회원 전용.
  */
 import { useQuery } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
@@ -44,6 +45,8 @@ export interface ConsultView {
   followUpsLeft: number;
   followUpUntil: string | null;
   charged: number;
+  /** 이번 요청에서 구독 운알톡 횟수 1회를 써서 열었음 (알 안 씀) */
+  viaSubscription?: boolean;
   createdAt: string | null;
   expiresAt: string | null;
 }
@@ -52,7 +55,12 @@ export interface ConsultStatus {
   /** 오늘 남은 무료 미리보기 · 하루 횟수 */
   freeLeft: number; freePerDay: number;
   cost: number; followUpLimit: number; followUpHours: number; minLength: number; maxLength: number;
+  /** 구독 운알톡 — 이번 결제 회차 남은 횟수 (구독 혜택이 없으면 null). 하루 무료를 다 쓰면 알보다 먼저 쓰인다 */
+  subscription: { total: number; left: number; periodEnd: string } | null;
 }
+
+/** 구독 운알톡 이번 회차 남은 횟수 */
+export type SubscriptionQuota = NonNullable<ConsultStatus['subscription']>;
 
 /** 잠금이 풀린 전체 답변인지 */
 export const isFullAnswer = (a: ConsultView['answer']): a is ConsultAnswer => !!a && 'dos' in a;

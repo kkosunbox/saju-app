@@ -107,6 +107,8 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="wallet" />
           <Stack.Screen name="charge" />
           <Stack.Screen name="subscribe" />
+          <Stack.Screen name="subscription/index" />
+          <Stack.Screen name="subscription/payments" />
           <Stack.Screen name="premium/saju" />
           <Stack.Screen name="premium/life" />
           <Stack.Screen name="premium/new-year" />

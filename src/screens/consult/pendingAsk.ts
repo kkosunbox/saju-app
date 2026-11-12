@@ -26,7 +26,8 @@ export function startAsk(worry: string, topic?: ConsultCat): string {
     v => {
       if (v.id != null) queryClient.setQueryData(consultKeys.one(v.id), v);
       queryClient.invalidateQueries({ queryKey: consultKeys.list });
-      if (v.charged) refreshPoints();
+      // 구독 운알톡을 썼어도 구독 남은 횟수가 바뀌었다 (구독 정보는 'points' 아래에 있다)
+      if (v.charged || v.viaSubscription) refreshPoints();
     },
     () => {}, // 오류는 대화 화면이 받아서 보여 준다
   );

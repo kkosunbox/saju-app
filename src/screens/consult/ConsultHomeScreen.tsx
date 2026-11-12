@@ -15,6 +15,7 @@ import BottomSheet from '../../components/BottomSheet';
 import SectionHeader from '../../components/SectionHeader';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
+import { SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
 import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
 import { CONSULT_CONFIG, guessCat } from '../../services/content/consult';
@@ -73,6 +74,9 @@ export default function ConsultHomeScreen() {
   const perDay = status.data?.freePerDay ?? 5;
   const freeLeft = account ? status.data?.freeLeft ?? perDay : perDay;
   const free = freeLeft > 0;
+  // 하루 무료를 다 쓰면 구독 운알톡 횟수를 알보다 먼저 쓴다 (서버가 판단)
+  const sub = account ? status.data?.subscription ?? null : null;
+  const viaSub = !free && !!sub && sub.left > 0;
 
   // 주제는 글에서 추측해 서버에 함께 보낸다 (서버가 다시 판단한다)
   const cat = text.trim() ? guessCat(text) : null;
@@ -88,7 +92,7 @@ export default function ConsultHomeScreen() {
   const start = () => {
     if (!ok) return;
     if (!account) { toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
-    if (free) ask();
+    if (free || viaSub) ask();
     else setConfirm(true);
   };
   // 포인트가 모자라면 서버가 INSUFFICIENT_POINTS로 돌려주고, 대화 화면이 충전으로 안내한다.
@@ -159,9 +163,17 @@ export default function ConsultHomeScreen() {
                   <Text style={s.freeK}>오늘 무료 대화</Text>
                   <View style={s.ticket}><Text style={s.ticketText}>{freeLeft}회 남음</Text></View>
                 </View>
+              ) : viaSub && sub ? (
+                <View style={s.hintRow} accessibilityLabel={`구독 운알톡 ${sub.total}회 중 ${sub.left}회 남음`}>
+                  <SubscriptionBadge label="구독 운알톡" small />
+                  <View style={s.ticket}><Text style={s.ticketText}>{sub.left}/{sub.total}회 남음</Text></View>
+                </View>
               ) : null}
               <Text style={s.hint} numberOfLines={1}>
-                {free ?(freeLeft === 1 ? '오늘 마지막 무료 대화예요' : '') : `${cost}알로 물어보기${account ? ` · 보유 ${fmtP(points)}` : ''}`}
+                {free
+                  ? (freeLeft === 1 ? (sub && sub.left > 0 ? `다음부터 구독 ${sub.left}회에서 써요` : '오늘 마지막 무료 대화예요') : '')
+                  : viaSub ? '알은 쓰지 않아요'
+                  : `${cost}알로 물어보기${account ? ` · 보유 ${fmtP(points)}` : ''}`}
               </Text>
             </View>
             {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
@@ -172,7 +184,7 @@ export default function ConsultHomeScreen() {
               placeholder="마음의 소리를 편하게 적어 주세요" placeholderTextColor={colors.inkMute}
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
-            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : `${cost}알로 물어보기`}>
+            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : viaSub ? '구독 혜택으로 물어보기' : `${cost}알로 물어보기`}>
               <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
             </PressableScale>
           </View>
@@ -182,7 +194,7 @@ export default function ConsultHomeScreen() {
       <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>운알톡</Text>
         <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 물어볼까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 대화 {perDay}번을 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
+        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 대화 {perDay}번{sub ? `과 이번 달 구독 운알톡 ${sub.total}회를` : '을'} 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
         <PrimaryButton label="물어보기" onPress={ask} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
       </BottomSheet>

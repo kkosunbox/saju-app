@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Bullet, SubHead } from '../../components/premium/Kit';
-import { usePremium } from '../../context/PremiumContext';
+import { refreshPoints, usePremium } from '../../context/PremiumContext';
 import { SUBSCRIPTION } from '../../services/premium/catalog';
 import { TOSS_FAIL_MESSAGE, loadToss } from '../../services/premium/tossSdk';
 import { pointsApi } from '../../services/server/pointsApi';
@@ -34,7 +34,7 @@ function subscribeError(e: unknown): string {
  * 서버가 빌링키를 받고 첫 회차를 결제한다. 앱은 아직 스토어 구독이 없어 웹 안내로 끝난다.
  */
 export default function SubscribeScreen() {
-  const { toast } = usePremium();
+  const { toast, subscription } = usePremium();
   const p = SUBSCRIPTION;
   const q = useLocalSearchParams<{ result?: string; authKey?: string; code?: string; message?: string }>();
   const [busy, setBusy] = useState(q.result === 'success');
@@ -50,11 +50,12 @@ export default function SubscribeScreen() {
       return;
     }
     pointsApi.startTossSubscription(p.productId, q.authKey ?? '')
-      .then(() => { toast('정기 구독을 시작했어요'); router.replace('/wallet'); })
+      .then(async () => { await refreshPoints(); toast('정기 구독을 시작했어요. 지금부터 혜택을 쓸 수 있어요'); router.replace('/subscription'); })
       .catch(e => { toast(subscribeError(e)); setBusy(false); router.setParams({ result: undefined, authKey: undefined, customerKey: undefined }); });
   }, []);
 
   const subscribe = async () => {
+    if (subscription) { router.replace('/subscription'); return; }
     if (Platform.OS !== 'web') { toast('정기 구독은 지금은 웹에서 시작할 수 있어요'); return; }
     setBusy(true);
     try {
@@ -71,7 +72,7 @@ export default function SubscribeScreen() {
   };
 
   return (
-    <Screen title="정기구독" back contentStyle={s.content} footer={<PrimaryButton size="medium" label={busy ? '구독 준비 중…' : `월 ${won(p.won)} 구독하기`} onPress={subscribe} disabled={busy} />}>
+    <Screen title="정기구독" back contentStyle={s.content} footer={<PrimaryButton size="medium" label={subscription ? '이미 구독 중이에요 · 구독 관리' : busy ? '구독 준비 중…' : `월 ${won(p.won)} 구독하기`} onPress={subscribe} disabled={busy} />}>
       <View style={s.hero}>
         <Image source={require('../../../assets/figma/subscribe/hero.webp')} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
         <Text style={s.heroSub}>{p.period} 자동 갱신</Text>
@@ -96,8 +97,10 @@ export default function SubscribeScreen() {
         <Bullet>첫 결제일부터 {p.period}마다 등록한 카드로 {won(p.won)}이 자동 결제돼요.</Bullet>
         <Bullet>결제는 토스페이먼츠 정기결제로 처리되고, 결제일은 매달 첫 결제일과 같은 날이에요. 그 날이 없는 달은 말일에 결제돼요.</Bullet>
         <Bullet>결제에 실패하면 3일 동안 하루 한 번 다시 시도하고, 그래도 실패하면 구독이 끝나요.</Bullet>
+        <Bullet>운알톡 20회는 결제일마다 새로 채워지고, 남은 횟수는 다음 달로 넘어가지 않아요. 하루 무료 대화 5회를 다 쓴 뒤부터 알보다 먼저 쓰여요.</Bullet>
+        <Bullet>월별 상세운세는 구독 중인 달의 운세를 무료로 열 수 있고, 한 번 열면 구독이 끝나도 계속 볼 수 있어요.</Bullet>
         <Bullet>언제든 [마이 &gt; 내 알 &gt; 정기 구독]에서 해지할 수 있어요. 해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요.</Bullet>
-        <Bullet>결제 후 7일 안에 혜택(무료 운알톡·콘텐츠)을 하나도 쓰지 않았다면 전액 환불을 요청할 수 있어요. 그 밖에는 이용약관 제4조의2를 따라요.</Bullet>
+        <Bullet>환불은 1:1 문의로 요청해 주세요. 결제 후 7일 안에 혜택(무료 운알톡·월별 상세운세·출석 2배)을 하나도 쓰지 않았다면 전액 환불해 드려요. 그 밖에는 이용약관 제4조의2를 따라요.</Bullet>
       </View>
       <Text style={s.terms} accessibilityRole="link" onPress={() => router.push('/legal/terms')}>이용약관 보기</Text>
     </Screen>
