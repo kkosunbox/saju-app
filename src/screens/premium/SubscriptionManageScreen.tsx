@@ -1,6 +1,7 @@
 /**
  * 구독 관리 — 상태 · 다음 결제 · 이번 결제 기간 혜택 사용 · 결제 내역 · 해지/해지 취소.
  * 해지해도 이번 결제 기간 끝까지 혜택이 남고 다음 결제부터 청구되지 않는다. 환불은 1:1 문의로만 받는다.
+ * App Store · Google Play 구독은 해지 · 결제 수단 · 환불을 스토어에서 한다 (스토어 구독 관리로 연결).
  * 앱(iOS · Android)에서도 해지·해지 취소는 되지만, 구독 시작은 웹에서만 한다 (결제 링크를 두지 않는다).
  */
 import React, { useEffect, useRef, useState } from 'react';
@@ -25,10 +26,11 @@ import { consultKeys } from '../../services/server/consultApi';
 import { queryClient } from '../../api/query';
 import { colors } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
-import { TOSS_FAIL_MESSAGE, loadToss } from '../../services/premium/tossSdk';
+import { TOSS_CARD_FAIL_MESSAGE, loadToss } from '../../services/premium/tossSdk';
 import { ApiError } from '../../api/client';
 import { kstDot, kstMonthDay, subscriptionStatusLabel, won } from './subscriptionText';
 import { PaymentRows } from './SubscriptionPaymentsScreen';
+import { useStoreBilling } from '../../context/StoreBillingContext';
 
 /** 구독 관리 화면에 보이는 최근 결제 수. 더 있으면 '더보기'로 결제 내역 화면을 연다 */
 const RECENT = 10;
@@ -46,6 +48,7 @@ export default function SubscriptionManageScreen() {
   const { subscription: sub, ready, owned, attendedToday, toast } = usePremium();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const storeBilling = useStoreBilling().subscription;
   const payments = useQuery({
     queryKey: [...pointsKeys.subscriptionPayments, account?.id, 1, RECENT],
     queryFn: () => pointsApi.subscriptionPayments(1, RECENT),
@@ -60,7 +63,7 @@ export default function SubscriptionManageScreen() {
     handled.current = true;
     const clear = () => router.setParams({ card: undefined, authKey: undefined, customerKey: undefined, code: undefined, message: undefined });
     if (q.card === 'fail') {
-      toast(TOSS_FAIL_MESSAGE[q.code ?? ''] ?? q.message ?? '카드를 등록하지 못했어요');
+      toast(TOSS_CARD_FAIL_MESSAGE[q.code ?? ''] ?? q.message ?? '카드를 등록하지 못했어요');
       clear();
       return;
     }
@@ -122,9 +125,18 @@ export default function SubscriptionManageScreen() {
     } catch (e) {
       // 등록창을 닫으면 여기로 온다
       const code = (e as { code?: string }).code ?? '';
-      toast(e instanceof ApiError ? cardError(e) : TOSS_FAIL_MESSAGE[code] ?? '카드 등록창을 열지 못했어요');
+      toast(e instanceof ApiError ? cardError(e) : TOSS_CARD_FAIL_MESSAGE[code] ?? '카드 등록창을 열지 못했어요');
       setCardBusy(false);
     }
+  };
+  // App Store · Google Play 구독: 결제 수단 · 해지 · 환불은 스토어에서
+  const storeSub = sub.store !== 'toss';
+  const storeName = sub.store === 'apple' ? 'App Store' : 'Google Play';
+  const storeWhere = sub.store === 'apple' ? '설정 > Apple 계정 > 구독' : 'Play 스토어 > 결제 및 정기 결제';
+  const manageInStore = () => {
+    // 이 기기 스토어와 구독한 스토어가 같을 때만 바로 연다
+    if ((sub.store === 'apple' && Platform.OS === 'ios') || (sub.store === 'google' && Platform.OS === 'android')) void storeBilling.manage();
+    else toast(`${storeName}에서 구독한 거라 ${storeWhere}에서 관리할 수 있어요`);
   };
   const payList = payments.data?.list ?? [];
   const payTotal = payments.data?.total ?? 0;
@@ -147,9 +159,13 @@ export default function SubscriptionManageScreen() {
           <HeroRow k="이용 기간" v={`${kstDot(sub.currentPeriodStart)} ~ ${kstDot(sub.currentPeriodEnd)}`} />
           <HeroRow
             k="다음 결제"
-            v={sub.status === 'cancelled' ? '없음 (해지 예약)' : sub.status === 'grace' ? '다시 시도하는 중' : sub.nextChargeAt ? `${kstDot(sub.nextChargeAt)} · ${won(sub.priceKrw)}` : '-'}
+            v={sub.status === 'cancelled' ? '없음 (해지 예약)' : sub.status === 'grace' ? '다시 시도하는 중'
+              : sub.nextChargeAt ? `${kstDot(sub.nextChargeAt)} · ${won(sub.priceKrw)}`
+              // 스토어 구독은 스토어가 기간 끝에 자동 갱신한다
+              : sub.store !== 'toss' && sub.autoRenew ? `${kstDot(sub.currentPeriodEnd)} 자동 갱신` : '-'}
           />
-          <View style={s.between}>
+          {storeSub ? <HeroRow k="결제" v={`${storeName} 구독`} /> : null}
+          {storeSub ? null : <View style={s.between}>
             <Text style={s.heroK}>결제 카드</Text>
             <View style={s.row}>
               <Text style={s.heroV}>{sub.cardLabel ?? '-'}</Text>
@@ -159,7 +175,7 @@ export default function SubscriptionManageScreen() {
                 </PressableScale>
               ) : null}
             </View>
-          </View>
+          </View>}
         </View>
       </View>
 
@@ -167,7 +183,9 @@ export default function SubscriptionManageScreen() {
         <View style={s.warn}>
           <Icon name="bell" size={16} color={colors.danger} />
           <Text style={s.warnText}>
-            갱신 결제가 승인되지 않았어요. {sub.graceUntil ? `${kstMonthDay(sub.graceUntil)}까지 ` : ''}하루 한 번 다시 시도하고, 그래도 안 되면 구독이 끝나요. 결제가 될 때까지 구독 혜택은 잠시 멈춰요. 결제 카드를 바꾸면 새 카드로 바로 다시 결제해요.
+            {storeSub
+              ? `${storeName}에서 갱신 결제가 승인되지 않았어요. ${sub.graceUntil ? `${kstMonthDay(sub.graceUntil)}까지는 혜택을 그대로 쓸 수 있어요. ` : '결제가 될 때까지 구독 혜택은 잠시 멈춰요. '}${storeWhere}에서 결제 수단을 확인해 주세요.`
+              : `갱신 결제가 승인되지 않았어요. ${sub.graceUntil ? `${kstMonthDay(sub.graceUntil)}까지 ` : ''}하루 한 번 다시 시도하고, 그래도 안 되면 구독이 끝나요. 결제가 될 때까지 구독 혜택은 잠시 멈춰요. 결제 카드를 바꾸면 새 카드로 바로 다시 결제해요.`}
           </Text>
         </View>
       ) : sub.status === 'cancelled' ? (
@@ -213,7 +231,9 @@ export default function SubscriptionManageScreen() {
       ) : null}
 
       <View style={{ marginTop: 24, gap: 8 }}>
-        {sub.status === 'cancelled' ? (
+        {storeSub ? (
+          <PrimaryButton label={`${storeName}에서 구독 관리`} variant="soft" onPress={manageInStore} />
+        ) : sub.status === 'cancelled' ? (
           <PrimaryButton label={busy ? '처리 중…' : '해지 취소하기'} onPress={resume} disabled={busy} />
         ) : (
           <PrimaryButton label="구독 해지하기" variant="soft" onPress={() => setConfirm(true)} disabled={busy} />
@@ -221,9 +241,17 @@ export default function SubscriptionManageScreen() {
       </View>
 
       <View style={{ marginTop: 20, gap: 6 }}>
-        <Bullet textStyle={s.small}>해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요. 기간이 끝나기 전에는 해지를 취소할 수 있어요.</Bullet>
+        {storeSub ? (
+          <Bullet textStyle={s.small}>해지·결제 수단 변경은 {storeWhere}에서 할 수 있어요. 해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지돼요.</Bullet>
+        ) : (
+          <Bullet textStyle={s.small}>해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요. 기간이 끝나기 전에는 해지를 취소할 수 있어요.</Bullet>
+        )}
         <Bullet textStyle={s.small}>남은 운알톡 횟수는 다음 결제 기간으로 넘어가지 않아요. 구독으로 연 월별 상세운세는 구독이 끝나도 계속 볼 수 있어요.</Bullet>
-        <Bullet textStyle={s.small}>환불은 1:1 문의로 요청해 주세요. 결제 후 7일 안에 혜택을 하나도 쓰지 않았다면 전액 환불해 드려요.</Bullet>
+        {storeSub ? (
+          <Bullet textStyle={s.small}>환불은 {storeName} 정책에 따라 {sub.store === 'apple' ? 'Apple' : 'Google Play'}에 요청해 주세요.</Bullet>
+        ) : (
+          <Bullet textStyle={s.small}>환불은 1:1 문의로 요청해 주세요. 결제 후 7일 안에 혜택을 하나도 쓰지 않았다면 전액 환불해 드려요.</Bullet>
+        )}
       </View>
       <Text style={s.link} accessibilityRole="link" onPress={() => router.push('/inquiry')}>1:1 문의하기</Text>
 

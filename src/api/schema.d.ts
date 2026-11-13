@@ -1023,7 +1023,7 @@ export interface paths {
         put?: never;
         /**
          * 포인트로 열기
-         * @description 이미 열려 있으면 포인트를 쓰지 않고 그대로 돌려줍니다. 무료 포인트 → 만료가 가까운 포인트 순으로 차감. 인생 패키지는 포함 항목 열람권을 함께 만들고, 이미 가진 항목만큼 싸집니다(GET /premium/quote). 포함 항목을 반 이상 가졌으면 CONTENT_NOT_FOR_SALE. compat:{id} · crush:{id}는 내 궁합 기록만 가능합니다.
+         * @description 이미 열려 있으면 포인트를 쓰지 않고 그대로 돌려줍니다. 무료 포인트 → 만료가 가까운 포인트 순으로 차감. 인생 패키지는 포함 항목 열람권을 함께 만들고, 이미 가진 항목만큼 싸집니다(GET /premium/quote). 포함 항목을 반 이상 가졌으면 CONTENT_NOT_FOR_SALE. compat:{id} · crush:{id}는 내 궁합 기록만 가능합니다. AI 풀이가 있는 콘텐츠는 지금 풀이를 쓸 수 없으면(AI 중지 · 크레딧 소진 · 하루 상한) 503 READING_UNAVAILABLE로 팔지 않습니다(이미 열린 것은 그대로).
          */
         post: operations["PremiumController_unlock_v1"];
         delete?: never;
@@ -1609,6 +1609,46 @@ export interface paths {
         get: operations["SubscriptionsController_payments_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subscriptions/apple": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * App Store 구독 확인 (구매 · 복원)
+         * @description StoreKit 2 구매(또는 구매 복원)의 signed transaction을 보내면 Apple에 지금 상태를 다시 물어 내 구독으로 만듭니다. appAccountToken이 이 회원 것이어야 합니다. 서버 확인이 끝난 뒤 앱에서 finishTransaction 하세요.
+         */
+        post: operations["SubscriptionsController_confirmApple_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/subscriptions/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Google Play 구독 확인 (구매 · 복원)
+         * @description purchaseToken을 보내면 Google에 지금 상태를 다시 물어 내 구독으로 만들고 구매를 승인(acknowledge)합니다. obfuscatedAccountId가 이 회원 것이어야 합니다.
+         */
+        post: operations["SubscriptionsController_confirmGoogle_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3143,6 +3183,14 @@ export interface components {
         ChangeSubscriptionCardRequest: {
             /** @description successUrl 쿼리의 authKey */
             authKey: string;
+        };
+        ConfirmAppleSubscriptionRequest: {
+            /** @description 구독 거래의 StoreKit 2 signed transaction (JWS) */
+            signedTransaction: string;
+        };
+        ConfirmGoogleSubscriptionRequest: {
+            /** @description 구독 purchaseToken */
+            purchaseToken: string;
         };
         ReadingListItemDto: {
             /** @example saju */
@@ -6576,6 +6624,24 @@ export interface operations {
                     };
                 };
             };
+            /** @description Possible error codes: READING_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example READING_UNAVAILABLE */
+                        code?: string;
+                        /** @example READING_UNAVAILABLE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
         };
     };
     PaymentsController_storeAccount_v1: {
@@ -8903,6 +8969,204 @@ export interface operations {
                             total?: number;
                             list?: components["schemas"]["PurchaseDto"][];
                         };
+                    };
+                };
+            };
+        };
+    };
+    SubscriptionsController_confirmApple_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmAppleSubscriptionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["SubscriptionDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_FAILED */
+                        code?: string;
+                        /** @example PAYMENT_FAILED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: SUBSCRIPTION_EXPIRED */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example SUBSCRIPTION_EXPIRED */
+                        code?: string;
+                        /** @example SUBSCRIPTION_EXPIRED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: ACTIVE_SUBSCRIPTION_EXISTS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example ACTIVE_SUBSCRIPTION_EXISTS */
+                        code?: string;
+                        /** @example ACTIVE_SUBSCRIPTION_EXISTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    SubscriptionsController_confirmGoogle_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmGoogleSubscriptionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["SubscriptionDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_FAILED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_FAILED */
+                        code?: string;
+                        /** @example PAYMENT_FAILED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: SUBSCRIPTION_EXPIRED */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example SUBSCRIPTION_EXPIRED */
+                        code?: string;
+                        /** @example SUBSCRIPTION_EXPIRED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: ACTIVE_SUBSCRIPTION_EXISTS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example ACTIVE_SUBSCRIPTION_EXISTS */
+                        code?: string;
+                        /** @example ACTIVE_SUBSCRIPTION_EXISTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: PAYMENT_NOT_READY */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example PAYMENT_NOT_READY */
+                        code?: string;
+                        /** @example PAYMENT_NOT_READY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
                     };
                 };
             };

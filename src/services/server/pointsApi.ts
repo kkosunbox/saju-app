@@ -140,6 +140,13 @@ export const pointsApi = {
   /** 해지 취소 — 기간이 끝나기 전이면 다시 자동 결제된다 */
   resumeSubscription: () => call<MySubscription>(api.POST('/v1/subscriptions/me/resume')),
 
+  /** App Store 구독 구매·복원 확인 — 구독 거래의 StoreKit 2 JWS. 서버가 Apple에 지금 상태를 다시 묻는다 */
+  confirmAppleSubscription: (signedTransaction: string) =>
+    call<MySubscription>(api.POST('/v1/subscriptions/apple', { body: { signedTransaction } })),
+  /** Google Play 구독 구매·복원 확인 — 서버가 상태를 다시 묻고 구매를 승인(acknowledge)한다 */
+  confirmGoogleSubscription: (purchaseToken: string) =>
+    call<MySubscription>(api.POST('/v1/subscriptions/google', { body: { purchaseToken } })),
+
   /** 결제 카드 변경 — 카드 등록창(subscriptionBillingAuth)의 successUrl authKey. 결제 실패 중이면 새 카드로 바로 다시 결제된다 */
   changeSubscriptionCard: (authKey: string) => call<MySubscription>(api.POST('/v1/subscriptions/me/card', { body: { authKey } })),
 

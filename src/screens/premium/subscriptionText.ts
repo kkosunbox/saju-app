@@ -28,5 +28,8 @@ export function subscriptionLine(sub: MySubscription): string {
     return sub.graceUntil ? `결제 실패 · ${kstMonthDay(sub.graceUntil)}까지 다시 시도해요` : '결제 실패 · 다시 시도하는 중이에요';
   }
   if (sub.status === 'cancelled') return `해지 예약 · ${kstMonthDay(sub.currentPeriodEnd)}까지 이용`;
-  return sub.nextChargeAt ? `다음 결제 ${kstMonthDay(sub.nextChargeAt)} · ${won(sub.priceKrw)}` : `${kstMonthDay(sub.currentPeriodEnd)}까지 이용`;
+  if (sub.nextChargeAt) return `다음 결제 ${kstMonthDay(sub.nextChargeAt)} · ${won(sub.priceKrw)}`;
+  // App Store · Google Play 구독은 스토어가 기간 끝에 갱신한다
+  if (sub.store !== 'toss' && sub.autoRenew) return `다음 갱신 ${kstMonthDay(sub.currentPeriodEnd)} · ${won(sub.priceKrw)}`;
+  return `${kstMonthDay(sub.currentPeriodEnd)}까지 이용`;
 }

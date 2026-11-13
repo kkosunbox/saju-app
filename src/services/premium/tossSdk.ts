@@ -39,5 +39,16 @@ export const TOSS_FAIL_MESSAGE: Record<string, string> = {
   PAY_PROCESS_CANCELED: '결제를 취소했어요.',
   PAY_PROCESS_ABORTED: '결제가 중단됐어요. 다시 시도해 주세요.',
   REJECT_CARD_COMPANY: '카드사에서 결제를 거절했어요. 다른 카드로 시도해 주세요.',
+  USER_CANCEL: '결제를 취소했어요.',
+  // 결제하기를 눌렀는데 위젯에서 덜 고른 경우 (결제창이 뜨기 전에 위젯이 막는다)
+  NOT_SELECTED_PAYMENT_METHOD: '결제수단을 선택해 주세요.',
+  NEED_CARD_PAYMENT_DETAIL: '카드사를 선택해 주세요.',
+  NEED_AGREEMENT_WITH_REQUIRED_TERMS: '필수 약관에 동의해 주세요.',
+  NEED_REFUND_ACCOUNT_DETAIL: '환불 계좌 정보를 모두 입력해 주세요.',
+};
+
+/** 카드 등록창(정기 구독·카드 변경)을 닫거나 실패했을 때 */
+export const TOSS_CARD_FAIL_MESSAGE: Record<string, string> = {
+  ...TOSS_FAIL_MESSAGE,
   USER_CANCEL: '카드 등록을 취소했어요.',
 };
