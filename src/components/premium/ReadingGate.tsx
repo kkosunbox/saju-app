@@ -206,12 +206,14 @@ export function useReadingSections(reading: ReadingView<unknown> | null | undefi
   const writing = reading?.status === 'writing';
   const parts = (reading?.parts ?? {}) as Record<string, unknown>;
   const firstPending = READING_STEPS[kind].steps.map(x => x.key).find(k => parts[k] == null) ?? null;
-  // 쓰기 시작 · 끝을 그 렌더에서 바로 반영한다 (effect로 하면 한 렌더 동안 카드 자리가 어긋난다)
+  // 시작 시각은 effect에서 기록하고, 전환 렌더에서는 첫 대기 파트를 바로 사용한다.
   const [run, setRun] = useState(() => ({ writing, startedAt: takeOpeningStartedAt(kind), anchor: writing ? firstPending : null }));
-  if (run.writing !== writing) {
-    setRun({ writing, startedAt: writing ? Date.now() : run.startedAt, anchor: writing ? firstPending : null });
-  }
-  return { kind, reading, writing, parts, startedAt: run.startedAt, anchor: writing ? run.anchor : null };
+  useEffect(() => {
+    if (run.writing !== writing) {
+      setRun({ writing, startedAt: writing ? Date.now() : run.startedAt, anchor: writing ? firstPending : null });
+    }
+  }, [writing, firstPending, run]);
+  return { kind, reading, writing, parts, startedAt: run.startedAt, anchor: writing ? (run.writing ? run.anchor : firstPending) : null };
 }
 
 /**

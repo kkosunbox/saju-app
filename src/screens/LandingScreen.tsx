@@ -487,8 +487,8 @@ export default function LandingScreen() {
             <Text style={{ color: colors.inkSub, fontWeight: "600" }}>
               {PAID_MORE.join(" · ")}
             </Text>{" "}
-            등도 있어요.{"\n"}앱 안의 알로 원하는 것만 열어 보세요. 가입하면
-            100알을 드려요.
+            등도 있어요.{"\n"}앱 안의 알로 원하는 것만 열어 보세요. SNS 계정으로
+            가입하면 100알을 드려요.
           </Text>
 
           {/* 서비스 소개 페이지 — <a href> 로 그려 검색엔진도 따라간다 */}

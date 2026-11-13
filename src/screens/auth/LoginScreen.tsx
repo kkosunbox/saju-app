@@ -72,7 +72,8 @@ export default function LoginScreen() {
       </View>
 
       <View style={s.bottom}>
-        <Text style={s.caption}>SNS 계정으로 간편 가입하기</Text>
+        {/* 가입 축하 알은 SNS 가입에만 준다 (서버 정책) — 처음 오는 사람에게 살짝 알린다 */}
+        <Text style={s.caption}>SNS 계정으로 간편 가입하면 <Text style={s.bonus}> +100알 </Text></Text>
         {/* 말풍선이 설명 문구를 가리지 않게 그만큼 내린다 */}
         <View style={[s.circles, last && last !== 'email' ? { marginTop: 40 } : null]}>
           {PROVIDERS.map(p => (
@@ -127,6 +128,7 @@ const s = StyleSheet.create({
   logoDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.moon, marginTop: 22 },
   bottom: { alignItems: 'center', paddingBottom: 20, paddingHorizontal: 24 },
   caption: { fontSize: 13, color: colors.inkMute, fontWeight: '500' },
+  bonus: { fontWeight: '700', color: colors.heroBg, backgroundColor: colors.moon },
   circles: { flexDirection: 'row', gap: 16, marginTop: 16 },
   emailLink: { fontSize: 15, fontWeight: '600', color: colors.inkSub, textDecorationLine: 'underline' },
   helpPill: { marginTop: 28, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong },

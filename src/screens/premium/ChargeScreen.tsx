@@ -94,12 +94,10 @@ export default function ChargeScreen() {
     }
   };
 
-  const footer = phase === 'ready' || phase === 'paying'
-    ? <PrimaryButton label={phase === 'paying' ? '결제창 여는 중…' : `${order!.amount.toLocaleString('ko-KR')}원 결제하기`} onPress={pay} disabled={phase === 'paying'} />
-    : phase === 'error' ? <PrimaryButton label="내 알 보러 가기" onPress={() => router.replace('/wallet')} /> : undefined;
+  const footer = phase === 'error' ? <PrimaryButton label="내 알 보러 가기" onPress={() => router.replace('/wallet')} /> : undefined;
 
   return (
-    <Screen title="알 충전" back footer={footer}>
+    <Screen title="알 충전" back footer={footer} contentStyle={s.fill}>
       {pack && phase !== 'confirming' && phase !== 'error' ? (
         <View style={s.sum}>
           <Amount value={pack[1] + pack[2]} size={22} style={txt.h2} />
@@ -124,7 +122,13 @@ export default function ChargeScreen() {
           <View nativeID="toss-agreement" />
         </View>
       ) : null}
-      <BusinessFooter style={{ marginTop: 32 }} />
+      {/* 결제하기는 위젯(결제수단 → 약관) 바로 아래에 둔다 — PC처럼 세로로 긴 화면에서 창 맨 아래 고정 버튼은 눈에 잘 안 띈다 */}
+      {phase === 'ready' || phase === 'paying' ? (
+        <PrimaryButton style={s.pay} label={phase === 'paying' ? '결제창 여는 중…' : `${order!.amount.toLocaleString('ko-KR')}원 결제하기`} onPress={pay} disabled={phase === 'paying'} />
+      ) : null}
+      {/* 사업자 정보는 내용이 짧아도 화면 맨 아래에 붙인다 */}
+      <View style={s.spacer} />
+      <BusinessFooter />
     </Screen>
   );
 }
@@ -134,4 +138,7 @@ const s = StyleSheet.create({
   center: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 12 },
   widget: { marginTop: 12, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.white },
   hidden: { height: 0, overflow: 'hidden' },
+  pay: { marginTop: 16 },
+  fill: { flexGrow: 1 },
+  spacer: { flexGrow: 1, minHeight: 32 },
 });

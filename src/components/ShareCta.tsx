@@ -239,7 +239,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     <>
       <Text style={[txt.h2, s.center]}>{Platform.OS === 'web' ? '새 탭이 열려요' : '브라우저가 열려요'}</Text>
       <Text style={[txt.small, s.center, { marginTop: 8 }]}>
-        {Platform.OS === 'web' ? '새 탭' : '브라우저'}에서 풀이 페이지가 열리고 인쇄 화면이 떠요.{'\n'}인쇄 화면에서 'PDF로 저장'을 골라 저장해 주세요.
+        {Platform.OS === 'web' ? '새 탭' : '브라우저'}에서 풀이 페이지가 열리고 인쇄 화면이 떠요.{'\n'}인쇄 화면에서 ‘PDF로 저장’을 골라 저장해 주세요.
       </Text>
       {error ? <Text style={[txt.small, s.error, s.center]}>{error}</Text> : null}
       <PrimaryButton label="PDF 저장" onPress={() => { setPdfGuide(false); savePdf(mine); }} style={{ marginTop: 20 }} />

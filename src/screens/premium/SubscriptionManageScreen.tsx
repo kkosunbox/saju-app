@@ -215,6 +215,10 @@ export default function SubscriptionManageScreen() {
           done={attendedToday}
           onPress={() => router.push('/wallet')}
         />
+        <BenefitRow
+          title="광고 없이 이용"
+          desc={b.active ? '구독 중에는 광고가 보이지 않아요' : '결제가 되면 다시 적용돼요'}
+        />
       </View>
 
       {payList.length ? (
@@ -278,10 +282,10 @@ function HeroRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-/** 혜택 한 줄 — 왕관 칩 · 설명 · (운알톡이면) 사용량 막대 · 눌러서 그 기능으로 */
-function BenefitRow({ title, desc, bar, done, onPress }: { title: string; desc: string; bar?: number; done?: boolean; onPress(): void }) {
+/** 혜택 한 줄. onPress가 없으면(광고 없이 이용) 눌러서 갈 곳이 없어 화살표도 없다 */
+function BenefitRow({ title, desc, bar, done, onPress }: { title: string; desc: string; bar?: number; done?: boolean; onPress?(): void }) {
   return (
-    <PressableScale onPress={onPress} scaleTo={0.98} accessibilityLabel={`${title} · ${desc}`}>
+    <PressableScale onPress={onPress} disabled={!onPress} scaleTo={0.98} accessibilityLabel={`${title} · ${desc}`}>
       <Card style={s.benefit}>
         <View style={{ flex: 1, gap: 6 }}>
           <View style={s.row}>
@@ -294,7 +298,7 @@ function BenefitRow({ title, desc, bar, done, onPress }: { title: string; desc: 
             <View style={s.track}><View style={[s.fill, { width: `${Math.round(Math.min(1, Math.max(0, bar)) * 100)}%` }]} /></View>
           ) : null}
         </View>
-        <Icon name="chevronRight" size={18} color={colors.inkMute} strokeWidth={2} />
+        {onPress ? <Icon name="chevronRight" size={18} color={colors.inkMute} strokeWidth={2} /> : null}
       </Card>
     </PressableScale>
   );
