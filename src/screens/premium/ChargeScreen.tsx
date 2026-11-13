@@ -63,7 +63,7 @@ export default function ChargeScreen() {
         const w = TossPayments(created.clientKey).widgets({ customerKey: created.customerKey });
         await w.setAmount({ currency: 'KRW', value: created.amount });
         await Promise.all([
-          w.renderPaymentMethods({ selector: '#toss-payment-method', variantKey: 'widgetK' }),
+          w.renderPaymentMethods({ selector: '#toss-payment-method', variantKey: 'woonpickwidget' }),
           w.renderAgreement({ selector: '#toss-agreement', variantKey: 'AGREEMENT' }),
         ]);
         widgets.current = w;
