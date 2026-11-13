@@ -14,6 +14,8 @@ export interface FortuneWidgetProps {
   /** 어제 종합 점수와의 차이. 어제 기록이 없으면 null */
   delta?: number | null;
   summary?: string;
+  /** 작은 위젯용 요약: 첫 줄을 꽉 채우도록 줄바꿈(\n)을 미리 넣은 것 (fillFirstLine) */
+  summarySmall?: string;
   /** '#키워드 #키워드' */
   keywords?: string;
   luckyColor?: string;
@@ -40,6 +42,7 @@ export function toFortuneWidgetProps(f: DailyFortune): FortuneWidgetProps {
     score: c.totalScore,
     delta: f.yesterdayScores ? c.totalScore - f.yesterdayScores.totalScore : null,
     summary: c.summary,
+    summarySmall: fillFirstLine(c.summary, SMALL_SUMMARY_LINE_EM),
     keywords: (c.keywords ?? []).slice(0, 3).map(k => `#${k}`).join(' '),
     luckyColor: c.luckyColor,
     luckyNumber: c.luckyNumber,
@@ -58,6 +61,32 @@ export function consecutiveDays(today: DailyFortune, ahead: DailyFortune[]): Dai
     days.push(f);
   }
   return days;
+}
+
+/**
+ * 작은 위젯 요약 첫 줄에 들어가는 폭 (글자 크기 12.5pt 기준 em). 작은 위젯의 글 폭은 기기마다 130~145pt라
+ * 가장 좁은 쪽에 맞춰 128pt로 잡는다.
+ */
+const SMALL_SUMMARY_LINE_EM = 128 / 12.5;
+
+/**
+ * 첫 줄을 꽉 채우고 나머지를 둘째 줄로 보내도록 줄바꿈을 넣는다.
+ * iOS는 마지막 줄에 단어 하나만 남는 걸 피하려고 첫 줄을 일찍 끊는데('서두르지 않는 게 / 이기는 하루예요.'),
+ * 위젯에서는 그 규칙을 끌 수 없어서 줄바꿈을 직접 넣는다. 글자 폭은 SF 12.5pt Medium(자간 -4%)을 잰 값으로 어림한다.
+ */
+export function fillFirstLine(text: string, maxEm: number): string {
+  const width = (w: string) => [...w].reduce((sum, ch) => sum + (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(ch) ? 0.85 : /\s/.test(ch) ? 0.23 : 0.55), 0);
+  const words = text.trim().split(/\s+/);
+  let used = 0;
+  let n = 0;
+  for (const w of words) {
+    const next = used + (n ? width(' ') : 0) + width(w);
+    if (next > maxEm) break;
+    used = next;
+    n++;
+  }
+  if (n === 0 || n === words.length) return text;
+  return `${words.slice(0, n).join(' ')}\n${words.slice(n).join(' ')}`;
 }
 
 /** 그 KST 날짜가 시작하는 순간 (00:00 KST) */

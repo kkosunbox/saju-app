@@ -147,7 +147,7 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
       {fill}
       {score}
       {deltaView}
-      <FlexWidget style={{ paddingTop: 7 }}>{text(props.summary ?? '', 12.5, F.medium, c.ink, 2, { lineHeight: 19 })}</FlexWidget>
+      <FlexWidget style={{ paddingTop: 7 }}>{text(props.summarySmall ?? props.summary ?? '', 12.5, F.medium, c.ink, 2, { lineHeight: 19 })}</FlexWidget>
     </>);
   }
 

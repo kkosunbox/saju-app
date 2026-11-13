@@ -154,7 +154,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
         <Spacer />
         {score}
         {deltaView}
-        <Text modifiers={[...t(12.5, 'medium', c.ink), lineSpacing(4), lineLimit(2), fixedSize({ horizontal: false, vertical: true }), padding({ top: 7 })]}>{props.summary ?? ''}</Text>
+        <Text modifiers={[...t(12.5, 'medium', c.ink), lineSpacing(4), lineLimit(2), fixedSize({ horizontal: false, vertical: true }), padding({ top: 7 })]}>{props.summarySmall ?? props.summary ?? ''}</Text>
       </VStack>
     );
   }
