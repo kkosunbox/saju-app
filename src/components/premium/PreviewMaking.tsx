@@ -2,19 +2,26 @@
  * 결제 전 무료 미리보기(상단 카드)를 받아 오는 동안 그 자리에 두는 C방식 구름 카드 —
  * 서버가 계산해 주는 값이지만, 미리보기를 '만들어 주는' 듯이 단계를 하나씩 체크한 뒤 보여 준다.
  *
- * 이미 받아 둔 미리보기(캐시)로 바로 그릴 수 있으면 연출 없이 그대로 보여 준다 — 처음 받아 올 때만.
+ * 캐시 여부와 관계없이 각 프로필의 첫 미리보기에는 연출을 보여 준다.
+ * 연출을 끝까지 본 기록은 이 기기에 저장하고, 다시 볼 때는 바로 보여 준다.
  */
 import React, { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CloudBackdrop, ScrollMascot, StepRow, useNow } from './ReadingLoaders';
 import Reveal from '../Reveal';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW } from '../../theme/typography';
+import { useApp } from '../../context/AppContext';
+import { useContentScope } from '../../context/ContentScopeContext';
+import { useSharedView } from '../../context/SharedViewContext';
+import { deviceKey } from '../../services/storage/storageService';
 
 /** 단계 하나가 '만드는 중'에서 체크되기까지 */
 const STEP_MS = 520;
 /** 다 체크한 뒤 "다 만들었어요"를 보여 주는 한 박자 */
 const HOLD_MS = 450;
+const seen = new Set<string>();
 
 export interface MakingStep { key: string; label: string; sub: string }
 
@@ -33,30 +40,49 @@ export interface PreviewMaking {
  * ready: 미리보기를 그릴 수 있음 · enabled: 연출을 쓸지 (열람한 콘텐츠는 끈다)
  */
 export function usePreviewMaking(key: string, ready: boolean, enabled: boolean, steps: number): PreviewMaking {
-  const [st, setSt] = useState(() => begin(key, ready, enabled));
-  // 연도 · 달 · 목적이 바뀌면 처음부터
+  const { user } = useApp();
+  const scope = useContentScope();
+  const shared = useSharedView();
+  const active = enabled && !!user && !shared && !scope?.entitlement;
+  const historyKey = deviceKey(`previewMaking:${user?.id}:${scope?.profileId ?? user?.profileId ?? 'primary'}:${scope?.profile?.version ?? user?.version ?? 0}:${key}`);
+  const stateKey = `${historyKey}:${active}`;
+  const [st, setSt] = useState(() => begin(stateKey, ready, active, seen.has(historyKey)));
+  // 프로필 · 연도 · 달 · 목적이 바뀌면 이전 결과가 한 프레임도 비치지 않게 한다.
   useEffect(() => {
-    if (st.key !== key) setSt(begin(key, ready, enabled));
-  }, [key, st.key, ready, enabled]);
+    if (st.key !== stateKey) setSt(begin(stateKey, ready, active, seen.has(historyKey)));
+  }, [stateKey, st.key, ready, active, historyKey]);
   useEffect(() => {
-    if (ready && st.key === key && st.readyAt == null) setSt(s => ({ ...s, readyAt: Date.now() }));
-  }, [ready, key, st.key, st.readyAt]);
+    if (st.key !== stateKey || st.checked) return;
+    let live = true;
+    AsyncStorage.getItem(historyKey).catch(() => null).then(value => {
+      if (!live) return;
+      if (value === '1') seen.add(historyKey);
+      setSt(s => s.key === stateKey ? { ...s, checked: true, instant: value === '1', at: Date.now() } : s);
+    });
+    return () => { live = false; };
+  }, [stateKey, historyKey, st.key, st.checked]);
+  useEffect(() => {
+    if (ready && st.key === stateKey && st.readyAt == null) setSt(s => ({ ...s, readyAt: Date.now() }));
+  }, [ready, stateKey, st.key, st.readyAt]);
   // 받은 뒤 남은 단계를 다 체크하고 한 박자 쉬면 끝
   useEffect(() => {
-    if (st.instant || st.over || st.readyAt == null) return;
+    if (st.key !== stateKey || !st.checked || st.instant || st.over || st.readyAt == null || !active) return;
     const end = Math.max(st.at + steps * STEP_MS, st.readyAt) + HOLD_MS;
     const k = st.key;
-    const t = setTimeout(() => setSt(s => (s.key === k ? { ...s, over: true } : s)), Math.max(0, end - Date.now()));
+    const t = setTimeout(() => {
+      seen.add(historyKey);
+      void AsyncStorage.setItem(historyKey, '1').catch(() => {});
+      setSt(s => (s.key === k ? { ...s, over: true } : s));
+    }, Math.max(0, end - Date.now()));
     return () => clearTimeout(t);
-  }, [st, steps]);
-  // key가 막 바뀐 한 번은 아직 이전 상태 — 받아 둔 게 없으면 만드는 중으로 (단계는 모두 대기)
-  if (st.key !== key) return { making: enabled && !ready, fresh: !ready, startedAt: Infinity, readyAt: null };
-  return { making: enabled && !st.instant && !st.over, fresh: !st.instant, startedAt: st.at, readyAt: st.readyAt };
+  }, [st, steps, stateKey, historyKey, active]);
+  if (st.key !== stateKey || !st.checked) return { making: active, fresh: active, startedAt: Infinity, readyAt: null };
+  return { making: active && !st.instant && !st.over, fresh: active && !st.instant, startedAt: st.at, readyAt: st.readyAt };
 }
 
-function begin(key: string, ready: boolean, enabled: boolean) {
+function begin(key: string, ready: boolean, enabled: boolean, seen: boolean) {
   const now = Date.now();
-  return { key, at: now, instant: !enabled || ready, readyAt: ready ? now : null as number | null, over: false };
+  return { key, at: now, checked: !enabled || seen, instant: !enabled || seen, readyAt: ready ? now : null as number | null, over: false };
 }
 
 /** 미리보기 자리의 구름 카드 — 위에서부터 차례로 '만드는 중' → 체크. 마지막 단계는 미리보기를 받아야 체크된다 */

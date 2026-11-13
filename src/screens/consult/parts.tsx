@@ -68,7 +68,7 @@ export function ConsultRows({ rows, onOpen }: { rows: ConsultView[]; onOpen(e: C
             <CatIcon cat={e.topic} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={s.histT} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
-              <Text style={s.histM} numberOfLines={1}>{C.label.replace('·', ' · ')} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
+              <Text style={s.histM} numberOfLines={1}>{e.profileNickname ? `${e.profileNickname} · ` : ''}{C.label.replace('·', ' · ')} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
             </View>
             <Icon name="chevronRight" size={16} color={colors.inkMute} />
           </PressableScale>

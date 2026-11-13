@@ -6,7 +6,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
-import { storage } from '../services/storage/storageService';
+import { ContentProfileSelections, storage } from '../services/storage/storageService';
 import { push } from '../services/push';
 import { Account, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
@@ -24,7 +24,21 @@ interface AppState {
   onboarded: boolean;
   /** Logged-in member, null for guests and before any profile. */
   account: Account | null;
+  /** The primary profile (today's fortune · 운알톡 · the default of every content). */
   user: User | null;
+  /** All my profiles, the primary one first. */
+  profiles: User[];
+  /** 이 계정이 콘텐츠마다 마지막으로 본 프로필 (기기에 저장). */
+  contentProfiles: ContentProfileSelections;
+  rememberContentProfile(contentKey: string, profileId: number): void;
+  /** Reads the profiles again (after one was added elsewhere, e.g. through a request link). */
+  refreshProfiles(): Promise<void>;
+  /** Adds a profile (first one becomes primary) or updates one by its id. */
+  saveProfile(input: ProfileInput, profileId?: number): Promise<User>;
+  /** Makes a profile the primary one (today's fortune · 운알톡 from now on). */
+  setPrimaryProfile(profileId: number): Promise<void>;
+  /** Removes a profile from the list (what was opened for it stays). Not the primary one. */
+  removeProfile(profileId: number): Promise<void>;
   /** True while "다시 입력" shows the profile form for an existing profile. */
   editingProfile: boolean;
   today: string;
@@ -62,6 +76,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [onboarded, setOnboarded] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profiles, setProfiles] = useState<User[]>([]);
+  const [contentSelection, setContentSelection] = useState<{ accountId: string; profiles: ContentProfileSelections } | null>(null);
+  const rememberContentProfile = useCallback((contentKey: string, profileId: number) => {
+    setContentSelection(current => !current || current.profiles[contentKey] === profileId
+      ? current
+      : { ...current, profiles: { ...current.profiles, [contentKey]: profileId } });
+  }, []);
+  useEffect(() => {
+    if (contentSelection) void storage.saveContentProfiles(contentSelection.accountId, contentSelection.profiles);
+  }, [contentSelection]);
   const [editingProfile, setEditingProfile] = useState(false);
   const [fortune, setFortune] = useState<DailyFortune | null>(null);
   const [fortuneLoading, setFortuneLoading] = useState(false);
@@ -72,6 +96,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     queryClient.clear();
     setAccount(null);
     setUser(null);
+    setProfiles([]);
+    setContentSelection(null);
     setFortune(null);
     setEditingProfile(false);
     clearFortuneWidget();
@@ -85,10 +111,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const me = await authApi.me();
     const profile = await profileApi.get(me.id);
+    const list = profile ? await profileApi.list(me.id).catch(() => [profile]) : [];
+    const contentProfiles = await storage.getContentProfiles(String(me.id));
+    setContentSelection({ accountId: String(me.id), profiles: contentProfiles });
     // set together: the sign-in redirect (app/_layout.tsx) reads the profile when the account appears
     setAccount(me.status === 'guest' ? null : me);
     setFortune(null);
     setUser(profile);
+    setProfiles(list);
     return !!profile;
   }, [clearSession]);
 
@@ -111,6 +141,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setBooting(false);
     })();
   }, []);
+
+  // 화면이 포커스될 때마다 부르니 같은 계정이면 같은 함수로 둔다
+  const accountKey = user?.id;
+  const refreshProfiles = useCallback(async () => {
+    if (!accountKey) return;
+    setProfiles(await profileApi.list(accountKey));
+  }, [accountKey]);
 
   const refreshFortune = useCallback(async () => {
     if (!user) return;
@@ -205,8 +242,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const saved = await profileApi.save(me.id, input);
       queryClient.invalidateQueries();
       setFortune(null);
+      setContentSelection(current => current?.accountId === String(me.id) ? current : { accountId: String(me.id), profiles: {} });
       setUser(saved);
+      setProfiles(await profileApi.list(me.id).catch(() => [saved]));
       setEditingProfile(false);
+    },
+    profiles,
+    contentProfiles: contentSelection?.profiles ?? {},
+    rememberContentProfile,
+    refreshProfiles,
+    saveProfile: async (input, profileId) => {
+      if (!user) throw new Error('no profile yet');
+      const saved = profileId == null
+        ? await profileApi.create(user.id, input)
+        : await profileApi.update(user.id, profileId, input);
+      const list = await profileApi.list(user.id);
+      setProfiles(list);
+      const primary = list.find(p => p.isPrimary) ?? null;
+      if (primary && (primary.profileId !== user.profileId || saved.isPrimary)) {
+        setFortune(null);
+        setUser(primary);
+      }
+      queryClient.invalidateQueries();
+      return saved;
+    },
+    setPrimaryProfile: async profileId => {
+      if (!user || user.profileId === profileId) return;
+      const primary = await profileApi.setPrimary(user.id, profileId);
+      setProfiles(await profileApi.list(user.id));
+      queryClient.invalidateQueries();
+      setFortune(null);
+      setUser(primary);
+    },
+    removeProfile: async profileId => {
+      if (!user) return;
+      await profileApi.remove(profileId);
+      setProfiles(await profileApi.list(user.id));
+      queryClient.invalidateQueries();
     },
     resetProfile: () => setEditingProfile(true),
     cancelProfileEdit: () => setEditingProfile(false),

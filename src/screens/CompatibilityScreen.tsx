@@ -10,7 +10,7 @@ import { PointPill } from '../components/HeaderPoints';
 import Card from '../components/Card';
 import OptionChip from '../components/OptionChip';
 import TextField from '../components/TextField';
-import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, sijinLabel, sijinTime } from '../components/BirthFields';
+import { BirthDateField, CalendarType, JasiSide, SijinGrid, checkBirth, sijinLabel, sijinOf, sijinTime } from '../components/BirthFields';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import ScoreBar from '../components/ScoreBar';
@@ -23,6 +23,7 @@ import { useApp } from '../context/AppContext';
 import { useSharedView } from '../context/SharedViewContext';
 import { usePremium } from '../context/PremiumContext';
 import { BodyState, LockedCard } from '../components/premium/Kit';
+import ProfileSwitch from '../components/premium/ProfileSwitch';
 import CompatDeep from '../components/premium/CompatDeep';
 import { ITEMS } from '../services/premium/catalog';
 import { usePremiumContent, useReading } from '../services/server/premiumApi';
@@ -37,7 +38,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '../api/query';
 import BottomSheet from '../components/BottomSheet';
 import { ApiError } from '../api/client';
-import { BirthPlace, CompatibilityResult, Gender, MBTI, PartnerInput, Relationship, User } from '../types';
+import { BirthPlace, CompatibilityResult, Gender, MBTI, PartnerInput, ProfileRelationship, Relationship, User } from '../types';
 import { MBTI_INFO, MBTI_LIST } from '../data/mbtiData';
 import { RELATIONSHIPS, RELATIONSHIP_INFO } from '../data/relationships';
 import { colors, gradients, isDark } from '../theme/colors';
@@ -103,10 +104,21 @@ function ScoreHalo({ score }: { score: number }) {
   );
 }
 
+/** 내 프로필의 관계 → 궁합의 사이 (모르면 고르게 둔다) */
+const RELATION_OF: Partial<Record<ProfileRelationship, Relationship>> = {
+  lover: 'lover', spouse: 'lover', parent: 'family', child: 'family', sibling: 'family', friend: 'friend', work: 'work',
+};
+
 export default function CompatibilityScreen() {
   const { sendInvite, inviteShareSheet } = useInviteShare();
-  const { user } = useApp();
+  // 나로 볼 프로필 — 다른 콘텐츠처럼 왼쪽 위 이름에서 고른다 (화면 범위가 user를 그 프로필로 바꿔 준다, 기본은 대표 프로필)
+  const { user, profiles } = useApp();
+  const primary = user;
   const { toast, owned } = usePremium();
+  // 상대를 내 프로필 목록에서 불러왔으면 그 프로필 id (칸을 고치면 그대로 두고 함께 기록만)
+  const [partnerProfileId, setPartnerProfileId] = useState<number | null>(null);
+  // 불러온 상대의 정확한 태어난 시간 (시진 칸으로 나타낼 수 없을 때)
+  const [presetTime, setPresetTime] = useState<string | null>(null);
   // 공유 링크(/r/{token})로 열면 공유된 궁합 결과를 바로 보여 주고, 입력 · 기록 · 지우기는 숨긴다
   const sharedView = useSharedView();
   const nav = useNavigation();
@@ -128,7 +140,7 @@ export default function CompatibilityScreen() {
   const [showMbti, setShowMbti] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // 저장된 상대 = 궁합 기록 (상대마다 하나, 최근에 본 순)
-  const saved = useQuery({ queryKey: [...compatKeys.list, user?.id, user?.version], queryFn: () => compatApi.list(user!.id), enabled: !!user && !sharedView });
+  const saved = useQuery({ queryKey: [...compatKeys.list, primary?.id, primary?.version], queryFn: () => compatApi.list(primary!.id), enabled: !!primary && !sharedView });
   // 내 링크로 상대가 본 궁합이 언제든 들어오니 탭에 올 때마다 새로
   const { refetch } = saved;
   useFocusEffect(useCallback(() => { if (user && !sharedView) refetch(); }, [user, sharedView, refetch]));
@@ -155,6 +167,24 @@ export default function CompatibilityScreen() {
     setSijin(null); setJasi(null); setShowTime(false);
     setPlace(null); setShowPlace(false);
     setGender(null); setMbti(null); setShowMbti(false);
+    setPartnerProfileId(null); setPresetTime(null);
+  };
+
+  /** 상대 칸을 내 프로필 목록의 사람으로 채운다 */
+  const fillFrom = (p: User) => {
+    setPartnerProfileId(p.profileId ?? null);
+    setName(p.nickname);
+    setBirth((p.birthDateInput ?? p.birthDate).replace(/\D/g, ''));
+    setCalendar(p.calendarType ?? 'solar');
+    setLeap(!!p.isLeapMonth);
+    const chip = p.birthTime ? sijinOf(p.birthTime) : null;
+    setSijin(chip?.sijin ?? null);
+    setJasi(chip?.jasi ?? null);
+    setPresetTime(chip ? null : p.birthTime);
+    setPlace(p.birthPlace ?? null);
+    setGender(p.gender);
+    setMbti(p.mbtiUnknown ? null : p.mbti);
+    if (!relationship) setRelationship(RELATION_OF[p.relationship ?? 'other'] ?? null);
   };
 
   const [busy, setBusy] = useState(false);
@@ -166,7 +196,7 @@ export default function CompatibilityScreen() {
     if (!user || busy) return;
     setBusy(true);
     try {
-      const r = await compatApi.create(user.id, partner);
+      const r = await compatApi.create(user.id, partner, { profileId: user.profileId, partnerProfileId });
       setStep(0);
       setFresh(r);
       setResult(r);
@@ -187,7 +217,7 @@ export default function CompatibilityScreen() {
       calendarType: calendar,
       birthDate: birthISO,
       isLeapMonth: calendar === 'lunar' && leap,
-      birthTime: sijin === null ? null : sijinTime(sijin, jasi),
+      birthTime: sijin === null ? presetTime : sijinTime(sijin, jasi),
       birthPlace: place,
       gender: gender!, mbti, bloodType: null,
     });
@@ -243,21 +273,24 @@ export default function CompatibilityScreen() {
 
   if (result) {
     const rel = RELATIONSHIP_INFO[result.relationship];
+    // 이 궁합을 본 내 프로필 (그때의 이름)
+    const meProfile = (result.profileId != null ? profiles.find(p => p.profileId === result.profileId) : null) ?? primary ?? user;
+    const me: User = { ...meProfile, nickname: result.myNickname ?? meProfile.nickname };
     const Appear = isFresh ? Reveal : React.Fragment;
     // 심층 궁합을 열었으면 공유 버튼에서 전체 리포트 링크도 고를 수 있다
     const deepItem = result.id != null ? ITEMS.compat(result.id, result.target.nickname, result.relationship, !!result.target.mbti) : null;
     const shareItem = deepItem && owned(deepItem.key) ? deepItem : undefined;
     return (
-      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={sharedView ? () => nav.goBack() : () => setResult(null)} right={<ShareIconButton item={shareItem} spec={compatSpec(user, result)} />}>
+      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={sharedView ? () => nav.goBack() : () => setResult(null)} right={<ShareIconButton item={shareItem} spec={compatSpec(me, result)} />}>
         <Appear>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={29} /></View>
           <View style={s.pair}>
-            <Avatar name={user.nickname} me />
+            <Avatar name={me.nickname} me />
             <RelationIcon relationship={result.relationship} />
             <Avatar name={result.target.nickname} />
           </View>
-          <Text style={s.pairNames}>{user.nickname} · {result.target.nickname} · {rel.label}</Text>
+          <Text style={s.pairNames}>{me.nickname} · {result.target.nickname} · {rel.label}</Text>
           <ScoreHalo score={result.total} />
           <Text style={s.heroSummary}>{result.summary}</Text>
         </ImageBackground>
@@ -280,7 +313,7 @@ export default function CompatibilityScreen() {
           ))}
         </Card>
 
-        <ShareCta item={shareItem} spec={compatSpec(user, result)} style={{ marginTop: 12 }} />
+        <ShareCta item={shareItem} spec={compatSpec(me, result)} style={{ marginTop: 12 }} />
 
         <SectionHeader title="관점별 풀이" variant="figma" />
         <View style={{ gap: 16 }}>
@@ -302,9 +335,9 @@ export default function CompatibilityScreen() {
 
         {result.id != null ? (
           <>
-            <DeepSection u={user} r={result} id={result.id} />
+            <DeepSection u={me} r={result} id={result.id} />
             {/* 속마음은 연애 리포트라 연인일 때만 */}
-            {!isPrivateInvite(result) && result.relationship === 'lover' ? <CrushSection u={user} r={result} id={result.id} /> : null}
+            {!isPrivateInvite(result) && result.relationship === 'lover' ? <CrushSection u={me} r={result} id={result.id} /> : null}
           </>
         ) : null}
 
@@ -338,6 +371,8 @@ export default function CompatibilityScreen() {
         </>
       )}
     >
+      {/* 누구로 볼지 — 다른 콘텐츠와 같은 프로필 선택 */}
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       {/* 두 사람 — 나 · 마스코트 · 아직 비어 있는 상대 */}
       <LinearGradient colors={PAIR_SKY} locations={[0, 0.53, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pairSheet}>
         <View style={s.pairTile}>
@@ -408,6 +443,17 @@ export default function CompatibilityScreen() {
             })}
           </View>
         </View>
+
+        {profiles.some(p => p.profileId !== user.profileId) ? (
+          <View>
+            <Label>내 프로필에서 불러오기</Label>
+            <View style={s.pickRow}>
+              {profiles.filter(p => p.profileId !== user.profileId).map(p => (
+                <OptionChip key={p.profileId} compact style={s.pickChip} label={p.nickname} selected={partnerProfileId === p.profileId} onPress={() => fillFrom(p)} />
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View>
           <Label>상대 이름</Label>
@@ -530,6 +576,8 @@ const HERO: Record<Relationship, ImageSourcePropType> = {
 };
 
 const s = StyleSheet.create({
+  pickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickChip: { minWidth: 72 },
   // 시작 화면
   pairSheet: { flexDirection: 'row', alignItems: 'center', height: 120, paddingHorizontal: 17, borderRadius: radius.lg },
   pairTile: { width: 96, height: 96, borderRadius: radius.lg, backgroundColor: colors.surface, alignItems: 'center', paddingTop: 11, paddingHorizontal: 6, shadowColor: '#28B2FE', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 2 }, elevation: 3 },

@@ -1,6 +1,6 @@
 /**
  * 기기 설정 저장 (AsyncStorage). 프로필·운세·포인트·기록은 모두 서버에 있고,
- * 여기에는 이 기기에만 해당하는 값(온보딩 완료, 아침 알림 시간, 새 콘텐츠 알림 신청)만 둔다.
+ * 여기에는 이 기기에만 해당하는 값(온보딩 완료, 아침 알림 시간, 새 콘텐츠 알림 신청, 콘텐츠별 마지막 프로필)만 둔다.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -28,7 +28,17 @@ async function getJSON<T>(key: string): Promise<T | null> {
   }
 }
 
+export type ContentProfileSelections = Record<string, number>;
+
 export const storage = {
+  /** 계정별 · 콘텐츠별 마지막 프로필. 프로필 정보 자체는 저장하지 않는다. */
+  getContentProfiles: async (accountId: string): Promise<ContentProfileSelections> => {
+    const saved = await getJSON<unknown>(deviceKey(`contentProfiles:${accountId}`));
+    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved).filter(([, id]) => typeof id === 'number' && Number.isSafeInteger(id) && id > 0));
+  },
+  saveContentProfiles: (accountId: string, selections: ContentProfileSelections) =>
+    AsyncStorage.setItem(deviceKey(`contentProfiles:${accountId}`), JSON.stringify(selections)).catch(() => {}),
   getOnboarded: async () => (await AsyncStorage.getItem(deviceKey('onboarded'))) === '1',
   setOnboarded: (v: boolean) => AsyncStorage.setItem(deviceKey('onboarded'), v ? '1' : '0'),
   /** 처음엔 모두 꺼져 있다. 예전 앱에서 켜 둔 아침 운세 알림은 그 시각 그대로 이어진다 */

@@ -1,26 +1,33 @@
-/** 반려동물 궁합 — 등록한 아이들과 각 아이의 궁합 (서버가 내 지금 프로필로 계산). */
+/** 반려동물 궁합 — 등록한 아이들과 각 아이의 궁합 미리보기 (서버가 고른 프로필로 계산, 기본은 대표 프로필). */
 import { useQuery } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
 import { queryClient } from '../../api/query';
 import { useApp } from '../../context/AppContext';
 import { useSharedView } from '../../context/SharedViewContext';
+import { useContentScope } from '../../context/ContentScopeContext';
 import { Pet, PetInput } from '../../types/content';
 
 export const petKeys = { list: ['pets'] as const };
 
 /** 생성된 스키마는 결과(result)를 빈 객체로 적어서 앱 타입으로 읽는다 */
 export const petApi = {
-  list: async () => (await call<{ list: Pet[] }>(api.GET('/v1/pets'))).list,
-  create: (pet: PetInput) => call<Pet>(api.POST('/v1/pets', { body: pet })),
+  list: async (profileId?: number) => (await call<{ list: Pet[] }>(api.GET('/v1/pets', { params: { query: { profileId } } }))).list,
+  create: (pet: PetInput, profileId?: number) => call<Pet>(api.POST('/v1/pets', { body: pet, params: { query: { profileId } } })),
   remove: (id: number) => call(api.DELETE('/v1/pets/{id}', { params: { path: { id } } })),
 };
 
-/** 프로필을 바꾸면 결과도 바뀌므로 프로필 버전마다 새로 받는다 */
+/** 고른 프로필(기본: 대표 프로필)과의 궁합 — 프로필이나 그 버전이 바뀌면 새로 받는다 */
 export function usePets() {
   const { user } = useApp();
+  const scope = useContentScope();
+  const profileId = scope?.profileId ?? undefined;
   // 공유 링크로 연 화면은 공유된 아이만 보여 주니 목록을 받지 않는다
   const shared = useSharedView();
-  return useQuery({ queryKey: [...petKeys.list, user?.id, user?.version], queryFn: petApi.list, enabled: !!user && !shared });
+  return useQuery({
+    queryKey: [...petKeys.list, user?.id, profileId ?? '', scope?.profile?.version ?? user?.version],
+    queryFn: () => petApi.list(profileId),
+    enabled: !!user && !shared,
+  });
 }
 
 /** 목록과 열어 둔 전체 결과(성향을 고치면 비교가 바뀐다)를 함께 새로 */

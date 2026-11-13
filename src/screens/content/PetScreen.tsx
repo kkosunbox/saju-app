@@ -24,11 +24,14 @@ import { BodyState, LockedCard } from '../../components/premium/Kit';
 import { ITEMS } from '../../services/premium/catalog';
 import { usePremiumContent, useReading } from '../../services/server/premiumApi';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
-import { PREVIEW_STEP_MS, PreviewStepsScreen, ReadingOpeningCard, ReadingPart, useJustOpenedFetching, useReadingSections } from '../../components/premium/ReadingGate';
+import { PreviewStepsScreen, ReadingOpeningCard, ReadingPart, useJustOpenedFetching, useReadingSections } from '../../components/premium/ReadingGate';
+import { usePetMatchReveal } from '../../services/content/petMatchReveal';
 import PetLetter from '../../components/premium/PetLetter';
 import PetSnackBanner from '../../components/premium/PetSnackBanner';
 import { PetReading, ReadingView } from '../../types/reading';
 import { petApi, refreshPets, usePets } from '../../services/server/petApi';
+import ProfileSwitch from '../../components/premium/ProfileSwitch';
+import { useContentScope } from '../../context/ContentScopeContext';
 import { petSpec } from '../../services/share/shareSpecs';
 import { WEEK } from '../../services/premium/helpers';
 import { parseISO, weekdayOf } from '../../utils/date';
@@ -37,8 +40,7 @@ import { OwnerTitle, Pet, PetCompatibility, PetInput, PetPreview, PetSpecies, Pe
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
-/** 새 아이를 등록한 뒤 미리보기 전에 보여 주는 단계 (한 단계 0.8초) */
-/** 새로 등록한 아이의 결과 전 단계 (B방식 체크리스트 화면) */
+/** 프로필과 아이를 처음 매칭할 때 결과 전에 보여 주는 단계 */
 const LOADING_STEPS = (name: string, basis: string, nickname: string) => [
   { key: 'pet', label: `${name}의 ${basis} 기운 읽기`, sub: '타고난 성향을 찾았어요' },
   { key: 'me', label: `${nickname}님의 사주와 겹쳐 보기`, sub: '둘의 기운을 맞춰 봤어요' },
@@ -102,17 +104,17 @@ function basisNote(name: string, basis: PetPreview['basis']): string | null {
 /** 반려동물 궁합 — 아이를 등록하면 서버가 내 사주와 아이의 생일(모르면 가족이 된 날)로 본다. */
 export default function PetScreen() {
   const { user: u } = useApp();
+  const scope = useContentScope();
   const q = usePets();
   // 풀이 완성 알림을 눌러 오면 그 아이로 연다
   const { petId } = useLocalSearchParams<{ petId?: string }>();
   const [selected, setSelected] = useState<number | null>(petId ? Number(petId) || null : null);
   // 새 아이 등록 화면을 연 중인지
   const [adding, setAdding] = useState(false);
-  const [fresh, setFresh] = useState<number | null>(null);
   // 공유 링크(/r/{token})로 열면 공유된 아이의 결과만 (목록 · 추가 · 지우기 없이)
   const sharedPet = useSharedView()?.pet;
   if (!u) return null;
-  if (sharedPet) return <PetResult u={u} pet={sharedPet} pets={[sharedPet]} revealed={false} onPick={() => {}} onAdd={() => {}} onRemoved={() => {}} />;
+  if (sharedPet) return <PetResult u={u} pet={sharedPet} pets={[sharedPet]} matchKey={null} onPick={() => {}} onAdd={() => {}} onRemoved={() => {}} />;
   if (!q.data) return <LoadingScreen title="반려동물 궁합" error={q.error} onRetry={q.refetch} />;
   const pets = q.data;
   const pet = pets.find(p => p.id === selected) ?? pets[0];
@@ -121,16 +123,18 @@ export default function PetScreen() {
     return (
       <PetForm
         u={u} pets={pets}
-        onPick={id => { setSelected(id); setFresh(null); setAdding(false); }}
+        onPick={id => { setSelected(id); setAdding(false); }}
         onCancel={pets.length ? () => setAdding(false) : undefined}
-        onSaved={saved => { setSelected(saved.id); setFresh(saved.id); setAdding(false); }}
+        onSaved={saved => { setSelected(saved.id); setAdding(false); }}
       />
     );
   }
+  const matchKey = `${u.id}:${scope?.profileId ?? u.profileId ?? 'primary'}:${scope?.profile?.version ?? u.version ?? 0}:${pet.id}`;
   return (
     <PetResult
-      key={pet.id} u={u} pet={pet} pets={pets} revealed={fresh === pet.id}
-      onPick={id => { setSelected(id); setFresh(null); }}
+      key={`${matchKey}:${scope?.entitlement?.id ?? ''}`} u={u} pet={pet} pets={pets}
+      matchKey={scope?.entitlement ? null : matchKey}
+      onPick={id => setSelected(id)}
       onAdd={() => setAdding(true)}
       onRemoved={() => setSelected(null)}
     />
@@ -138,8 +142,8 @@ export default function PetScreen() {
 }
 
 /* ---------- 결과 ---------- */
-function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
-  u: User; pet: Pet; pets: Pet[]; revealed: boolean;
+function PetResult({ u, pet, pets, matchKey, onPick, onAdd, onRemoved }: {
+  u: User; pet: Pet; pets: Pet[]; matchKey: string | null;
   onPick(id: number): void; onAdd(): void; onRemoved(): void;
 }) {
   const { toast } = usePremium();
@@ -155,19 +159,14 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
   const shared = !!useSharedView();
   // 전체 결과를 열었으면 공유 버튼에서 전체 결과 링크도 고를 수 있다
   const petItem = ITEMS.pet(pet.id, pet.name);
-  // 새로 등록한 아이는 미리보기 전에 궁합을 보는 단계를 잠깐 보여 준다 (다른 아이를 고르면 바로)
+  // 프로필 · 아이 조합별 첫 결과에만 궁합을 보는 단계를 보여 준다.
   const steps = LOADING_STEPS(name, R.basis.kind === 'adopted' ? '가족이 된 날' : '생일', u.nickname);
   // steps.length번째 한 박자는 "궁합을 다 봤어요"
-  const [step, setStep] = useState(revealed ? 0 : steps.length + 1);
-  const loading = step <= steps.length;
+  const { step, revealed } = usePetMatchReveal(matchKey, steps.length);
   // 단계를 다 본 뒤에만 부드럽게 나타난다 (아이를 바꿔 볼 때는 그대로)
   const Appear = revealed ? Reveal : View;
-  useEffect(() => {
-    if (!loading) return;
-    const t = setTimeout(() => setStep(n => n + 1), PREVIEW_STEP_MS);
-    return () => clearTimeout(t);
-  }, [loading, step]);
-  if (loading) return <PreviewStepsScreen title="반려동물 궁합" heading={`${name}${josa(name, '과', '와')}의 궁합을 보고 있어요`} steps={steps} step={step} />;
+  if (step === null) return <LoadingScreen title="반려동물 궁합" />;
+  if (step <= steps.length) return <PreviewStepsScreen title="반려동물 궁합" heading={`${u.nickname}님과 ${name}의 궁합을 보고 있어요`} steps={steps} step={step} />;
 
   const remove = async () => {
     setConfirm(false);
@@ -195,6 +194,8 @@ function PetResult({ u, pet, pets, revealed, onPick, onAdd, onRemoved }: {
 
   return (
     <Screen key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton item={content.open ? petItem : undefined} spec={spec} />}>
+      {/* 누구와의 궁합인지 — 프로필을 고르면 그 프로필과 아이의 궁합 */}
+      {shared ? null : <ProfileSwitch contentKey={petItem.key} style={{ marginBottom: 12 }} />}
       {shared ? null : <PetSnackBanner style={s.snackTop} />}
       {shared ? null : <View style={s.petRow}>
         {pets.map(p => (
@@ -453,6 +454,7 @@ function PetForm({ u, pets, onPick, onCancel, onSaved }: {
 }) {
   const { today } = useApp();
   const { toast } = usePremium();
+  const scope = useContentScope();
   const [name, setName] = useState('');
   const [species, setSpecies] = useState<PetSpecies | null>(null);
   // 생일을 아는지 — 알면 생일로, 모르면 가족이 된 날로 본다 (둘 중 하나만 받는다)
@@ -496,7 +498,7 @@ function PetForm({ u, pets, onPick, onCancel, onSaved }: {
     };
     setBusy(true);
     try {
-      const saved = await petApi.create(input);
+      const saved = await petApi.create(input, scope?.profileId ?? undefined);
       await refreshPets();
       onSaved(saved);
     } catch (e) {
@@ -526,6 +528,7 @@ function PetForm({ u, pets, onPick, onCancel, onSaved }: {
         </>
       )}
     >
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       <PetSnackBanner style={s.snackTop} />
       {/* 소개 배너 (Figma 374:1288) — 327×142 그림 위 제목·설명 */}
       <View style={s.intro}>

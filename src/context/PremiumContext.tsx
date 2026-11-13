@@ -14,7 +14,7 @@ import { Item, PACKS, fmtP, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
-import { MySubscription, pointsApi, pointsKeys } from '../services/server/pointsApi';
+import { Entitlement, MySubscription, pointsApi, pointsKeys } from '../services/server/pointsApi';
 import { SubscriptionBadge } from '../components/premium/SubscriptionBadge';
 import { listReadings, readingsKey } from '../services/server/premiumReadings';
 import { ApiError } from '../api/client';
@@ -24,7 +24,7 @@ import { router } from 'expo-router';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 
-type Sheet = { type: 'unlock'; item: Item; onDone?(): void } | { type: 'charge'; i: number } | null;
+type Sheet = { type: 'unlock'; item: Item; onDone?(): void; profileId?: number } | { type: 'charge'; i: number } | null;
 
 interface PremiumState {
   ready: boolean;
@@ -39,12 +39,18 @@ interface PremiumState {
   subscription: MySubscription | null;
   /** 지금 구독 혜택을 받는 중 */
   subscribed: boolean;
-  /** 구독 혜택으로 무료로 열 수 있는 콘텐츠 (이번 달 월별 상세운세, 아직 안 열림) */
-  subscriptionFree(key: string): boolean;
+  /** 구독 혜택으로 무료로 열 수 있는 콘텐츠 (이번 달 월별 상세운세, 이번 달 혜택을 아직 안 씀). profileId 없으면 대표 프로필 */
+  subscriptionFree(key: string, profileId?: number): boolean;
   missions: Record<string, boolean>;
-  owned(key: string): boolean;
+  /** 그 프로필(없으면 대표 프로필)의 지금 정보로 열려 있는지 */
+  owned(key: string, profileId?: number): boolean;
+  /** 그 프로필(없으면 대표 프로필)로 이 콘텐츠를 산 기록 — 지금 정보로 연 것과 고치기 전 정보로 본 것, 최근 순 */
+  records(key: string, profileId?: number): Entitlement[];
+  /** 모든 프로필의 열람권 (구매 기록) */
+  entitlements: Entitlement[];
   ownedCount: number;
-  openUnlock(item: Item, onDone?: () => void): void;
+  /** profileId: 어느 프로필로 열지 (없으면 대표 프로필) */
+  openUnlock(item: Item, onDone?: () => void, profileId?: number): void;
   openCharge(i: number): void;
   attend(): Promise<void>;
   toggleMission(key: string): void;
@@ -73,7 +79,8 @@ const UNLOCK_ERROR: Record<string, string> = {
 export const refreshPoints = () => queryClient.invalidateQueries({ queryKey: ['points'] });
 
 export function PremiumProvider({ children }: { children: React.ReactNode }) {
-  const { account } = useApp();
+  const { account, user, profiles } = useApp();
+  const primaryId = user?.profileId ?? null;
   const member = !!account;
   // 가입 축하 알은 지갑을 처음 만든 응답에만 실려 온다. 가입 직후엔 캐시를 비우고 다시 읽느라 그 응답이 화면까지 못 올 수 있어서,
   // 받는 즉시 기기에 적어 두고 메인이 보여 준 뒤 지운다
@@ -127,14 +134,32 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setMissionState({ key: missionKey, value: {} }));
   }, [missionKey]);
 
-  const ownedKeys = useMemo(() => new Set((unlocks.data ?? []).map(e => e.contentKey)), [unlocks.data]);
-  const owned = useCallback((key: string) => ownedKeys.has(key), [ownedKeys]);
+  const entitlements = useMemo(() => unlocks.data ?? [], [unlocks.data]);
+  /** 열람권의 프로필 (프로필이 여럿이 되기 전에 연 것은 대표 프로필) */
+  const profileOf = useCallback((e: Entitlement) => e.profileId ?? primaryId, [primaryId]);
+  /** 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해져서 프로필을 고르지 않는다 */
+  const byRecord = (key: string) => key.startsWith('compat:') || key.startsWith('crush:');
+  const owned = useCallback(
+    (key: string, profileId?: number) => {
+      const pid = profileId ?? primaryId;
+      return entitlements.some(e => e.contentKey === key && e.current && (byRecord(key) || profileOf(e) === pid));
+    },
+    [entitlements, profileOf, primaryId],
+  );
+  const records = useCallback(
+    (key: string, profileId?: number) => {
+      const pid = profileId ?? primaryId;
+      return entitlements.filter(e => e.contentKey === key && (byRecord(key) || profileOf(e) === pid));
+    },
+    [entitlements, profileOf, primaryId],
+  );
   const points = wallet.data?.balance ?? 0;
   const subscription = member ? sub.data ?? null : null;
   const subscribed = !!subscription?.benefits.active;
   const subscriptionFree = useCallback(
-    (key: string) => subscribed && key === subscription?.benefits.monthlyContentKey && !ownedKeys.has(key),
-    [subscribed, subscription, ownedKeys],
+    (key: string, profileId?: number) =>
+      subscribed && key === subscription?.benefits.monthlyContentKey && !subscription?.benefits.monthlyUsed && !owned(key, profileId),
+    [subscribed, subscription, owned],
   );
 
   const toast = useCallback((msg: string, onPress?: () => void) => {
@@ -144,11 +169,11 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     toastTimer.current = setTimeout(() => setToastMsg(null), onPress ? 4000 : 2200);
   }, []);
 
-  async function doUnlock(it: Item, onDone?: () => void) {
+  async function doUnlock(it: Item, onDone?: () => void, profileId?: number) {
     if (busy) return;
     setBusy(true);
     try {
-      const r = await pointsApi.unlock(it.key);
+      const r = await pointsApi.unlock(it.key, profileId);
       await refreshPoints();
       setSheet(null);
       toast(r.viaSubscription ? `구독 혜택으로 ${it.title}이(가) 무료로 열렸어요` : `${it.title}이(가) 열렸어요`);
@@ -188,9 +213,16 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     readingStatus.current = next;
   }, [readings.data, toast]);
 
+  /** 열 때 '누구 것으로 여는지' (프로필이 하나뿐이면 표시하지 않는다) */
+  const whoOf = (profileId?: number): string | null => {
+    if (profiles.length < 2) return null;
+    const p = profiles.find(x => x.profileId === (profileId ?? primaryId));
+    return p ? p.nickname : null;
+  };
+
   const value: PremiumState = {
     ready: !member || (wallet.isFetched && unlocks.isFetched),
-    points, missions, owned,
+    points, missions, owned, records, entitlements,
     expiringSoon: wallet.data?.expiringSoon ?? 0,
     attendedToday: !!wallet.data?.attendedToday,
     attendanceReward: wallet.data?.attendanceReward ?? 10,
@@ -198,11 +230,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     subscription,
     subscribed,
     subscriptionFree,
-    ownedCount: [...ownedKeys].filter(k => !k.startsWith('bundle:')).length,
-    openUnlock: (item, onDone) => {
+    // 모든 프로필에서 연 콘텐츠 (같은 콘텐츠를 다른 프로필 · 바뀐 정보로 다시 연 것도 따로 센다, 패키지 자체는 빼고)
+    ownedCount: entitlements.filter(e => !e.contentKey.startsWith('bundle:')).length,
+    openUnlock: (item, onDone, profileId) => {
       if (requireLogin()) return;
-      if (owned(item.key)) { onDone?.(); return; }
-      setSheet({ type: 'unlock', item, onDone });
+      if (owned(item.key, profileId)) { onDone?.(); return; }
+      setSheet({ type: 'unlock', item, onDone, profileId });
     },
     openCharge: i => { if (!requireLogin()) setSheet({ type: 'charge', i }); },
     attend: async () => {
@@ -248,7 +281,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       {children}
       <BottomSheet visible={!!sheet} onClose={() => setSheet(null)}>
         {sheet?.type === 'unlock' ? (
-          <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key)} busy={busy} onConfirm={() => doUnlock(sheet.item, sheet.onDone)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
+          <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key, sheet.profileId)} busy={busy} who={whoOf(sheet.profileId)} again={records(sheet.item.key, sheet.profileId).length > 0} onConfirm={() => doUnlock(sheet.item, sheet.onDone, sheet.profileId)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
         ) : sheet?.type === 'charge' ? (
           <ChargeSheet i={sheet.i} points={points} onConfirm={() => doCharge(sheet.i)} onClose={() => setSheet(null)} />
         ) : null}
@@ -281,7 +314,10 @@ function SumRow({ label, value, color, sign }: { label: string; value: string | 
   );
 }
 
-function UnlockSheet({ item: it, points, free, busy, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
+function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; who: string | null; again: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
+  // 누구 것으로 여는지 · 바뀐 정보로 다시 여는지
+  const whoLine = who ? <Text style={[txt.small, s.center, { marginTop: 6, color: colors.purple }]}>{again ? `${who}님의 바뀐 정보로 다시 열어요` : `${who}님 정보로 열어요`}</Text>
+    : again ? <Text style={[txt.small, s.center, { marginTop: 6, color: colors.purple }]}>바뀐 정보로 다시 열어요 · 예전 풀이도 남아요</Text> : null;
   if (free) {
     // 구독 혜택: 알을 쓰지 않는다는 것과 그게 구독 덕분이라는 걸 함께 보여 준다
     return (
@@ -289,13 +325,14 @@ function UnlockSheet({ item: it, points, free, busy, onConfirm, onClose, onWalle
         <SubscriptionBadge style={{ alignSelf: 'center' }} />
         <Text style={[txt.h2, s.center, { marginTop: 8 }]}>{it.title}</Text>
         <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
+        {whoLine}
         <View style={s.sumBox}>
           <SumRow label="원래 가격" value={it.cost} />
           <SumRow label="구독 혜택" value="이번 달 무료" color={colors.purple} />
           <View style={s.hr} />
           <SumRow label="보유 알" value={`${fmtP(points)} 그대로`} />
         </View>
-        <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>한 번 열면 구독이 끝나도 계속 볼 수 있어요</Text>
+        <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>한 달에 한 번, 고른 프로필로 열려요 · 구독이 끝나도 계속 볼 수 있어요</Text>
         <PrimaryButton label={busy ? '여는 중…' : '구독 혜택으로 무료 열기'} onPress={onConfirm} disabled={busy} />
         <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
       </View>
@@ -307,6 +344,7 @@ function UnlockSheet({ item: it, points, free, busy, onConfirm, onClose, onWalle
       <Text style={[txt.caption, s.center]}>알 사용</Text>
       <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{it.title}</Text>
       <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
+      {whoLine}
       <View style={s.sumBox}>
         <SumRow label="보유 알" value={points} />
         <SumRow label="사용할 알" value={it.cost} sign="−" color={colors.love} />

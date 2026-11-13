@@ -10,6 +10,8 @@
     { "source": "/privacy", "destination": "/legal/privacy", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/p/:token", "destination": "/p/[token]" },
+    { "source": "/profiles/:id(\\d+)", "destination": "/profiles/[id]" },
     { "source": "/invite/:token", "destination": "/invite/[token]" },
     { "source": "/consult/:id", "destination": "/consult/[id]" },
     { "source": "/r/:token", "destination": "/r/[token]" }

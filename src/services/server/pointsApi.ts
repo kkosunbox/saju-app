@@ -26,8 +26,18 @@ export interface PointTransaction {
   createdAt: string;
 }
 
+/** 열람권: 한 프로필로 연 콘텐츠 하나 (프로필을 고치고 다시 연 것은 따로) */
 export interface Entitlement {
+  id: number;
   contentKey: string;
+  /** 대상 프로필 (null: 프로필이 여럿이 되기 전에 연 것 → 대표 프로필) */
+  profileId: number | null;
+  /** 처음 연 때의 이름 (아직 안 열었으면 null) */
+  nickname: string | null;
+  /** 처음 열어 본 날 (아직 안 열었으면 null) */
+  openedOn: string | null;
+  /** 프로필의 지금 정보로 연 것 (false: 고치기 전 정보로 본 기록) */
+  current: boolean;
   source: string;
   /** Period items only (길일 찾기); null keeps forever. */
   validUntil: string | null;
@@ -43,6 +53,8 @@ export interface SubscriptionBenefits {
   consultLeft: number;
   /** 무료로 열 수 있는 이번 달 월별 상세운세 키 (monthly:YYYY-MM) */
   monthlyContentKey: string;
+  /** 이번 달 무료 월별 상세운세를 이미 썼는지 (한 달에 한 번, 고른 프로필로) */
+  monthlyUsed?: boolean;
   attendanceMultiplier: number;
 }
 
@@ -118,8 +130,9 @@ export const pointsApi = {
   },
 
   /** Already open → charged 0. Price is the server's. viaSubscription: 구독 혜택으로 열었음 (이번 달 월별 상세운세) */
-  unlock: (contentKey: string) =>
-    call<{ charged: number; viaSubscription: boolean; balance: number; entitlements: Entitlement[] }>(api.POST('/v1/premium/unlocks', { body: { contentKey } })),
+  /** profileId: 어느 프로필로 열지 (없으면 대표 프로필) */
+  unlock: (contentKey: string, profileId?: number) =>
+    call<{ charged: number; viaSubscription: boolean; balance: number; entitlements: Entitlement[] }>(api.POST('/v1/premium/unlocks', { body: { contentKey, profileId } })),
 
   createTossOrder: (productId: string) => call<TossOrder>(api.POST('/v1/payments/toss/orders', { body: { productId } as never })),
 

@@ -4,6 +4,9 @@ import { BirthPlace, CompatibilityResult, PartnerInput, Relationship } from '../
 
 export interface CompatibilityDto {
   id: number;
+  profileId?: number;
+  myNickname?: string | null;
+  partnerProfileId?: number | null;
   source: 'manual' | 'invite';
   partnerNickname: string;
   relationship?: Relationship;
@@ -21,6 +24,8 @@ export interface CompatibilityDto {
 export const toResult = (userId: string, dto: CompatibilityDto): CompatibilityResult => ({
   ...dto.result,
   id: dto.id,
+  profileId: dto.profileId,
+  myNickname: dto.myNickname ?? null,
   source: dto.source,
   inviteRole: dto.inviteRole ?? null,
   isNew: !!dto.isNew,
@@ -41,9 +46,12 @@ export const isPrivateInvite = (r: CompatibilityResult) => r.source === 'invite'
 export const compatKeys = { list: ['compat-list'] as const };
 
 export const compatApi = {
-  async create(userId: string, partner: PartnerInput & { relationship: Relationship; calendarType?: 'solar' | 'lunar'; isLeapMonth?: boolean }) {
+  /** profileId: 나로 볼 내 프로필 (없으면 대표) · partnerProfileId: 상대를 내 프로필 목록에서 골랐으면 그 id */
+  async create(userId: string, partner: PartnerInput & { relationship: Relationship; calendarType?: 'solar' | 'lunar'; isLeapMonth?: boolean }, who: { profileId?: number; partnerProfileId?: number | null } = {}) {
     const dto = await call<CompatibilityDto>(api.POST('/v1/compatibilities', {
       body: {
+        profileId: who.profileId,
+        partnerProfileId: who.partnerProfileId ?? undefined,
         nickname: partner.nickname,
         relationship: partner.relationship,
         calendarType: partner.calendarType ?? 'solar',

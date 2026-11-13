@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PrimaryButton from '../components/PrimaryButton';
+import LinkStateLayout from '../components/LinkStateLayout';
 import InvitePicker from '../components/InvitePicker';
 import { useApp } from '../context/AppContext';
 import { compatApi } from '../services/server/compatApi';
 import { savePendingInvite } from '../services/share/linkShare';
 import { ApiError } from '../api/client';
 import { colors } from '../theme/colors';
-import { fonts, txt } from '../theme/typography';
+import { txt } from '../theme/typography';
 import { Relationship } from '../types';
 
 type State = 'loading' | 'ready' | 'mine' | 'gone' | 'error';
@@ -66,39 +67,39 @@ export default function InviteScreen() {
       case 'ready':
         return hasProfile ? (
           <>
-            <Text style={[txt.title, s.center]}>{who}님이{'\n'}궁합을 신청했어요</Text>
+            <Text accessibilityRole="header" style={s.title}>{who}님이{'\n'}궁합을 신청했어요</Text>
             <View style={s.picker}>
               <InvitePicker invite={{ token: token!, inviterNickname: who, relationship, sharesProfile }} onDone={() => {}} onDecline={() => router.replace('/')} replace />
             </View>
           </>
         ) : (
           <>
-            <Text style={[txt.title, s.center]}>{who}님이{'\n'}궁합을 신청했어요</Text>
-            <Text style={[txt.small, s.center, { marginTop: 8 }]}>내 생년월일만 넣으면 둘의 궁합이 바로 나와요.{'\n'}{who}님에게도 같은 결과가 전해져요.</Text>
+            <Text accessibilityRole="header" style={s.title}>{who}님이{'\n'}궁합을 신청했어요</Text>
+            <Text style={s.description}>내 생년월일만 넣으면 둘의 궁합이 바로 나와요.{'\n'}{who}님에게도 같은 결과가 전해져요.</Text>
             <PrimaryButton label="내 정보 넣고 궁합 보기" onPress={enterProfile} style={s.cta} />
           </>
         );
       case 'mine':
         return (
           <>
-            <Text style={[txt.title, s.center]}>내가 보낸{'\n'}궁합 초대 링크예요</Text>
-            <Text style={[txt.small, s.center, { marginTop: 8 }]}>상대가 이 링크를 열고 생년월일을 넣으면{'\n'}둘의 궁합 결과가 내 궁합 탭에 들어와요.</Text>
+            <Text accessibilityRole="header" style={s.title}>내가 보낸{'\n'}궁합 초대 링크예요</Text>
+            <Text style={s.description}>상대가 이 링크를 열고 생년월일을 넣으면{'\n'}둘의 궁합 결과가 내 궁합 탭에 들어와요.</Text>
             <PrimaryButton label="궁합 탭으로 가기" onPress={() => router.replace('/compatibility')} style={s.cta} />
           </>
         );
       case 'error':
         return (
           <>
-            <Text style={[txt.title, s.center]}>초대 링크를{'\n'}불러오지 못했어요</Text>
-            <Text style={[txt.small, s.center, { marginTop: 8 }]}>인터넷 연결을 확인하고 다시 시도해 주세요.</Text>
+            <Text accessibilityRole="header" style={s.title}>초대 링크를{'\n'}불러오지 못했어요</Text>
+            <Text style={s.description}>인터넷 연결을 확인하고 다시 시도해 주세요.</Text>
             <PrimaryButton label="다시 시도" onPress={retry} style={s.cta} />
           </>
         );
       default:
         return (
           <>
-            <Text style={[txt.title, s.center]}>초대 링크가 만료됐거나{'\n'}꺼졌어요</Text>
-            <Text style={[txt.small, s.center, { marginTop: 8 }]}>보낸 사람에게 새 링크를 받아 주세요.</Text>
+            <Text accessibilityRole="header" style={s.title}>이 초대 링크는 지금{'\n'}쓸 수 없어요</Text>
+            <Text style={s.description}>링크가 만료되었거나 공유가 종료됐어요.{'\n'}보낸 사람에게 새 링크를 부탁해 주세요.</Text>
             <PrimaryButton label="운Pick 둘러보기" onPress={() => router.replace('/')} style={s.cta} />
           </>
         );
@@ -106,20 +107,16 @@ export default function InviteScreen() {
   })();
 
   return (
-    <SafeAreaView style={s.page}>
-      <ScrollView contentContainerStyle={s.box}>
-        <Text style={s.seal}>和</Text>
-        {body}
-      </ScrollView>
-    </SafeAreaView>
+    <LinkStateLayout>
+      {body}
+    </LinkStateLayout>
   );
 }
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
-  box: { flexGrow: 1, width: '100%', paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center', justifyContent: 'center' },
-  seal: { fontFamily: fonts.serif, fontSize: 44, color: colors.seal, marginBottom: 16 },
-  center: { textAlign: 'center' },
+  title: { ...txt.title, fontSize: 26, lineHeight: 36, textAlign: 'center' },
+  description: { ...txt.body, textAlign: 'center', marginTop: 12, lineHeight: 22 },
   picker: { alignSelf: 'stretch', marginTop: 28 },
   cta: { marginTop: 28, alignSelf: 'stretch' },
 });

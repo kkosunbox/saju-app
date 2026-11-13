@@ -30,6 +30,10 @@ export interface ConsultTurn { question: string; reply: string; followUps: strin
 export interface ConsultView {
   id: number;
   status: 'preview' | 'answered';
+  /** 상담을 시작한 대표 프로필 — 대표 프로필을 바꿔도 끝까지 이 사람으로 이어진다 (예전 상담은 null) */
+  profileId?: number | null;
+  /** 상담을 시작한 때의 그 프로필 이름 */
+  profileNickname?: string | null;
   topic: ConsultCat;
   risk: 'none' | 'concern' | 'crisis';
   /** 고민 글 (한 건 조회에서만) */

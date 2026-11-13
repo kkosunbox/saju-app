@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, DevSettings, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, AppState, DevSettings, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Updates from 'expo-updates';
 import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { profileRequestApi, profileRequestKeys } from '../services/server/profileRequestApi';
 import MbtiArt from '../components/MbtiArt';
-import FigmaAsset, { ProfileAssetName } from '../components/profile/FigmaAsset';
+import FigmaAsset from '../components/profile/FigmaAsset';
 import { profileLine, profileType } from '../theme/profileDesign';
 import Screen from '../components/Screen';
 import Card from '../components/Card';
@@ -28,7 +30,7 @@ import { NotificationSettings, formatMinute, notificationService } from '../serv
 import FortuneTimeWheel from '../components/notification/FortuneTimeWheel';
 import type { PushPermission } from '../services/push';
 import { MBTI_INFO } from '../data/mbtiData';
-import { placeLabel } from '../services/server/birthPlaceApi';
+import { RELATIONSHIP_LABEL, User } from '../types';
 import { colors } from '../theme/colors';
 import { shadow, txt } from '../theme/typography';
 import appJson from '../../app.json';
@@ -51,25 +53,102 @@ function Row({ icon, label, value, last, right }: { icon: 'user' | 'mail'; label
   );
 }
 
-function ProfileHeading({ title, action, onAction }: { title: string; action?: string; onAction?(): void }) {
+function ProfileHeading({ title }: { title: string }) {
   return <View style={s.sectionHeading}>
     <Text style={[s.sectionTitle, title === '내 프로필' && { letterSpacing: 0 }]} accessibilityRole="header">{title}</Text>
-    {action && <PressableScale onPress={onAction} accessibilityLabel={action} hitSlop={10} style={s.sectionAction}><FigmaAsset name="chevron" /></PressableScale>}
   </View>;
 }
 
-function ProfileRow({ icon, label, value, last }: { icon: ProfileAssetName; label: string; value: string; last?: boolean }) {
-  return <>
-    <View style={s.profileRow}>
-      <FigmaAsset name={icon} /><Text style={s.profileLabel}>{label}</Text>
-      <Text style={s.profileValue}>{value}</Text>
-    </View>
-    {!last && <View style={s.profileDivider} />}
-  </>;
+const PROFILE_PAGE_SIZE = 10;
+
+/** 공통으로 조회한 프로필을 10개씩 표시한다. 긴 목록은 이 영역 안에서만 스크롤한다. */
+function MyProfiles({ profiles }: { profiles: User[] }) {
+  const [shown, setShown] = useState(PROFILE_PAGE_SIZE);
+  const [revoking, setRevoking] = useState<number | null>(null);
+  const { refreshProfiles } = useApp();
+  const { toast } = usePremium();
+  const qc = useQueryClient();
+  const requests = useQuery({ queryKey: profileRequestKeys.open, queryFn: profileRequestApi.listOpen });
+  // 요청 링크로 추가된 프로필도 마이 탭에 돌아오면 갱신한다.
+  useFocusEffect(useCallback(() => {
+    void refreshProfiles().catch(() => {});
+    void qc.invalidateQueries({ queryKey: profileRequestKeys.open });
+  }, [refreshProfiles, qc]));
+
+  const revoke = async (id: number) => {
+    if (revoking !== null) return;
+    setRevoking(id);
+    try {
+      await profileRequestApi.revoke(id);
+      await qc.invalidateQueries({ queryKey: profileRequestKeys.open });
+    } catch {
+      toast('요청을 취소하지 못했어요. 잠시 후 다시 시도해 주세요');
+    } finally {
+      setRevoking(null);
+    }
+  };
+
+  return (
+    <>
+      <View style={s.profileGroup}>
+        <ScrollView
+          style={s.profileScroll}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          bounces={false}
+          accessibilityLabel="프로필 목록"
+          scrollEventThrottle={100}
+          onScroll={({ nativeEvent: { layoutMeasurement, contentOffset, contentSize } }) => {
+            if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 40) {
+              setShown(n => n < profiles.length ? Math.min(n + PROFILE_PAGE_SIZE, profiles.length) : n);
+            }
+          }}
+        >
+          {profiles.slice(0, shown).map(p => (
+            <React.Fragment key={p.profileId}>
+              <PressableScale onPress={() => router.push({ pathname: '/profiles/[id]', params: { id: String(p.profileId) } })} scaleTo={0.99} style={s.personRow} accessibilityLabel={`${p.nickname} 프로필 수정`}>
+                <View style={{ flex: 1 }}>
+                  <View style={s.personName}>
+                    <Text style={s.profileLabel}>{p.nickname}</Text>
+                    {p.isPrimary ? <Text style={s.primaryTag}>대표</Text> : null}
+                  </View>
+                  <Text style={s.personMeta} numberOfLines={1}>
+                    {RELATIONSHIP_LABEL[p.relationship ?? 'other']} · {(p.birthDateInput ?? p.birthDate).replace(/-/g, '.')}{p.calendarType === 'lunar' ? ' (음력)' : ''} · {p.birthTime ?? '시간 모름'} · {p.mbti}{p.mbtiUnknown ? ' (추정)' : ''}
+                  </Text>
+                </View>
+                <FigmaAsset name="chevron" />
+              </PressableScale>
+              <View style={s.profileDivider} />
+            </React.Fragment>
+          ))}
+        </ScrollView>
+        <PressableScale onPress={() => router.push('/profiles/new')} scaleTo={0.99} style={s.personRow} accessibilityLabel="프로필 추가">
+          <Text style={[s.profileLabel, { color: colors.purpleSoft }]}>+ 프로필 추가</Text>
+        </PressableScale>
+        <View pointerEvents="none" style={s.profileOutline} />
+      </View>
+      {requests.data?.length ? (
+        <View style={s.profileRequests}>
+          <Text style={txt.bodyStrong} accessibilityRole="header">답을 기다리는 요청</Text>
+          <ScrollView style={s.profileScroll} nestedScrollEnabled showsVerticalScrollIndicator>
+            {requests.data.map(r => (
+              <View key={r.id} style={s.profileRequestRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={txt.bodyStrong} numberOfLines={1}>{r.nickname ?? RELATIONSHIP_LABEL[r.relationship]}</Text>
+                  <Text style={txt.caption}>{RELATIONSHIP_LABEL[r.relationship]} · {r.expiresAt.slice(0, 10).replace(/-/g, '.')}까지</Text>
+                </View>
+                <PrimaryButton label={revoking === r.id ? '취소 중…' : '요청 취소'} variant="text" small disabled={revoking !== null} onPress={() => revoke(r.id)} />
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+    </>
+  );
 }
 
 export default function MyPageScreen() {
-  const { user, fortune, account, signOut, deleteAccount } = useApp();
+  const { user, profiles, fortune, account, signOut, deleteAccount } = useApp();
   const { points, ownedCount, toast, subscription } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [theme] = useState<ThemePref>(readThemePrefSync());
@@ -163,15 +242,9 @@ export default function MyPageScreen() {
         </View>
       </View>
 
-      <ProfileHeading title="내 프로필" action="프로필 수정" onAction={() => router.push('/profile-edit')} />
-      <View style={s.profileGroup}>
-        <ProfileRow icon="sparkle" label="MBTI" value={`${user.mbti}${user.mbtiUnknown ? ' (추정)' : ''}`} />
-        <ProfileRow icon="calendar" label="생년월일" value={user.birthDate.replace(/-/g, '.')} />
-        <ProfileRow icon="time" label="출생시간" value={user.birthTime ?? '모름'} />
-        <ProfileRow icon="pin" label="태어난 지역" value={user.birthPlace ? placeLabel(user.birthPlace) : '모름'} />
-        <ProfileRow icon="user" label="성별" value={user.gender === 'female' ? '여성' : '남성'} last />
-        <View pointerEvents="none" style={s.profileOutline} />
-      </View>
+      {/* 프로필 — 나와 함께 운세를 보는 사람들 (대표 프로필이 오늘의 운세 · 운알톡 기준) */}
+      <ProfileHeading title="프로필" />
+      <MyProfiles key={user.id} profiles={profiles} />
 
       <ProfileHeading title="화면 모드" />
       <Segmented<ThemePref>
@@ -353,12 +426,16 @@ const s = StyleSheet.create({
   todayDraw: profileType(14, '700', 17, -0.7, colors.moon),
   sectionHeading: { marginTop: 32, marginBottom: 16, minHeight: 21, justifyContent: 'center' },
   sectionTitle: profileType(18, '600', 21, -0.72),
-  sectionAction: { position: 'absolute', right: 0, top: -3.5, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  profileRequests: { marginTop: 16, gap: 8 },
+  profileRequestRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   profileGroup: { borderRadius: 12, overflow: 'hidden', backgroundColor: colors.cream },
+  profileScroll: { maxHeight: 280, flexGrow: 0, overscrollBehaviorY: 'contain' },
+  personRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
+  personName: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  personMeta: { ...profileType(12, '400', 16, -0.4, colors.inkMute), marginTop: 3 },
+  primaryTag: { ...profileType(11, '600', 14, 0, colors.purpleSoft), paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, borderWidth: 1, borderColor: colors.purpleSoft, overflow: 'hidden' },
   profileOutline: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: profileLine, borderRadius: 12 },
-  profileRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 16 },
-  profileLabel: { ...profileType(13, '600', 18, -0.65), flex: 1 },
-  profileValue: profileType(13, '600', 18, -0.65),
+  profileLabel: profileType(14, '600', 18, -0.65),
   profileDivider: { height: 1, backgroundColor: profileLine },
   group: { paddingVertical: 2, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54 },

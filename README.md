@@ -2,7 +2,7 @@
 
 > 오늘의 운, 하나만 Pick! — 사주 · 점성술 · MBTI · 타로을 겹쳐 읽는 운세 앱
 
-Expo(SDK 57) + Expo Router로 **iOS · Android · Web을 하나의 코드베이스**로 운영한다.
+Expo(SDK 58) + Expo Router로 **iOS · Android · Web을 하나의 코드베이스**로 운영한다.
 화면은 `onulna-prototype`(v0.6, 운Pick)을 옮긴 것이고, 서버는 [`saju-be-monorepo`](../saju-be-monorepo).
 설계 문서: `saju-be-monorepo/docs/fortune-module-design.md` · 브랜드: [docs/BRAND.md](docs/BRAND.md)
 
@@ -12,10 +12,20 @@ Expo(SDK 57) + Expo Router로 **iOS · Android · Web을 하나의 코드베이�
 npm install
 npm start            # Expo Go / 시뮬레이터
 npm run web          # 웹 개발 서버 (http://localhost:4000)
+npm run web:static   # 정적 HTML·SEO·페이지 분할 확인용 (느린 서버 렌더링 포함)
 npm run build:web    # 웹 정적 빌드 → dist/ (라우트별 HTML)
 npm run typecheck
 npm run lint
 ```
+
+`npm run web`은 로컬 화면 테스트용 SPA 모드다. 처음에 화면 코드를 함께 번들링하고 이후 이동에는 재사용한다.
+페이지마다 HTML용 서버 번들을 만들지 않아 반복 번들링과 메모리 누적을 줄인다. Fast Refresh는 그대로 쓴다.
+웹폰트·전역 스타일도 정적 HTML과 같은 설정을 사용한다. HTML 메타·SEO·정적 렌더링을 확인할 때는 `npm run web:static`을 사용한다.
+이 설정은 실행 스크립트의 자식 프로세스에만 적용되므로 배포용 `build:web`과 EAS·네이티브 실행에는 적용되지 않는다.
+
+로컬 개발 서버(`npm start`, `npm run web`)는 Metro 작업자를 2개로 제한한다.
+캐시는 재사용하며, `--clear`는 캐시 문제를 확인할 때만 사용한다. 첫 번들링은 화면 전체를 준비하므로 잠시 기다려야 한다.
+기존 서버가 실행 중이면 종료 후 다시 `npm run web`을 실행해야 새 설정이 적용된다.
 
 ## 흐름 (프로토타입과 다른 점)
 

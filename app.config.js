@@ -64,8 +64,19 @@ const SOCIAL_PROGUARD_RULES = `
 
 module.exports = ({ config }) => ({
   ...config,
+  // Local UI testing does not need an SSR bundle and route graph for each URL.
+  web: { ...config.web, ...(process.env.WOONPICK_LOCAL_WEB === '1' ? { output: 'single' } : {}) },
   plugins: [
-    ...config.plugins,
+    ...config.plugins.map((plugin) => {
+      // SDK 58 defaults to a separate lazy bundle for each web route. Local
+      // testing visits most screens, so bundle them together once and reuse the
+      // graph on navigation. Production exports still use route splitting.
+      if (process.env.WOONPICK_LOCAL_WEB !== '1') return plugin;
+      const [name, options = {}] = Array.isArray(plugin) ? plugin : [plugin];
+      return name === 'expo-router'
+        ? [name, { ...options, asyncRoutes: { web: false } }]
+        : plugin;
+    }),
     // 카카오 Android SDK는 Maven Central에 없다. 릴리스 빌드의 R8 규칙은 SOCIAL_PROGUARD_RULES 참고
     [
       'expo-build-properties',

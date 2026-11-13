@@ -712,16 +712,84 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 내 운세 프로필 조회
+         * 대표 프로필 조회
          * @description 프로필이 없으면 404 (CONTENT_NOT_FOUND) → 앱은 프로필 입력 화면으로 이동합니다.
          */
         get: operations["FortuneProfileController_getMyProfile_v1"];
         /**
-         * 내 운세 프로필 저장 (생성·수정)
+         * 대표 프로필 저장 (첫 프로필 생성 · 대표 프로필 수정)
          * @description 횟수 제한 없이 수정할 수 있습니다. 사주 입력값(생년월일·시간·양음력·윤달·출생지·성별·MBTI·야자시)이 바뀌면 version이 올라갑니다. 이미 뽑은 것(오늘 운세·열어 본 유료/무료 콘텐츠)은 만들 때의 프로필 그대로 남고, 바뀐 프로필은 다음 날 운세와 새로 여는 콘텐츠부터 반영됩니다. mbti를 비우면 사주로 추정합니다.
          */
         put: operations["FortuneProfileController_upsertMyProfile_v1"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortune-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내 프로필 목록
+         * @description 대표 프로필이 맨 앞, 나머지는 추가한 순서
+         */
+        get: operations["FortuneProfilesController_list_v1"];
+        put?: never;
+        /**
+         * 프로필 추가
+         * @description 최대 20개. 첫 프로필은 대표 프로필이 됩니다.
+         */
+        post: operations["FortuneProfilesController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortune-profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 프로필 수정
+         * @description 사주 입력값이 바뀌면 version이 올라갑니다. 이미 열어 본 콘텐츠는 그때 정보 그대로 남고, 같은 콘텐츠를 새 정보로 다시 열 수 있습니다. 이름만 바꾸면 version은 그대로입니다.
+         */
+        put: operations["FortuneProfilesController_update_v1"];
+        post?: never;
+        /**
+         * 프로필 지우기
+         * @description 목록에서 지웁니다. 이 프로필로 열어 본 콘텐츠는 그대로 볼 수 있습니다. 대표 프로필은 지울 수 없습니다(400).
+         */
+        delete: operations["FortuneProfilesController_delete_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortune-profiles/{id}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 대표 프로필로 정하기
+         * @description 오늘의 운세와 새로 시작하는 운알톡이 이 프로필을 씁니다. 이미 뽑은 오늘의 운세와 진행 중인 상담은 그대로입니다.
+         */
+        post: operations["FortuneProfilesController_setPrimary_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -742,6 +810,84 @@ export interface paths {
         get: operations["BirthPlaceController_search_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 아직 답이 없는 내 요청 링크 */
+        get: operations["ProfileRequestController_listOpen_v1"];
+        put?: never;
+        /**
+         * 프로필 요청 링크 만들기
+         * @description 링크(/p/{token})를 받은 사람이 정보를 입력하면 내 프로필 목록에 추가됩니다. 30일 동안, 한 번만 쓸 수 있습니다.
+         */
+        post: operations["ProfileRequestController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 요청 링크 끄기 */
+        delete: operations["ProfileRequestController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile-requests/by-token/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 요청 링크 미리보기 (로그인 불필요)
+         * @description 링크를 연 사람에게 요청한 사람의 이름과 관계를 보여 줍니다. IP당 시간당 60회로 제한합니다.
+         */
+        get: operations["ProfileRequestController_preview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profile-requests/by-token/{token}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 요청 링크에 정보 보내기
+         * @description 입력한 정보가 요청한 사람의 프로필 목록에 추가됩니다(이후 서로 고쳐도 영향 없음). 내 프로필이 아직 없으면(게스트 포함) 같은 정보로 내 프로필도 만들어집니다. 내 링크면 INVITATION_OWN, 이미 답한 링크면 INVITATION_ALREADY_ACCEPTED.
+         */
+        post: operations["ProfileRequestController_answer_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1018,7 +1164,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 내 열람권 (유효한 것만) */
+        /**
+         * 내 열람권 (유효한 것만)
+         * @description 모든 프로필의 것, 프로필을 고치기 전 정보로 연 것(current=false)까지 최근 순. 콘텐츠 화면에서 구매 기록을 고를 때 씁니다.
+         */
         get: operations["PremiumController_listUnlocks_v1"];
         put?: never;
         /**
@@ -1172,7 +1321,7 @@ export interface paths {
         };
         /**
          * 상세 사주 해석
-         * @description 열람권(saju)이 없으면 403 CONTENT_LOCKED → POST /premium/unlocks
+         * @description 열람권(saju)이 없으면 403 CONTENT_LOCKED → POST /premium/unlocks. 모든 콘텐츠 공통: profileId(없으면 대표 프로필)의 지금 정보로 연 열람권을 보여 주고, 예전에 산 것은 entitlementId로 봅니다. 처음 열 때의 프로필 정보 · 날짜 · 계산 결과를 그대로 저장해 이후에는 다시 계산하지 않습니다.
          */
         get: operations["PremiumContentController_saju_v1"];
         put?: never;
@@ -1772,7 +1921,7 @@ export interface paths {
         };
         /**
          * 내 반려동물과 궁합 목록
-         * @description 등록한 순서대로, 아이마다 지금 내 프로필로 계산한 궁합(result)을 함께 줍니다. 프로필이 없으면 404.
+         * @description 등록한 순서대로, 아이마다 고른 프로필(profileId, 없으면 대표 프로필)로 계산한 궁합 미리보기(result)를 함께 줍니다. 프로필이 없으면 404.
          */
         get: operations["PetController_list_v1"];
         put?: never;
@@ -2621,6 +2770,10 @@ export interface components {
             textsPending: boolean;
             /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
             drawn: boolean;
+            /** @description 이 운세를 만든 프로필 id (대표 프로필) */
+            profileId: number | null;
+            /** @description 이 운세를 만든 때의 프로필 이름 */
+            nickname: string | null;
             /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
             yesterdayScores: components["schemas"]["DayScoresDto"] | null;
             /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */
@@ -2659,28 +2812,6 @@ export interface components {
             focus: string;
             cats: components["schemas"]["PeriodCategoriesDto"];
         };
-        FreeContentDto: {
-            data: Record<string, never>;
-        };
-        BirthPlaceDto: {
-            /** @description 프로필·궁합 상대 저장 때 birthPlaceId로 보냅니다 */
-            id: number;
-            /**
-             * @description 한글 이름 (해외는 한글 이름이 없으면 영어)
-             * @example 포항시
-             */
-            name: string;
-            /**
-             * @description 해외 도시의 영어 이름 (name이 한글일 때만)
-             * @example Los Angeles
-             */
-            englishName: string | null;
-            /**
-             * @description 국내는 도(특별·광역시는 null), 북한은 "북한 함북", 해외는 나라 (시간대가 여러 개인 나라는 " · 미 태평양 시간"처럼 시간대까지)
-             * @example 경북
-             */
-            region: string | null;
-        };
         PillarDto: {
             /** @description 천간 0~9 (0=甲) */
             stem: number;
@@ -2710,7 +2841,58 @@ export interface components {
              */
             thaiBirthDay: "sun" | "mon" | "tue" | "wedDay" | "wedNight" | "thu" | "fri" | "sat";
         };
+        ContentPersonDto: {
+            /** @description 프로필 id */
+            profileId: number | null;
+            /** @enum {string|null} */
+            relationship: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other" | null;
+            nickname: string;
+            /** @enum {string} */
+            calendarType: "solar" | "lunar";
+            /** @description 입력한 달력 기준 생일 */
+            birthDate: string;
+            isLeapMonth: boolean;
+            birthDateSolar: string;
+            birthTime: string | null;
+            useYajasi: boolean;
+            gender: string;
+            mbti: string;
+            mbtiIsEstimated: boolean;
+            natal: components["schemas"]["NatalDto"];
+        };
+        FreeContentDto: {
+            data: Record<string, never>;
+            /** @description 누구의 결과인지 (처음 뽑은 때의 프로필 정보) */
+            person: components["schemas"]["ContentPersonDto"];
+        };
+        BirthPlaceDto: {
+            /** @description 프로필·궁합 상대 저장 때 birthPlaceId로 보냅니다 */
+            id: number;
+            /**
+             * @description 한글 이름 (해외는 한글 이름이 없으면 영어)
+             * @example 포항시
+             */
+            name: string;
+            /**
+             * @description 해외 도시의 영어 이름 (name이 한글일 때만)
+             * @example Los Angeles
+             */
+            englishName: string | null;
+            /**
+             * @description 국내는 도(특별·광역시는 null), 북한은 "북한 함북", 해외는 나라 (시간대가 여러 개인 나라는 " · 미 태평양 시간"처럼 시간대까지)
+             * @example 경북
+             */
+            region: string | null;
+        };
         FortuneProfileDto: {
+            id: number;
+            /**
+             * @description 나와의 관계
+             * @enum {string}
+             */
+            relationship: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other";
+            /** @description 대표 프로필 (오늘의 운세 · 운알톡 기준) */
+            isPrimary: boolean;
             nickname: string;
             /** @enum {string} */
             calendarType: "solar" | "lunar";
@@ -2743,6 +2925,11 @@ export interface components {
             natal: components["schemas"]["NatalDto"];
         };
         UpsertFortuneProfileRequest: {
+            /**
+             * @description 나와의 관계 (새 프로필 기본값: 첫 프로필은 self, 그 밖은 other)
+             * @enum {string}
+             */
+            relationship?: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other";
             /** @description 운세에서 부를 이름 */
             nickname: string;
             /**
@@ -2792,6 +2979,45 @@ export interface components {
         BirthPlaceListResponse: {
             places: components["schemas"]["BirthPlaceDto"][];
         };
+        ProfileRequestDto: {
+            id: number;
+            /** @description 링크에 넣을 토큰 (/p/{token}) */
+            token: string;
+            /** @enum {string} */
+            relationship: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other";
+            nickname: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateProfileRequestRequest: {
+            /**
+             * @description 받을 사람과 나의 관계 (받은 프로필에 붙음)
+             * @enum {string}
+             */
+            relationship: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other";
+            /** @description 받을 사람의 이름 (입력 화면 이름 칸의 기본값) */
+            nickname?: string | null;
+        };
+        ProfileRequestPreviewDto: {
+            /** @description 요청한 사람의 이름 (대표 프로필) */
+            requesterNickname: string;
+            /** @enum {string} */
+            relationship: "self" | "lover" | "spouse" | "parent" | "child" | "sibling" | "friend" | "work" | "other";
+            /** @description 요청한 사람이 붙인 이름 (이름 칸 기본값) */
+            nickname: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        ProfileRequestAnswerDto: {
+            /** @description 요청한 사람의 이름 */
+            requesterNickname: string;
+            /** @description 입력한 사람의 대표 프로필 (없었으면 방금 입력한 정보로 만든 것) */
+            profile: components["schemas"]["FortuneProfileDto"];
+            /** @description 입력한 정보로 내 프로필을 새로 만들었는지 (원래 프로필이 없었음) */
+            createdOwn: boolean;
+        };
         CompatibilityPartnerDto: {
             /** @enum {string} */
             calendarType: "solar" | "lunar";
@@ -2838,6 +3064,12 @@ export interface components {
         };
         CompatibilityDto: {
             id: number;
+            /** @description 나로 본 내 프로필 id */
+            profileId: number;
+            /** @description 계산한 때의 내 프로필 이름 (예전 기록은 null) */
+            myNickname: string | null;
+            /** @description 상대를 내 프로필 목록에서 골랐으면 그 프로필 id */
+            partnerProfileId: number | null;
             /**
              * @description manual: 직접 입력 · invite: 친구 초대 링크
              * @enum {string}
@@ -2860,6 +3092,10 @@ export interface components {
             createdAt: string;
         };
         CreateCompatibilityRequest: {
+            /** @description 나로 볼 내 프로필 id (없으면 대표 프로필) */
+            profileId?: number;
+            /** @description 상대를 내 프로필 목록에서 골랐으면 그 프로필 id (상대 정보 칸은 그 프로필 값으로 채워 보냄) */
+            partnerProfileId?: number;
             /** @description 상대 이름 */
             nickname: string;
             /**
@@ -2998,14 +3234,23 @@ export interface components {
             ownedIncludes: string[];
             /** @description 패키지 포함 항목을 반 이상 가지고 있으면 false (팔지 않음, 화면에서 숨김) */
             forSale: boolean;
-            /** @description 이미 열려 있음 */
+            /** @description 이 프로필의 지금 정보로 이미 열려 있음 (고치기 전 정보로 연 것만 있으면 false → 다시 살 수 있음) */
             open: boolean;
-            /** @description 구독 혜택으로 무료로 열 수 있음 (구독 중 · 이번 달 월별 상세운세 · 아직 안 열림) */
+            /** @description 구독 혜택으로 무료로 열 수 있음 (구독 중 · 이번 달 월별 상세운세 · 이번 달 혜택을 아직 안 씀). 고른 프로필로 열립니다 */
             viaSubscription: boolean;
         };
         EntitlementDto: {
+            id: number;
             /** @example monthly:2026-10 */
             contentKey: string;
+            /** @description 대상 프로필 id (지운 프로필일 수도 있음) */
+            profileId: number | null;
+            /** @description 처음 연 때의 이름 (아직 안 열었으면 null) */
+            nickname: string | null;
+            /** @description 처음 열어 본 날 (KST). 아직 안 열었으면 null */
+            openedOn: string | null;
+            /** @description 프로필의 지금 정보와 같은 열람권인지 (false면 프로필을 고치기 전 정보로 연 기록) */
+            current: boolean;
             /** @enum {string} */
             source: "points" | "bundle" | "subscription" | "admin";
             /**
@@ -3030,6 +3275,8 @@ export interface components {
              * @example monthly:2026-10
              */
             contentKey: string;
+            /** @description 어느 프로필로 열지 (없으면 대표 프로필). 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해집니다 */
+            profileId?: number;
         };
         StoreAccountDto: {
             appAccountToken: string;
@@ -3106,6 +3353,15 @@ export interface components {
         PremiumContentDto: {
             /** @example monthly:2026-10 */
             contentKey: string;
+            /** @description 보고 있는 열람권 id */
+            entitlementId: number;
+            /**
+             * @description 처음 열어 본 날 (KST) — 결과와 AI 풀이의 기준일
+             * @example 2026-11-13
+             */
+            openedOn: string;
+            /** @description 누구의 콘텐츠인지 (처음 열어 본 때의 프로필 정보) */
+            person: components["schemas"]["ContentPersonDto"];
             data: Record<string, never>;
             /** @description 내 사주 원국 분석 (화면 공통 바탕) */
             profile: Record<string, never>;
@@ -3115,6 +3371,8 @@ export interface components {
         PremiumPreviewDto: {
             /** @example monthly:2026-10 */
             contentKey: string;
+            /** @description 계산한 프로필 id */
+            profileId: number;
             data: Record<string, never>;
         };
         SubscriptionPlanDto: {
@@ -3144,6 +3402,8 @@ export interface components {
              * @example monthly:2026-11
              */
             monthlyContentKey: string;
+            /** @description 이번 달 무료 월별 상세운세를 이미 썼는지 (한 달에 한 번, 고른 프로필로 열림) */
+            monthlyUsed: boolean;
             /** @description 출석 알 배수 */
             attendanceMultiplier: number;
         };
@@ -3195,6 +3455,8 @@ export interface components {
         ReadingListItemDto: {
             /** @example saju */
             contentKey: string;
+            /** @description 열람권 id (콘텐츠 조회의 entitlementId) */
+            entitlementId: number | null;
             /** @enum {string} */
             status: "writing" | "done" | "failed";
             /** Format: date-time */
@@ -3221,6 +3483,10 @@ export interface components {
             createdAt: string;
         };
         CreatePremiumShareRequest: {
+            /** @description 내 프로필 id (없으면 대표 프로필) */
+            profileId?: number;
+            /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+            entitlementId?: number;
             /**
              * @description 공유할 콘텐츠 (saju · life · spouse · newyear:{YYYY} · monthly:{YYYY-MM} · theme:{kind} · lucky:{purpose} · compat:{id} · crush:{id} · pet:{id})
              * @example saju
@@ -3349,6 +3615,10 @@ export interface components {
         };
         ConsultDto: {
             id: number | null;
+            /** @description 상담을 시작한 대표 프로필 (끝까지 이 프로필로 이어짐). 예전 상담은 null */
+            profileId: number | null;
+            /** @description 상담을 시작한 때의 프로필 이름 */
+            profileNickname: string | null;
             /**
              * @description preview: 오늘의 무료 미리보기 (결론만, 100P로 잠금 해제) · answered: 전체 답변
              * @enum {string}
@@ -5110,7 +5380,10 @@ export interface operations {
     };
     FreeContentController_mbtiMatch_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5169,7 +5442,10 @@ export interface operations {
     };
     FreeContentController_character_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5228,7 +5504,10 @@ export interface operations {
     };
     FreeContentController_talisman_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5287,7 +5566,10 @@ export interface operations {
     };
     FreeContentController_pastLife_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5466,6 +5748,325 @@ export interface operations {
             };
         };
     };
+    FortuneProfilesController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: {
+                            /** @example 0 */
+                            total?: number;
+                            list?: components["schemas"]["FortuneProfileDto"][];
+                        };
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneProfilesController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertFortuneProfileRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["FortuneProfileDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: INVALID_BIRTH_DATE, BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVALID_BIRTH_DATE */
+                        code?: string;
+                        /** @example INVALID_BIRTH_DATE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneProfilesController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertFortuneProfileRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["FortuneProfileDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVALID_BIRTH_DATE */
+                        code?: string;
+                        /** @example INVALID_BIRTH_DATE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneProfilesController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneProfilesController_setPrimary_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["FortuneProfileDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     BirthPlaceController_search_v1: {
         parameters: {
             query?: {
@@ -5488,6 +6089,325 @@ export interface operations {
                         /** @example true */
                         result?: boolean;
                         data?: components["schemas"]["BirthPlaceListResponse"];
+                    };
+                };
+            };
+        };
+    };
+    ProfileRequestController_listOpen_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: {
+                            /** @example 0 */
+                            total?: number;
+                            list?: components["schemas"]["ProfileRequestDto"][];
+                        };
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ProfileRequestController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProfileRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ProfileRequestDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ProfileRequestController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INVITATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVITATION_NOT_FOUND */
+                        code?: string;
+                        /** @example INVITATION_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ProfileRequestController_preview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ProfileRequestPreviewDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: INVITATION_TOKEN_EXPIRED, INVITATION_ALREADY_ACCEPTED */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVITATION_TOKEN_EXPIRED */
+                        code?: string;
+                        /** @example INVITATION_TOKEN_EXPIRED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INVITATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVITATION_NOT_FOUND */
+                        code?: string;
+                        /** @example INVITATION_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example TOO_MANY_REQUESTS */
+                        code?: string;
+                        /** @example TOO_MANY_REQUESTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ProfileRequestController_answer_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertFortuneProfileRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ProfileRequestAnswerDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: INVITATION_TOKEN_EXPIRED, INVITATION_ALREADY_ACCEPTED, INVITATION_OWN, INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVITATION_TOKEN_EXPIRED */
+                        code?: string;
+                        /** @example INVITATION_TOKEN_EXPIRED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INVITATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INVITATION_NOT_FOUND */
+                        code?: string;
+                        /** @example INVITATION_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
                     };
                 };
             };
@@ -6389,6 +7309,8 @@ export interface operations {
             query: {
                 /** @description 열람 키 (docs/payment-design.md 3.2). 가격은 서버가 정합니다 */
                 contentKey: string;
+                /** @description 어느 프로필로 열지 (없으면 대표 프로필). 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해집니다 */
+                profileId?: number;
             };
             header?: never;
             path?: never;
@@ -7279,7 +8201,12 @@ export interface operations {
     };
     PremiumContentController_saju_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7356,7 +8283,12 @@ export interface operations {
     };
     PremiumContentController_life_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7433,7 +8365,12 @@ export interface operations {
     };
     PremiumContentController_newYear_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 year: number;
@@ -7512,7 +8449,12 @@ export interface operations {
     };
     PremiumContentController_monthly_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 month: string;
@@ -7591,7 +8533,12 @@ export interface operations {
     };
     PremiumContentController_theme_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 kind: "love" | "money" | "career";
@@ -7670,7 +8617,12 @@ export interface operations {
     };
     PremiumContentController_lucky_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 purpose: "move" | "contract" | "confess" | "interview" | "travel" | "start";
@@ -7749,7 +8701,12 @@ export interface operations {
     };
     PremiumContentController_spouse_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7826,7 +8783,12 @@ export interface operations {
     };
     PremiumContentController_deepCompatibility_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 compatibilityId: number;
@@ -7905,7 +8867,12 @@ export interface operations {
     };
     PremiumContentController_pet_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 petId: number;
@@ -7984,7 +8951,12 @@ export interface operations {
     };
     PremiumContentController_crush_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
             header?: never;
             path: {
                 compatibilityId: number;
@@ -8063,7 +9035,10 @@ export interface operations {
     };
     PremiumPreviewController_saju_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8122,7 +9097,10 @@ export interface operations {
     };
     PremiumPreviewController_life_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8181,7 +9159,10 @@ export interface operations {
     };
     PremiumPreviewController_newYear_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path: {
                 year: string;
@@ -8242,7 +9223,10 @@ export interface operations {
     };
     PremiumPreviewController_monthly_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path: {
                 month: string;
@@ -8303,7 +9287,10 @@ export interface operations {
     };
     PremiumPreviewController_theme_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path: {
                 kind: "love" | "money" | "career";
@@ -8364,7 +9351,10 @@ export interface operations {
     };
     PremiumPreviewController_lucky_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path: {
                 purpose: "move" | "contract" | "confess" | "interview" | "travel" | "start";
@@ -8425,7 +9415,10 @@ export interface operations {
     };
     PremiumPreviewController_spouse_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9234,6 +10227,10 @@ export interface operations {
     ReadingController_status_v1: {
         parameters: {
             query: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
                 contentKey: string;
             };
             header?: never;
@@ -9412,6 +10409,10 @@ export interface operations {
     PremiumShareController_findMine_v1: {
         parameters: {
             query: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
                 contentKey: string;
             };
             header?: never;
@@ -9473,6 +10474,10 @@ export interface operations {
     PremiumShareController_revokeContent_v1: {
         parameters: {
             query: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
                 contentKey: string;
             };
             header?: never;
@@ -9649,7 +10654,10 @@ export interface operations {
     };
     PetController_list_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9708,7 +10716,10 @@ export interface operations {
     };
     PetController_create_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

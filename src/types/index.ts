@@ -18,8 +18,21 @@ export interface BirthPlace {
 }
 
 /** Firebase/Supabase users 테이블과 1:1 대응 */
+/** 프로필을 가진 사람과의 관계 (서버 fortune_profile.relationship) */
+export type ProfileRelationship = 'self' | 'lover' | 'spouse' | 'parent' | 'child' | 'sibling' | 'friend' | 'work' | 'other';
+
+export const RELATIONSHIP_LABEL: Record<ProfileRelationship, string> = {
+  self: '본인', lover: '연인', spouse: '배우자', parent: '부모님', child: '자녀', sibling: '형제자매', friend: '친구', work: '직장', other: '기타',
+};
+
 export interface User {
+  /** 계정 id (게스트 포함). 프로필이 여럿이어도 같다 */
   id: string;
+  /** 서버 프로필 id (대표 프로필이 아닐 수도 있다). 공유 화면의 주인 등 서버 프로필이 아니면 없음 */
+  profileId?: number;
+  relationship?: ProfileRelationship;
+  /** 대표 프로필 (오늘의 운세 · 운알톡 기준) */
+  isPrimary?: boolean;
   nickname: string;
   birthDate: string; // YYYY-MM-DD (양력)
   birthTime: string | null; // HH:mm, 모르면 null
@@ -174,6 +187,10 @@ export interface CompatibilityResult {
   tarot?: TarotReading;
   /** Server record id (궁합 기록). */
   id?: number;
+  /** 나로 본 내 프로필 (서버 기록) */
+  profileId?: number;
+  /** 계산한 때의 내 프로필 이름 (예전 기록은 없음) */
+  myNickname?: string | null;
   /** invite: made from an invite link — no partner details. */
   source?: 'manual' | 'invite';
   /** invite 기록에서 나의 쪽 — inviter: 내 링크를 상대가 열어 생김 · friend: 내가 상대 링크를 열어 봄 */

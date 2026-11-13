@@ -1,40 +1,46 @@
 /**
  * 뽑았는지(열어 봤는지) — 결과를 들어가자마자 보여주지 않고, 한 번 뽑게 한 다음부터 바로 보여준다.
  * 오늘의 운세·타로·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
- * 뽑은 결과는 서버가 그때의 프로필로 고정해 두므로 프로필을 바꿔도 다시 뽑지 않는다.
+ * 뽑은 결과는 서버가 그때의 프로필로 고정한다. 프로필마다 첫 뽑기를 따로 기억한다.
  * 이 기기에만 저장한다 (기기를 바꾸면 한 번 더 뽑는 정도는 괜찮다). 오늘의 운세만은 서버도 뽑았는지 기억해서 다른 기기에서도 뽑은 상태로 보인다.
  */
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deviceKey } from '../storage/storageService';
 import { useApp } from '../../context/AppContext';
+import { useContentScope } from '../../context/ContentScopeContext';
 import { DEV_TOOLS } from '../../utils/devTools';
 
 export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
 const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman'];
 
-/** 사용자별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } — 종류마다 한 칸이라 쌓이지 않는다 */
+/** 프로필별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } */
 type Stamps = Partial<Record<OpenKind, string>>;
-let mem: { uid: string; stamps: Stamps } | null = null;
-let loading: Promise<Stamps> | null = null;
+const mem = new Map<string, Stamps>();
+const loading = new Map<string, Promise<Stamps>>();
 const subs = new Set<() => void>();
 const KEY = (uid: string) => deviceKey(`opened:${uid}`);
 
-function load(uid: string): Promise<Stamps> {
-  if (mem?.uid === uid) return Promise.resolve(mem.stamps);
-  if (!loading) {
-    loading = AsyncStorage.getItem(KEY(uid))
+function load(uid: string, legacyUid?: string): Promise<Stamps> {
+  const cached = mem.get(uid);
+  if (cached) return Promise.resolve(cached);
+  let pending = loading.get(uid);
+  if (!pending) {
+    pending = AsyncStorage.getItem(KEY(uid))
+      // 예전 계정 단위 기록은 대표 프로필에만 이어 준다.
+      .then(v => v ?? (legacyUid ? AsyncStorage.getItem(KEY(legacyUid)) : null))
       .then(v => (v ? (JSON.parse(v) as Stamps) : {}))
       .catch(() => ({}))
-      .then(stamps => { mem = { uid, stamps }; loading = null; return stamps; });
+      .then(stamps => { mem.set(uid, stamps); loading.delete(uid); return stamps; });
+    loading.set(uid, pending);
   }
-  return loading;
+  return pending;
 }
 
 function save(uid: string, kind: OpenKind, stamp: string | undefined) {
-  const stamps = { ...(mem?.uid === uid ? mem.stamps : {}), [kind]: stamp };
+  const stamps = { ...mem.get(uid), [kind]: stamp };
   if (stamp === undefined) delete stamps[kind];
-  mem = { uid, stamps };
+  mem.set(uid, stamps);
   AsyncStorage.setItem(KEY(uid), JSON.stringify(stamps)).catch(() => {});
   subs.forEach(f => f());
 }
@@ -45,20 +51,28 @@ function save(uid: string, kind: OpenKind, stamp: string | undefined) {
  * reset(): 다시 뽑기 전으로 (테스트용). 오늘의 운세는 서버 기록보다 우선하는 기기별 초기화 도장을 둔다.
  */
 export function useOpened(kind: OpenKind) {
-  const { user, today, fortune, fortuneError } = useApp();
-  const uid = user?.id ?? '';
+  const { user, profiles, today, fortune, fortuneError } = useApp();
+  const scope = useContentScope();
+  const profile = scope?.profile ?? user;
+  const profileId = scope?.profileId ?? user?.profileId;
+  // 오늘의 운세 · 타로는 대표 프로필의 하루 단위 콘텐츠다.
+  const accountDaily = kind === 'fortune' || kind === 'tarot';
+  const uid = user ? (accountDaily ? user.id : `${user.id}:p${profileId ?? 'primary'}`) : '';
+  const isPrimary = profile?.isPrimary || profileId === profiles.find(p => p.isPrimary)?.profileId;
+  const legacyUid = !accountDaily && isPrimary ? user?.id : undefined;
   const daily = DAILY.includes(kind);
   const stamp = daily ? today : `v${user?.version ?? 0}`;
-  const [stamps, setStamps] = useState<Stamps | null>(mem?.uid === uid ? mem.stamps : null);
+  const [saved, setSaved] = useState(() => ({ uid, stamps: mem.get(uid) ?? null }));
+  const stamps = saved.uid === uid ? saved.stamps : mem.get(uid) ?? null;
 
   useEffect(() => {
     if (!uid) return;
     let live = true;
-    load(uid).then(s => live && setStamps(s));
-    const f = () => { if (mem?.uid === uid) setStamps(mem.stamps); };
+    load(uid, legacyUid).then(stamps => live && setSaved({ uid, stamps }));
+    const f = () => { if (live) setSaved({ uid, stamps: mem.get(uid) ?? null }); };
     subs.add(f);
     return () => { live = false; subs.delete(f); };
-  }, [uid]);
+  }, [uid, legacyUid]);
 
   const open = useCallback(() => { if (uid) save(uid, kind, stamp); }, [uid, kind, stamp]);
   const reset = useCallback(() => {

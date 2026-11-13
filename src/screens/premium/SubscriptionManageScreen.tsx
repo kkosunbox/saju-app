@@ -94,7 +94,8 @@ export default function SubscriptionManageScreen() {
   const end = kstMonthDay(sub.currentPeriodEnd);
   const monthKey = b.monthlyContentKey; // monthly:YYYY-MM
   const [y, m] = monthKey.slice('monthly:'.length).split('-').map(Number);
-  const monthlyOpened = owned(monthKey);
+  // 이번 달 무료 혜택은 한 번 (고른 프로필로) — 서버가 썼는지 알려 준다
+  const monthlyOpened = b.monthlyUsed ?? owned(monthKey);
 
   const act = async (run: () => Promise<MySubscription>, done: string) => {
     setBusy(true);

@@ -57,6 +57,8 @@ export default function ConsultChatScreen() {
 
 /** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 운알이가 답을 쓰는 중 */
 function PendingChat({ askKey }: { askKey?: string }) {
+  // 새 상담은 지금의 대표 프로필로 시작한다 (그 뒤 대표 프로필을 바꿔도 이 상담은 그대로)
+  const { user } = useApp();
   const nav = useNavigation<Nav>();
   const { goWallet, toast } = usePremium();
   const [key, setKey] = useState(askKey);
@@ -93,7 +95,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
   }
   return (
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky>
-      <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
+      <Text style={[txt.caption, { textAlign: 'center' }]}>{user ? `${user.nickname}님 사주로 상담 · ` : ''}나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
       {state.kind === 'error' ? (
@@ -244,7 +246,7 @@ function Chat({ id }: { id: number }) {
     <Screen title="운알톡" titleStyle={s.chatTitle} back sky scroll={false}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text style={[txt.caption, { textAlign: 'center' }]}>{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
+        <Text style={[txt.caption, { textAlign: 'center' }]}>{e.profileNickname ? `${e.profileNickname}님 사주로 상담 · ` : ''}{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
         {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
         <Counselor>

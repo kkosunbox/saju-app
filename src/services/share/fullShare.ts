@@ -21,20 +21,23 @@ export interface MyShare { url: string; createdAt: string }
 type ShareDto = { token: string; createdAt: string };
 const myShareOf = (r: ShareDto): MyShare => ({ url: `${appUrl()}/r/${r.token}`, createdAt: r.createdAt });
 
+/** 어느 프로필 것 · 어느 열람권을 공유하는지 (없으면 대표 프로필의 지금 것) */
+export interface ShareTarget { profileId?: number; entitlementId?: number }
+
 /** 공유 링크를 만든다. 같은 내용의 살아 있는 링크가 있으면 서버가 그것을 준다. */
-export async function createFullShare(contentKey: string): Promise<MyShare> {
-  return myShareOf(await call<ShareDto>(api.POST('/v1/premium/shares', { body: { contentKey } })));
+export async function createFullShare(contentKey: string, target: ShareTarget = {}): Promise<MyShare> {
+  return myShareOf(await call<ShareDto>(api.POST('/v1/premium/shares', { body: { contentKey, ...target } })));
 }
 
 /** 이 콘텐츠를 공유 중이면 그 링크(가장 최근), 아니면 null */
-export async function getMyShare(contentKey: string): Promise<MyShare | null> {
-  const r = await call<ShareDto | null>(api.GET('/v1/premium/shares/mine', { params: { query: { contentKey } } }));
+export async function getMyShare(contentKey: string, target: ShareTarget = {}): Promise<MyShare | null> {
+  const r = await call<ShareDto | null>(api.GET('/v1/premium/shares/mine', { params: { query: { contentKey, ...target } } }));
   return r ? myShareOf(r) : null;
 }
 
-/** 공유 취소 — 이 콘텐츠로 만든 링크가 모두 더 이상 열리지 않는다 */
-export async function revokeMyShare(contentKey: string): Promise<void> {
-  await call(api.DELETE('/v1/premium/shares/mine', { params: { query: { contentKey } } }));
+/** 공유 취소 — 이 콘텐츠(그 열람권)로 만든 링크가 모두 더 이상 열리지 않는다 */
+export async function revokeMyShare(contentKey: string, target: ShareTarget = {}): Promise<void> {
+  await call(api.DELETE('/v1/premium/shares/mine', { params: { query: { contentKey, ...target } } }));
 }
 
 interface OwnerDto {

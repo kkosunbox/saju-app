@@ -6,7 +6,7 @@ import PressableScale from './PressableScale';
 import Icon from './Icon';
 import BottomSheet from './BottomSheet';
 import PrimaryButton from './PrimaryButton';
-import { usePremium } from '../context/PremiumContext';
+import { useContentScope, useScopedPremium as usePremium } from '../context/ContentScopeContext';
 import { useSharedView } from '../context/SharedViewContext';
 import { ApiError } from '../api/client';
 import { useApp } from '../context/AppContext';
@@ -73,6 +73,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   const { owned, toast, rewardShare } = usePremium();
   const shared = useSharedView();
   const { user } = useApp();
+  const scope = useContentScope();
   const [visible, setVisible] = useState(false);
   /** undefined: 확인 중 · null: 공유 안 하는 중 */
   const [mine, setMine] = useState<MyShare | null | undefined>(undefined);
@@ -90,6 +91,9 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   if (shared || !spec || (item && !owned(item.key))) return null;
   const key = item?.key;
   const full = canShareFull(key);
+  // 지금 보고 있는 것(고른 프로필 · 예전 기록)을 공유한다
+  const viewing = scope?.entitlement;
+  const target = !scope ? {} : viewing && viewing.contentKey === key ? { entitlementId: viewing.id } : { profileId: scope.profileId ?? undefined };
   const toCard = () => nav.navigate('Share', { spec });
 
   const open = () => {
@@ -100,7 +104,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     setError(null);
     // 공유 중이면 처음부터 펼쳐 둔다
     setMine(undefined);
-    getMyShare(key!).then(live => { setMine(live); if (live) setExpanded(true); }).catch(() => setMine(null));
+    getMyShare(key!, target).then(live => { setMine(live); if (live) setExpanded(true); }).catch(() => setMine(null));
     setCopied(false);
     setVisible(true);
   };
@@ -135,7 +139,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
     setMine(undefined);
     setError(null);
     try {
-      setMine(await createFullShare(key!));
+      setMine(await createFullShare(key!, target));
     } catch (e) {
       setMine(null);
       setError(e instanceof ApiError && e.code === 'BAD_REQUEST' ? '풀이를 다 쓴 뒤에 공유할 수 있어요' : '링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요');
@@ -144,7 +148,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   const revoke = async () => {
     setBusy('revoke');
     try {
-      await revokeMyShare(key!);
+      await revokeMyShare(key!, target);
       // 취소하면 접힌 상태로 돌아간다
       setMine(null);
       setExpanded(false);

@@ -59,10 +59,11 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --max-workers 2",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web --port 4000",
+    "web": "node scripts/start-web.mjs",
+    "web:static": "expo start --web --port 4000 --max-workers 2",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "build:web": "expo export --platform web",

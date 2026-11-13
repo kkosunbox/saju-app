@@ -63,6 +63,7 @@ const EXACT: Record<string, PageMeta> = {
   '/share': { title: '스토리 카드' },
   '/profile-setup': { title: '내 정보 입력' },
   '/profile-edit': { title: '프로필 수정' },
+  '/profiles/new': { title: '프로필 추가' },
   '/login': { title: '로그인' },
   '/login/email': { title: '이메일 로그인' },
   '/signup': { title: '회원가입' },
@@ -82,6 +83,8 @@ const EXACT: Record<string, PageMeta> = {
 /** 앞부분이 같은 경로 (동적 경로) */
 const PREFIX: [string, PageMeta][] = [
   ['/invite/', { title: '궁합 초대', description: '친구가 운Pick에서 궁합을 보자고 초대했어요.' }],
+  ['/profiles/', { title: '프로필 수정' }],
+  ['/p/', { title: '정보 요청', description: '운Pick에서 함께 운세를 보려고 생년월일을 물어봐요.' }],
   ['/r/', { title: '공유된 풀이', description: '친구가 운Pick 풀이를 통째로 공유했어요.' }],
   ['/consult/', { title: '운알톡' }],
   ['/premium/theme/', { title: '테마 운세' }],

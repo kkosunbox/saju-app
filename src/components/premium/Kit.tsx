@@ -10,7 +10,9 @@ import Card from '../Card';
 import Icon from '../Icon';
 import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
-import { usePremium } from '../../context/PremiumContext';
+import { useScopedPremium as usePremium } from '../../context/ContentScopeContext';
+import { useContentScope } from '../../context/ContentScopeContext';
+import ProfileSwitch from './ProfileSwitch';
 import { SubscriptionBadge } from './SubscriptionBadge';
 import { useSharedView } from '../../context/SharedViewContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
@@ -81,10 +83,13 @@ export function StatusBadge({ item }: { item?: Item | null }) {
   return <Pill style={{ backgroundColor: colors.badgeBg }}><Text style={[s.pillText, { color: colors.badge, fontSize: 11 }]}>미리보기</Text></Pill>;
 }
 
+/** 화면 맨 위: 왼쪽은 누구 것을 보는지(누르면 프로필 고르기, 공유 화면이면 공유한 사람), 오른쪽은 한 줄 설명 */
 export function HeadRow({ item, caption }: { item?: Item | null; caption: string }) {
+  const shared = useSharedView();
+  const scope = useContentScope();
   return (
     <View style={[s.between, { marginTop: 4 }]}>
-      <StatusBadge item={item} />
+      {shared || !scope ? <StatusBadge item={item} /> : <ProfileSwitch contentKey={item?.key} />}
       <Text style={txt.caption}>{caption}</Text>
     </View>
   );
@@ -271,9 +276,12 @@ function GhostBody() {
 
 /** 잠긴 본문: 가짜 줄을 흐리게 깔고 그 위에 열람 패널. 열려 있으면 children(본문) */
 export function LockGate({ item, children, onUnlocked }: { item: Item; children?: React.ReactNode; onUnlocked?(): void }) {
-  const { owned, points, openUnlock, subscriptionFree } = usePremium();
+  const { owned, points, openUnlock, subscriptionFree, records } = usePremium();
+  const scope = useContentScope();
   if (owned(item.key)) return <>{children}</>;
   const free = subscriptionFree(item.key);
+  // 프로필을 고치기 전 정보로 본 기록이 있으면: 그 기록을 보거나, 바뀐 정보로 다시 연다
+  const earlier = scope ? records(item.key)[0] : undefined;
   const blur = Platform.OS === 'web' ? ({ filter: 'blur(3px)' } as object) : null;
   return (
     <View style={s.lockWrap}>
@@ -285,10 +293,11 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
         {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} /> : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
-        <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{item.desc}</Text>
+        <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{earlier ? '프로필 정보가 바뀌어서 새 정보로는 아직 안 열었어요' : item.desc}</Text>
+        {earlier ? <PrimaryButton label={`${earlier.openedOn ? earlier.openedOn.replace(/-/g, '.') + '에 ' : ''}본 기록 보기`} variant="soft" small onPress={() => scope?.selectEntitlement(earlier)} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
         {free
           ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
-          : <PrimaryButton label={`${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />}
+          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 바뀐 정보로 보기` : `${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
       </View>
     </View>
