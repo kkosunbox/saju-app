@@ -161,7 +161,7 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
         {fill}
         {deltaView}
       </FlexWidget>
-      <FlexWidget style={{ flex: 1, height: 'match_parent', flexDirection: 'column', paddingTop: 2 }}>
+      <FlexWidget style={{ flex: 1, height: 'match_parent', flexDirection: 'column', paddingTop: 8.7 }}>
         {text(props.summary ?? '', 14.5, F.medium, c.ink, 2, { lineHeight: 19 })}
         {fill}
         {props.keywords ? text(props.keywords, 13, F.medium, c.sub) : null}

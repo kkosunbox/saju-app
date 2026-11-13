@@ -17,7 +17,7 @@
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
 import { Button, HStack, Image, Spacer, Text, VStack, ZStack } from '@expo/ui/swift-ui';
 import {
-  aspectRatio, background, buttonStyle, containerBackground, fixedSize, font, foregroundStyle, frame, kerning, lineLimit, lineSpacing,
+  aspectRatio, background, buttonStyle, containerBackground, fixedSize, font, foregroundStyle, frame, kerning, lineLimit, lineSpacing, offset,
   monospacedDigit, padding, resizable, shapes, widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import type { JSX } from 'react';
@@ -170,10 +170,11 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
           <Spacer />
           {deltaView}
         </VStack>
-        <VStack alignment="leading" spacing={0} modifiers={[padding({ top: 2 })]}>
+        {/* 요약 글자 윗선을 점수 숫자 윗선에, 키워드를 '어제보다' 줄에 맞춘다 (시뮬레이터에서 픽셀로 잰 값) */}
+        <VStack alignment="leading" spacing={0} modifiers={[padding({ top: 8.7 })]}>
           <Text modifiers={[...t(14.5, 'medium', c.ink), lineSpacing(1.5), lineLimit(2), fixedSize({ horizontal: false, vertical: true })]}>{props.summary ?? ''}</Text>
           <Spacer />
-          {props.keywords ? <Text modifiers={one(13, 'medium', c.sub)}>{props.keywords}</Text> : null}
+          {props.keywords ? <Text modifiers={[...one(13, 'medium', c.sub), offset({ y: 4.7 })]}>{props.keywords}</Text> : null}
         </VStack>
         <Spacer />
       </HStack>
