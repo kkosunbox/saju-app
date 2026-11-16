@@ -2,7 +2,7 @@
  * 프리미엄 콘텐츠 공용 UI 조각 — HTML 미리보기의 card/hero/tip/toc/lock 등과 1:1 대응.
  */
 import { Image as AssetImage } from 'expo-image';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle, type ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PressableScale from '../PressableScale';
@@ -12,7 +12,7 @@ import PrimaryButton from '../PrimaryButton';
 import Ico from '../Ico';
 import { useScopedPremium as usePremium } from '../../context/ContentScopeContext';
 import { useContentScope } from '../../context/ContentScopeContext';
-import ProfileSwitch from './ProfileSwitch';
+import ProfileSwitch, { ProfileSheet } from './ProfileSwitch';
 import { SubscriptionBadge } from './SubscriptionBadge';
 import { useSharedView } from '../../context/SharedViewContext';
 import { Item, fmtP, ro } from '../../services/premium/catalog';
@@ -278,10 +278,12 @@ function GhostBody() {
 export function LockGate({ item, children, onUnlocked }: { item: Item; children?: React.ReactNode; onUnlocked?(): void }) {
   const { owned, points, openUnlock, subscriptionFree, records } = usePremium();
   const scope = useContentScope();
+  const [picking, setPicking] = useState(false);
   if (owned(item.key)) return <>{children}</>;
   const free = subscriptionFree(item.key);
-  // 프로필을 고치기 전 정보로 본 기록이 있으면: 그 기록을 보거나, 바뀐 정보로 다시 연다
-  const earlier = scope ? records(item.key)[0] : undefined;
+  // 프로필을 고치기 전 정보로 본 풀이가 있으면: 프로필 고르기(이전 풀이가 그 아래에 있다)를 열거나, 바뀐 정보로 새로 푼다
+  const earlier = !!scope && records(item.key).some(e => !e.current);
+  const showOlder = () => setPicking(true);
   const blur = Platform.OS === 'web' ? ({ filter: 'blur(3px)' } as object) : null;
   return (
     <View style={s.lockWrap}>
@@ -293,13 +295,14 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
         {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} /> : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
-        <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{earlier ? '프로필 정보가 바뀌어서 새 정보로는 아직 안 열었어요' : item.desc}</Text>
-        {earlier ? <PrimaryButton label={`${earlier.openedOn ? earlier.openedOn.replace(/-/g, '.') + '에 ' : ''}본 기록 보기`} variant="soft" small onPress={() => scope?.selectEntitlement(earlier)} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
+        <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{earlier ? '프로필이 바뀌었어요' : item.desc}</Text>
+        {earlier ? <PrimaryButton label="이전 풀이 보기" variant="soft" small onPress={showOlder} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
         {free
           ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
-          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 바뀐 정보로 보기` : `${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
+          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 새로 풀기` : `${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
       </View>
+      <ProfileSheet contentKey={item.key} visible={picking} onClose={() => setPicking(false)} />
     </View>
   );
 }

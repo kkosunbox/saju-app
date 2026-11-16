@@ -25,11 +25,24 @@ const dot = (iso: string) => iso.replace(/-/g, '.');
 const OLDER_MAX_HEIGHT = 168;
 const OLDER_PAGE = 10;
 
+/** 서버 시각(UTC) → 한국 시각 HH:MM */
+const kstTime = (iso: string) => new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(11, 16);
+
+/** 이전 풀이 한 줄 이름 — 날짜만, 같은 날 본 게 여럿이면 시각까지 (프로필 아래 목록이라 '이전 풀이'는 붙이지 않는다) */
+export function olderLabel(e: Entitlement, all: Entitlement[]): string {
+  if (!e.openedOn) return dot(e.createdAt.slice(0, 10));
+  const sameDay = all.filter(x => x.openedOn === e.openedOn).length > 1;
+  return `${dot(e.openedOn)}${sameDay ? ` ${kstTime(e.createdAt)}` : ''}`;
+}
+
+/** 최근 것부터 */
+export const newestFirst = (list: Entitlement[]) => [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
 /**
  * 한 프로필의 이전 풀이 — 많아지면 정해진 높이 안에서 스크롤하고, 끝에 닿을 때마다 다음 묶음을 더 그린다.
  * 목록 자체는 열람권 목록(GET /premium/unlocks)에 이미 다 들어 있어 따로 불러오지 않는다.
  */
-function OlderList({ older, viewingId, onPick }: { older: Entitlement[]; viewingId: number | null; onPick(e: Entitlement): void }) {
+export function OlderList({ older, viewingId, onPick }: { older: Entitlement[]; viewingId: number | null; onPick(e: Entitlement): void }) {
   const [shown, setShown] = useState(OLDER_PAGE);
   // 아래에 더 있으면 끝을 흐리게 해서 스크롤된다는 걸 알린다 (스크롤 막대는 숨긴다)
   const [atEnd, setAtEnd] = useState(older.length <= 4);
@@ -50,7 +63,7 @@ function OlderList({ older, viewingId, onPick }: { older: Entitlement[]; viewing
           const on = viewingId === e.id;
           return (
             <PressableScale key={e.id} onPress={() => onPick(e)} style={s.sub} scaleTo={0.98} accessibilityState={{ selected: on }}>
-              <Text style={[txt.caption, { flex: 1 }, on && { color: colors.ink }]}>이전 풀이{e.openedOn ? ` · ${dot(e.openedOn)}` : ''}</Text>
+              <Text style={[txt.caption, { flex: 1 }, on && { color: colors.ink }]}>{olderLabel(e, older)}</Text>
               {on ? <Icon name="check" size={16} color={colors.ink} strokeWidth={2.4} /> : <Icon name="chevronRight" size={14} color={colors.inkMute} />}
             </PressableScale>
           );
@@ -64,13 +77,10 @@ function OlderList({ older, viewingId, onPick }: { older: Entitlement[]; viewing
 export default function ProfileSwitch({ contentKey, style }: { contentKey?: string; style?: object }) {
   const scope = useContentScope();
   const shared = useSharedView();
-  const { profiles } = useApp();
-  const { records } = usePremium();
   const [open, setOpen] = useState(false);
   if (!scope || shared) return null;
   const viewing = scope.entitlement;
   const name = scope.profile?.nickname ?? '';
-  const close = () => setOpen(false);
 
   return (
     <>
@@ -78,14 +88,30 @@ export default function ProfileSwitch({ contentKey, style }: { contentKey?: stri
         <Text style={s.chipText} numberOfLines={1}>{name}님{viewing ? ' · 이전 풀이' : ''}</Text>
         <Icon name="chevronDown" size={12} color={colors.purpleSoft} strokeWidth={2.2} />
       </PressableScale>
-      <BottomSheet visible={open} onClose={close}>
+      <ProfileSheet contentKey={contentKey} visible={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** 「누구 것을 볼까요?」 — 프로필과 그 아래 이전 풀이를 고른다. 위 칩 · 잠금 카드의 「이전 풀이 보기」가 같이 쓴다 */
+export function ProfileSheet({ contentKey, visible, onClose }: { contentKey?: string; visible: boolean; onClose(): void }) {
+  const scope = useContentScope();
+  const shared = useSharedView();
+  const { profiles } = useApp();
+  const { records } = usePremium();
+  if (!scope || shared) return null;
+  const viewing = scope.entitlement;
+  const close = onClose;
+
+  return (
+    <BottomSheet visible={visible} onClose={close}>
         <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
           <Text style={txt.h2}>누구 것을 볼까요?</Text>
           <View style={s.list}>
             {profiles.map(p => {
               const selected = !viewing && p.profileId === scope.profileId;
               // 이 프로필의 정보를 고치기 전에 본 풀이 (지금 정보로 연 것은 프로필을 고르면 나온다)
-              const older = contentKey ? records(contentKey, p.profileId).filter(e => !e.current) : [];
+              const older = contentKey ? newestFirst(records(contentKey, p.profileId).filter(e => !e.current)) : [];
               return (
                 <View key={p.profileId} style={[s.group, (selected || older.some(e => e.id === viewing?.id)) && s.groupOn]}>
                   <PressableScale onPress={() => { scope.selectProfile(p.profileId!); close(); }} style={s.row} scaleTo={0.98} accessibilityState={{ selected }}>
@@ -106,8 +132,7 @@ export default function ProfileSwitch({ contentKey, style }: { contentKey?: stri
             <Text style={s.addText}>+ 프로필 추가하기</Text>
           </PressableScale>
         </ScrollView>
-      </BottomSheet>
-    </>
+    </BottomSheet>
   );
 }
 

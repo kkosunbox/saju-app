@@ -33,6 +33,7 @@ export const ROUTES: Record<string, string> = {
   CombinedAnalysis: '/combined',
   Share: '/share',
   Wallet: '/wallet',
+  OwnedContent: '/premium/owned',
   SajuDeep: '/premium/saju',
   Life: '/premium/life',
   NewYear: '/premium/new-year',

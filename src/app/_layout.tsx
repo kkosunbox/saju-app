@@ -118,6 +118,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="premium/monthly" />
           <Stack.Screen name="premium/theme/[kind]" />
           <Stack.Screen name="premium/lucky" />
+          <Stack.Screen name="premium/owned" />
           <Stack.Screen name="mbti-match" />
           <Stack.Screen name="character" />
           <Stack.Screen name="talisman" />

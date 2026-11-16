@@ -14,6 +14,7 @@ import { Item, PACKS, fmtP, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
+import { ownedContents } from '../services/premium/owned';
 import { Entitlement, MySubscription, pointsApi, pointsKeys } from '../services/server/pointsApi';
 import { SubscriptionBadge } from '../components/premium/SubscriptionBadge';
 import { listReadings, readingsKey } from '../services/server/premiumReadings';
@@ -231,7 +232,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     subscribed,
     subscriptionFree,
     // 모든 프로필에서 연 콘텐츠 (같은 콘텐츠를 다른 프로필 · 바뀐 정보로 다시 연 것도 따로 센다, 패키지 자체는 빼고)
-    ownedCount: entitlements.filter(e => !e.contentKey.startsWith('bundle:')).length,
+    // 프로필 × 콘텐츠 하나씩 (보유 콘텐츠 목록과 같은 기준)
+    ownedCount: ownedContents(entitlements, primaryId).length,
     openUnlock: (item, onDone, profileId) => {
       if (requireLogin()) return;
       if (owned(item.key, profileId)) { onDone?.(); return; }

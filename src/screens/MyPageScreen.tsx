@@ -321,7 +321,7 @@ export default function MyPageScreen() {
             <Text style={s.chargeLabel}>충전</Text>
           </PressableScale>
         </View>
-        {([['coins', '이용 내역 · 요금 안내', () => nav.navigate('Wallet')], ['premium', `프리미엄 콘텐츠 · 보유 ${ownedCount}개`, () => nav.navigate('Tabs', { screen: 'Content' })]] as const).map(([icon, title, go]) => (
+        {([['coins', '이용 내역 · 요금 안내', () => nav.navigate('Wallet')], ['premium', `프리미엄 콘텐츠 · 보유 ${ownedCount}개`, () => nav.navigate('OwnedContent')]] as const).map(([icon, title, go]) => (
           <PressableScale key={icon} onPress={go} style={s.walletRow} scaleTo={0.98}>
             <FigmaAsset name={icon} />
             <Text style={s.menuLabel}>{title}</Text>

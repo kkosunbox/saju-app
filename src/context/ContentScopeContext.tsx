@@ -45,14 +45,28 @@ export interface ContentScope {
 
 const Ctx = createContext<ContentScope | null>(null);
 
-/** 콘텐츠 화면을 감싼다. initialProfileId: 링크 · 목록에서 프로필을 정해서 들어올 때 */
-export function ContentScopeProvider({ children, contentKey, initialProfileId }: { children: React.ReactNode; contentKey: string; initialProfileId?: number }) {
+/**
+ * 콘텐츠 화면을 감싼다. initialProfileId: 링크 · 목록에서 프로필을 정해서 들어올 때
+ * initialEntitlementId: 보유 콘텐츠 목록에서 예전 정보로 본 기록을 골라 들어올 때 (그 열람권의 프로필로)
+ */
+export function ContentScopeProvider({ children, contentKey, initialProfileId, initialEntitlementId }: { children: React.ReactNode; contentKey: string; initialProfileId?: number; initialEntitlementId?: number }) {
   const app = useApp();
   const shared = useSharedView();
-  const [picked, setPicked] = useState<number | null>(initialProfileId ?? null);
+  const { entitlements } = usePremium();
+  const [entitlement, setEntitlement] = useState<Entitlement | null>(() => (initialEntitlementId != null ? entitlements.find(e => e.id === initialEntitlementId) ?? null : null));
+  const [picked, setPicked] = useState<number | null>(entitlement?.profileId ?? initialProfileId ?? null);
+  // 웹에서 주소로 바로 들어오면 열람권 목록이 늦게 올 수 있다 — 오면 그때 고른다
+  const waitingEntitlement = useRef(entitlement ? undefined : initialEntitlementId);
+  useEffect(() => {
+    if (waitingEntitlement.current == null) return;
+    const e = entitlements.find(x => x.id === waitingEntitlement.current);
+    if (!e) return;
+    waitingEntitlement.current = undefined;
+    setEntitlement(e);
+    if (e.profileId != null) setPicked(e.profileId);
+  }, [entitlements]);
   const remembered = app.contentProfiles[contentKey];
   const selected = picked ?? remembered;
-  const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [opened, setOpened] = useState<Opened | null>(null);
   const primary = app.user;
   const profile = (selected != null ? app.profiles.find(p => p.profileId === selected) : null) ?? primary;
@@ -146,7 +160,15 @@ export function withContentScope<P extends object>(Screen: React.ComponentType<P
     const params = useLocalSearchParams();
     const app = useApp();
     const contentKey = parameter ? `${content}/${params[parameter] ?? ''}` : content;
-    return <ContentScopeProvider key={`${app.user?.id ?? ''}:${contentKey}`} contentKey={contentKey}><Screen {...props} /></ContentScopeProvider>;
+    // 보유 콘텐츠 목록에서 프로필 · 열람권을 정해서 들어온 경우 (?profileId= · ?entitlementId=)
+    const num = (v: unknown) => (typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : undefined);
+    const profileId = num(params.profileId);
+    const entitlementId = num(params.entitlementId);
+    return (
+      <ContentScopeProvider key={`${app.user?.id ?? ''}:${contentKey}:${profileId ?? ''}:${entitlementId ?? ''}`} contentKey={contentKey} initialProfileId={profileId} initialEntitlementId={entitlementId}>
+        <Screen {...props} />
+      </ContentScopeProvider>
+    );
   }
   Scoped.displayName = `Scoped(${Screen.displayName ?? Screen.name ?? 'Screen'})`;
   return Scoped;

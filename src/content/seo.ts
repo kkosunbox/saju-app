@@ -75,6 +75,7 @@ const EXACT: Record<string, PageMeta> = {
   '/premium/new-year': { title: '신년 운세' },
   '/premium/monthly': { title: '월별 운세' },
   '/premium/lucky': { title: '길일 찾기' },
+  '/premium/owned': { title: '보유 콘텐츠' },
   '/premium/theme/love': { title: '연애·결혼 운세' },
   '/premium/theme/money': { title: '재물 운세' },
   '/premium/theme/career': { title: '직업·적성 운세' },
