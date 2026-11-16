@@ -109,9 +109,9 @@ function Praise({ text }: { text: string }) {
 
 const s = StyleSheet.create({
   list: { gap: 12, marginTop: 16, paddingHorizontal: 4 },
-  figmaList: { gap: 0 },
+  figmaList: { gap: 12, paddingVertical: 6 },
   figmaRow: { gap: 8 },
-  figmaMark: { marginTop: 6 },
+  figmaMark: { marginTop: 1 },
   svgMark: { marginTop: 1 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   mark: { marginTop: 1, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
@@ -119,7 +119,7 @@ const s = StyleSheet.create({
   itemDone: { opacity: 0.5 },
   item: { flex: 1, fontSize: 13, lineHeight: 20, color: colors.ink, fontWeight: '600', letterSpacing: -0.5 },
   note: { fontWeight: '500', color: colors.inkSub },
-  figmaItem: { ...sansW('600'), fontSize: 12, lineHeight: 32, letterSpacing: -0.48, color: isDark ? colors.ink : '#000000', includeFontPadding: false },
+  figmaItem: { ...sansW('600'), fontSize: 12, lineHeight: 20, letterSpacing: -0.48, color: isDark ? colors.ink : '#000000', includeFontPadding: false },
   praise: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, padding: 14, borderRadius: 16, backgroundColor: colors.accentSoft },
   bubble: { flex: 1, gap: 2 },
   praiseTitle: { ...sansW('700'), fontSize: 14, lineHeight: 20, letterSpacing: -0.5, color: colors.ink },
