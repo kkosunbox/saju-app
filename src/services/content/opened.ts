@@ -51,13 +51,15 @@ function save(uid: string, kind: OpenKind, stamp: string | undefined) {
  * reset(): 다시 뽑기 전으로 (테스트용). 오늘의 운세는 서버 기록보다 우선하는 기기별 초기화 도장을 둔다.
  */
 export function useOpened(kind: OpenKind) {
-  const { user, profiles, today, fortune, fortuneError } = useApp();
+  const { user, profiles, today, fortune, fortuneError, fortuneProfileId } = useApp();
   const scope = useContentScope();
   const profile = scope?.profile ?? user;
   const profileId = scope?.profileId ?? user?.profileId;
-  // 오늘의 운세 · 타로는 대표 프로필의 하루 단위 콘텐츠다.
+  // 오늘의 운세 · 타로는 메인에서 고른 프로필의 하루 단위 콘텐츠다 (대표 프로필은 예전 계정 단위 기록 그대로).
   const accountDaily = kind === 'fortune' || kind === 'tarot';
-  const uid = user ? (accountDaily ? user.id : `${user.id}:p${profileId ?? 'primary'}`) : '';
+  const uid = !user ? ''
+    : accountDaily ? (fortuneProfileId == null ? user.id : `${user.id}:f${fortuneProfileId}`)
+    : `${user.id}:p${profileId ?? 'primary'}`;
   const isPrimary = profile?.isPrimary || profileId === profiles.find(p => p.isPrimary)?.profileId;
   const legacyUid = !accountDaily && isPrimary ? user?.id : undefined;
   const daily = DAILY.includes(kind);

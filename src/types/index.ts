@@ -1,3 +1,5 @@
+import type { ContentPerson } from '../services/server/profileApi';
+
 export type Gender = 'female' | 'male';
 export type BloodType = 'A' | 'B' | 'O' | 'AB';
 export type MBTI =
@@ -158,6 +160,14 @@ export interface DailyFortune {
   yesterdayScores?: { totalScore: number; love: number; money: number; work: number; relationship: number } | null;
   /** 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 % (뽑기 전후로 같음). 기능 전에 만든 운세는 null */
   shareCard?: ShareCard | null;
+  /** 앱이 요청한 프로필 (null: 대표 프로필). 서버 값이 아니라 요청할 때 붙인다 */
+  forProfile: number | null;
+  /** 이 운세를 만든 프로필 id (서버) */
+  profileId?: number | null;
+  /** 누구의 운세인지 (만든 때의 프로필 정보). 예전 서버는 주지 않는다 */
+  person?: ContentPerson;
+  /** 지금 뽑으면 드는 알 (하루 첫 뽑기 · 이미 뽑음 · 열람권 있음 · AI 꺼짐이면 0). 예전 서버는 주지 않는다 */
+  drawCost?: number;
 }
 
 /** 오늘의 운세 공유 카드 문구 */

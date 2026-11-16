@@ -148,7 +148,9 @@ function MyProfiles({ profiles }: { profiles: User[] }) {
 }
 
 export default function MyPageScreen() {
-  const { user, profiles, fortune, account, signOut, deleteAccount } = useApp();
+  const { user, profiles, fortune: viewed, account, signOut, deleteAccount } = useApp();
+  // 대표 프로필 운세만 (메인에서 다른 프로필을 보는 중이면 숨긴다)
+  const fortune = viewed?.forProfile == null ? viewed : null;
   const { points, ownedCount, toast, subscription } = usePremium();
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 점수 대신 홈으로 뽑으러 가게 한다
   const [theme] = useState<ThemePref>(readThemePrefSync());

@@ -39,7 +39,7 @@ const elHex = (e: Element) => EL_HEX[e] ?? ELEMENT_INFO[e].hex;
 /** 4가지 관점 상세 — 책력 한 장 + 관점별 도해 + 풀이 + 장부형 분석 */
 export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
-  const { fortune, user, today } = useApp();
+  const { fortune, fortuneUser: user, today } = useApp();
   const nav = useNavigation();
   if (!user) return null;
   if (params.source === 'tarot' || params.source === 'blood') return <TarotExperience key={today} reading={fortune?.analyses.tarot?.tarot} />;

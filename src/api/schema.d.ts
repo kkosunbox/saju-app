@@ -585,7 +585,7 @@ export interface paths {
         };
         /**
          * 오늘의 운세
-         * @description 규칙 엔진 운세(점수·키워드·행운 정보·요약·문장)를 바로 줍니다(AI 없음). 사용자·날짜·프로필 버전마다 한 번 만들어 저장합니다. textsPending=true면 뽑기(POST daily/draw)에서 AI가 문장을 다시 씁니다.
+         * @description 규칙 엔진 운세(점수·키워드·행운 정보·요약·문장)를 바로 줍니다(AI 없음). 프로필(기본: 대표)·날짜·프로필 버전마다 한 번 만들어 저장합니다. textsPending=true면 뽑기(POST daily/draw)에서 AI가 문장을 다시 씁니다. drawCost는 지금 뽑을 때 드는 알입니다 (하루 첫 뽑기는 무료, 같은 날 다른 프로필은 알).
          */
         get: operations["FortuneController_getDailyFortune_v1"];
         put?: never;
@@ -607,7 +607,7 @@ export interface paths {
         put?: never;
         /**
          * 오늘의 운세 뽑기
-         * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다. 뽑았다는 기록(drawn=true)은 AI와 상관없이 남아 다른 기기에서도 뽑은 상태로 보입니다.
+         * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다. 뽑았다는 기록(drawn=true)은 AI와 상관없이 남아 다른 기기에서도 뽑은 상태로 보입니다. 하루 한 번은 무료이고, 같은 날 다른 프로필을 뽑으려면 daily:{date} 열람권이 있어야 합니다 (없으면 403 CONTENT_LOCKED).
          */
         post: operations["FortuneController_drawDailyFortune_v1"];
         delete?: never;
@@ -768,7 +768,7 @@ export interface paths {
         post?: never;
         /**
          * 프로필 지우기
-         * @description 목록에서 지웁니다. 이 프로필로 열어 본 콘텐츠는 그대로 볼 수 있습니다. 대표 프로필은 지울 수 없습니다(400).
+         * @description 이 프로필로 연 콘텐츠(풀이)와 그 공유 링크도 함께 지웁니다 (기록은 남기고 볼 수 없게). 대표 프로필은 지울 수 없습니다(400).
          */
         delete: operations["FortuneProfilesController_delete_v1"];
         options?: never;
@@ -2732,86 +2732,6 @@ export interface components {
             /** @description 행운 색 · 숫자 · 시간을 고른 근거 (한 문장씩). 예전에 저장된 운세에는 없음 */
             luckyReasons?: components["schemas"]["LuckyReasonsDto"];
         };
-        DayScoresDto: {
-            totalScore: number;
-            love: number;
-            money: number;
-            work: number;
-            relationship: number;
-        };
-        ShareCardDto: {
-            /**
-             * @description 오늘의 칭호
-             * @example 기회를 낚는 사람
-             */
-            title: string;
-            /** @example 오늘 기회가 먼저 DM 보냄. 읽씹 금지. */
-            line: string;
-            /**
-             * @description 올해 나의 날 중 상위 N% (1~100). 같은 점수인 날은 같은 순위로 셈
-             * @example 25
-             */
-            yearTopPercent: number;
-        };
-        DailyFortuneDto: {
-            /** @enum {string} */
-            viewpointsVersion: "legacy" | "tarot-v1";
-            date: string;
-            /**
-             * @description ai: AI가 문장을 씀, rule: 규칙 엔진 문장
-             * @enum {string}
-             */
-            engine: "rule" | "ai";
-            analyses: components["schemas"]["DailyAnalysesDto"];
-            combined: components["schemas"]["CombinedFortuneDto"];
-            /** @description 그날의 일진 { stem 0~9, branch 0~11 } */
-            dayPillar: Record<string, never>;
-            /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
-            textsPending: boolean;
-            /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
-            drawn: boolean;
-            /** @description 이 운세를 만든 프로필 id (대표 프로필) */
-            profileId: number | null;
-            /** @description 이 운세를 만든 때의 프로필 이름 */
-            nickname: string | null;
-            /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
-            yesterdayScores: components["schemas"]["DayScoresDto"] | null;
-            /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */
-            shareCard: components["schemas"]["ShareCardDto"] | null;
-        };
-        PeriodFlowDto: {
-            /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
-            label: string;
-            score: number;
-        };
-        PeriodCategoryDto: {
-            score: number;
-            /** @description 한 줄 풀이 */
-            text: string;
-            /**
-             * @description 가장 좋은 때: "수요일" · "2주차" · "5월"
-             * @example 수요일
-             */
-            best: string;
-        };
-        PeriodCategoriesDto: {
-            love: components["schemas"]["PeriodCategoryDto"];
-            money: components["schemas"]["PeriodCategoryDto"];
-            work: components["schemas"]["PeriodCategoryDto"];
-            relationship: components["schemas"]["PeriodCategoryDto"];
-        };
-        PeriodFortuneDto: {
-            /** @enum {string} */
-            period: "weekly" | "monthly" | "yearly";
-            /** @example 이번 주 · 10월 · 2026년 */
-            label: string;
-            score: number;
-            summary: string;
-            flow: components["schemas"]["PeriodFlowDto"][];
-            /** @description 이 기간의 키워드 */
-            focus: string;
-            cats: components["schemas"]["PeriodCategoriesDto"];
-        };
         PillarDto: {
             /** @description 천간 0~9 (0=甲) */
             stem: number;
@@ -2859,6 +2779,93 @@ export interface components {
             mbti: string;
             mbtiIsEstimated: boolean;
             natal: components["schemas"]["NatalDto"];
+        };
+        DayScoresDto: {
+            totalScore: number;
+            love: number;
+            money: number;
+            work: number;
+            relationship: number;
+        };
+        ShareCardDto: {
+            /**
+             * @description 오늘의 칭호
+             * @example 기회를 낚는 사람
+             */
+            title: string;
+            /** @example 오늘 기회가 먼저 DM 보냄. 읽씹 금지. */
+            line: string;
+            /**
+             * @description 올해 나의 날 중 상위 N% (1~100). 같은 점수인 날은 같은 순위로 셈
+             * @example 25
+             */
+            yearTopPercent: number;
+        };
+        DailyFortuneDto: {
+            /** @enum {string} */
+            viewpointsVersion: "legacy" | "tarot-v1";
+            date: string;
+            /**
+             * @description ai: AI가 문장을 씀, rule: 규칙 엔진 문장
+             * @enum {string}
+             */
+            engine: "rule" | "ai";
+            analyses: components["schemas"]["DailyAnalysesDto"];
+            combined: components["schemas"]["CombinedFortuneDto"];
+            /** @description 그날의 일진 { stem 0~9, branch 0~11 } */
+            dayPillar: Record<string, never>;
+            /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
+            textsPending: boolean;
+            /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
+            drawn: boolean;
+            /** @description 이 운세를 만든 프로필 id */
+            profileId: number | null;
+            /** @description 누구의 운세인지 (만든 때의 프로필 정보 — 이름 · 생일 · 원국) */
+            person: components["schemas"]["ContentPersonDto"];
+            /**
+             * @description 지금 뽑으면 드는 알. 하루 첫 뽑기 · 이미 뽑은 운세 · 열람권이 있는 프로필 · AI를 못 쓸 때는 0. 0보다 크면 POST /premium/unlocks (contentKey: daily:{date}, profileId)로 연 뒤 뽑습니다 (안 열고 뽑으면 403 CONTENT_LOCKED)
+             * @example 0
+             */
+            drawCost: number;
+            /** @description 이 운세를 만든 때의 프로필 이름 */
+            nickname: string | null;
+            /** @description 전날의 종합 · 분야별 점수. 이 운세와 같은 프로필로 계산해 둔 값이라 앱이 보여준 어제 점수와 다를 수 있음. 이 기능 전에 만든 운세는 null */
+            yesterdayScores: components["schemas"]["DayScoresDto"] | null;
+            /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */
+            shareCard: components["schemas"]["ShareCardDto"] | null;
+        };
+        PeriodFlowDto: {
+            /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
+            label: string;
+            score: number;
+        };
+        PeriodCategoryDto: {
+            score: number;
+            /** @description 한 줄 풀이 */
+            text: string;
+            /**
+             * @description 가장 좋은 때: "수요일" · "2주차" · "5월"
+             * @example 수요일
+             */
+            best: string;
+        };
+        PeriodCategoriesDto: {
+            love: components["schemas"]["PeriodCategoryDto"];
+            money: components["schemas"]["PeriodCategoryDto"];
+            work: components["schemas"]["PeriodCategoryDto"];
+            relationship: components["schemas"]["PeriodCategoryDto"];
+        };
+        PeriodFortuneDto: {
+            /** @enum {string} */
+            period: "weekly" | "monthly" | "yearly";
+            /** @example 이번 주 · 10월 · 2026년 */
+            label: string;
+            score: number;
+            summary: string;
+            flow: components["schemas"]["PeriodFlowDto"][];
+            /** @description 이 기간의 키워드 */
+            focus: string;
+            cats: components["schemas"]["PeriodCategoriesDto"];
         };
         FreeContentDto: {
             data: Record<string, never>;
@@ -5141,6 +5148,8 @@ export interface operations {
             query?: {
                 /** @description KST 날짜. 생략하면 오늘. 조회는 어제부터 7일 뒤까지 (위젯용), 뽑기는 오늘 ±1일만 */
                 date?: string;
+                /** @description 누구의 운세인지 (내 프로필 id). 생략하면 대표 프로필 */
+                profileId?: number;
             };
             header?: never;
             path?: never;
@@ -5221,6 +5230,8 @@ export interface operations {
             query?: {
                 /** @description KST 날짜. 생략하면 오늘. 조회는 어제부터 7일 뒤까지 (위젯용), 뽑기는 오늘 ±1일만 */
                 date?: string;
+                /** @description 누구의 운세인지 (내 프로필 id). 생략하면 대표 프로필 */
+                profileId?: number;
             };
             header?: never;
             path?: never;
@@ -5270,6 +5281,24 @@ export interface operations {
                         /** @example UNAUTHORIZED */
                         code?: string;
                         /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_LOCKED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_LOCKED */
+                        code?: string;
+                        /** @example CONTENT_LOCKED */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

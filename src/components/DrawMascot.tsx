@@ -31,8 +31,9 @@ const DOZE_AWAY_MS = 10 * 60 * 1000;
  * 풀이 완료 뒤엔 누를 때마다 마스코트가 튕기고 운세 공개 때의 반짝임을 다시 재생한다.
  * 화면을 열었을 때 가끔 꾸벅꾸벅 졸고 있고, 누르면 깨어나 오늘의 포즈로 돌아온다. 보는 도중엔 잠들지 않는다.
  * 동작 줄이기·스크린리더에선 한 번 누르면 바로 뽑힌다.
+ * locked 이면(오늘 한 번 무료로 뽑은 뒤 다른 프로필) 꾹 누르기 대신 한 번 누르면 locked.onPress (알로 열기) — 연 뒤 다시 꾹 눌러 뽑는다.
  */
-export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, pose, scores }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; pose?: MascotPose | null; scores?: MascotScores }) {
+export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComplete, pose, scores, locked }: { sealed: boolean; busy?: boolean; onDrawn(): void; onPolishComplete?(): void; pose?: MascotPose | null; scores?: MascotScores; locked?: { hint: string; onPress(): void } | null }) {
   const ringId = `draw-ring-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const reduced = useReducedMotion();
   const playful = !sealed && !busy;
@@ -109,14 +110,14 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
   };
 
   const pressIn = () => {
-    if (!sealed || reduced) return;
+    if (!sealed || reduced || locked) return;
     setHolding(true);
     p.stopAnimation(v => {
       Animated.timing(p, { toValue: 1, duration: HOLD_MS * (1 - v), easing: t => t, useNativeDriver: false }).start(({ finished }) => { if (finished) burst(); });
     });
   };
   const pressOut = () => {
-    if (!sealed || done.current || reduced) return;
+    if (!sealed || done.current || reduced || locked) return;
     setHolding(false);
     p.stopAnimation();
     Animated.timing(p, { toValue: 0, duration: 260, easing: motion.easeOut, useNativeDriver: false }).start();
@@ -156,15 +157,15 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
         <Pressable
           onPressIn={pressIn}
           onPressOut={pressOut}
-          onPress={playful ? poke : sealed && reduced ? burst : undefined}
+          onPress={playful ? poke : sealed && locked ? locked.onPress : sealed && reduced ? burst : undefined}
           disabled={busy}
           // 역할은 늘 button — 웹은 역할에 따라 태그(<button>/<div>)가 바뀌어, 바꾸면 안쪽이 다시 그려진다
           accessibilityRole="button"
           accessibilityState={{ disabled: busy }}
-          accessibilityLabel={sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : pose ? MASCOT_LABELS[pose] : getResultMascot(scores).label}
-          accessibilityHint={sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
+          accessibilityLabel={sealed && locked ? locked.hint : sealed ? '오늘의 운세 뽑기' : busy ? '오늘의 운세를 준비하는 마스코트' : pose ? MASCOT_LABELS[pose] : getResultMascot(scores).label}
+          accessibilityHint={sealed && locked ? undefined : sealed ? '마스코트를 꾹 누르면 오늘의 운세가 나와요' : playful ? '누르면 마스코트가 튕기며 반짝여요' : undefined}
           accessibilityActions={sealed ? [{ name: 'activate' }] : undefined}
-          onAccessibilityAction={sealed ? burst : undefined}
+          onAccessibilityAction={sealed ? (locked ? locked.onPress : burst) : undefined}
           style={s.hit}
         >
           {sealed ? (
@@ -209,7 +210,7 @@ export default function DrawMascot({ sealed, busy = false, onDrawn, onPolishComp
         </Pressable>
         <Animated.View style={[s.hintSlot, { height: hintO.interpolate({ inputRange: [0, 1], outputRange: [0, HINT_H] }) }]} pointerEvents="none" importantForAccessibility={showHint ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!showHint}>
           <Animated.View style={[s.hint, { opacity: hintO }]}>
-            <Text style={s.hintText}>{busy ? '행운을 반짝반짝 닦는 중…' : !sealed ? '반짝! 오늘의 운세 준비 완료' : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
+            <Text style={s.hintText}>{busy ? '행운을 반짝반짝 닦는 중…' : !sealed ? '반짝! 오늘의 운세 준비 완료' : locked ? locked.hint : reduced ? '눌러서 뽑기' : holding ? '조금만 더…' : '꾹 눌러서 뽑기'}</Text>
           </Animated.View>
         </Animated.View>
       </Animated.View>

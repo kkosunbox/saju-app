@@ -25,7 +25,7 @@ import { promosOf } from '../../services/promo/promos';
 const HERO_BG = require('../../../assets/images/tarot-hero-bg.webp');
 
 export default function TarotExperience({ reading }: { reading?: TarotReading }) {
-  const { user, today, fortuneError, refreshFortune, fortune } = useApp();
+  const { fortuneUser: user, today, fortuneError, refreshFortune, fortune } = useApp();
   const { ready, opened, open } = useTarotDraw();
   const reduced = useReducedMotion();
   const nav = useNavigation();

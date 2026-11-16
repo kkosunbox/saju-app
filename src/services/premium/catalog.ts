@@ -33,6 +33,11 @@ export const ITEMS = {
     const P = PURPOSE.find(p => p[0] === pk)!;
     return { key: 'lucky:' + pk, title: P[2] + ' 길일 TOP 5', cost: 50, scope: '7일 동안 볼 수 있어요', until: addDays(today, 7), desc: 'TOP 5 상세 이유 · 귀인일 · 피해야 할 날 · 당일 팁' };
   },
+  /** 하루 한 번 무료로 뽑은 뒤 같은 날 다른 프로필의 오늘의 운세 (서버 daily:{date}, 값은 서버가 준 drawCost) */
+  daily: (date: string, name: string, cost: number): Item => ({
+    key: 'daily:' + date, title: name + '님의 오늘의 운세', cost, scope: '오늘 하루 볼 수 있어요',
+    desc: '오늘의 종합운과 분야별 점수 · 오늘의 이야기 · 해볼 일과 피할 일 · 타로 한 장',
+  }),
   spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 300, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
   consult: (id: string): Item => ({ key: 'consult:' + id, title: '운알톡 1회', cost: 100, scope: '24시간 동안 10번 이어서 물어볼 수 있어요', desc: '고민 해결 한 줄 답 · 마음의 소리 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 이어 묻기 10번' }),

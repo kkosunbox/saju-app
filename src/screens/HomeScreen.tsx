@@ -32,6 +32,7 @@ import { ITEMS } from '../services/premium/catalog';
 import { useFreeContent } from '../services/server/contentApi';
 import { useConsultStatus } from '../services/server/consultApi';
 import { useFortuneDraw, useOpened } from '../services/content/opened';
+import FortuneProfileBadge from '../components/home/FortuneProfileBadge';
 import { motion, useReducedMotion, useScreenLive } from '../utils/motion';
 import { DEV_TOOLS } from '../utils/devTools';
 import { compatApi, compatKeys } from '../services/server/compatApi';
@@ -157,11 +158,11 @@ function mascotTags(lists: KeywordTag[][]): string[] {
 
 export default function HomeScreen() {
   const nav = useNavigation<Nav>();
-  const { user, account, fortune, today, fortuneLoading, refreshFortune, fortuneWriting } = useApp();
+  const { user, fortuneUser, account, fortune, today, fortuneLoading, refreshFortune, fortuneWriting } = useApp();
   const consultStatus = useConsultStatus(!!account).data;
   const consultFreeLeft = account ? consultStatus?.freeLeft ?? 0 : 5;
   const consultCost = consultStatus?.cost ?? 100;
-  const { owned, toast, points, welcomeBonus } = usePremium();
+  const { owned, toast, points, welcomeBonus, openUnlock } = usePremium();
   const { sendInvite, inviteShareSheet } = useInviteShare();
   const [invite, setInvite] = useState<PendingInvite | null>(null);
   const [showInvite, setShowInvite] = useState(false);
@@ -349,6 +350,13 @@ export default function HomeScreen() {
   const newYearPromo = isNewYearSeason(today) ? promosOf(nav, today).newyear : null;
   const newYearArt = NEW_YEAR_ART[newYearOf(today)];
 
+  // 오늘 한 번 무료로 뽑은 뒤 다른 프로필: 마스코트를 누르면 알로 열고, 연 뒤에 꾹 눌러 뽑는다
+  const drawCost = sealed ? fortune.drawCost ?? 0 : 0;
+  const who = fortuneUser?.nickname ?? user.nickname;
+  const locked = drawCost > 0 ? {
+    hint: `${drawCost}알로 열기`,
+    onPress: () => openUnlock(ITEMS.daily(fortune.date, who, drawCost), () => { void refreshFortune(); }, fortune.forProfile ?? undefined),
+  } : null;
   const onDrawn = () => {
     draw.open(); // 뽑았다고 기록하면 useFortuneDraw가 서버에 풀이를 부탁한다
     setDrawn(true);
@@ -380,7 +388,10 @@ export default function HomeScreen() {
         {top}
         <View style={{ paddingHorizontal: SCREEN_PX }}>
           <Reveal>
-            <Text style={s.hello}>{user.nickname}님의 오늘</Text>
+            <View style={s.helloRow}>
+              {/* 제목 전체가 프로필 고르기 버튼 — 「수현님의 오늘 (⌄)」 */}
+              <FortuneProfileBadge textStyle={s.hello} />
+            </View>
             <Text style={s.date}>{formatKoreanDate(today)}</Text>
           </Reveal>
 
@@ -420,7 +431,7 @@ export default function HomeScreen() {
                 {hidden ? <Text style={[s.bubbleScore, { color: colors.accent }]}>?</Text>
                   : drawn ? <AnimatedNumber value={count} style={s.bubbleScore} />
                   : <Text style={s.bubbleScore}>{f.totalScore}</Text>}
-                {sealed ? <Text style={s.bubbleText} numberOfLines={3}>{'오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!'}</Text>
+                {sealed ? <Text style={s.bubbleText} numberOfLines={3}>{locked ? `오늘 무료 뽑기는 이미 썼어요.\n${drawCost}알로 ${who}님 운세를 열어 보세요!` : '오늘의 운세가 도착했어요.\n저를 꾹 눌러 뽑아 보세요!'}</Text>
                   : reading ? <ReadingSteps style={s.bubbleText} />
                   : (
                     <View style={s.bubbleBody}>
@@ -431,7 +442,7 @@ export default function HomeScreen() {
               </Animated.View>
               {isDark && <View style={s.tail} />}
             </PressableScale>
-            <DrawMascot sealed={sealed} busy={reading} onDrawn={onDrawn} onPolishComplete={completePolish} pose={mascotOverride?.pose} scores={hidden ? undefined : f} />
+            <DrawMascot sealed={sealed} busy={reading} locked={locked} onDrawn={onDrawn} onPolishComplete={completePolish} pose={mascotOverride?.pose} scores={hidden ? undefined : f} />
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
                 {tags.map((tag, i) => (
@@ -661,6 +672,7 @@ const s = StyleSheet.create({
   devReset: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
   topBar: { zIndex: 1, height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SCREEN_PX },
+  helloRow: { flexDirection: 'row', alignItems: 'center' },
   hello: { ...sansW('800'), ...(Platform.OS !== 'web' && { fontFamily: 'Pretendard-ExtraBold' }), fontSize: 24, lineHeight: 29, letterSpacing: -0.96, color: colors.ink, includeFontPadding: false },
   date: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: isDark ? colors.inkMute : '#999999', letterSpacing: -0.56, marginTop: 7, includeFontPadding: false },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.lg, backgroundColor: colors.cream, borderWidth: 1, borderColor: colors.accent },

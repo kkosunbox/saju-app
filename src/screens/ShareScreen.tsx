@@ -25,14 +25,14 @@ const daysInYear = (iso: string) => {
 /** 공유 카드 미리보기 · 이미지 저장 / 공유 */
 export default function ShareScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Share'>>();
-  const { fortune, user, today } = useApp();
+  const { fortune, user, fortuneUser, today } = useApp();
   const { toast } = usePremium();
   const { sendImage, urlOf } = useShare();
   const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
-  const spec = params?.spec ?? (fortune && user ? todaySpec(user, fortune.combined, fortune.shareCard) : null);
+  const spec = params?.spec ?? (fortune && fortuneUser ? todaySpec(fortuneUser, fortune.combined, fortune.shareCard) : null);
   // 받는 쪽에 보이는 파일 이름 (spec.file은 공유 보상 기준이라 그대로 둔다)
-  const fileName = spec ? shareFileName(user?.nickname ?? '', spec.kind) : 'woonpick';
+  const fileName = spec ? shareFileName((params?.spec ? user : fortuneUser)?.nickname ?? '', spec.kind) : 'woonpick';
   const pastLifeKey = spec?.pastLife ? JSON.stringify(spec.pastLife) : null;
   const [readyPastLife, setReadyPastLife] = useState<string | null>(null);
   const artReady = !pastLifeKey || readyPastLife === pastLifeKey;

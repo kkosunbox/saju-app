@@ -51,7 +51,9 @@ const EXAMPLE_ROWS = [0, 1, 2].map(i => [EXAMPLES[i], EXAMPLES[i + 3]]);
 /** 운알톡 탭 — 운알이가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user: u, account, fortune } = useApp();
+  const { user: u, account, fortune: viewed } = useApp();
+  // 운알톡은 대표 프로필 기준 — 메인에서 다른 프로필을 보는 중이면 오늘 기운을 숨긴다
+  const fortune = viewed?.forProfile == null ? viewed : null;
   const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 요약 대신 홈으로 뽑으러 가게 한다
   const { points, toast } = usePremium();
   const input = useRef<TextInputInstance>(null);

@@ -6,11 +6,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
-import { ContentProfileSelections, storage } from '../services/storage/storageService';
+import { storage } from '../services/storage/storageService';
 import { push } from '../services/push';
 import { Account, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
-import { ProfileInput, profileApi } from '../services/server/profileApi';
+import { ProfileInput, personToUser, profileApi } from '../services/server/profileApi';
 import { IS_WEB, getTokens } from '../api/tokens';
 import { setOnSessionLost } from '../api/client';
 import { queryClient } from '../api/query';
@@ -18,6 +18,9 @@ import { todayISO } from '../utils/date';
 import { captureInvite } from '../services/share/linkShare';
 import { clearFortuneWidget, syncFortuneWidget } from '../services/fortuneWidget';
 import { WIDGET_DAYS_AHEAD, nextISO } from '../widgets/fortuneWidgetProps';
+
+/** 콘텐츠 키별로 고른 프로필 id (이번 실행 동안만 기억) */
+type ContentProfileSelections = Record<string, number>;
 
 interface AppState {
   booting: boolean;
@@ -28,7 +31,7 @@ interface AppState {
   user: User | null;
   /** All my profiles, the primary one first. */
   profiles: User[];
-  /** 이 계정이 콘텐츠마다 마지막으로 본 프로필 (기기에 저장). */
+  /** 이 계정이 콘텐츠마다 마지막으로 본 프로필 (이번 실행 동안만). */
   contentProfiles: ContentProfileSelections;
   rememberContentProfile(contentKey: string, profileId: number): void;
   /** Reads the profiles again (after one was added elsewhere, e.g. through a request link). */
@@ -42,6 +45,11 @@ interface AppState {
   /** True while "다시 입력" shows the profile form for an existing profile. */
   editingProfile: boolean;
   today: string;
+  /** 메인에서 오늘의 운세를 보는 프로필 (null: 대표 프로필). 이번 실행 동안만 기억하고, 콘텐츠 화면들과는 따로 논다 */
+  fortuneProfileId: number | null;
+  selectFortuneProfile(profileId: number | null): void;
+  /** 지금 오늘의 운세가 누구 것인지 (운세를 만든 때의 프로필 정보, 운세가 오기 전엔 고른 프로필) */
+  fortuneUser: User | null;
   fortune: DailyFortune | null;
   fortuneLoading: boolean;
   fortuneError: Error | null;
@@ -83,14 +91,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ? current
       : { ...current, profiles: { ...current.profiles, [contentKey]: profileId } });
   }, []);
-  useEffect(() => {
-    if (contentSelection) void storage.saveContentProfiles(contentSelection.accountId, contentSelection.profiles);
-  }, [contentSelection]);
   const [editingProfile, setEditingProfile] = useState(false);
   const [fortune, setFortune] = useState<DailyFortune | null>(null);
   const [fortuneLoading, setFortuneLoading] = useState(false);
   const [fortuneError, setFortuneError] = useState<Error | null>(null);
   const [today, setToday] = useState(todayISO());
+  const [pickedFortuneProfile, setPickedFortuneProfile] = useState<number | null>(null);
+  // 고른 프로필이 지워졌거나 대표 프로필이면 대표로 (null)
+  const fortuneProfileId = pickedFortuneProfile != null && pickedFortuneProfile !== user?.profileId && profiles.some(p => p.profileId === pickedFortuneProfile)
+    ? pickedFortuneProfile
+    : null;
 
   const clearSession = useCallback(() => {
     queryClient.clear();
@@ -98,6 +108,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfiles([]);
     setContentSelection(null);
+    setPickedFortuneProfile(null);
     setFortune(null);
     setEditingProfile(false);
     clearFortuneWidget();
@@ -112,8 +123,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const me = await authApi.me();
     const profile = await profileApi.get(me.id);
     const list = profile ? await profileApi.list(me.id).catch(() => [profile]) : [];
-    const contentProfiles = await storage.getContentProfiles(String(me.id));
-    setContentSelection({ accountId: String(me.id), profiles: contentProfiles });
+    // 콘텐츠별 고른 프로필은 이번 실행 동안만 기억한다 (앱을 다시 켜거나 웹에 새로 들어오면 대표 프로필부터)
+    const accountId = String(me.id);
+    setContentSelection(current => (current?.accountId === accountId ? current : { accountId, profiles: {} }));
     // set together: the sign-in redirect (app/_layout.tsx) reads the profile when the account appears
     setAccount(me.status === 'guest' ? null : me);
     setFortune(null);
@@ -153,17 +165,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const targetDate = todayISO();
     setToday(targetDate);
-    setFortune(current => current?.date === targetDate ? current : null);
+    // 다른 프로필로 바꾸면 이전 프로필 운세를 남기지 않는다 (잠깐 섞여 보이지 않게)
+    setFortune(current => current?.date === targetDate && current.forProfile === fortuneProfileId ? current : null);
     setFortuneLoading(true);
     setFortuneError(null);
     try {
-      setFortune(await fortuneApi.daily(user.id));
+      setFortune(await fortuneApi.daily(user.id, undefined, fortuneProfileId));
     } catch (err) {
       setFortuneError(err as Error);
     } finally {
       setFortuneLoading(false);
     }
-  }, [user]);
+  }, [user, fortuneProfileId]);
 
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
 
@@ -190,8 +203,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 앞날 운세도 규칙 엔진이라 AI 비용이 없고, 덕분에 앱을 일주일 안 열어도 위젯이 매일 새 운세를 보여 준다.
   const widgetAhead = useRef<{ key: string; days: DailyFortune[] } | null>(null);
   useEffect(() => {
-    // 웹에는 위젯이 없다
-    if (IS_WEB || !fortune || !user || fortune.date !== todayISO()) return;
+    // 웹에는 위젯이 없다. 위젯은 대표 프로필 운세만 (메인에서 다른 프로필을 보는 동안은 그대로 둔다)
+    if (IS_WEB || !fortune || !user || fortune.forProfile != null || fortune.date !== todayISO()) return;
     let live = true;
     const key = `${fortune.userId}:${fortune.date}:${user.version ?? ''}`;
     (async () => {
@@ -212,7 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 날짜별로 한 번만 요청한다 — 서버가 실패를 돌려줘도 다음에 앱을 열 때 다시
   const drawing = useRef<string | null>(null);
   const [drawnKey, setDrawnKey] = useState<string | null>(null);
-  const fortuneKey = fortune ? `${fortune.userId}:${fortune.date}` : null;
+  const fortuneKey = fortune ? `${fortune.userId}:${fortune.date}:${fortune.forProfile ?? 'primary'}` : null;
   const fortuneWriting = !!fortune?.textsPending && drawnKey !== fortuneKey;
   const drawFortune = useCallback(async () => {
     // AI 문장이 남았거나, 뽑았다는 기록이 서버에 아직 없을 때 (다른 기기에서도 뽑은 걸로 보이게)
@@ -220,7 +233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!needed || !fortuneKey || drawing.current === fortuneKey) return;
     drawing.current = fortuneKey;
     try {
-      setFortune(await fortuneApi.draw(fortune.userId, fortune.date));
+      setFortune(await fortuneApi.draw(fortune.userId, fortune.date, fortune.forProfile));
     } catch {
       // 규칙 문장을 그대로 보여준다
     } finally {
@@ -230,6 +243,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppState = {
     booting, onboarded, account, user, editingProfile, today, fortune, fortuneLoading, fortuneError, refreshFortune, fortuneWriting, drawFortune,
+    fortuneProfileId,
+    selectFortuneProfile: setPickedFortuneProfile,
+    fortuneUser: fortune?.person && user
+      ? personToUser(user.id, fortune.person)
+      : (fortuneProfileId != null ? profiles.find(p => p.profileId === fortuneProfileId) : null) ?? user,
     completeOnboarding: async () => { await storage.setOnboarded(true); setOnboarded(true); },
     returnToLanding: async () => {
       if (!IS_WEB || user) return;
