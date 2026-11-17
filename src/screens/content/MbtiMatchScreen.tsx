@@ -9,6 +9,7 @@ import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import { Logo } from '../../components/Mascot';
 import { ShareIconButton } from '../../components/ShareCta';
+import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import { SubHead } from '../../components/premium/Kit';
 import { useApp } from '../../context/AppContext';
 import { useFreeContent } from '../../services/server/contentApi';
@@ -48,6 +49,8 @@ export default function MbtiMatchScreen() {
   if (!draw.opened) {
     return (
       <Screen title="찰떡 MBTI" back>
+        {/* 누구 것을 볼지 — 다른 콘텐츠와 같은 프로필 선택 (메인 오늘의 운세 선택과는 따로) */}
+        <ProfileSwitch style={{ marginBottom: 12 }} />
         <Text style={[txt.title, { marginTop: 8 }]}>16가지 MBTI 중{'\n'}{u.nickname}님의 찰떡은?</Text>
         <Text style={[txt.small, { marginTop: 8, marginBottom: 24 }]}>{u.mbti}인 나와의 궁합 점수 순서대로 카드가 뒤집혀요</Text>
         <MbtiDeck all={all} top={top.type} onDone={() => { setDrawn(true); draw.open(); }} />
@@ -57,6 +60,7 @@ export default function MbtiMatchScreen() {
 
   return (
     <Screen title="찰떡 MBTI" back right={<ShareIconButton spec={mbtiSpec(u, q.data)} />}>
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       <FriendCompare route="MbtiMatch" spec={mbtiSpec(u, q.data)} />
       {/* 결과 카드 */}
       {wrap(

@@ -10,7 +10,8 @@ import Disclaimer from '../Disclaimer';
 import { PointPill } from '../HeaderPoints';
 import { Logo } from '../Mascot';
 import { useApp } from '../../context/AppContext';
-import { useTarotDraw } from '../../services/content/opened';
+import { DailyTarget, useTarotDraw } from '../../services/content/opened';
+import ProfileSwitch from '../premium/ProfileSwitch';
 import { useReducedMotion } from '../../utils/motion';
 import { tarotSpec } from '../../services/share/shareSpecs';
 import { colors, isDark } from '../../theme/colors';
@@ -24,9 +25,18 @@ import { promosOf } from '../../services/promo/promos';
 // 밤하늘 · 구름 그림 (카드 자리는 비워 둔 그림 — 카드는 위에 따로 얹는다)
 const HERO_BG = require('../../../assets/images/tarot-hero-bg.webp');
 
-export default function TarotExperience({ reading }: { reading?: TarotReading }) {
-  const { fortuneUser: user, today, fortuneError, refreshFortune, fortune } = useApp();
-  const { ready, opened, open } = useTarotDraw();
+/**
+ * target: 타로 화면에서 따로 고른 프로필과 그 사람의 오늘 운세 (주지 않으면 메인에서 고른 프로필).
+ * 카드는 규칙으로 정해져 AI · 알 없이 바로 나온다 — 운세 풀이를 뽑지 않아도 볼 수 있다.
+ */
+export default function TarotExperience({ reading, target, onRetry }: { reading?: TarotReading; target?: DailyTarget; onRetry?(): void }) {
+  const app = useApp();
+  const { today, refreshFortune } = app;
+  // 범위 안이면 useApp().user가 고른 프로필이다
+  const user = target ? app.user : app.fortuneUser;
+  const fortune = target ? target.fortune : app.fortune;
+  const fortuneError = target ? target.error : app.fortuneError;
+  const { ready, opened, open } = useTarotDraw(target);
   const reduced = useReducedMotion();
   const nav = useNavigation();
   const [scale] = useState(() => new Animated.Value(1));
@@ -40,6 +50,8 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
   const visible = ready && opened;
   const spec = visible && reading && user ? tarotSpec(user, reading) : null;
   return <Screen title="오늘의 타로" back right={<><PointPill attendHint quiet /><ShareIconButton spec={spec} /></>}>
+    {/* 누구의 타로를 볼지 — 무료 콘텐츠처럼 메인 선택과 따로 */}
+    <ProfileSwitch style={{ marginBottom: 12 }} />
     <ImageBackground source={HERO_BG} style={s.hero} imageStyle={s.heroImage} resizeMode="cover">
       <View style={s.logo}><Logo height={36 * 55 / 65} /></View>
       <Text style={s.date}>{today.replaceAll('-', '.')} · 하루 한 장</Text>
@@ -55,7 +67,7 @@ export default function TarotExperience({ reading }: { reading?: TarotReading })
         <Text style={[s.message, KEEP]}>{reading.message}</Text>
       </> : null}
     </ImageBackground>
-    {!reading ? <View style={s.body}><Text style={[s.text, KEEP]}>{fortuneError ? '카드를 불러오지 못했어요.' : '오늘의 카드를 준비하고 있어요.'}</Text><PrimaryButton label="다시 불러오기" onPress={() => { void refreshFortune(); }} /></View>
+    {!reading ? <View style={s.body}><Text style={[s.text, KEEP]}>{fortuneError ? '카드를 불러오지 못했어요.' : '오늘의 카드를 준비하고 있어요.'}</Text><PrimaryButton label="다시 불러오기" onPress={() => { if (onRetry) onRetry(); else void refreshFortune(); }} /></View>
       : !visible ? <View style={s.body}><PrimaryButton label="오늘의 카드 펼치기" onPress={open} disabled={!ready} /><Text style={s.note}>타로 카드만 펼쳐요. 카드는 하루 동안 같아요.</Text></View>
       : <>
         <View style={s.keywordBox}>

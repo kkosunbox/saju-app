@@ -7,6 +7,7 @@ import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
+import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import FriendCompare from '../../components/FriendCompare';
 import MemoryReveal from '../../components/MemoryReveal';
 import Reveal from '../../components/Reveal';
@@ -36,6 +37,8 @@ export default function PastLifeScreen() {
   if (!draw.opened) {
     return (
       <Screen title="전생 테스트" back>
+        {/* 누구 것을 볼지 — 다른 콘텐츠와 같은 프로필 선택 (메인 오늘의 운세 선택과는 따로) */}
+        <ProfileSwitch style={{ marginBottom: 12 }} />
         <View style={s.introMeta}><Text style={s.kicker}>전생 기록서</Text><Text style={txt.caption}>무료 · 결과 전체 공개</Text></View>
         <Text style={s.introTitle}>처음인 것 같은데,{ '\n' }어쩐지 익숙한 나.</Text>
         <Text style={s.introBody}>{u.nickname}님의 타고난 기운을 한 편의 전생 이야기로 엮었어요. 오래전의 하루와 지금 남아 있는 성향을 만나 보세요.</Text>
@@ -68,6 +71,7 @@ export default function PastLifeScreen() {
   return (
     // key: 기록을 연 뒤 새 화면처럼 맨 위부터 보이게
     <Screen key="result" title="전생 테스트" back contentStyle={s.content} right={<ShareIconButton spec={spec} />}>
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       <FriendCompare route="PastLife" spec={spec} />
       {drawn ? <Reveal>{record}</Reveal> : record}
 

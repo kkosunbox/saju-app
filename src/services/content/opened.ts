@@ -10,6 +10,13 @@ import { deviceKey } from '../storage/storageService';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
 import { DEV_TOOLS } from '../../utils/devTools';
+import { DailyFortune } from '../../types';
+
+/**
+ * 오늘의 운세 · 타로를 누구 것으로 볼지 — 주지 않으면 메인에서 고른 프로필.
+ * 타로 화면은 메인과 따로 프로필을 고르므로, 그 프로필(대표면 null)과 그 사람의 오늘 운세를 넘긴다.
+ */
+export interface DailyTarget { profileId: number | null; fortune: DailyFortune | null; error?: unknown }
 
 export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
 const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman'];
@@ -50,8 +57,12 @@ function save(uid: string, kind: OpenKind, stamp: string | undefined) {
  * opened: 이미 뽑았는지 (운세·부적은 오늘 날짜로) · open(): 뽑았다고 기록 (홈 타일도 같이 바뀐다)
  * reset(): 다시 뽑기 전으로 (테스트용). 오늘의 운세는 서버 기록보다 우선하는 기기별 초기화 도장을 둔다.
  */
-export function useOpened(kind: OpenKind) {
-  const { user, profiles, today, fortune, fortuneError, fortuneProfileId } = useApp();
+export function useOpened(kind: OpenKind, target?: DailyTarget) {
+  const app = useApp();
+  const { user, profiles, today } = app;
+  const fortuneProfileId = target ? target.profileId : app.fortuneProfileId;
+  const fortune = target ? target.fortune : app.fortune;
+  const fortuneError = target ? target.error : app.fortuneError;
   const scope = useContentScope();
   const profile = scope?.profile ?? user;
   const profileId = scope?.profileId ?? user?.profileId;
@@ -117,9 +128,9 @@ export function useFortuneDraw() {
 }
 
 /** Fortune reveals include tarot, while a tarot-only reveal never opens or requests the fortune. */
-export function useTarotDraw() {
-  const tarot = useOpened('tarot');
-  const fortune = useOpened('fortune');
+export function useTarotDraw(target?: DailyTarget) {
+  const tarot = useOpened('tarot', target);
+  const fortune = useOpened('fortune', target);
   return {
     ...tarot,
     ready: tarot.ready && fortune.ready,

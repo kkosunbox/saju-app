@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Platform, ScrollView, StyleProp, ViewStyle, type ScrollViewInstance, type ScrollViewProps } from 'react-native';
 
-type Props = Pick<ScrollViewProps, 'onScroll' | 'scrollEventThrottle' | 'onContentSizeChange'> & {
+type Props = Pick<ScrollViewProps, 'onScroll' | 'onScrollBeginDrag' | 'scrollEventThrottle' | 'onContentSizeChange'> & {
   children: React.ReactNode; contentContainerStyle?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle>; scrollRef?: React.RefObject<ScrollViewInstance | null>;
 };
 

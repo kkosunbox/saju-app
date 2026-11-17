@@ -5,6 +5,7 @@ import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
+import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import BrandMark from '../../components/BrandMark';
 import Mascot from '../../components/Mascot';
 import { artOfName } from '../../components/CharacterArt';
@@ -40,13 +41,15 @@ export default function CharacterScreen() {
   const scene = characterScene(c.hanja, c.name);
   const palette = scene?.palette ?? CHARACTER_PALETTES[c.element];
   const energyLabel = scene?.energyLabel ?? CHARACTER_ENERGY_LABELS[c.element];
-  // 첫 정보 박스는 공유 카드 액자 안쪽 색과 같게 — 오행마다 다르다
+  // 첫 정보 박스 색·하트 색 — 오행마다 다르다
   const info = CHARACTER_SHARE_THEMES[scene?.element ?? c.element];
 
   // 처음엔 60갑자 슬롯에서 내 일주를 찾는다
   if (!draw.opened) {
     return (
       <Screen title="나의 사주 캐릭터" back>
+        {/* 누구 것을 볼지 — 다른 콘텐츠와 같은 프로필 선택 (메인 오늘의 운세 선택과는 따로) */}
+        <ProfileSwitch style={{ marginBottom: 12 }} />
         <Text style={[txt.title, { marginTop: 8 }]}>60가지 사주 캐릭터 중{'\n'}{u.nickname}님은 누구일까?</Text>
         <Text style={[txt.small, { marginTop: 8 }]}>태어난 날의 기둥(일주)이 캐릭터를 정해요</Text>
         <PillarSlot target={c.hanja} onDone={() => { setDrawn(true); draw.open(); }} />
@@ -57,6 +60,7 @@ export default function CharacterScreen() {
 
   return (
     <Screen title="나의 사주 캐릭터" back right={<View style={s.headRight}><PointPill attendHint quiet /><ShareIconButton spec={characterSpec(u, c)} /></View>}>
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       <FriendCompare route="Character" spec={characterSpec(u, c)} />
       {wrap(
       <View ref={card} collapsable={false} style={s.cardWrap}>
@@ -66,12 +70,13 @@ export default function CharacterScreen() {
           <View style={s.brand}><BrandMark size={15} /></View>
           <View style={s.energy}><Text style={[s.energyText, { color: palette.ink }]}>{energyLabel}</Text></View>
         </View>
-        <View style={[s.details, { backgroundColor: info.frame }]}>
+        <View style={[s.details, { backgroundColor: info.panel }]}>
           <View style={s.nameBox}>
             <Text style={s.eyebrow}>{u.nickname}님은</Text>
             <Text style={s.name}>{c.name}</Text>
             <Text style={s.title}>{c.title}</Text>
           </View>
+          <View style={s.divider} />
           <View style={s.traits}>
             {c.traits.slice(0, 3).map(t => (
               <View key={t} style={s.trait}>
@@ -126,13 +131,15 @@ const s = StyleSheet.create({
   brand: { position: 'absolute', left: 16, top: 14, zIndex: 1 },
   energy: { position: 'absolute', right: 12, bottom: 12, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.white },
   energyText: { ...sansW('700'), fontSize: 12, lineHeight: 16, letterSpacing: -0.48 },
-  details: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 8 },
-  nameBox: { paddingVertical: 10, borderRadius: 8, backgroundColor: colors.white, alignItems: 'center' },
+  // Figma 489:3061 — 흰 이름 상자 없이 배경 위에 이름, 아래 #DDD 구분선(y114, 특징은 y130) 뒤 특징 3줄
+  details: { marginTop: 16, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 16, borderRadius: 8 },
+  nameBox: { alignItems: 'center' },
+  divider: { height: 1, marginTop: 18, backgroundColor: '#DDDDDD' },
   eyebrow: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
   // 28px 글자 — Figma 줄높이 18 상자 기준 위아래 12 간격을 34 줄높이 + 4 여백으로 맞춘다
   name: { ...sansW('800'), fontSize: 28, lineHeight: 34, letterSpacing: -1.4, color: '#000', marginVertical: 4, textAlign: 'center' },
   title: { ...sansW('500'), fontSize: 12, lineHeight: 18, letterSpacing: -0.6, color: colors.inkMute, textAlign: 'center' },
-  traits: { marginTop: 16, gap: 12 },
+  traits: { marginTop: 15, gap: 12 },
   trait: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   traitText: { ...sansW('500'), flex: 1, fontSize: 14, lineHeight: 20, letterSpacing: -0.56, color: colors.ink },
   foot: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute, marginTop: 12, textAlign: 'center' },

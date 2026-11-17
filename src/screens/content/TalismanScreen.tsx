@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import Screen from '../../components/Screen';
 import Icon from '../../components/Icon';
 import { ShareIconButton } from '../../components/ShareCta';
+import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import ShareActions from '../../components/ShareActions';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
@@ -183,6 +184,8 @@ export default function TalismanScreen() {
         </View>
       )}
     >
+      {/* 누구의 부적을 볼지 — 다른 콘텐츠와 같은 프로필 선택 (탭 위) */}
+      <ProfileSwitch style={{ marginBottom: 12 }} />
       <Segmented<Tab> variant="figma" options={TABS} value={tab} onChange={switchTab} />
       {mine ? <>
         {sealed ? null : <View style={s.compare}><FriendCompare route="Talisman" spec={spec} /></View>}

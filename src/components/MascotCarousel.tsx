@@ -14,68 +14,47 @@ const CAST: { key: string; pose: MascotPose | null }[] = [
   { key: 'checklist', pose: 'checklist' },
   { key: 'breeze', pose: 'breeze' },
 ];
-const HOLD = 2000;
-const PUSH = 720;
-const PUSH_EASING = Easing.bezier(0.65, 0, 0.35, 1);
+/** 한 모습이 머무는 시간 — 아래 리뷰 슬라이드보다 느긋하게 */
+const HOLD = 2600;
+const FADE = 700;
+const FADE_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 
 /**
- * 웹 랜딩 첫 화면의 마스코트 — 다음 젤리가 오른쪽에서 들어오며 지금 젤리를 왼쪽으로 밀어내고,
- * 가운데에 닿으면 젤리처럼 말랑하게 눌렸다 펴진다. 둘은 같은 곡선으로 함께 움직여 맞닿은 채 밀린다.
- * 젤리를 모두 띄워 두고 위치만 바꿔서, 바뀔 때 기본 젤리가 깜빡이지 않는다.
- * 동작 줄이기 설정에서는 밀지 않고 바로 바꾼다.
+ * 웹 랜딩 첫 화면의 마스코트 — 제자리에서 지금 모습이 옅어지며 다음 모습이 겹쳐 떠오른다.
+ * 바로 아래 리뷰 카드가 옆으로 넘어가므로, 마스코트는 옆으로 움직이지 않아 두 움직임이 겹쳐 보이지 않는다.
+ * 그림자는 하나만 깔아 두어 바뀌는 동안에도 바닥이 그대로다. 젤리를 모두 띄워 두고 투명도만 바꿔서 깜빡이지 않는다.
+ * 동작 줄이기 설정에서는 바로 바꾼다.
  */
 export default function MascotCarousel({ size }: { size: number }) {
   const reduced = useReducedMotion();
   const [current, setCurrent] = useState(0);
-  // 0 = 가운데, -1 = 왼쪽으로 밀려남, 1 = 오른쪽에서 대기
-  const [pos] = useState(() => CAST.map((_, i) => new Animated.Value(i === 0 ? 0 : 1)));
-  // 도착한 젤리의 말랑함: +면 납작, -면 길쭉
-  const [squish] = useState(() => new Animated.Value(0));
-  const shift = size * 1.05;
+  // 0 = 안 보임, 1 = 보임
+  const [shown] = useState(() => CAST.map((_, i) => new Animated.Value(i === 0 ? 1 : 0)));
 
   useEffect(() => {
     const id = setTimeout(() => {
       const next = (current + 1) % CAST.length;
-      pos[next].setValue(1);
-      const push = (v: Animated.Value, to: number) => Animated.timing(v, { toValue: to, duration: reduced ? 0 : PUSH, easing: PUSH_EASING, useNativeDriver: true });
+      const fade = (v: Animated.Value, to: number) => Animated.timing(v, { toValue: to, duration: reduced ? 0 : FADE, easing: FADE_EASING, useNativeDriver: true });
       setCurrent(next);
-      Animated.parallel([push(pos[current], -1), push(pos[next], 0)]).start(({ finished }) => {
-        if (!finished || reduced) return;
-        Animated.sequence([
-          Animated.timing(squish, { toValue: 1, duration: 110, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.spring(squish, { toValue: 0, speed: 14, bounciness: 16, useNativeDriver: true }),
-        ]).start();
-      });
+      Animated.parallel([fade(shown[current], 0), fade(shown[next], 1)]).start();
     }, HOLD);
     return () => clearTimeout(id);
-  }, [current, pos, squish, reduced]);
+  }, [current, shown, reduced]);
 
   return (
     <View style={{ width: size * 1.08, height: size, alignSelf: 'center' }} accessible accessibilityRole="image" accessibilityLabel="그날의 기운에 따라 모습이 바뀌는 젤리 마스코트">
+      <MascotShadow size={size} />
       {CAST.map((c, i) => (
         <Animated.View
           key={c.key}
           style={[StyleSheet.absoluteFill, {
-            opacity: pos[i].interpolate({ inputRange: [-1, -0.55, 0, 0.55, 1], outputRange: [0, 0.85, 1, 0.85, 0], extrapolate: 'clamp' }),
-            transform: [
-              { translateX: pos[i].interpolate({ inputRange: [-1, 1], outputRange: [-shift, shift] }) },
-              { scale: pos[i].interpolate({ inputRange: [-1, 0, 1], outputRange: [0.7, 1, 0.7], extrapolate: 'clamp' }) },
-            ],
+            opacity: shown[i],
+            // 떠오를 때 살짝 커지며 자리 잡는다 — 바닥 기준이라 발이 들리지 않는다
+            transformOrigin: 'bottom',
+            transform: [{ scale: shown[i].interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }],
           }]}
         >
-          {/* 기울어도 그림자는 바닥에 붙어 있고, 눌리면 옆으로 퍼진다 */}
-          <MascotShadow size={size} style={{ transform: [{ scaleX: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.92, 1, 1.14] }) }] }} />
-          {/* 바닥을 기준으로 기울고, 눌렸다 펴진다. 미는 쪽은 앞으로, 밀리는 쪽은 뒤로 살짝 기운다 */}
-          <Animated.View style={[StyleSheet.absoluteFill, {
-            transformOrigin: 'bottom',
-            transform: [
-              { rotate: pos[i].interpolate({ inputRange: [-1, -0.5, 0, 0.5, 1], outputRange: ['-10deg', '-7deg', '0deg', '-7deg', '-10deg'], extrapolate: 'clamp' }) },
-              { scaleX: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.94, 1, 1.09] }) },
-              { scaleY: squish.interpolate({ inputRange: [-1, 0, 1], outputRange: [1.06, 1, 0.9] }) },
-            ],
-          }]}>
-            <ResultMascot pose={c.pose} size={size} accessible={false} />
-          </Animated.View>
+          <ResultMascot pose={c.pose} size={size} accessible={false} />
         </Animated.View>
       ))}
     </View>
