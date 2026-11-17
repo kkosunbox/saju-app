@@ -121,6 +121,8 @@ module.exports = ({ config }) => ({
             maxResizeWidth: '420dp',
             maxResizeHeight: '220dp',
             resizeMode: 'horizontal|vertical',
+            // 위젯 고르기 화면의 미리보기. 없으면 앱 아이콘이 대신 나온다 ('뽑음' 중간 위젯, 라이트)
+            previewImage: './assets/widget/preview-android.png',
             // 자정이 지나면 앱을 안 열어도 내일 운세(미리 받아 둔 것)로 바뀌게 30분마다 다시 그린다
             updatePeriodMillis: 1800000,
           },

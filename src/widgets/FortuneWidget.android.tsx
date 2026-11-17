@@ -6,7 +6,13 @@
  * - 뽑음: 누르면 앱 홈 (종합풀이로 바로 가면 그 화면이 뽑기를 해 버린다)
  * - 그 밖: 누르면 앱
  * 디자인 수정은 OTA로 반영된다 (위젯을 JS로 그림). 새 글꼴·크기 설정은 새 빌드가 필요하다.
+ *
+ * 라이브러리는 이 컴포넌트를 React 밖에서 함수로 불러 위젯 트리를 만든다. 그래서
+ * - React Compiler 를 끈다 ('use no memo'): 켜 두면 컴파일러가 넣은 훅 호출에서 'Invalid hook call' 로 그리기가 멈춘다.
+ * - Fragment(<>…</>)를 쓰지 않는다: 라이브러리가 Fragment 를 풀지 못해 오류가 난다. 자식 여럿은 배열로 넘긴다.
+ * 어느 쪽이든 위젯 작업이 실패하면 홈 화면에는 빈 위젯만 남는다.
  */
+'use no memo';
 import React from 'react';
 import { FlexWidget, ImageWidget, OverlapWidget, TextWidget } from 'react-native-android-widget';
 import type { FortuneWidgetProps } from './fortuneWidgetProps';
@@ -36,7 +42,7 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
   const c = dark ? DARK : LIGHT;
   const edge = small ? { top: 9.5, bottom: 16, left: 12, right: 12.5 } : { top: 10, bottom: 14, left: 19.5, right: 19.5 };
   // 구름 하늘 그림을 깔고 그 위에 내용을 올린다 (그림은 위젯 크기에 맞춰 늘린다)
-  const col = (children: React.ReactNode, clickAction = 'OPEN_APP') => (
+  const col = (children: React.ReactNode[], clickAction = 'OPEN_APP') => (
     <OverlapWidget
       clickAction={clickAction}
       style={{
@@ -92,12 +98,12 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
   // 앱에 데이터가 없을 때 (프로필 전 · 일주일 넘게 앱을 안 열어 날짜가 지남)
   if (props.state !== 'ready') {
     const message = props.state === 'signedOut' ? '프로필을 만들면\n매일 운세가 여기 떠요' : '앱을 열면 오늘의\n운세를 받아 올게요';
-    return col(<>
-      {header}
-      {fill}
-      {text(message, small ? 15 : 17, F.bold, c.ink, 2, { lineHeight: small ? 21 : 24 })}
-      <FlexWidget style={{ paddingTop: 6 }}>{text('운Pick 열기 →', 12.5, F.semibold, c.accent)}</FlexWidget>
-    </>);
+    return col([
+      header,
+      fill,
+      text(message, small ? 15 : 17, F.bold, c.ink, 2, { lineHeight: small ? 21 : 24 }),
+      <FlexWidget key="open" style={{ paddingTop: 6 }}>{text('운Pick 열기 →', 12.5, F.semibold, c.accent)}</FlexWidget>,
+    ]);
   }
 
   // 오늘 운세가 있지만 아직 안 뽑음: 위젯 안에서 뽑기 (점수·요약만, AI 없음)
@@ -110,17 +116,17 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
         {text('운세 뽑기', 14, F.bold, c.buttonInk, 1, { clickAction: 'reveal' })}
       </FlexWidget>
     );
-    return col(<>
-      {header}
-      {fill}
-      {small
-        ? text('오늘의 운세가\n도착했어요', 16, F.bold, c.ink, 2, { lineHeight: 22 })
-        : <>
-          {text('오늘의 운세가 도착했어요', 17, F.bold, c.ink)}
-          <FlexWidget style={{ paddingTop: 4 }}>{text('뽑으면 점수와 한 줄 요약을 보여 드려요', 13, F.medium, c.sub)}</FlexWidget>
-        </>}
-      {draw}
-    </>);
+    return col([
+      header,
+      fill,
+      ...(small
+        ? [text('오늘의 운세가\n도착했어요', 16, F.bold, c.ink, 2, { lineHeight: 22 })]
+        : [
+          text('오늘의 운세가 도착했어요', 17, F.bold, c.ink),
+          <FlexWidget key="hint" style={{ paddingTop: 4 }}>{text('뽑으면 점수와 한 줄 요약을 보여 드려요', 13, F.medium, c.sub)}</FlexWidget>,
+        ]),
+      draw,
+    ]);
   }
 
   // 뽑음: 점수 · 어제 대비 · 요약. 누르면 앱 홈
@@ -142,20 +148,20 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
   );
 
   if (small) {
-    return col(<>
-      {header}
-      {fill}
-      {score}
-      {deltaView}
-      <FlexWidget style={{ paddingTop: 7 }}>{text(props.summarySmall ?? props.summary ?? '', 12.5, F.medium, c.ink, 2, { lineHeight: 19 })}</FlexWidget>
-    </>);
+    return col([
+      header,
+      fill,
+      score,
+      deltaView,
+      <FlexWidget key="summary" style={{ paddingTop: 7 }}>{text(props.summarySmall ?? props.summary ?? '', 12.5, F.medium, c.ink, 2, { lineHeight: 19 })}</FlexWidget>,
+    ]);
   }
 
   const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
-  return col(<>
-    {header}
-    {/* 가운데: 왼쪽 점수 · 어제 대비, 오른쪽 요약 · 키워드 (아랫줄을 맞춘다) */}
-    <FlexWidget style={{ width: 'match_parent', height: 74, marginTop: 12, flexDirection: 'row' }}>
+  return col([
+    header,
+    // 가운데: 왼쪽 점수 · 어제 대비, 오른쪽 요약 · 키워드 (아랫줄을 맞춘다)
+    <FlexWidget key="middle" style={{ width: 'match_parent', height: 74, marginTop: 12, flexDirection: 'row' }}>
       <FlexWidget style={{ width: 100.5, height: 'match_parent', flexDirection: 'column' }}>
         {score}
         {fill}
@@ -166,9 +172,9 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
         {fill}
         {props.keywords ? text(props.keywords, 13, F.medium, c.sub) : null}
       </FlexWidget>
-    </FlexWidget>
-    {fill}
-    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+    </FlexWidget>,
+    fill,
+    <FlexWidget key="bottom" style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
       {lucky ? (
         <FlexWidget style={{ backgroundColor: c.chip, borderRadius: 13, paddingHorizontal: 8.5, paddingVertical: 2.5 }}>
           {text(lucky, 13, F.medium, c.chipInk)}
@@ -176,6 +182,6 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
       ) : null}
       <FlexWidget style={{ flex: 1 }} />
       {text('상세 풀이 보기 →', 12.5, F.semibold, c.accent)}
-    </FlexWidget>
-  </>);
+    </FlexWidget>,
+  ]);
 }
