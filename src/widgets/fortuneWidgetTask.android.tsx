@@ -13,6 +13,9 @@ import type { FortuneWidgetProps } from './fortuneWidgetProps';
 /** 이 너비(dp)보다 좁으면 작은 위젯 배치 */
 const SMALL_MAX_WIDTH = 250;
 
+/** app.config.js 에 등록한 위젯 이름 (작은 · 중간). 그리는 화면은 같다 */
+export const FORTUNE_WIDGET_NAMES = ['FortuneWidgetSmall', 'FortuneWidget'] as const;
+
 export function renderFortuneWidget(props: FortuneWidgetProps, width: number, height: number) {
   const size = { small: width < SMALL_MAX_WIDTH, width, height };
   return {
@@ -22,7 +25,7 @@ export function renderFortuneWidget(props: FortuneWidgetProps, width: number, he
 }
 
 export async function fortuneWidgetTaskHandler(task: WidgetTaskHandlerProps) {
-  if (task.widgetInfo.widgetName !== 'FortuneWidget') return;
+  if (!(FORTUNE_WIDGET_NAMES as readonly string[]).includes(task.widgetInfo.widgetName)) return;
   switch (task.widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':

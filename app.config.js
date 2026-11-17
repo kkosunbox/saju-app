@@ -109,21 +109,39 @@ module.exports = ({ config }) => ({
       'react-native-android-widget',
       {
         fonts: ['./assets/fonts/Pretendard-Medium.otf', './assets/fonts/Pretendard-SemiBold.otf', './assets/fonts/Pretendard-Bold.otf', './assets/fonts/Pretendard-ExtraBold.otf'],
+        // 고르기 화면에 크기별로 따로 보이게 두 개를 등록한다 (iOS의 작은 · 중간과 같다). 화면 · 작업은 같고,
+        // 배치는 이름이 아니라 실제 너비로 고른다 (늘이고 줄이면 작은 ↔ 중간이 바뀐다).
+        // 칸 수는 targetCell*(Android 12+)을 쓰지만 삼성 등은 min 크기로 계산한다: n칸 ≈ 70n − 30 dp
+        // 'FortuneWidget' 이름은 이미 놓인 위젯이 그대로 이어지게 중간 위젯에 남긴다.
         widgets: [
           {
-            name: 'FortuneWidget',
+            name: 'FortuneWidgetSmall',
             label: '오늘의 운세',
-            description: '홈 화면에서 오늘의 운세를 뽑고 점수와 한 줄 요약을 봐요',
-            minWidth: '180dp',
+            description: '작은 위젯 — 오늘의 점수와 한 줄 요약',
+            minWidth: '110dp',
             minHeight: '110dp',
             targetCellWidth: 2,
             targetCellHeight: 2,
             maxResizeWidth: '420dp',
             maxResizeHeight: '220dp',
             resizeMode: 'horizontal|vertical',
-            // 위젯 고르기 화면의 미리보기. 없으면 앱 아이콘이 대신 나온다 ('뽑음' 중간 위젯, 라이트)
-            previewImage: './assets/widget/preview-android.png',
+            // 위젯 고르기 화면의 미리보기. 없으면 앱 아이콘이 대신 나온다 ('뽑음', 라이트)
+            previewImage: './assets/widget/preview-android-small.png',
             // 자정이 지나면 앱을 안 열어도 내일 운세(미리 받아 둔 것)로 바뀌게 30분마다 다시 그린다
+            updatePeriodMillis: 1800000,
+          },
+          {
+            name: 'FortuneWidget',
+            label: '오늘의 운세',
+            description: '중간 위젯 — 점수 · 요약 · 키워드 · 행운 아이템',
+            minWidth: '250dp',
+            minHeight: '110dp',
+            targetCellWidth: 4,
+            targetCellHeight: 2,
+            maxResizeWidth: '420dp',
+            maxResizeHeight: '220dp',
+            resizeMode: 'horizontal|vertical',
+            previewImage: './assets/widget/preview-android.png',
             updatePeriodMillis: 1800000,
           },
         ],

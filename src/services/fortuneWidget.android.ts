@@ -12,12 +12,14 @@ async function save(update: (store: FortuneWidgetStore) => FortuneWidgetStore): 
     await writeWidgetStore(store);
     // 위젯 모듈이 없는 빌드에서는 여기서 실패한다 — 저장만 하고 넘어간다
     const { requestWidgetUpdate } = require('react-native-android-widget') as typeof import('react-native-android-widget');
-    const { renderFortuneWidget } = require('../widgets/fortuneWidgetTask.android') as typeof import('../widgets/fortuneWidgetTask.android');
+    const { FORTUNE_WIDGET_NAMES, renderFortuneWidget } = require('../widgets/fortuneWidgetTask.android') as typeof import('../widgets/fortuneWidgetTask.android');
     const props = currentWidgetProps(store);
-    await requestWidgetUpdate({
-      widgetName: 'FortuneWidget',
-      renderWidget: info => renderFortuneWidget(props, info.width, info.height),
-    });
+    for (const widgetName of FORTUNE_WIDGET_NAMES) {
+      await requestWidgetUpdate({
+        widgetName,
+        renderWidget: info => renderFortuneWidget(props, info.width, info.height),
+      });
+    }
   } catch {
     // 위젯은 부가 기능이라 앱 흐름을 막지 않는다
   }
