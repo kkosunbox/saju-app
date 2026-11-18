@@ -17,8 +17,8 @@
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
 import { Button, HStack, Image, Spacer, Text, VStack, ZStack } from '@expo/ui/swift-ui';
 import {
-  aspectRatio, background, buttonStyle, containerBackground, fixedSize, font, foregroundStyle, frame, kerning, lineLimit, lineSpacing, offset,
-  monospacedDigit, padding, resizable, shapes, widgetURL,
+  Animation, animation, aspectRatio, background, buttonStyle, containerBackground, contentTransition, disabled, fixedSize, font, foregroundStyle, frame,
+  invalidatableContent, kerning, lineLimit, lineSpacing, monospacedDigit, offset, opacity, padding, resizable, scaleEffect, shapes, widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import type { JSX } from 'react';
 import type { FortuneWidgetProps } from './fortuneWidgetProps';
@@ -95,38 +95,43 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
     );
   }
 
-  // 오늘 운세가 있지만 아직 안 뽑음: 위젯 안에서 뽑기 (점수·요약만, AI 없음)
-  if (!props.revealed) {
-    const draw = (width: number) => (
-      <Button target="reveal" onPress={() => ({ revealed: true })} modifiers={[buttonStyle('plain')]}>
-        <Text modifiers={[...one(14, 'bold', c.buttonInk), frame({ maxWidth: width, minHeight: 36 }), background(c.button, shapes.capsule())]}>
-          운세 뽑기
-        </Text>
-      </Button>
-    );
-    if (small) {
-      return wrap(
-        <VStack alignment="leading" spacing={0} modifiers={root()}>
-          {header}
-          <Spacer />
-          <Text modifiers={[...t(16, 'bold', c.ink), lineSpacing(3), lineLimit(2)]}>{'오늘의 운세가\n도착했어요'}</Text>
-          <VStack modifiers={[padding({ top: 12 })]}>{draw(10000)}</VStack>
-        </VStack>
-      );
-    }
-    return wrap(
-      <VStack alignment="leading" spacing={0} modifiers={root()}>
-        {header}
+  // 오늘 운세가 있음: '안 뽑음'(뽑기 버튼)과 '뽑음'(점수·요약) 두 겹을 늘 함께 그리고 revealed 로 하나만 보인다.
+  // 두 상태의 뷰 구조가 같아야 WidgetKit 이 바뀐 값만 애니메이션으로 잇는다 (iOS 17+, 위젯 애니메이션은 2초까지):
+  // - 버튼을 누르면 결과가 나올 때까지 버튼 쪽이 시스템 로딩 표시로 흐려진다 (invalidatableContent)
+  // - 뽑히면 버튼 겹이 살짝 작아지며 사라지고, 결과 겹이 아래에서 올라오며, 점수가 0 → 점수로 굴러간다 (numericText)
+  // 머리줄은 결과 겹 것만 보이고 늘 그대로 있다.
+  const revealed = !!props.revealed;
+  const reveal = (shown: boolean, lift = 0) => [opacity(shown ? 1 : 0), offset({ y: shown ? 0 : lift })];
+  const result = reveal(revealed, 10);
+
+  const drawButton = (width: number) => (
+    <Button target="reveal" onPress={() => ({ revealed: true })} modifiers={[buttonStyle('plain'), disabled(revealed)]}>
+      <Text modifiers={[...one(14, 'bold', c.buttonInk), frame({ maxWidth: width, minHeight: 36 }), background(c.button, shapes.capsule())]}>
+        운세 뽑기
+      </Text>
+    </Button>
+  );
+  // 자리만 맞추는 투명한 머리줄 (결과 겹의 머리줄이 보인다)
+  const ghostHeader = <VStack modifiers={[opacity(0)]}>{header}</VStack>;
+  const drawLayer = small ? (
+    <VStack alignment="leading" spacing={0} modifiers={[...root(), opacity(revealed ? 0 : 1), scaleEffect(revealed ? 0.94 : 1)]}>
+      {ghostHeader}
+      <Spacer />
+      <Text modifiers={[...t(16, 'bold', c.ink), lineSpacing(3), lineLimit(2)]}>{'오늘의 운세가\n도착했어요'}</Text>
+      <VStack modifiers={[padding({ top: 12 }), invalidatableContent()]}>{drawButton(10000)}</VStack>
+    </VStack>
+  ) : (
+    <VStack alignment="leading" spacing={0} modifiers={[...root(), opacity(revealed ? 0 : 1), scaleEffect(revealed ? 0.94 : 1)]}>
+      {ghostHeader}
+      <Spacer />
+      <Text modifiers={one(17, 'bold', c.ink)}>오늘의 운세가 도착했어요</Text>
+      <Text modifiers={[...one(13, 'medium', c.sub), padding({ top: 4 })]}>뽑으면 점수와 한 줄 요약을 보여 드려요</Text>
+      <HStack modifiers={[padding({ top: 12 }), invalidatableContent()]}>
+        {drawButton(150)}
         <Spacer />
-        <Text modifiers={one(17, 'bold', c.ink)}>오늘의 운세가 도착했어요</Text>
-        <Text modifiers={[...one(13, 'medium', c.sub), padding({ top: 4 })]}>뽑으면 점수와 한 줄 요약을 보여 드려요</Text>
-        <HStack modifiers={[padding({ top: 12 })]}>
-          {draw(150)}
-          <Spacer />
-        </HStack>
-      </VStack>
-    );
-  }
+      </HStack>
+    </VStack>
+  );
 
   // 뽑음: 점수 · 어제 대비 · 요약. 누르면 앱 홈 (뽑기·AI 문장은 홈에서 마스코트를 눌렀을 때)
   const delta = typeof props.delta === 'number' ? props.delta : null;
@@ -140,31 +145,32 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
       <Text modifiers={one(12.5, 'semibold', deltaColor)}>{String(Math.abs(delta))}</Text>
     </HStack>
   );
+  // 안 뽑았을 때는 0 으로 숨겨 두었다가, 뽑으면 숫자가 굴러가며 점수가 된다
   const score = (
     <HStack alignment="lastTextBaseline" spacing={2}>
-      <Text modifiers={[...t(small ? 44 : 46, 'heavy', c.score, -0.06), monospacedDigit(), lineLimit(1)]}>{String(props.score ?? 0)}</Text>
+      <Text modifiers={[...t(small ? 44 : 46, 'heavy', c.score, -0.06), monospacedDigit(), lineLimit(1), contentTransition('numericText')]}>
+        {String(revealed ? props.score ?? 0 : 0)}
+      </Text>
       <Text modifiers={one(12.5, 'medium', c.ink)}>점</Text>
     </HStack>
   );
 
-  if (small) {
-    return wrap(
-      <VStack alignment="leading" spacing={0} modifiers={root()}>
-        {header}
-        <Spacer />
+  const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
+  const resultLayer = small ? (
+    <VStack alignment="leading" spacing={0} modifiers={root()}>
+      {header}
+      <Spacer />
+      <VStack alignment="leading" spacing={0} modifiers={result}>
         {score}
         {deltaView}
         <Text modifiers={[...t(12.5, 'medium', c.ink), lineSpacing(4), lineLimit(2), fixedSize({ horizontal: false, vertical: true }), padding({ top: 7 })]}>{props.summarySmall ?? props.summary ?? ''}</Text>
       </VStack>
-    );
-  }
-
-  const lucky = [props.luckyColor, props.luckyNumber != null ? String(props.luckyNumber) : null, props.luckyTime].filter(Boolean).join(' · ');
-  return wrap(
+    </VStack>
+  ) : (
     <VStack alignment="leading" spacing={0} modifiers={root()}>
       {header}
       {/* 가운데: 왼쪽 점수 · 어제 대비, 오른쪽 요약 · 키워드 (아랫줄을 맞춘다) */}
-      <HStack alignment="top" spacing={0} modifiers={[frame({ height: 74 }), padding({ top: 12 })]}>
+      <HStack alignment="top" spacing={0} modifiers={[frame({ height: 74 }), padding({ top: 12 }), ...result]}>
         <VStack alignment="leading" spacing={0} modifiers={[frame({ width: 100.5, alignment: 'topLeading' })]}>
           {score}
           <Spacer />
@@ -179,7 +185,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
         <Spacer />
       </HStack>
       <Spacer />
-      <HStack alignment="center" spacing={8}>
+      <HStack alignment="center" spacing={8} modifiers={reveal(revealed, 6)}>
         {lucky ? (
           <Text modifiers={[...one(13, 'medium', c.chipInk), padding({ horizontal: 8.5, vertical: 2.5 }), background(c.chip, shapes.capsule())]}>{lucky}</Text>
         ) : null}
@@ -187,6 +193,13 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
         <Text modifiers={one(12.5, 'semibold', c.accent)}>상세 풀이 보기 →</Text>
       </HStack>
     </VStack>
+  );
+
+  return wrap(
+    <ZStack alignment="topLeading" modifiers={[animation(Animation.spring({ duration: 0.9, bounce: 0.2 }), revealed)]}>
+      {resultLayer}
+      {drawLayer}
+    </ZStack>
   );
 };
 

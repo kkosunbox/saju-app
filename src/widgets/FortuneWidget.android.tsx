@@ -38,7 +38,18 @@ const SKY = {
  * 머리줄 워드마크 18dp · 날짜 12.5 / 점수 46(작은 44) ExtraBold · '점' 12.5 · 어제 대비 12.5 하늘색 /
  * 요약 14.5(작은 12.5) · 키워드 13 · 행운 칩 · '상세 풀이 보기 →'. 작은 위젯에는 키워드·칩·상세 풀이 보기가 없다.
  */
-export function FortuneWidget({ props, dark, small, width, height }: { props: FortuneWidgetProps; dark: boolean; small: boolean; width: number; height: number }) {
+/**
+ * 뽑기 연출의 한 장면 (fortuneWidgetTask.android.tsx 가 차례로 그린다). 위젯은 그림 한 장이라 애니메이션이 없어서
+ * 몇 장을 짧게 이어 그린다: '뽑는 중…' → 점수가 올라가는 몇 장 → 최종.
+ * - drawing: 안 뽑음 화면에서 버튼만 '뽑는 중…'
+ * - score: 뽑음 화면의 점수를 이 값으로 (세는 중)
+ */
+export interface FortuneWidgetFrame {
+  drawing?: boolean;
+  score?: number;
+}
+
+export function FortuneWidget({ props, dark, small, width, height, frame }: { props: FortuneWidgetProps; dark: boolean; small: boolean; width: number; height: number; frame?: FortuneWidgetFrame }) {
   const c = dark ? DARK : LIGHT;
   const edge = small ? { top: 9.5, bottom: 16, left: 12, right: 12.5 } : { top: 10, bottom: 14, left: 19.5, right: 19.5 };
   // 구름 하늘 그림을 깔고 그 위에 내용을 올린다 (그림은 위젯 크기에 맞춰 늘린다)
@@ -113,7 +124,7 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
         clickAction="reveal"
         style={{ marginTop: 12, height: 36, width: small ? 'match_parent' : 150, borderRadius: 18, backgroundColor: c.button as Hex, justifyContent: 'center', alignItems: 'center' }}
       >
-        {text('운세 뽑기', 14, F.bold, c.buttonInk, 1, { clickAction: 'reveal' })}
+        {text(frame?.drawing ? '운세 뽑는 중…' : '운세 뽑기', 14, F.bold, c.buttonInk, 1, { clickAction: 'reveal' })}
       </FlexWidget>
     );
     return col([
@@ -142,7 +153,7 @@ export function FortuneWidget({ props, dark, small, width, height }: { props: Fo
   const scoreSize = small ? 44 : 46;
   const score = (
     <FlexWidget style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-      {text(String(props.score ?? 0), scoreSize, F.heavy, c.score, 1, { lineHeight: scoreSize + 4, track: -0.06 })}
+      {text(String(frame?.score ?? props.score ?? 0), scoreSize, F.heavy, c.score, 1, { lineHeight: scoreSize + 4, track: -0.06 })}
       <FlexWidget style={{ paddingLeft: 2, paddingBottom: 7 }}>{text('점', 12.5, F.medium, c.ink)}</FlexWidget>
     </FlexWidget>
   );
