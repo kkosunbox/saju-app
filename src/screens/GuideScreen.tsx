@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router, type Href } from 'expo-router';
 import { useApp } from '../context/AppContext';
+import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import PrimaryButton from '../components/PrimaryButton';
 import Card from '../components/Card';
 import BrandMark from '../components/BrandMark';
@@ -22,8 +22,9 @@ import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 export default function GuideScreen({ slug }: { slug: GuideSlug }) {
   const g = GUIDES[slug];
   const { onboarded, user, completeOnboarding } = useApp();
-  const insets = useSafeAreaInsets();
-  const safeTop = webSafeTop(insets.top);
+  // 상단 줄 자리: 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라간다 (로고만 있는 왼쪽 줄)
+  const bar = useTopBarInsets();
+  const safeTop = webSafeTop(bar.top);
   const onScroll = useWebTopBar([[0, gradients.sky[0]], [safeTop + 56, gradients.sky[0]], [360, gradients.sky[1]], [520, gradients.sky[2]]]);
   const cta = `${g.name} 보러 가기`;
   const start = async () => {
@@ -34,6 +35,7 @@ export default function GuideScreen({ slug }: { slug: GuideSlug }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream, overflow: 'hidden' }}>
+      <TopBarProbe />
       {/* 당겨도 위가 하얗게 비지 않게 */}
       <View pointerEvents="none" style={[s.overscroll, { backgroundColor: gradients.sky[0] }]} />
       <ScrollView onScroll={e => onScroll(e.nativeEvent.contentOffset.y)} scrollEventThrottle={16}>

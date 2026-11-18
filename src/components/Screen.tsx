@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps } from 'react-native';
 import { KeyboardAvoidingView, KeyboardEvents } from 'react-native-keyboard-controller';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
 import PressableScale from './PressableScale';
@@ -10,6 +10,7 @@ import { colors, gradients } from '../theme/colors';
 import { SCREEN_PX, txt } from '../theme/typography';
 import { useWebTopBar } from '../utils/webThemeColor';
 import { useSharedView } from '../context/SharedViewContext';
+import { TopBarProbe, TOP_BAR_H, useTopBarInsets } from '../utils/topBarRegion';
 
 interface Props {
   children: React.ReactNode;
@@ -39,6 +40,8 @@ interface Props {
 export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollEnabled = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
+  // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
+  const barInsets = useTopBarInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const floating = floatingBar && scroll;
   const webKeyboard = useWebKeyboardInset();
@@ -56,7 +59,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   const goBack = onBack ?? (() => nav.goBack());
   const heading = title ?? largeTitle;
   const bar = (heading || showBack || right) && (
-    <View style={[s.bar, floating && [s.floatBar, { top: insets.top }]]}>
+    <View style={[s.bar, { paddingLeft: Math.max(SCREEN_PX, barInsets.left), paddingRight: Math.max(SCREEN_PX, barInsets.right) }, floating && [s.floatBar, { top: barInsets.top }]]}>
       {showBack ? (
         <PressableScale onPress={goBack} hitSlop={10} style={s.iconBtn} accessibilityLabel="뒤로 가기" scaleTo={0.9}>
           <Icon name="chevronLeft" size={24} strokeWidth={2} />
@@ -68,7 +71,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: bg, paddingTop: barInsets.top }}>
+      <TopBarProbe />
       {sky ? <LinearGradient pointerEvents="none" colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : null}
       {floating ? null : bar}
       {/* 키보드가 뜨면 본문과 하단 버튼을 키보드 위로 올린다 (이메일 입력 중에도 '다음'을 바로 누르게). 모바일 웹은 KeyboardAvoidingView가 아무것도 하지 않아 가려진 만큼 직접 띄운다 */}
@@ -88,12 +92,12 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       </KeyboardAvoidingView>
       {floating ? (
         // 바 배경: 화면 맨 위 그라디언트와 같은 그림을 바 높이만큼 잘라, 스크롤을 내리면 나타나게 한다
-        <Animated.View pointerEvents="none" style={[s.barBg, { height: insets.top + BAR_H, opacity: scrollY.interpolate({ inputRange: [0, 16], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+        <Animated.View pointerEvents="none" style={[s.barBg, { height: barInsets.top + BAR_H, opacity: scrollY.interpolate({ inputRange: [0, 16], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
           {sky ? <LinearGradient colors={gradients.skySoft} locations={[0, SKY_FADE]} style={s.sky} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: bg }]} />}
         </Animated.View>
       ) : null}
       {floating ? bar : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -133,7 +137,7 @@ function useWebKeyboardInset() {
   return inset;
 }
 
-const BAR_H = 56;
+const BAR_H = TOP_BAR_H;
 const SKY_H = 150;
 const SKY_FADE = 0.64;
 

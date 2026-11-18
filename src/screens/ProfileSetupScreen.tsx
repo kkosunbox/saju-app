@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MbtiQuiz from '../components/MbtiQuiz';
 import BrandMark from '../components/BrandMark';
 import { useApp } from '../context/AppContext';
+import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import OptionChip from '../components/OptionChip';
@@ -82,6 +83,9 @@ export default function ProfileSetupScreen() {
   const savedTime = restoreTime(editing ? user!.birthTime ?? null : undefined);
   const reduced = useReducedMotion();
   const insets = useSafeAreaInsets();
+  // 상단 줄 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다.
+  // 좌우는 SafeAreaView가 이미 안전 영역만큼 띄웠으니 그보다 더 필요한 만큼만 더한다
+  const bar = useTopBarInsets();
   // 몇 번째 질문까지 열렸는지 (수정할 때는 처음부터 다 열린다)
   const [stage, setStage] = useState(editing ? LAST : 0);
   // 접힌 질문 중 다시 펼친 것
@@ -278,9 +282,10 @@ export default function ProfileSetupScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
       {/* 웹(아이폰 Safari)에서 상단 띠가 로고를 덮지 않게 위 여백을 띠 높이 이상으로 */}
-      <SafeAreaView style={{ flex: 1, paddingTop: webSafeTop(insets.top) }} edges={['left', 'right']}>
+      <TopBarProbe />
+      <SafeAreaView style={{ flex: 1, paddingTop: webSafeTop(bar.top) }} edges={['left', 'right']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-          <View style={s.top}>
+          <View style={[s.top, { paddingLeft: Math.max(SCREEN_PX, bar.left - insets.left), paddingRight: Math.max(SCREEN_PX, bar.right - insets.right) }]}>
             {Platform.OS === 'web' && !editing ? (
               <PressableScale onPress={returnToLanding} style={s.brand} scaleTo={0.94} accessibilityRole="link" accessibilityLabel="운픽 랜딩페이지로 돌아가기">
                 <BrandMark />

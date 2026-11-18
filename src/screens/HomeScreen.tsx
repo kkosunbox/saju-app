@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Animated, Platform, RefreshControl, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import Svg, { ClipPath, Defs, G, LinearGradient as SvgGradient, Rect, RectProps, Stop, Text as SvgText } from 'react-native-svg';
@@ -42,6 +41,7 @@ import { CategoryKey, categoryTheme, colors, gradients, isDark } from '../theme/
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
 import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
+import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import { COPY } from '../content/copy';
 import { KEYWORDS } from '../data/keywords';
 import { KeywordTag } from '../types';
@@ -247,8 +247,9 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => { if (user) refetchCompat(); }, [user, refetchCompat]));
   const arrived = compat.data?.filter(r => r.isNew) ?? [];
 
-  const insets = useSafeAreaInsets();
-  const safeTop = webSafeTop(insets.top);
+  // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
+  const bar = useTopBarInsets();
+  const safeTop = webSafeTop(bar.top);
   // 당겨서 새로고침할 때도 위가 비지 않게 화면 위로 400 더 늘려 둔다 (디자인 높이 296 + 상태바).
   // 상단 바(상태바 + 로고 줄)까지는 단색으로 두어 Safari 상단 바와 경계가 보이지 않게 한다
   // Figma 좌표에는 상태바 44px이 포함되어 있다. 실제 safe area로 치환한다.
@@ -265,7 +266,7 @@ export default function HomeScreen() {
     setAtTop(y <= 0);
   };
   const top = (
-    <View style={[s.topBar, { marginTop: safeTop }]}>
+    <View style={[s.topBar, { marginTop: safeTop, paddingLeft: Math.max(SCREEN_PX, bar.left), paddingRight: Math.max(SCREEN_PX, bar.right) }]}>
       <Logo height={55} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1, marginLeft: 12 }}>
         {DEV_TOOLS && draw.opened ? (
@@ -321,6 +322,7 @@ export default function HomeScreen() {
   if (!fortune || !user) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.cream, overflow: 'hidden' }}>
+        <TopBarProbe />
         {sky}
         {top}
         <HomeSkeleton />
@@ -374,6 +376,7 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream }}>
+      <TopBarProbe />
       {/* 웹(아이폰 Safari)은 스크롤 영역 위로 삐져나간 하늘을 잘라 버려서, 당기면 뒤가 보인다.
           뒤쪽 위 절반을 하늘색으로 깔고 내용은 흰 바탕으로 덮어, 위로 당기면 하늘색·아래로 당기면 흰색이 보이게 한다 */}
       {atTop ? <View pointerEvents="none" style={[s.overscrollTop, { backgroundColor: gradients.sky[0] }]} /> : null}

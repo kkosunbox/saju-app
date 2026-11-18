@@ -1,0 +1,10 @@
+{
+  "name": "top-bar-region",
+  "version": "1.0.0",
+  "description": "Reports where a top bar can sit (iOS 27.1 bar layout region), so headers move up beside a status bar placed in a screen corner, as on iPhone Duo",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "author": "woonpick",
+  "homepage": "https://woonpick.com",
+  "private": true
+}

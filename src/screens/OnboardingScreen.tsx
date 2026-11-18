@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
+import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import PrimaryButton from '../components/PrimaryButton';
 import PressableScale from '../components/PressableScale';
 import BrandMark, { LogoMark } from '../components/BrandMark';
@@ -73,7 +74,12 @@ export function Illustration({ kind }: { kind: Art }) {
 export default function OnboardingScreen() {
   const { completeOnboarding } = useApp();
   // 웹(아이폰 Safari)에서 상단 띠가 로고를 덮지 않게 위 여백을 띠 높이 이상으로
-  const safeTop = webSafeTop(useSafeAreaInsets().top);
+  const safe = useSafeAreaInsets();
+  // 상단 줄 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다.
+  // 좌우는 SafeAreaView가 이미 안전 영역만큼 띄웠으니 그보다 더 필요한 만큼만 더한다
+  const bar = useTopBarInsets();
+  const safeTop = webSafeTop(bar.top);
+  const topRow = { paddingLeft: Math.max(SCREEN_PX, bar.left - safe.left), paddingRight: Math.max(SCREEN_PX, bar.right - safe.right) };
   // 웹에서는 앱이 휴대폰 폭으로 가운데 놓이므로 창 폭이 아니라 실제 영역 폭으로 넘긴다
   const win = useWindowDimensions().width;
   const [w, setW] = useState(0);
@@ -99,7 +105,8 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream, paddingTop: safeTop }} edges={['left', 'right', 'bottom']}>
-      <View style={s.top}>
+      <TopBarProbe />
+      <View style={[s.top, topRow]}>
         <BrandMark />
         {!last ? (
           <PressableScale onPress={completeOnboarding} hitSlop={12} scaleTo={0.94}><Text style={s.skip}>건너뛰기</Text></PressableScale>
