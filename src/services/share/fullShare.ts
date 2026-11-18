@@ -10,7 +10,7 @@ import { CompatibilityDto, toResult } from '../server/compatApi';
 import { ReadingView } from '../../types/reading';
 import { SajuProfile } from '../../types/premium';
 
-const FULL_SHARE_KEY = /^(saju|life|spouse|newyear:\d{4}|monthly:\d{4}-\d{2}|theme:[a-z]+|lucky:[a-z]+|compat:\d+|crush:\d+|pet:\d+)$/;
+const FULL_SHARE_KEY = /^(saju|life|spouse|newyear:\d{4}|monthly:\d{4}-\d{2}|theme:[a-z]+|lucky:[a-z]+|compat:\d+|crush:\d+|pet:\d+|child:\d+)$/;
 
 /** 전체 공유 링크를 만들 수 있는 콘텐츠인지 */
 export const canShareFull = (contentKey?: string | null) => !!contentKey && FULL_SHARE_KEY.test(contentKey);

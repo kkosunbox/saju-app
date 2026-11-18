@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,9 +24,9 @@ type EditField = 'mbti' | 'time' | 'place';
 type TimeMode = 'unknown' | 'sijin' | 'exact';
 const validTime = (value: string) => /^\d{4}$/.test(value) && Number(value.slice(0, 2)) < 24 && Number(value.slice(2)) < 60;
 
-function ChangeField({ label, value, onPress, expanded }: { label: string; value: string; onPress(): void; expanded: boolean }) {
+function ChangeField({ label, value, onPress, expanded, content = false }: { label: string; value: string; onPress(): void; expanded: boolean; content?: boolean }) {
   return (
-    <PressableScale style={s.summary} onPress={onPress} scaleTo={0.98} accessibilityLabel={`${label} ${value}, 변경`} accessibilityState={{ expanded }}>
+    <PressableScale style={[s.summary, content && s.contentSummary]} onPress={onPress} scaleTo={0.98} accessibilityLabel={`${label} ${value}, 변경`} accessibilityState={{ expanded }}>
       <Text style={s.summaryValue}>{value}</Text>
       <Text style={s.change}>{expanded ? '접기' : '변경'}</Text>
     </PressableScale>
@@ -34,6 +34,10 @@ function ChangeField({ label, value, onPress, expanded }: { label: string; value
 }
 
 export interface ProfileFormProps {
+  /** 다른 화면의 스크롤 안에 입력 필드만 표시한다. */
+  inline?: boolean;
+  subject?: 'child' | 'adult';
+  onInputChange?(input: ProfileInput | null): void;
   /** 고칠 프로필 (새로 만들 때는 없음 — 빈 칸으로 시작) */
   initial?: User | null;
   /** 새로 만들 때 이름 칸 기본값 */
@@ -56,7 +60,7 @@ export interface ProfileFormProps {
 const RELATIONSHIPS: ProfileRelationship[] = ['self', 'lover', 'spouse', 'parent', 'child', 'sibling', 'friend', 'work', 'other'];
 
 /** 프로필 입력 · 수정 폼 — 내 프로필 수정, 프로필 추가, 요청 링크로 받은 사람의 입력이 함께 쓴다 */
-export default function ProfileForm({ initial, initialNickname, title, hint, submitLabel = '저장하기', relationship: initialRelationship, hideRelationships = [], onSubmit, onClose, header, footer }: ProfileFormProps) {
+export default function ProfileForm({ initial, initialNickname, title, hint, submitLabel = '저장하기', relationship: initialRelationship, hideRelationships = [], onSubmit, onClose, header, footer, inline = false, subject = 'adult', onInputChange }: ProfileFormProps) {
   const user = initial ?? null;
   const [relationship, setRelationship] = useState<ProfileRelationship | undefined>(initialRelationship);
   const [nickname, setNickname] = useState(user?.nickname ?? initialNickname ?? '');
@@ -84,20 +88,24 @@ export default function ProfileForm({ initial, initialNickname, title, hint, sub
   const toggle = (field: EditField) => setOpen(current => current === field ? null : field);
   const close = () => { if (!savingRef.current) onClose(); };
 
+  const input = useMemo<ProfileInput>(() => ({
+    ...(user ? inputOf(user) : {}),
+    ...(relationship ? { relationship } : {}),
+    nickname: nickname.trim(), gender, mbti,
+    calendarType: calendar, birthDate: date.iso, isLeapMonth: calendar === 'lunar' && leap,
+    birthTime: timeMode === 'unknown' ? null : timeMode === 'exact' ? fmtTime(exact) : sijin !== null ? sijinTime(sijin, jasi) : null,
+    birthPlaceId: place?.id ?? null,
+  }), [user, relationship, nickname, gender, mbti, calendar, date.iso, leap, timeMode, exact, sijin, jasi, place]);
+  useEffect(() => {
+    onInputChange?.(valid ? input : null);
+  }, [input, valid, onInputChange]);
+
   const save = async () => {
     if (!valid || savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     setError(null);
     Keyboard.dismiss();
-    const input: ProfileInput = {
-      ...(user ? inputOf(user) : {}),
-      ...(relationship ? { relationship } : {}),
-      nickname: nickname.trim(), gender, mbti,
-      calendarType: calendar, birthDate: date.iso, isLeapMonth: calendar === 'lunar' && leap,
-      birthTime: timeMode === 'unknown' ? null : timeMode === 'exact' ? fmtTime(exact) : sijinTime(sijin!, jasi),
-      birthPlaceId: place?.id ?? null,
-    };
     try {
       await onSubmit(input);
     } catch (cause) {
@@ -111,6 +119,72 @@ export default function ProfileForm({ initial, initialNickname, title, hint, sub
     }
   };
 
+  const fields = (
+    <View pointerEvents={saving ? 'none' : 'auto'} style={[s.fields, inline && s.inlineFields]}>
+      {initialRelationship ? (
+        <View>
+          <Text style={s.label}>나와의 관계</Text>
+          <View style={s.grid}>
+            {RELATIONSHIPS.filter(r => !hideRelationships.includes(r) || r === relationship).map(r => (
+              <OptionChip key={r} compact style={s.relation} label={RELATIONSHIP_LABEL[r]} selected={relationship === r} onPress={() => setRelationship(r)} />
+            ))}
+          </View>
+        </View>
+      ) : null}
+      <View style={inline ? s.inlineIdentity : s.fields}>
+        <View style={inline ? s.inlineName : undefined}>
+          <Text style={s.label}>{subject === 'child' ? '아이 이름' : '이름'}</Text>
+          <TextField compact={inline} variant={inline ? 'default' : 'profile'} accessibilityLabel={subject === 'child' ? '아이 이름 또는 애칭' : '이름 또는 닉네임'} value={nickname} onChangeText={setNickname} maxLength={12} placeholder={subject === 'child' ? '이름 또는 애칭' : '이름 또는 닉네임'} />
+        </View>
+        <View style={inline ? s.inlineGender : undefined}>
+          <Text style={s.label}>성별</Text>
+          <View style={inline ? s.inlineGenderChoices : s.row}>
+            <OptionChip variant="profile" style={[s.choice, inline && [s.contentChoice, gender === 'female' && s.contentChoiceOn]]} label={subject === 'child' ? '여아' : '여성'} selected={gender === 'female'} onPress={() => setGender('female')} />
+            <OptionChip variant="profile" style={[s.choice, inline && [s.contentChoice, gender === 'male' && s.contentChoiceOn]]} label={subject === 'child' ? '남아' : '남성'} selected={gender === 'male'} onPress={() => setGender('male')} />
+          </View>
+        </View>
+      </View>
+      <View>
+        <BirthDateField compact={inline} variant={inline ? 'default' : 'profile'} placeholder={subject === 'child' ? '2020. 03. 15' : undefined} label={<Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth} calendar={calendar} onCalendar={setCalendar} leap={leap} onLeap={setLeap} />
+      </View>
+      <View>
+        <Text style={s.label}>태어난 시간 (선택)</Text>
+        <ChangeField content={inline} label="태어난 시간" value={timeValue} onPress={() => toggle('time')} expanded={open === 'time'} />
+        {open === 'time' && <View style={s.expanded}>
+          <SijinGrid sijin={timeMode === 'sijin' ? sijin : null} jasi={jasi} onPick={value => { setTimeMode('sijin'); setSijin(value); if (value !== 0) { setJasi(null); setOpen(null); } }} onJasi={value => { setJasi(value); setOpen(null); }} />
+          <View style={inline ? s.inlineGenderChoices : s.row}>
+            <OptionChip compact style={s.choice} label="몰라요" selected={timeMode === 'unknown'} onPress={() => { setTimeMode('unknown'); setOpen(null); }} />
+            <OptionChip compact style={s.choice} label="정확한 시각 입력" selected={timeMode === 'exact'} onPress={() => setTimeMode('exact')} />
+          </View>
+          {timeMode === 'exact' && <>
+            <TextField accessibilityLabel="출생시간 직접 입력" value={fmtTime(exact)} placeholder="14:30" keyboardType="number-pad" maxLength={5} invalid={exact.length === 4 && !validTime(exact)} onChangeText={value => {
+              const digits = value.replace(/\D/g, '').slice(0, 4);
+              setExact(digits);
+              if (validTime(digits)) { Keyboard.dismiss(); setOpen(null); }
+            }} />
+            <Text style={txt.caption}>24시간 기준이에요. 오후 2시 30분은 14:30.</Text>
+          </>}
+        </View>}
+      </View>
+      <View>
+        <Text style={s.label}>MBTI (선택)</Text>
+        <ChangeField content={inline} label="MBTI" value={mbti ? `${mbti} · ${MBTI_INFO[mbti].nickname}` : '모름 · 사주로 추정해요'} onPress={() => toggle('mbti')} expanded={open === 'mbti'} />
+        {open === 'mbti' && <View style={s.expanded}>
+          <View style={s.grid}>{MBTI_LIST.map(type => <OptionChip key={type} style={s.mbti} label={type} sub={MBTI_INFO[type].nickname} selected={mbti === type} onPress={() => { setMbti(type); setOpen(null); }} />)}</View>
+          {!inline ? <PrimaryButton label="MBTI를 몰라요 · 4문항으로 찾기" variant="soft" onPress={() => setQuiz(true)} /> : null}
+          <PrimaryButton label="잘 모르겠어요 · 사주로 추정" variant="text" onPress={() => { setMbti(null); setOpen(null); }} />
+        </View>}
+      </View>
+      <View>
+        <Text style={s.label}>태어난 지역 (선택)</Text>
+        <ChangeField content={inline} label="태어난 지역" value={place ? placeLabel(place) : '몰라요 · 서울로 볼게요'} onPress={() => toggle('place')} expanded={open === 'place'} />
+        {open === 'place' && <View style={s.expanded}><BirthPlaceSearch selected={place} onPick={value => { setPlace(value); setOpen(null); Keyboard.dismiss(); }} /></View>}
+      </View>
+    </View>
+  );
+  const quizView = quiz ? <SafeAreaView style={s.quiz}><MbtiQuiz onClose={() => setQuiz(false)} onDone={type => { setMbti(type); setQuiz(false); setOpen(null); }} /></SafeAreaView> : null;
+  if (inline) return fields;
+
   return (
     <SafeAreaView style={s.screen}>
       <KeyboardAvoidingView style={s.screen} behavior="padding">
@@ -122,71 +196,13 @@ export default function ProfileForm({ initial, initialNickname, title, hint, sub
           <Text style={s.hint}>{hint}</Text>
           <View style={s.progress}><LinearGradient colors={gradients.border} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.progressFill, { width: `${completion * 100}%` }]} /></View>
           {header}
-          <View pointerEvents={saving ? 'none' : 'auto'} style={s.fields}>
-            {initialRelationship ? (
-              <View>
-                <Text style={s.label}>나와의 관계</Text>
-                <View style={s.grid}>
-                  {RELATIONSHIPS.filter(r => !hideRelationships.includes(r) || r === relationship).map(r => (
-                    <OptionChip key={r} compact style={s.relation} label={RELATIONSHIP_LABEL[r]} selected={relationship === r} onPress={() => setRelationship(r)} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-            <View>
-              <Text style={s.label}>이름</Text>
-              <TextField variant="profile" accessibilityLabel="이름 또는 닉네임" value={nickname} onChangeText={setNickname} maxLength={12} placeholder="이름 또는 닉네임" />
-            </View>
-            <View>
-              <Text style={s.label}>성별</Text>
-              <View style={s.row}>
-                <OptionChip variant="profile" style={s.choice} label="여성" selected={gender === 'female'} onPress={() => setGender('female')} />
-                <OptionChip variant="profile" style={s.choice} label="남성" selected={gender === 'male'} onPress={() => setGender('male')} />
-              </View>
-            </View>
-            <View>
-              <Text style={s.label}>MBTI (선택)</Text>
-              <ChangeField label="MBTI" value={mbti ? `${mbti} · ${MBTI_INFO[mbti].nickname}` : '모름 · 사주로 추정해요'} onPress={() => toggle('mbti')} expanded={open === 'mbti'} />
-              {open === 'mbti' && <View style={s.expanded}>
-                <View style={s.grid}>{MBTI_LIST.map(type => <OptionChip key={type} style={s.mbti} label={type} sub={MBTI_INFO[type].nickname} selected={mbti === type} onPress={() => { setMbti(type); setOpen(null); }} />)}</View>
-                <PrimaryButton label="MBTI를 몰라요 · 4문항으로 찾기" variant="soft" onPress={() => setQuiz(true)} />
-                <PrimaryButton label="잘 모르겠어요 · 사주로 추정" variant="text" onPress={() => { setMbti(null); setOpen(null); }} />
-              </View>}
-            </View>
-            <View>
-              <BirthDateField variant="profile" label={<Text style={[s.label, { marginBottom: 0 }]}>생년월일</Text>} digits={birth} onChange={setBirth} calendar={calendar} onCalendar={setCalendar} leap={leap} onLeap={setLeap} />
-            </View>
-            <View>
-              <Text style={s.label}>태어난 시간 (선택)</Text>
-              <ChangeField label="태어난 시간" value={timeValue} onPress={() => toggle('time')} expanded={open === 'time'} />
-              {open === 'time' && <View style={s.expanded}>
-                <SijinGrid sijin={timeMode === 'sijin' ? sijin : null} jasi={jasi} onPick={value => { setTimeMode('sijin'); setSijin(value); if (value !== 0) { setJasi(null); setOpen(null); } }} onJasi={value => { setJasi(value); setOpen(null); }} />
-                <View style={s.row}>
-                  <OptionChip compact style={s.choice} label="몰라요" selected={timeMode === 'unknown'} onPress={() => { setTimeMode('unknown'); setOpen(null); }} />
-                  <OptionChip compact style={s.choice} label="정확한 시각 입력" selected={timeMode === 'exact'} onPress={() => setTimeMode('exact')} />
-                </View>
-                {timeMode === 'exact' && <>
-                  <TextField accessibilityLabel="출생시간 직접 입력" value={fmtTime(exact)} placeholder="14:30" keyboardType="number-pad" maxLength={5} invalid={exact.length === 4 && !validTime(exact)} onChangeText={value => {
-                    const digits = value.replace(/\D/g, '').slice(0, 4);
-                    setExact(digits);
-                    if (validTime(digits)) { Keyboard.dismiss(); setOpen(null); }
-                  }} />
-                  <Text style={txt.caption}>24시간 기준이에요. 오후 2시 30분은 14:30.</Text>
-                </>}
-              </View>}
-            </View>
-            <View>
-              <Text style={s.label}>태어난 지역 (선택)</Text>
-              <ChangeField label="태어난 지역" value={place ? placeLabel(place) : '몰라요 · 서울로 볼게요'} onPress={() => toggle('place')} expanded={open === 'place'} />
-              {open === 'place' && <View style={s.expanded}><BirthPlaceSearch selected={place} onPick={value => { setPlace(value); setOpen(null); Keyboard.dismiss(); }} /></View>}
-            </View>
-          </View>
+          {fields}
           {error ? <Text style={s.error} accessibilityRole="alert">{error}</Text> : null}
           <PrimaryButton size="medium" label={saving ? '저장 중이에요' : submitLabel} onPress={save} disabled={!valid || saving} style={{ marginTop: 29 }} />
           {footer}
         </ScrollView>
       </KeyboardAvoidingView>
-      {quiz && <SafeAreaView style={s.quiz}><MbtiQuiz onClose={() => setQuiz(false)} onDone={type => { setMbti(type); setQuiz(false); setOpen(null); }} /></SafeAreaView>}
+      {quizView}
     </SafeAreaView>
   );
 }
@@ -201,6 +217,14 @@ const s = StyleSheet.create({
   progress: { height: 6, borderRadius: 30, backgroundColor: profileLine, marginTop: 24, marginBottom: 24, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 30 },
   fields: { gap: 24 },
+  inlineFields: { gap: 16 },
+  inlineIdentity: { flexDirection: 'row', gap: 12 },
+  inlineName: { flex: 1, minWidth: 0 },
+  inlineGender: { width: 112 },
+  inlineGenderChoices: { flexDirection: 'row', gap: 6 },
+  contentChoice: { backgroundColor: colors.surface, borderColor: colors.surface },
+  contentChoiceOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  contentSummary: { backgroundColor: colors.surface, borderColor: colors.surface, minHeight: 36, paddingVertical: 8 },
   label: { ...profileType(14, '600', 17, -0.56, colors.ink), marginBottom: 8 },
   row: { flexDirection: 'row', gap: 12 },
   choice: { flex: 1 },

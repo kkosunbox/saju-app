@@ -62,6 +62,12 @@ export const READING_STEPS = {
     { key: 'mine', label: '내 사주 속 배우자 자리', sub: '배우자의 별과 결혼 생활' },
     { key: 'timing', label: '만나는 시기와 장소', sub: '좋은 해 · 좋은 달 · 만날 곳' },
   ] },
+  child: { title: '아이의 사주를 풀고 있어요', steps: [
+    { key: 'portrait', label: '아이의 타고난 기질', sub: '성격 · 매력 · 잘 지내는 법' },
+    { key: 'talent', label: '재능과 배우는 방식', sub: '재능 TOP 3 · 맞는 공부법 · 칭찬' },
+    { key: 'family', label: '엄마·아빠와의 궁합', sub: '서로에게 어떤 존재인지 · 함께 키우는 법' },
+    { key: 'growth', label: '자라는 흐름', sub: '시기별 흐름 · 올해 · 하루 리듬' },
+  ] },
   // C방식 (무료 결과 안의 유료 섹션) — 화면에 나오는 순서와 같다
   compat: { title: '심층 궁합을 풀고 있어요', steps: [
     { key: 'bond', label: '두 사람의 인연', sub: '사주로 본 인연 · 서로에게 어떤 사람인지' },
@@ -85,6 +91,24 @@ const HOLD_MS = 900;
 const CHECK_GAP_MS = 300;
 /** 쓰는 동안 항목이 차례로 '쓰는 중'이 되는 간격 */
 const START_GAP_MS = 500;
+
+/**
+ * 콘텐츠마다 쓰는 중인 걸 처음 본 시각 — 화면을 나갔다가 아직 쓰는 중에 다시 들어와도 체크리스트가
+ * '곧 시작해요'부터 다시 켜지지 않고 이어지게 한다. (방금 열어 받는 동안의 로딩 카드도 같은 시각을 쓴다)
+ * 서버는 15초 안팎이면 다 쓰니, 오래된 기록은 새로 시작한 것으로 본다.
+ */
+const writingSince = new Map<ReadingStepsKind, number>();
+const WRITING_CARRY_MS = 3 * 60_000;
+function writingStartedAt(kind: ReadingStepsKind) {
+  const t = writingSince.get(kind);
+  if (t != null && Date.now() - t < WRITING_CARRY_MS) return t;
+  const now = Date.now();
+  writingSince.set(kind, now);
+  return now;
+}
+function forgetWritingStart(kind: ReadingStepsKind) {
+  writingSince.delete(kind);
+}
 
 /**
  * 체크리스트 로딩을 보여 줄지. 쓰는 중이면 true, 방금 다 썼으면 "다 썼어요"를 잠깐 더 보여 준다.
@@ -145,7 +169,9 @@ export function ReadingStepsScreen({ title, kind, reading, right }: {
   const n = def.steps.length;
   // 서버는 파트를 동시에 써서 끝날 때 한꺼번에 체크된다 → 쓰는 동안은 위에서부터 차례로 '쓰는 중'을 켜고,
   // 다 쓰면 남은 항목을 하나씩 체크한다
-  const [startedAt] = useState(() => Date.now());
+  // 나갔다 다시 들어와도 처음 본 시각을 이어 쓴다 (이미 켜진 항목은 바로 '쓰는 중')
+  const [startedAt] = useState(() => (finished ? Date.now() : writingStartedAt(kind)));
+  useEffect(() => { if (finished) forgetWritingStart(kind); }, [finished, kind]);
   const now = useNow(!finished, 250);
   // 실제로는 동시에 쓰니 '곧 시작해요'는 잠깐만 — 0.5초 간격으로 차례로 '쓰는 중'이 된다
   const started = Math.min(n, 1 + Math.floor((now - startedAt) / START_GAP_MS));
@@ -192,27 +218,22 @@ export interface ReadingSections {
   startedAt: number;
 }
 
-/** 방금 열어 콘텐츠를 받는 동안 띄운 로딩 카드의 시작 시각 — 본문의 로딩 카드가 이어받아 체크리스트가 처음으로 돌아가지 않게 */
-const openingStartedAt = new Map<ReadingStepsKind, number>();
-const OPENING_CARRY_MS = 60_000;
-function takeOpeningStartedAt(kind: ReadingStepsKind) {
-  const t = openingStartedAt.get(kind);
-  openingStartedAt.delete(kind);
-  return t != null && Date.now() - t < OPENING_CARRY_MS ? t : Date.now();
-}
-
 /** kind의 단계 순서 = 화면에 나오는 순서 */
 export function useReadingSections(reading: ReadingView<unknown> | null | undefined, kind: ReadingStepsKind): ReadingSections {
   const writing = reading?.status === 'writing';
   const parts = (reading?.parts ?? {}) as Record<string, unknown>;
   const firstPending = READING_STEPS[kind].steps.map(x => x.key).find(k => parts[k] == null) ?? null;
-  // 시작 시각은 effect에서 기록하고, 전환 렌더에서는 첫 대기 파트를 바로 사용한다.
-  const [run, setRun] = useState(() => ({ writing, startedAt: takeOpeningStartedAt(kind), anchor: writing ? firstPending : null }));
+  // 시작 시각은 방금 열 때의 로딩 카드 · 나가기 전 화면에서 처음 본 시각을 이어 쓴다 (체크리스트가 처음으로 돌아가지 않게).
+  // 전환 렌더에서는 첫 대기 파트를 바로 사용한다.
+  const [run, setRun] = useState(() => ({ writing, startedAt: writing ? writingStartedAt(kind) : Date.now(), anchor: writing ? firstPending : null }));
   useEffect(() => {
     if (run.writing !== writing) {
-      setRun({ writing, startedAt: writing ? Date.now() : run.startedAt, anchor: writing ? firstPending : null });
+      setRun({ writing, startedAt: writing ? writingStartedAt(kind) : run.startedAt, anchor: writing ? firstPending : null });
     }
-  }, [writing, firstPending, run]);
+  }, [writing, firstPending, run, kind]);
+  // 다 썼거나 쓰지 못했으면 기록을 지운다 (다음에 새로 쓸 때는 처음부터)
+  const settled = !!reading && !writing;
+  useEffect(() => { if (settled) forgetWritingStart(kind); }, [settled, kind]);
   return { kind, reading, writing, parts, startedAt: run.startedAt, anchor: writing ? (run.writing ? run.anchor : firstPending) : null };
 }
 
@@ -235,8 +256,7 @@ export function ReadingPart({ s, part, lead, children }: { s: ReadingSections; p
 
 /** C방식에서 방금 열어 콘텐츠를 받아 오는 동안 — 본문 자리에 로딩 카드를 바로 둔다 */
 export function ReadingOpeningCard({ kind }: { kind: ReadingStepsKind }) {
-  const [startedAt] = useState(() => Date.now());
-  useEffect(() => { openingStartedAt.set(kind, startedAt); }, [kind, startedAt]);
+  const [startedAt] = useState(() => writingStartedAt(kind));
   return <ReadingWritingCard startedAt={startedAt} steps={READING_STEPS[kind].steps} doneKeys={[]} />;
 }
 

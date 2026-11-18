@@ -31,7 +31,9 @@ export type PremiumRef =
   | { kind: 'lucky'; purpose: PurposeKey }
   | { kind: 'compat'; id: number }
   | { kind: 'crush'; id: number }
-  | { kind: 'pet'; id: number };
+  | { kind: 'pet'; id: number }
+  /** 우리 아이 사주 — 등록한 가족(아이 · 엄마 · 아빠)마다 */
+  | { kind: 'child'; id: number };
 
 /** Unlock key of a content (same as the server catalog). */
 export function contentKeyOf(ref: PremiumRef): string {
@@ -43,6 +45,7 @@ export function contentKeyOf(ref: PremiumRef): string {
     case 'compat': return `compat:${ref.id}`;
     case 'crush': return `crush:${ref.id}`;
     case 'pet': return `pet:${ref.id}`;
+    case 'child': return `child:${ref.id}`;
     default: return ref.kind;
   }
 }
@@ -77,6 +80,7 @@ function getContent<T>(ref: PremiumRef, target: ContentTarget) {
       case 'compat': return api.GET('/v1/premium/contents/compat/{compatibilityId}', { params: { path: { compatibilityId: ref.id }, query } });
       case 'crush': return api.GET('/v1/premium/contents/crush/{compatibilityId}', { params: { path: { compatibilityId: ref.id }, query } });
       case 'pet': return api.GET('/v1/premium/contents/pet/{petId}', { params: { path: { petId: ref.id }, query } });
+      case 'child': return api.GET('/v1/premium/contents/child/{childSetId}', { params: { path: { childSetId: ref.id }, query } });
     }
   })();
   return call<Envelope<T>>(r);
@@ -103,8 +107,8 @@ function getPreview<T>(ref: PremiumRef, profileId?: number) {
 function useTarget(ref: PremiumRef): { target: ContentTarget; key: unknown[] } {
   const scope = useContentScope();
   const entitlementId = scope?.entitlement?.contentKey === contentKeyOf(ref) ? scope.entitlement.id : undefined;
-  // 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해진다 (서버가 고른다)
-  const byRecord = ref.kind === 'compat' || ref.kind === 'crush';
+  // 심층 궁합 · 속마음은 궁합 기록의 프로필로, 우리 아이 사주는 가족으로 정해진다 (서버가 고른다)
+  const byRecord = ref.kind === 'compat' || ref.kind === 'crush' || ref.kind === 'child';
   const profileId = byRecord ? undefined : scope?.profileId ?? undefined;
   return {
     target: entitlementId !== undefined ? { entitlementId } : { profileId },
@@ -147,7 +151,7 @@ export function usePremiumContent<T>(ref: PremiumRef) {
   const openedOn = q.data?.openedOn ?? null;
   const scopeKey = scope?.scopeKey(key);
   // 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해져서 화면(나로 볼 프로필 고르기)을 바꾸지 않는다
-  const byRecord = ref.kind === 'compat' || ref.kind === 'crush';
+  const byRecord = ref.kind === 'compat' || ref.kind === 'crush' || ref.kind === 'child';
   useEffect(() => {
     if (scope && scopeKey && person && !byRecord) scope.reportOpened(scopeKey, person, openedOn);
   }, [scope, scopeKey, person, openedOn, byRecord]);

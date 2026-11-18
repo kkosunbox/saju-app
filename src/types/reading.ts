@@ -147,3 +147,28 @@ export interface PetReading {
     color: string; closing: string;
   };
 }
+
+/** 우리 아이 사주 (server: child.reading.ts). */
+export interface ChildReading {
+  portrait: {
+    headline: string; story: string;
+    charms: Titled[];
+    feelings: { scene: string; text: string }[];
+    manual: { likes: string[]; dislikes: string[]; comfort: string };
+  };
+  talent: {
+    talents: { title: string; text: string; grow: string }[];
+    fields: string[]; fieldsNote: string;
+    learning: { summary: string; tips: string[]; environment: string; praise: string; avoid: string };
+  };
+  family: {
+    bonds: { title: string; summary: string; parenting: string; fit: string; friction: { title: string; text: string; tip: string } }[];
+    together: string;
+  };
+  growth: {
+    stages: { label: string; text: string; parent: string }[];
+    thisYear: string;
+    rhythm: { time: '아침' | '낮' | '저녁'; text: string }[];
+    color: string; closing: string;
+  };
+}

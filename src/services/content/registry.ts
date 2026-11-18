@@ -39,7 +39,7 @@ export const UPCOMING: ContentEntry[] = [
   { key: 'exam', title: '시험·합격운', art: 'soon-exam', tier: 'premium', cost: 100, status: 'soon',
     hook: '이번 시험, 붙을 수 있을까?', desc: '합격운 지수 · 집중이 잘 되는 시간 · 시험 당일 컨디션 · 막판 공부 전략',
     viral: '수능·공시·자격증 시즌마다 수요가 몰림' },
-  { key: 'baby', title: '우리 아이 사주', art: 'soon-baby', tier: 'premium', cost: 300, status: 'soon',
+  { key: 'baby', title: '우리 아이 사주', art: 'soon-baby', tier: 'premium', cost: 300, status: 'live', route: '/child',
     hook: '어떤 사람으로 자랄까?', desc: '타고난 기질 · 재능 · 맞는 교육 방식 · 부모와의 궁합',
     viral: '부모 커뮤니티 공유 · 객단가 높음' },
   { key: 'pet', title: '반려동물 궁합', art: 'soon-pet', tier: 'premium', cost: 100, status: 'live', route: '/pet',

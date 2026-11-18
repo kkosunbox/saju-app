@@ -161,6 +161,11 @@ export const PREVIEW_STEPS = {
     { key: 'score', label: '목적에 맞춰 점수 매기기', sub: '나와 맞는 날' },
     { key: 'top', label: '좋은 날 TOP 5 고르기', sub: '5위를 먼저 공개해요' },
   ],
+  child: [
+    { key: 'day', label: '아이의 타고난 기운 읽기', sub: '일간과 오행의 균형' },
+    { key: 'talent', label: '재능 찾기', sub: '가장 빛나는 세 가지' },
+    { key: 'bond', label: '엄마·아빠와 겹쳐 보기', sub: '부모와의 궁합 유형' },
+  ],
   spouse: [
     { key: 'star', label: '배우자의 별 찾기', sub: '사주 속 인연의 기운' },
     { key: 'year', label: '인연의 해 계산하기', sub: '올해 · 가장 강한 해' },

@@ -23,6 +23,7 @@ import LuckyScreen from './premium/LuckyScreen';
 import SpouseScreen from './content/SpouseScreen';
 import CompatibilityScreen from './CompatibilityScreen';
 import PetScreen from './content/PetScreen';
+import ChildScreen from './content/ChildScreen';
 import { colors } from '../theme/colors';
 import { txt } from '../theme/typography';
 
@@ -39,6 +40,7 @@ const SCREENS: Record<string, React.ComponentType> = {
   compat: CompatibilityScreen,
   crush: CompatibilityScreen,
   pet: PetScreen,
+  child: ChildScreen,
 };
 
 /**

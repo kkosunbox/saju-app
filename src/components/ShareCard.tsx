@@ -38,6 +38,7 @@ const ART = {
   Lucky: { source: require('../../assets/figma/share/lucky.webp'), x: -28.18, y: -26.36, w: 155.55, h: 155.55 },
   ThemeMoney: { source: require('../../assets/figma/share/money.webp'), x: -31.76, y: -31.15, w: 167.22, h: 167.22 },
   Pet: { source: require('../../assets/images/soon-pet.webp'), x: -2.7, y: 0, w: 115.4, h: 110 },
+  Child: { source: require('../../assets/images/soon-baby.webp'), x: -6.8, y: 0, w: 127.6, h: 110 },
   MbtiMatch: { source: require('../../assets/figma/share/mbti.webp'), x: -173.46, y: -74.08, w: 356.07, h: 444.52 },
 };
 

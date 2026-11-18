@@ -13,7 +13,8 @@ import { radius, sansW } from '../../theme/typography';
  * 열어 본 편지 (기기마다, 아이마다): 연 편지의 첫머리를 저장해, 편지가 새로 쓰이면(이름·호칭을 바꾸면) 봉투부터 다시 보인다.
  * 기기를 바꾸면 봉투부터 다시 보여도 괜찮다
  */
-const KEY = (petId: number) => deviceKey(`pet-letter:${petId}`);
+/** 반려동물은 아이 id, 우리 아이 사주는 `child-{프로필 id}` */
+const KEY = (petId: number | string) => deviceKey(`pet-letter:${petId}`);
 const LINE_H = 28;
 const stampOf = (letter: string) => letter.slice(0, 40);
 
@@ -36,7 +37,7 @@ export function paragraphsOf(letter: string): string[] {
  * 아이가 보내는 편지 — 처음엔 봉투로 닫혀 있고, 열면 줄 노트 편지지에 펼쳐진다.
  * owner는 받는 사람으로 적을 말 (고른 호칭, 없으면 닉네임님). letter가 없으면(쓰는 중) 봉투만 보이고 열 수 없다.
  */
-export default function PetLetter({ petId, name, owner, letter }: { petId: number; name: string; owner: string; letter: string | null }) {
+export default function PetLetter({ petId, name, owner, letter }: { petId: number | string; name: string; owner: string; letter: string | null }) {
   // null: 아직 읽는 중 (깜빡임 없이 봉투·편지 중 하나만 그린다)
   const [opened, setOpened] = useState<boolean | null>(null);
   const [justOpened, setJustOpened] = useState(false);

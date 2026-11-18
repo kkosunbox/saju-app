@@ -129,3 +129,49 @@ export interface LuckyPreview {
   avoid?: number;
 }
 export interface SpousePreview { spouseEl: Element; headline: string; mbti: MBTI; animal: string; ageGap: string; thisYear: number; bestYear: number }
+
+/* ---------- 우리 아이 사주 (server: fortune-engine child) ---------- */
+export interface ChildTalent { group: TenGodGroup; name: string; score: number; line: string; activities: string[] }
+export interface ChildGrowthStage { label: string; ages: string; now: boolean; pillar: string; group: TenGodGroup; keyword: string; line: string }
+export interface ChildBondType { key: string; relation: TenGodGroup; name: string; line: string }
+export interface ChildParentBond {
+  /** 엄마 · 아빠 (성별로), 두 보호자의 성별이 같으면 이름 */
+  title: string; nickname: string;
+  stem: { ko: string; hanja: string }; element: Element; elementKo: string; animal: string;
+  score: number; type: ChildBondType;
+  /** 아이에게 부모는 · 부모에게 아이는 */
+  parentToChild: string; childToParent: string;
+  points: { title: string; text: string }[];
+  fills: Element[];
+}
+export interface ChildReport {
+  child: {
+    nickname: string; age: number; gender: 'male' | 'female'; birthTimeKnown: boolean;
+    title: string; headline: string; stem: { ko: string; hanja: string }; element: Element; elementKo: string;
+    animal: string; keywords: string[]; persona: string; energy: string;
+  };
+  elements: { counts: Record<Element, number>; strongest: Element; weakest: Element; missing: Element[] };
+  talents: ChildTalent[];
+  learning: { group: TenGodGroup; name: string; line: string; environment: string; praise: string };
+  growth: ChildGrowthStage[];
+  thisYear: { year: number; pillar: string; group: TenGodGroup; keyword: string; line: string };
+  habits: { element: Element; elementKo: string; color: { name: string; hex: string }; activity: string; food: string; place: string };
+  parents: ChildParentBond[];
+}
+export interface ChildPreview {
+  child: Pick<ChildReport['child'], 'nickname' | 'age' | 'title' | 'headline' | 'stem' | 'element' | 'elementKo' | 'animal' | 'keywords'>;
+  talents: Pick<ChildTalent, 'group' | 'name'>[];
+  parents: Pick<ChildParentBond, 'title' | 'nickname' | 'score' | 'type'>[];
+}
+/** 등록한 가족의 한 사람 (등록할 때의 복사본 — 프로필을 고쳐도 바뀌지 않는다) */
+export interface ChildMember {
+  /** 불러왔거나 함께 저장한 프로필 (없으면 이 가족에만 있는 사람) */
+  profileId: number | null;
+  nickname: string; gender: 'male' | 'female'; calendarType: 'solar' | 'lunar';
+  birthDate: string; isLeapMonth: boolean; birthTime: string | null;
+}
+/** 우리 아이 사주 가족 (서버 GET /children) — 아이 + 보호자 1~2명(등록한 순서), 고칠 수 없다 */
+export interface ChildSet {
+  id: number; child: ChildMember; parents: ChildMember[];
+  result: ChildPreview; createdAt: string;
+}

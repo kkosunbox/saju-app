@@ -1434,6 +1434,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/premium/contents/child/{childSetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 우리 아이 사주 전체 (child:{childSetId})
+         * @description 등록한 가족(아이 · 엄마 · 아빠)만. 기질 · 재능 · 맞는 공부 방식 · 엄마/아빠와의 궁합 · 자라는 시기 · 생활 리듬 (미리보기는 GET /children). 가족 단위로 사서 어느 프로필을 골라도, 프로필을 고쳐도 그대로 볼 수 있어요
+         */
+        get: operations["PremiumContentController_child_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/premium/contents/compat/{compatibilityId}": {
         parameters: {
             query?: never;
@@ -2067,6 +2087,50 @@ export interface paths {
          */
         post: operations["PromoController_record_v1"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 내가 등록한 아이(가족) 목록
+         * @description 등록한 순서대로, 가족마다 무료 미리보기(result)를 함께 줍니다.
+         */
+        get: operations["ChildController_list_v1"];
+        put?: never;
+        /**
+         * 아이 등록 (아이 + 엄마 · 아빠 한 묶음)
+         * @description 아이와 엄마·아빠 중 한 명 이상을 한 번에 등록합니다. 사람마다 내 프로필을 불러오거나(profileId) 직접 입력하고(profile), 직접 입력한 사람은 saveToProfiles로 내 프로필에도 추가할 수 있어요. 등록한 뒤에는 고칠 수 없고 지우기만 됩니다. 10명까지.
+         */
+        post: operations["ChildController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/children/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 아이(가족) 지우기
+         * @description 열어 둔 우리 아이 사주도 더는 볼 수 없어요. 불러온 프로필은 그대로예요.
+         */
+        delete: operations["ChildController_delete_v1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3737,6 +3801,51 @@ export interface components {
         };
         RecordPromoEventsRequest: {
             events: components["schemas"]["PromoEventItem"][];
+        };
+        ChildMemberDto: {
+            /** @description 불러왔거나 함께 저장한 프로필 (없으면 이 가족에만 있는 사람) */
+            profileId: number | null;
+            nickname: string;
+            /** @enum {string} */
+            gender: "male" | "female";
+            /** @enum {string} */
+            calendarType: "solar" | "lunar";
+            /** @description 입력한 생일 (음력이면 음력 날짜) */
+            birthDate: string;
+            isLeapMonth: boolean;
+            birthTime: string | null;
+        };
+        ChildSetDto: {
+            id: number;
+            child: components["schemas"]["ChildMemberDto"];
+            mother: components["schemas"]["ChildMemberDto"] | null;
+            father: components["schemas"]["ChildMemberDto"] | null;
+            /** @description 우리 아이 사주 미리보기 (아이 한 줄 · 재능 TOP 3 이름 · 엄마/아빠와의 궁합 유형과 점수). 전체는 child:{id}로 열어 /premium/contents/child/{childSetId} */
+            result: Record<string, never>;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ChildSetListDto: {
+            list: components["schemas"]["ChildSetDto"][];
+        };
+        ChildMemberInput: {
+            /** @description 불러올 내 프로필 id (profile과 둘 중 하나) */
+            profileId?: number;
+            /** @description 직접 입력 (relationship은 무시: 아이는 자녀, 엄마·아빠는 배우자로 저장) */
+            profile?: components["schemas"]["UpsertFortuneProfileRequest"];
+            /** @description 직접 입력한 사람을 내 프로필에도 추가 */
+            saveToProfiles?: boolean;
+        };
+        SaveChildSetRequest: {
+            /** @description 아이 */
+            child: components["schemas"]["ChildMemberInput"];
+            /** @description 엄마 */
+            mother?: components["schemas"]["ChildMemberInput"];
+            /** @description 아빠 */
+            father?: components["schemas"]["ChildMemberInput"];
+        };
+        DeleteChildSetDto: {
+            deleted: boolean;
         };
         RegisterPushDeviceDto: {
             registered: boolean;
@@ -8810,6 +8919,90 @@ export interface operations {
             };
         };
     };
+    PremiumContentController_child_v1: {
+        parameters: {
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 열람권 id — 예전에 산 것(프로필을 고치기 전 정보로 연 것)을 볼 때. 주면 profileId는 무시합니다 */
+                entitlementId?: number;
+            };
+            header?: never;
+            path: {
+                childSetId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["PremiumContentDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY, CONTENT_LOCKED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     PremiumContentController_deepCompatibility_v1: {
         parameters: {
             query?: {
@@ -11622,6 +11815,207 @@ export interface operations {
                         /** @example MISSING_AUTHENTICATION_TOKEN */
                         code?: string;
                         /** @example MISSING_AUTHENTICATION_TOKEN */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ChildController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ChildSetListDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ChildController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveChildSetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ChildSetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST, INVALID_BIRTH_DATE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    ChildController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DeleteChildSetDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

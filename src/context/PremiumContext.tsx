@@ -138,8 +138,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const entitlements = useMemo(() => unlocks.data ?? [], [unlocks.data]);
   /** 열람권의 프로필 (프로필이 여럿이 되기 전에 연 것은 대표 프로필) */
   const profileOf = useCallback((e: Entitlement) => e.profileId ?? primaryId, [primaryId]);
-  /** 심층 궁합 · 속마음은 궁합 기록의 프로필로 정해져서 프로필을 고르지 않는다 */
-  const byRecord = (key: string) => key.startsWith('compat:') || key.startsWith('crush:');
+  /** 심층 궁합 · 속마음은 궁합 기록의 프로필로, 우리 아이 사주는 가족으로 정해져서 프로필을 고르지 않는다 */
+  const byRecord = (key: string) => key.startsWith('compat:') || key.startsWith('crush:') || key.startsWith('child:');
   const owned = useCallback(
     (key: string, profileId?: number) => {
       const pid = profileId ?? primaryId;

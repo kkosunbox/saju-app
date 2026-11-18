@@ -195,13 +195,13 @@ export function Seal({ ch, size = 36 }: { ch: string; bg?: string; size?: number
 }
 
 /* ---------- 히어로 ---------- */
-export function Hero({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Hero({ children, style, mascot = true }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; /** 화면이 자기 그림을 오른쪽에 둘 때는 꺼서 겹치지 않게 한다 */ mascot?: boolean }) {
   const flat = StyleSheet.flatten(style) ?? {};
   return (
     <View style={[{ borderRadius: radius.xl, backgroundColor: colors.heroBg, marginTop: 12 }, shadow.hero, { marginTop: flat.marginTop ?? 12 }]}>
       <View style={[{ borderRadius: radius.xl, padding: 20, overflow: 'hidden', backgroundColor: colors.heroBg }, style, { marginTop: 0 }]}>
         {/* 오른쪽 끝에서 들여다보는 마스코트 (장식, 터치 없음) — 카드 높이가 화면마다 달라 아래에 붙인다. 내 알(높이 114)에서 Figma 위치(위에서 23)와 같다 */}
-        <MascotPeek width={109} bottom={-40} opacity={0.2} />
+        {mascot ? <MascotPeek width={109} bottom={-40} opacity={0.2} /> : null}
         {children}
       </View>
     </View>

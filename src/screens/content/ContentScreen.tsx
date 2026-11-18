@@ -99,10 +99,13 @@ export default function ContentScreen() {
       go: () => nav.navigate('Tabs', { screen: 'Consult' }),
     },
   ];
-  // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
-  const THEME_EXTRA: [string, number, string, string, React.ReactNode, () => void][] = [
-    ['pet', require('../../../assets/figma/content/tile-pet.webp'), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill key="pet" cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
-    ['spouse', require('../../../assets/figma/content/tile-spouse.webp'), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag key="spouse" item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+  // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 · 우리 아이 사주 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
+  const tile = (src: number) => <Image source={src} style={s.extraArt} contentFit="contain" accessible={false} />;
+  const THEME_EXTRA: [string, React.ReactNode, string, string, React.ReactNode, () => void][] = [
+    ['pet', tile(require('../../../assets/figma/content/tile-pet.webp')), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill key="pet" cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
+    ['spouse', tile(require('../../../assets/figma/content/tile-spouse.webp')), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag key="spouse" item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+    // 아이마다 따로 사서 보유 표시 대신 가격만
+    ['child', <Mascot key="child" name="soon-baby" size={39} />, '우리 아이 사주', '어떤 사람으로 자랄까?', <CostPill key="child" cost={ITEMS.child(0, '').cost} small variant="figma" />, () => nav.navigate('Child')],
   ];
 
   return (
@@ -195,10 +198,10 @@ export default function ContentScreen() {
                 <View style={s.bleed}><Text style={[s.freeD, s.premiumD, TIGHT_D[k] != null && { letterSpacing: TIGHT_D[k] }, k === 'newyear' && { fontSize: 12 }]} numberOfLines={1}>{d}</Text></View>
               </PressableScale>
             ))}
-            {g === '테마 운세' ? THEME_EXTRA.map(([k, img, t, d, price, go]) => (
+            {g === '테마 운세' ? THEME_EXTRA.map(([k, art, t, d, price, go]) => (
               <PressableScale key={k} onPress={go} style={s.soon} scaleTo={0.97} accessibilityLabel={t}>
                 <View style={s.freeHead}>
-                  <View style={s.artBox}><Image source={img} style={s.extraArt} contentFit="contain" accessible={false} /></View>
+                  <View style={s.artBox}>{art}</View>
                   <View style={s.price}>{price}</View>
                 </View>
                 <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>

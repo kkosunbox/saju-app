@@ -7,7 +7,7 @@ import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
 import { MbtiMatches, PastLife, Pet, SajuCharacter, Talisman } from '../../types/content';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
-import { CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
+import { ChildPreview, CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
 import { parseISO, weekdayOf } from '../../utils/date';
 import { getResultMascot, type MascotPose } from '../../utils/resultMascot';
@@ -210,6 +210,21 @@ export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
     teaser: '그 사람을 처음 만나는 곳',
     hook: '내 미래 배우자는 누구일까?',
     text: `${u.nickname}님의 미래 배우자는 '${R.headline}'${ieyo(R.headline)}.\n${seeMine('미래 배우자')}`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
+  };
+}
+
+/** 우리 아이 사주는 첫 화면(미리보기) 내용만 싣는다 — 생일 등 아이의 정보는 넣지 않는다 */
+export function childSpec(R: ChildPreview): ShareSpec {
+  const name = R.child.nickname;
+  const bond = R.parents[0];
+  return {
+    kind: '우리 아이 사주', seal: '童', eyebrow: `우리 ${name}${josa(name, '은', '는')}`,
+    headline: R.child.headline, sub: R.child.title,
+    ...(bond ? { big: { value: String(bond.score), unit: '점', label: `${bond.title}${josa(bond.title, '과', '와')}의 궁합` } } : {}),
+    stats: [['타고난 재능', R.talents[0]?.name ?? ''], ['타고난 기운', `${R.child.stem.ko}${R.child.elementKo}`], ['아이의 띠', `${R.child.animal}띠`]],
+    teaser: '이 아이에게 맞는 공부 방식',
+    hook: '우리 아이는 어떤 사람으로 자랄까?',
+    text: `우리 ${name}${josa(name, '은', '는')} '${R.child.headline}'${ieyo(R.child.headline)}.\n아이 생일만 넣으면 우리 아이 사주도 바로 볼 수 있어요.`, file: 'woonpick-child', route: 'Child', short: R.child.headline,
   };
 }
 

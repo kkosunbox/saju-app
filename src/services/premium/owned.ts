@@ -19,7 +19,7 @@ export interface OwnedContent {
   records: number;
 }
 
-export const byRecordKey = (key: string) => key.startsWith('compat:') || key.startsWith('crush:');
+export const byRecordKey = (key: string) => key.startsWith('compat:') || key.startsWith('crush:') || key.startsWith('child:');
 
 export function ownedContents(entitlements: Entitlement[], primaryId: number | null): OwnedContent[] {
   const groups = new Map<string, OwnedContent>();

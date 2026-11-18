@@ -53,11 +53,12 @@ export function checkBirth(digits: string, calendar: CalendarType) {
 }
 
 /** 라벨 옆 양력/음력 토글 + 8자리 생년월일 칸 + 확인 문구 (+ 음력이면 윤달) */
-export function BirthDateField({ label, digits, onChange, calendar, onCalendar, leap, onLeap, autoFocus, compact, variant = 'default' }: {
+export function BirthDateField({ label, digits, onChange, calendar, onCalendar, leap, onLeap, autoFocus, compact, placeholder = '1995. 03. 15', variant = 'default' }: {
   label: React.ReactNode; digits: string; onChange(v: string): void;
   calendar: CalendarType; onCalendar(c: CalendarType): void; leap: boolean; onLeap(v: boolean): void; autoFocus?: boolean;
   /** 회색 카드 안의 낮은 칸 · 작은 양력/음력 (궁합 상대 입력) */
   compact?: boolean;
+  placeholder?: string;
   variant?: 'default' | 'profile';
 }) {
   const b = checkBirth(digits, calendar);
@@ -74,7 +75,7 @@ export function BirthDateField({ label, digits, onChange, calendar, onCalendar, 
           ))}
         </View>
       </View>
-      <TextField value={fmtDate(digits)} onChangeText={t => onChange(t.replace(/\D/g, '').slice(0, 8))} placeholder="1995. 03. 15" keyboardType="number-pad" maxLength={12}
+      <TextField value={fmtDate(digits)} onChangeText={t => onChange(t.replace(/\D/g, '').slice(0, 8))} placeholder={placeholder} keyboardType="number-pad" maxLength={12}
         autoFocus={autoFocus} compact={compact} variant={variant} style={compact || variant === 'profile' ? undefined : s.bigInput} invalid={b.filled && !b.ok} accessibilityLabel={`생년월일 8자리${calendar === 'lunar' ? ', 음력' : ''}`} />
       {b.filled && !b.ok ? <Text style={s.error}>1900년 이후의 실제 날짜를 입력해 주세요.</Text>
         : b.ok && variant !== 'profile' ? <Text style={s.ok}>✓ {calendar === 'solar' ? formatKoreanDate(b.iso) : `음력 ${b.y}년 ${b.m}월 ${b.d}일${leap ? ' (윤달)' : ''}`}</Text>
