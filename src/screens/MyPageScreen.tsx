@@ -148,7 +148,7 @@ function MyProfiles({ profiles }: { profiles: User[] }) {
 }
 
 export default function MyPageScreen() {
-  const { user, profiles, fortune: viewed, account, signOut, deleteAccount } = useApp();
+  const { user, profiles, fortune: viewed, account, signOut } = useApp();
   // 대표 프로필 운세만 (메인에서 다른 프로필을 보는 중이면 숨긴다)
   const fortune = viewed?.forProfile == null ? viewed : null;
   const { points, ownedCount, toast, subscription } = usePremium();
@@ -158,7 +158,6 @@ export default function MyPageScreen() {
   const nav = useNavigation();
   const [noti, setNoti] = useState<NotificationSettings | null>(null);
   const [timeDraft, setTimeDraft] = useState<number | null>(null); // 시간 고르기 시트 — 저장을 눌러야 바뀐다
-  const [deleteArm, setDeleteArm] = useState(false);
 
   const [permission, setPermission] = useState<PushPermission | null>(null);
   // 마이 탭은 한 번 열면 계속 떠 있다 — 홈의 권유 시트에서 켜고 와도 맞도록 탭에 들어올 때마다 다시 읽는다
@@ -370,22 +369,10 @@ export default function MyPageScreen() {
       {account ? <View style={s.accountActions}>
         <PressableScale onPress={() => signOut()} hitSlop={8}><Text style={s.accountLink}>로그아웃</Text></PressableScale>
         <View style={s.sep} />
-        <PressableScale
-          hitSlop={8}
-          onPress={() => {
-            const msg = '프로필 · 운세 기록 · 알이 모두 지워지고 되돌릴 수 없어요.';
-            if (Platform.OS !== 'web') {
-              Alert.alert('회원 탈퇴할까요?', msg, [{ text: '취소', style: 'cancel' }, { text: '탈퇴하기', style: 'destructive', onPress: () => deleteAccount() }]);
-              return;
-            }
-            if (!deleteArm) { setDeleteArm(true); setTimeout(() => setDeleteArm(false), 4000); return; }
-            deleteAccount();
-          }}
-        >
-          <Text style={[s.accountLink, deleteArm && { color: colors.danger, fontWeight: '700' }]}>{deleteArm ? '한 번 더 누르면 탈퇴' : '회원 탈퇴'}</Text>
+        <PressableScale hitSlop={8} onPress={() => router.push('/withdraw')}>
+          <Text style={s.accountLink}>회원 탈퇴</Text>
         </PressableScale>
       </View> : null}
-      {deleteArm ? <Text style={[txt.caption, { textAlign: 'center', marginTop: 6 }]}>프로필 · 운세 기록 · 알이 모두 지워지고 되돌릴 수 없어요.</Text> : null}
 
       <Disclaimer />
       <BusinessFooter style={{ marginTop: 28 }} />

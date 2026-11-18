@@ -50,6 +50,7 @@ export const ROUTES: Record<string, string> = {
   Child: '/child',
   Legal: '/legal/[doc]',
   Inquiry: '/inquiry',
+  Withdraw: '/withdraw',
 };
 
 /** 숫자로 되돌릴 쿼리 파라미터 */

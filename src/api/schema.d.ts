@@ -2368,8 +2368,8 @@ export interface components {
             refreshToken?: string;
         };
         WithdrawUserRequest: {
-            /** @description 탈퇴 사유 (선택) */
-            reason?: string;
+            /** @description 탈퇴 사유 (필수). 앱은 "[고른 사유] 덧붙인 말" 형태로 보낸다 */
+            reason: string;
         };
         SendPasswordResetCodeResponse: {
             /** @description 응답 메시지 */

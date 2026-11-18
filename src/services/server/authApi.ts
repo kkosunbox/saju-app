@@ -104,7 +104,7 @@ export const authApi = {
     await call(api.POST('/v1/auth/reset-password', { body: { resetToken, newPassword } }));
   },
 
-  async withdraw(reason?: string): Promise<void> {
+  async withdraw(reason: string): Promise<void> {
     await call(api.DELETE('/v1/auth/withdraw', { body: { reason } }));
     await setTokens(null);
   },

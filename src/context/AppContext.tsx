@@ -74,7 +74,7 @@ interface AppState {
   verifySignupCode(email: string, otp: string): Promise<string>;
   completeSignup(params: { emailVerifiedToken: string; password: string; marketing: boolean }): Promise<void>;
   signOut(): Promise<void>;
-  deleteAccount(reason?: string): Promise<void>;
+  deleteAccount(reason: string): Promise<void>;
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -307,7 +307,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     verifySignupCode: (email, otp) => authApi.verifySignupCode(email, otp),
     completeSignup: async params => { await authApi.signup(params); queryClient.clear(); await loadSession(); },
     signOut: async () => { await push.unregister(); await authApi.signOut(); await afterSignOut(); },
-    deleteAccount: async reason => { await authApi.withdraw(reason); await afterSignOut(); },
+    // 탈퇴하면 앱·웹 모두 처음(온보딩)부터 다시 시작한다
+    // 온보딩 상태와 세션을 같은 틱에 비워야 한다 — 세션만 먼저 비면 '온보딩 완료 · 프로필 없음'으로 한 번 그려져 프로필 입력으로 간다
+    deleteAccount: async reason => {
+      await authApi.withdraw(reason);
+      setOnboarded(false);
+      clearSession();
+      await storage.setOnboarded(false);
+    },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
