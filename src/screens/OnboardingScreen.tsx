@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
@@ -82,6 +82,14 @@ export default function OnboardingScreen() {
   const list = useRef<FlatList<(typeof PAGES)[number]>>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const last = page === PAGES.length - 1;
+
+  // 화면 폭이 바뀌면(접는 아이폰을 펴고 접을 때 등) 스크롤 위치는 그대로라 다른 페이지로 넘어가 버린다.
+  // 새 폭으로 지금 페이지 위치에 다시 맞춘다.
+  useEffect(() => {
+    list.current?.scrollToOffset({ offset: page * width, animated: false });
+    // 폭이 바뀔 때만 (페이지가 바뀔 때는 스크롤이 직접 옮긴다)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
 
   const next = () => {
     if (last) return completeOnboarding();
