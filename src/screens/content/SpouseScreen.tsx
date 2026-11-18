@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -24,6 +25,7 @@ import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 import LoadingScreen from '../../components/LoadingScreen';
 import { Logo } from '../../components/Mascot';
+import { spousePortraitFor } from './spousePortraits';
 
 /** 프리미엄: 미래 배우자 리포트 — 첫 화면은 무료로 보여주고 나머지는 잠금 */
 export default function SpouseScreen() {
@@ -33,8 +35,6 @@ export default function SpouseScreen() {
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
   const making = usePreviewMaking('spouse', !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.spouse.length);
-  // 카드는 Figma 327×168 비율을 지킨다 — 폭이 넓은 기기에서도 그림이 카드 전체를 채우게
-  const [heroW, setHeroW] = React.useState(327);
   if (!u) return null;
   const item = ITEMS.spouse();
   if (content.open && gate.show) return <ReadingStepsScreen title="미래 배우자 리포트" kind="spouse" reading={reading} />;
@@ -55,28 +55,38 @@ export default function SpouseScreen() {
   if (!sum) return <LoadingScreen />;
   const el = ELEMENT_INFO[sum.spouseEl];
   const spec = spouseSpec(u, sum);
+  const portrait = spousePortraitFor(content.data?.person ?? u, sum.spouseEl, R?.persona.hanja);
+  const portraitSource = content.open && R ? portrait?.full : portrait?.preview;
 
   return (
     <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} />}>
       <FriendCompare route="Spouse" spec={spec} />
       <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
-      {/* Figma 운픽_22 히어로 — 그림 카드 위 로고 · 한 줄 · 칩, 아래 회색 지수 줄 */}
       <PreviewReveal gate={making}>
-      <View style={[s.hero, { minHeight: Math.round((heroW * 168) / 327) }]} onLayout={(e) => setHeroW(e.nativeEvent.layout.width)}>
-        <Image source={require('../../../assets/figma/spouse/hero.webp')} style={s.heroArt} contentFit="cover" contentPosition="right bottom" accessible={false} />
-        <View style={s.heroTop}><Logo height={29} /></View>
-        <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-        <Text style={s.headline}>{sum.headline}</Text>
-        <View style={s.chips}>
-          <View style={[s.chip, { borderColor: GOLD }]}><Text style={[s.chipText, { color: GOLD, opacity: 1 }]}>{sum.mbti}</Text></View>
-          <View style={s.chip}><Text style={s.chipText}>{sum.animal}띠</Text></View>
-          <View style={s.chip}><Text style={s.chipText}>{sum.ageGap}</Text></View>
+        <View style={s.hero} testID="spouse-portrait">
+          {portraitSource ? <Image source={portraitSource} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} /> : null}
+          {!content.open && portraitSource ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.previewWash]} /> : null}
+          <LinearGradient
+            pointerEvents="none"
+            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+            locations={[0.176, 0.746]}
+            style={s.heroShade}
+          />
+          <View style={s.heroTop}><Logo height={30} /></View>
+          <View style={s.heroCopy}>
+            <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
+            <Text style={s.headline}>{sum.headline.replace(', ', ',\n')}</Text>
+            <View style={s.chips}>
+              <View style={[s.chip, { borderColor: GOLD }]}><Text style={[s.chipText, { color: GOLD, opacity: 1 }]}>{sum.mbti}</Text></View>
+              <View style={s.chip}><Text style={s.chipText}>{sum.animal}띠</Text></View>
+              <View style={s.chip}><Text style={s.chipText}>{sum.ageGap}</Text></View>
+            </View>
+          </View>
         </View>
-      </View>
-      <View style={s.stats}>
-        <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
-        <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
-      </View>
+        <View style={s.stats}>
+          <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
+          <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
+        </View>
       </PreviewReveal>
 
       {!content.open ? <LockGate item={item} />
@@ -326,12 +336,14 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 }
 
 const s = StyleSheet.create({
-  // 카드 327×168 · 로고 12 · 한 줄 44 · 제목 70 · 칩 130 (폭에 맞춰 비율대로 커지고, 글이 길어지면 아래로 늘어도 그림은 카드를 꽉 채운 채 오른쪽 아래에 붙는다)
-  hero: { marginTop: 12, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', paddingHorizontal: 16, paddingTop: 11, paddingBottom: 19 },
-  heroArt: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-  heroTop: { height: 19, flexDirection: 'row', alignItems: 'flex-start' },
-  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', marginTop: 14, ...TIGHT },
-  headline: { ...sansW('700'), fontSize: 20, lineHeight: 24, letterSpacing: -1, color: colors.white, marginTop: 8, maxWidth: 210, ...TIGHT },
+  // Figma 327×409 portrait, with the headline anchored above the bottom chips.
+  hero: { marginTop: 12, aspectRatio: 327 / 409, minHeight: 280, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },
+  heroTop: { marginLeft: 16, alignSelf: 'flex-start' },
+  heroCopy: { marginHorizontal: 20 },
+  heroShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 173 },
+  previewWash: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', ...TIGHT },
+  headline: { ...sansW('700'), fontSize: 20, lineHeight: 24, letterSpacing: -1, color: colors.white, marginTop: 8, ...TIGHT },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingLeft: 2 },
   chip: { borderWidth: 0.5, borderColor: colors.white, borderRadius: 5, paddingHorizontal: 4, paddingVertical: 2 },
   chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: colors.white, opacity: 0.8, ...TIGHT },

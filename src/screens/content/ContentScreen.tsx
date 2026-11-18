@@ -109,7 +109,7 @@ export default function ContentScreen() {
   ];
 
   return (
-    <Screen largeTitle="콘텐츠" back sky titleStyle={s.screenTitle} right={<PointPill attendHint quiet />}>
+    <Screen largeTitle="콘텐츠" sky titleStyle={s.screenTitle} right={<PointPill attendHint quiet />}>
       {/* 배너는 상단 바 아래 16 (Figma 100) — 바 아래 기본 여백보다 8 위 */}
       <View style={{ marginTop: -8 }}><ContentBanners items={BANNERS} /></View>
 
