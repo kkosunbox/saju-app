@@ -1,23 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@/navigation/compat';
 import BrandMark from '../../components/BrandMark';
 import PressableScale from '../../components/PressableScale';
 import BottomSheet from '../../components/BottomSheet';
 import Icon from '../../components/Icon';
-import { SocialCircle } from '../../components/auth/AuthKit';
+import { SOCIAL_PROVIDERS, SocialCircle } from '../../components/auth/AuthKit';
 import { usePremium } from '../../context/PremiumContext';
 import { useApp } from '../../context/AppContext';
-import { SocialProvider } from '../../components/auth/socialLabels';
 import { getFriendResult, getPendingInvite } from '../../services/share/linkShare';
 import { storage } from '../../services/storage/storageService';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { COPY } from '../../content/copy';
-
-// 안드로이드 앱에는 Apple 로그인이 없어 버튼을 뺀다 (Apple 로그인은 iOS 앱과 웹에서만). 남은 아이콘은 가운데로 모인다
-const PROVIDERS: SocialProvider[] = (['kakao', 'naver', 'apple', 'google'] as const).filter(p => !(p === 'apple' && Platform.OS === 'android'));
 
 /** 로그인: 큰 문구 + 소셜 아이콘 한 줄. 이메일은 보조 동선으로. 유료 콘텐츠·포인트·마이 탭에서 띄운다 */
 export default function LoginScreen() {
@@ -73,10 +69,10 @@ export default function LoginScreen() {
 
       <View style={s.bottom}>
         {/* 가입 축하 알은 SNS 가입에만 준다 (서버 정책) — 처음 오는 사람에게 살짝 알린다 */}
-        <Text style={s.caption}>SNS 계정으로 간편 가입하면 <Text style={s.bonus}> +100알 </Text></Text>
+        <Text style={s.caption}>SNS 계정으로 처음 가입하면 <Text style={s.bonus}> +50알 </Text></Text>
         {/* 말풍선이 설명 문구를 가리지 않게 그만큼 내린다 */}
         <View style={[s.circles, last && last !== 'email' ? { marginTop: 40 } : null]}>
-          {PROVIDERS.map(p => (
+          {SOCIAL_PROVIDERS.map(p => (
             <View key={p}>
               {last === p ? <LastBadge /> : null}
               <SocialCircle provider={p} onPress={() => nav.navigate('SocialLogin', { provider: p })} />

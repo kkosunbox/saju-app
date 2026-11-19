@@ -5,7 +5,7 @@
  * active가 아니거나(지난 대화를 다시 열 때) 움직임 줄이기를 켜 두면 처음부터 다 보인다.
  */
 import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Animated, StyleProp, Text, TextProps, TextStyle, ViewStyle } from 'react-native';
+import { Animated, LayoutChangeEvent, StyleProp, Text, TextProps, TextStyle, ViewStyle } from 'react-native';
 import { useReducedMotion } from '../utils/motion';
 
 class Store {
@@ -83,7 +83,7 @@ export function StreamText({ children, ...rest }: Omit<TextProps, 'children'> & 
 }
 
 /** 차례가 오면 살짝 떠오르며 나타나는 덩어리 (안의 StreamText는 그 뒤로 이어서 써진다) */
-export function StreamBlock({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+export function StreamBlock({ children, style, onLayout }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onLayout?(event: LayoutChangeEvent): void }) {
   const shown = useProgress(BLOCK_PAUSE) > 0;
   const [a] = useState(() => new Animated.Value(0));
   const store = useContext(Ctx);
@@ -93,11 +93,11 @@ export function StreamBlock({ children, style }: { children: React.ReactNode; st
   }, [shown, instant, a]);
   if (!shown) {
     // 안의 글도 지금 자리를 받아야 순서가 맞는다 — 보이지 않게 그려 둔다
-    return <Animated.View style={[style, { display: 'none' }]}>{children}</Animated.View>;
+    return <Animated.View style={[style, { display: 'none' }]} onLayout={onLayout}>{children}</Animated.View>;
   }
-  if (instant) return <Animated.View style={style}>{children}</Animated.View>;
+  if (instant) return <Animated.View style={style} onLayout={onLayout}>{children}</Animated.View>;
   return (
-    <Animated.View style={[style, { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }]}>
+    <Animated.View style={[style, { opacity: a, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }]} onLayout={onLayout}>
       {children}
     </Animated.View>
   );

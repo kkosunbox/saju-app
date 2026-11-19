@@ -1,12 +1,16 @@
 /** 로그인·회원가입 공용 UI — 소셜 버튼, 체크박스 행, 오류 문구, 구분선 */
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import PressableScale from '../PressableScale';
 import Icon from '../Icon';
 import { colors } from '../../theme/colors';
 import { radius, txt } from '../../theme/typography';
 import { SOCIAL_LABEL, SocialProvider } from './socialLabels';
+
+// Apple 로그인은 iOS와 웹에서만 표시한다.
+export const SOCIAL_PROVIDERS = (['kakao', 'naver', 'apple', 'google'] as const)
+  .filter(provider => provider !== 'apple' || Platform.OS !== 'android');
 
 /** 브랜드 심볼 */
 export function Mark({ provider, size = 22 }: { provider: SocialProvider; size?: number }) {

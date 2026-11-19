@@ -122,7 +122,7 @@ export function useKeyboardShown() {
  * 모바일 웹: 화면 아래를 가린 키보드 높이. Safari·Chrome은 키보드가 떠도 레이아웃 높이를 그대로 두고 보이는 영역(visualViewport)만 줄여
  * 하단 버튼이 키보드 밑에 숨는다. 키보드에 밀려 페이지가 올라간 만큼(offsetTop)도 뺀다
  */
-function useWebKeyboardInset() {
+export function useWebKeyboardInset() {
   const [inset, setInset] = useState(0);
   useEffect(() => {
     const vv = Platform.OS === 'web' && typeof window !== 'undefined' ? window.visualViewport : null;

@@ -42,6 +42,8 @@ export const storage = {
   getNotificationPrompt: async (): Promise<NotificationPromptRecord> =>
     (await getJSON<NotificationPromptRecord>(deviceKey('notificationPrompt'))) ?? { count: 0, lastAt: 0 },
   saveNotificationPrompt: (r: NotificationPromptRecord) => AsyncStorage.setItem(deviceKey('notificationPrompt'), JSON.stringify(r)).catch(() => {}),
+  hasSeenFortuneSignup: () => AsyncStorage.getItem(deviceKey('fortuneSignupShown')).then(v => v === '1').catch(() => false),
+  markFortuneSignupSeen: () => AsyncStorage.setItem(deviceKey('fortuneSignupShown'), '1').catch(() => {}),
   /** 이 기기에서 마지막으로 로그인한 방법 ('email' · 'kakao' …) — 로그인 화면의 '최근 로그인' 말풍선 */
   getLastLogin: () => AsyncStorage.getItem(deviceKey('lastLogin')).catch(() => null),
   setLastLogin: (method: string) => AsyncStorage.setItem(deviceKey('lastLogin'), method).catch(() => {}),

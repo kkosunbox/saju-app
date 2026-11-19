@@ -189,7 +189,6 @@ export default function ConsultHomeScreen() {
             {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
           </View>
 
-          <Text style={[s.note, { marginTop: 24 }]}>운알이와 나만 아는 비밀이에요.</Text>
         </ScrollView>
 
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
@@ -283,5 +282,4 @@ const s = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingRight: 8, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
   input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 11, paddingBottom: 11, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
-  note: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, textAlign: 'center', marginTop: 6 },
 });

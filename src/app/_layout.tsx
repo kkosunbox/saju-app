@@ -12,10 +12,12 @@ import { queryClient } from '@/api/query';
 import { PremiumProvider, usePremium } from '@/context/PremiumContext';
 import { StoreBillingProvider } from '@/context/StoreBillingContext';
 import { LogoMark } from '@/components/BrandMark';
+import BottomNavigation from '@/components/BottomNavigation';
 import LaunchSplash from '@/components/LaunchSplash';
 import SiteHead from '@/components/SiteHead';
 import LandingScreen from '@/screens/LandingScreen';
 import GuideScreen from '@/screens/GuideScreen';
+import { FortuneSignupProvider } from '@/screens/consult/FortuneSignupDialog';
 import { guideSlugOf } from '@/content/guides';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
@@ -160,6 +162,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
         <Stack.Screen name="oauth/[provider]/callback" />
         <Stack.Screen name="auth/callback/[provider]" />
       </Stack>
+      {onboarded && hasProfile ? <BottomNavigation /> : null}
       {Platform.OS !== 'web' ? <View style={s.probe} onLayout={onShown} /> : null}
     </>
   );
@@ -183,7 +186,9 @@ export default function RootLayout() {
               <StoreBillingProvider>
                 <StatusBar style={isDark ? 'light' : 'dark'} />
                 {Platform.OS === 'web' ? <SiteHead /> : null}
-                <RootStack hold={!introDone} onShown={() => setShown(true)} />
+                <FortuneSignupProvider>
+                  <RootStack hold={!introDone} onShown={() => setShown(true)} />
+                </FortuneSignupProvider>
                 {Platform.OS !== 'web' ? <LaunchSplash ready={shown} settled={fontsLoaded || !!fontError} onIntroDone={() => setIntroDone(true)} /> : null}
               </StoreBillingProvider>
             </PremiumProvider>

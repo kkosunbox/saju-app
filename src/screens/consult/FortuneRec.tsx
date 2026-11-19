@@ -6,7 +6,7 @@ import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
 import { Coin } from '../../components/premium/Kit';
 import PromoSlot from '../../components/PromoSlot';
-import { PromoKey, promosOf } from '../../services/promo/promos';
+import { Promo, PromoKey, promosOf } from '../../services/promo/promos';
 import { StreamBlock } from '../../components/Stream';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
@@ -38,7 +38,7 @@ const EVERGREEN: PromoKey[] = ['newyear', 'life', 'sajuDeep'];
 export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFortune; mine: boolean }) {
   const nav = useNavigation();
   const { user, today } = useApp();
-  const { owned, points } = usePremium();
+  const { owned } = usePremium();
   const promos = promosOf(nav as never, today);
   const top = (Object.keys(CAT_LABEL) as Cat[]).sort((a, b) => f[b] - f[a])[0];
   const fresh = (k: PromoKey) => !owned(promos[k].item.key);
@@ -47,20 +47,12 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
   const [roll] = useState(() => Math.random());
   const pool = EVERGREEN.filter(fresh);
   const extra = pool.length ? pool[Math.floor(roll * pool.length)] : null;
-  const wantsFace = mine && catKey === 'spouse';
-  const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, wantsFace);
   if (!user || (!catKey && !extra)) return null;
-  const portrait = wantsFace && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
 
   return (
     <StreamBlock style={{ marginTop: 28, gap: 12 }}>
-      <Text style={s.caption}>이런 것도 있어요</Text>
-      {catKey && portrait ? (
-        <SpouseFaceCard
-          user={user} portrait={portrait} onPress={promos.spouse.go}
-          // 얼굴 옆 좁은 칸이라 다른 배너보다 짧게
-          cta={`${promos.spouse.item.cost}알 · ${points >= promos.spouse.item.cost ? '바로 열기' : '리포트 열기'} →`}
-        />
+      {catKey === 'spouse' && mine ? (
+        <FortuneSpouseBanner promo={promos.spouse} screen="fortune_chat" />
       ) : catKey ? (
         <PromoSlot screen="fortune_chat" promo={promos[catKey]} teaser />
       ) : null}
@@ -69,11 +61,22 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
   );
 }
 
+export function FortuneSpouseBanner({ promo, screen, outlined }: { promo: Promo; screen: string; outlined?: boolean }) {
+  const { user } = useApp();
+  const { points } = usePremium();
+  const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !!user);
+  const portrait = user && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
+  if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser />;
+  const { cost } = promo.item;
+  // 얼굴 옆 좁은 칸이라 다른 배너보다 짧게
+  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} outlined={outlined} cta={`${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`} />;
+}
+
 /** 흐린 얼굴 + 자물쇠 — 열면 또렷한 얼굴과 리포트를 본다. 아래 알약은 다른 추천 배너와 같은 모양 */
-function SpouseFaceCard({ user, portrait, cta, onPress }: { user: User; portrait: number | object; cta: string; onPress(): void }) {
+function SpouseFaceCard({ user, portrait, cta, onPress, outlined }: { user: User; portrait: number | object; cta: string; onPress(): void; outlined?: boolean }) {
   const who = user.gender === 'female' ? '남편' : '아내';
   return (
-    <PressableScale onPress={onPress} style={s.face} scaleTo={0.98} accessibilityLabel={`미래의 ${who} 얼굴 열어 보기`}>
+    <PressableScale onPress={onPress} style={[s.face, outlined && s.faceOutline]} scaleTo={0.98} accessibilityLabel={`미래의 ${who} 얼굴 열어 보기`}>
       <View style={s.faceImgBox}>
         <Image source={portrait} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={2} accessible={false} />
         <View style={s.faceWash} />
@@ -92,8 +95,8 @@ function SpouseFaceCard({ user, portrait, cta, onPress }: { user: User; portrait
 }
 
 const s = StyleSheet.create({
-  caption: { fontSize: 13, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.4, marginBottom: -2 },
   face: { flexDirection: 'row', gap: 14, padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, alignItems: 'center' },
+  faceOutline: { borderWidth: 1, borderColor: colors.lineStrong },
   faceImgBox: { width: 84, height: 105, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.lineStrong },
   faceWash: { ...StyleSheet.absoluteFill, backgroundColor: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.18)' },
   faceLock: { position: 'absolute', alignSelf: 'center', top: '50%', marginTop: -16, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },

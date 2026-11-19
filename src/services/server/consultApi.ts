@@ -54,7 +54,6 @@ export interface ConsultView {
   /** 이번 요청에서 구독 운알톡 횟수 1회를 써서 열었음 (알 안 씀) */
   viaSubscription?: boolean;
   createdAt: string | null;
-  expiresAt: string | null;
 }
 export interface ConsultStatus {
   freeToday: boolean;

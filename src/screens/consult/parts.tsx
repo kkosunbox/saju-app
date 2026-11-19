@@ -157,10 +157,10 @@ export function ReplyBubble({ children, typing, at }: { children?: string; typin
 }
 
 /** 이어 물어볼 질문 칩 */
-export function SuggestionChips({ items, onPick, caption }: { items: string[]; onPick(q: string): void; caption?: string }) {
+export function SuggestionChips({ items, onPick, caption, onLayout }: { items: string[]; onPick(q: string): void; caption?: string; onLayout?: React.ComponentProps<typeof StreamBlock>['onLayout'] }) {
   if (!items.length) return null;
   return (
-    <StreamBlock style={{ marginTop: 16 }}>
+    <StreamBlock style={{ marginTop: 16 }} onLayout={onLayout}>
       {caption ? <Text style={[txt.caption, { textAlign: 'center' }]}>{caption}</Text> : null}
       <View style={s.counselor}>
         <CounselorAvatar />

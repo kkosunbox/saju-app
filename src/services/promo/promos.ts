@@ -42,6 +42,15 @@ export function monthOf(today: string): { y: number; m: number; next: boolean } 
 const CONSULT_ITEM = { ...ITEMS.consult('preview'), title: '운알톡 1회' };
 const CRUSH_ITEM = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
 
+export function spousePromo(go: () => void): Promo {
+  return {
+    key: 'spouse', track: 'spouse', title: '미래 배우자 리포트', desc: '어떤 사람을, 언제, 어디서 만나게 될까?',
+    item: ITEMS.spouse(), verb: '리포트 열기', ref: { kind: 'spouse' },
+    teaser: d => { const p = d as SpousePreview; return p.headline ? `「${p.headline}」 · 만나는 시기와 장소까지` : null; },
+    go,
+  };
+}
+
 export function promosOf(nav: Nav, today: string): Record<PromoKey, Promo> {
   const ny = newYearOf(today);
   const mo = monthOf(today);
@@ -95,12 +104,7 @@ export function promosOf(nav: Nav, today: string): Record<PromoKey, Promo> {
       key: 'life', track: 'life', title: '평생운 · 10년 대운', desc: '인생 그래프 · 황금기와 위기 · 앞으로 10년',
       item: ITEMS.life(), verb: '자세히 보기', go: () => nav.navigate('Life'),
     },
-    spouse: {
-      key: 'spouse', track: 'spouse', title: '미래 배우자 리포트', desc: '어떤 사람을, 언제, 어디서 만나게 될까?',
-      item: ITEMS.spouse(), verb: '리포트 열기', ref: { kind: 'spouse' },
-      teaser: d => { const p = d as SpousePreview; return p.headline ? `「${p.headline}」 · 만나는 시기와 장소까지` : null; },
-      go: () => nav.navigate('Spouse'),
-    },
+    spouse: spousePromo(() => nav.navigate('Spouse')),
     sajuDeep: {
       key: 'sajuDeep', track: 'saju', title: '상세 사주 해석', desc: '원국표 · 오행 · 신살 · 재물 · 연애까지',
       item: ITEMS.sajuDeep(), verb: '자세히 보기', go: () => nav.navigate('SajuDeep'),

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
@@ -13,6 +13,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { ITEMS } from '../../services/premium/catalog';
 import { useFortuneDraw } from '../../services/content/opened';
 import { notificationService } from '../../services/notificationService';
+import { storage } from '../../services/storage/storageService';
 import { CategoryKey, categoryTheme, colors, isDark } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
 import { formatKoreanDate } from '../../utils/date';
@@ -21,6 +22,7 @@ import { useScreenLive } from '../../utils/motion';
 import { Counselor, MyBubble, ReplyBubble, SuggestionChips } from './parts';
 import { ChatHeaderLeft } from './ChatMenu';
 import FortuneRec from './FortuneRec';
+import { useReserveFortuneSignup } from './FortuneSignupDialog';
 import { queryClient } from '../../api/query';
 import { fortuneHistoryKeys } from '../../services/server/fortuneApi';
 import { Stream, StreamBlock, StreamText } from '../../components/Stream';
@@ -141,7 +143,7 @@ export function FortuneReading({ fortune, who, onCategory }: { fortune: DailyFor
  */
 export default function FortuneChatScreen() {
   const nav = useNavigation<Nav>();
-  const { user, profiles, fortuneUser, fortuneProfileId, fortune, today, fortuneWriting, refreshFortune } = useApp();
+  const { account, booting, user, profiles, fortuneUser, fortuneProfileId, fortune, today, fortuneWriting, refreshFortune } = useApp();
   const { openUnlock } = usePremium();
   const draw = useFortuneDraw();
   const scroll = useRef<ScrollViewInstance>(null);
@@ -150,7 +152,8 @@ export default function FortuneChatScreen() {
   const isSelf = profiles.find(p => p.profileId === (fortuneProfileId ?? user?.profileId))?.relationship === 'self';
   const drawCost = draw.ready && !draw.opened ? fortune?.drawCost ?? 0 : 0;
   const sealed = draw.ready && !draw.opened && !!fortune;
-  const reading = draw.opened && (fortuneWriting || !!fortune?.textsPending);
+  // AI 문장을 기다리는 건 뽑기 요청이 끝날 때까지만 — 서버가 AI 작성에 실패하면 textsPending이 그대로 남지만 규칙 문장을 보여 준다
+  const reading = draw.opened && fortuneWriting;
   const ready = draw.opened && !!fortune && !reading;
   // 이 화면에서 뽑거나 쓰는 걸 기다린 답만 써지는 것처럼 (이미 본 운세를 다시 열면 바로 다 보인다)
   const [fresh, setFresh] = useState(false);
@@ -169,8 +172,25 @@ export default function FortuneChatScreen() {
   // 방금 뽑았으면 답이 다 나오고 몇 초 뒤 알림 권유를 한 번 (띄울지는 notificationService가 정한다)
   const live = useScreenLive();
   const [alarmAsk, setAlarmAsk] = useState(false);
+  const [signupSeen, setSignupSeen] = useState<boolean | null>(null);
+  const reserveSignup = useReserveFortuneSignup();
+  const signupReserved = useRef(false);
+  const readingEnd = useRef<{ key: string; y: number } | null>(null);
+  const readingScroll = useRef<{ key: string; y: number; viewportHeight: number } | null>(null);
+  const readingKey = `${today}:${fortuneProfileId ?? 'primary'}`;
+  const guest = !booting && !!user && !account;
+
   useEffect(() => {
-    if (!justDrawn || !ready || !live) return;
+    if (!guest) return;
+    let alive = true;
+    void storage.hasSeenFortuneSignup().then(seen => { if (alive) setSignupSeen(seen); });
+    return () => { alive = false; };
+  }, [guest]);
+
+  // 가입 안내를 아직 보지 않은 게스트에게는 같은 운세에서 알림을 먼저 권하지 않는다.
+  const canAskForAlarm = !!account || signupSeen === true;
+  useEffect(() => {
+    if (!canAskForAlarm || !justDrawn || !ready || !live) return;
     let alive = true;
     const timer = setTimeout(async () => {
       if (!alive || !(await notificationService.shouldPrompt().catch(() => false)) || !alive) return;
@@ -179,14 +199,37 @@ export default function FortuneChatScreen() {
       setAlarmAsk(true);
     }, 5000);
     return () => { alive = false; clearTimeout(timer); };
-  }, [justDrawn, ready, live]);
+  }, [canAskForAlarm, justDrawn, ready, live]);
 
   useEffect(() => {
-    if (ready) setTimeout(() => scroll.current?.scrollTo({ y: 0, animated: false }), 0);
-  }, [ready]);
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [readingKey]);
+
+  const f = fortune?.combined;
+  const watchForSignup = guest && signupSeen === false && ready && !!f && live && !alarmAsk;
+  // 첫 운세는 본문이 순서대로 나타난다. 스크롤과 본문 끝 위치가 모두 필요하다.
+  const checkSignupPosition = useCallback(() => {
+    if (!watchForSignup || signupReserved.current) return;
+    const end = readingEnd.current;
+    const position = readingScroll.current;
+    if (end?.key !== readingKey || position?.key !== readingKey
+      || position.y <= 0 || position.y + position.viewportHeight < end.y) return;
+    signupReserved.current = true;
+    reserveSignup();
+  }, [readingKey, reserveSignup, watchForSignup]);
+  useEffect(() => { checkSignupPosition(); }, [checkSignupPosition]);
+
+  const onFortuneScroll = ({ nativeEvent: { contentOffset, layoutMeasurement } }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    readingScroll.current = { key: readingKey, y: contentOffset.y, viewportHeight: layoutMeasurement.height };
+    checkSignupPosition();
+  };
+  const onFortuneEndLayout = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    if (layout.height <= 0 || layout.y <= 0) return;
+    readingEnd.current = { key: readingKey, y: layout.y };
+    checkSignupPosition();
+  };
 
   if (!user) return null;
-  const f = fortune?.combined;
 
   const pick = (q: string) => {
     if (q === CHIPS.week) nav.navigate('Fortune', { period: 'weekly' });
@@ -210,7 +253,8 @@ export default function FortuneChatScreen() {
         </>
       )}
     >
-      <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
+        onScroll={guest && signupSeen !== true ? onFortuneScroll : undefined} scrollEventThrottle={32}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>{formatKoreanDate(today)} · 오늘의 운세</Text>
         {/* 누구의 운세를 볼지 — 누르면 프로필을 고른다 */}
         <View style={s.whoRow}>
@@ -243,7 +287,9 @@ export default function FortuneChatScreen() {
           <Stream key={fresh ? 'fresh' : 'seen'} active={fresh}>
             <FortuneReading fortune={fortune} who={who} onCategory={k => nav.navigate('CategoryDetail', { category: k })} />
 
-            <SuggestionChips items={Object.values(CHIPS)} onPick={pick} caption="더 궁금한 게 있나요?" />
+            <SuggestionChips items={Object.values(CHIPS)} onPick={pick} caption="더 궁금한 게 있나요?"
+              onLayout={onFortuneEndLayout}
+            />
 
             {/* 오늘 점수가 높은 분야에 맞춘 리포트 추천 (연애운이면 미래 배우자의 흐린 얼굴) */}
             <FortuneRec fortune={f} mine={fortuneProfileId == null} />
