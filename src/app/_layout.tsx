@@ -101,6 +101,10 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
         {/* 프로필이 있어야 쓰는 화면 */}
         <Stack.Protected guard={onboarded && hasProfile} redirectTo={home}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="today" />
+          <Stack.Screen name="fortune-history/[id]" />
+          <Stack.Screen name="compatibility" />
+          <Stack.Screen name="consult/index" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="profiles/new" />
           <Stack.Screen name="profiles/[id]" />

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Text, View, type TextInputInstance } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
@@ -25,6 +25,8 @@ export default function FindPasswordScreen() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [left, setLeft] = useState(0);
+  const pwRef = useRef<TextInputInstance>(null);
+  const pw2Ref = useRef<TextInputInstance>(null);
 
   // 재발송 대기 시간
   useEffect(() => {
@@ -78,7 +80,8 @@ export default function FindPasswordScreen() {
           <View>
             <FieldLabel>인증번호</FieldLabel>
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-              <TextField containerStyle={{ flex: 1 }} value={code} onChangeText={t => { setCode(t.replace(/\D/g, '').slice(0, 6)); setErr(null); }} placeholder="6자리 숫자" keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" textContentType="oneTimeCode" invalid={!!err && /인증번호/.test(err)} />
+              <TextField containerStyle={{ flex: 1 }} value={code} onChangeText={t => { setCode(t.replace(/\D/g, '').slice(0, 6)); setErr(null); }} placeholder="6자리 숫자" keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" textContentType="oneTimeCode" invalid={!!err && /인증번호/.test(err)}
+                returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => (can2 ? reset() : pwRef.current?.focus())} />
               <PressableScale onPress={send} disabled={left > 0 || busy} style={{ height: 52, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.card, justifyContent: 'center', opacity: left > 0 ? 0.5 : 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.inkSub }}>{left > 0 ? `재발송 ${left}초` : '재발송'}</Text>
               </PressableScale>
@@ -87,12 +90,13 @@ export default function FindPasswordScreen() {
           </View>
           <View>
             <FieldLabel>새 비밀번호</FieldLabel>
-            <TextField value={pw} onChangeText={setPw} placeholder={PASSWORD_HINT} secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pwBad} />
+            <TextField ref={pwRef} value={pw} onChangeText={setPw} placeholder={PASSWORD_HINT} secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pwBad}
+              returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => (can2 ? reset() : pw2Ref.current?.focus())} />
             <FieldError>{pwBad ? `${PASSWORD_HINT}으로 만들어 주세요.` : null}</FieldError>
           </View>
           <View>
             <FieldLabel>새 비밀번호 확인</FieldLabel>
-            <TextField value={pw2} onChangeText={setPw2} placeholder="한 번 더 입력해 주세요" secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pw2Bad} />
+            <TextField ref={pw2Ref} value={pw2} onChangeText={setPw2} placeholder="한 번 더 입력해 주세요" secureTextEntry autoComplete="new-password" textContentType="newPassword" invalid={pw2Bad} returnKeyType="done" onSubmitEditing={reset} />
             <FieldError>{pw2Bad ? '비밀번호가 서로 달라요.' : err}</FieldError>
           </View>
           <PressableScale onPress={() => { setStep(1); setErr(null); }} hitSlop={8}><Text style={{ fontSize: 13, color: colors.inkMute, textAlign: 'center', textDecorationLine: 'underline' }}>이메일 다시 입력하기</Text></PressableScale>

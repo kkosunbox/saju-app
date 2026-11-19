@@ -49,13 +49,17 @@ export interface FortuneWidgetFrame {
   score?: number;
 }
 
+const TODAY_URI = { uri: 'woonpick://today' };
+
 export function FortuneWidget({ props, dark, small, width, height, frame }: { props: FortuneWidgetProps; dark: boolean; small: boolean; width: number; height: number; frame?: FortuneWidgetFrame }) {
   const c = dark ? DARK : LIGHT;
   const edge = small ? { top: 9.5, bottom: 16, left: 12, right: 12.5 } : { top: 10, bottom: 14, left: 19.5, right: 19.5 };
   // 구름 하늘 그림을 깔고 그 위에 내용을 올린다 (그림은 위젯 크기에 맞춰 늘린다)
-  const col = (children: React.ReactNode[], clickAction = 'OPEN_APP') => (
+  // 누르면 오늘의 운세 화면으로 (첫 화면은 운알톡)
+  const col = (children: React.ReactNode[], clickAction = 'OPEN_URI') => (
     <OverlapWidget
       clickAction={clickAction}
+      clickActionData={clickAction === 'OPEN_URI' ? TODAY_URI : undefined}
       style={{
         width: 'match_parent',
         height: 'match_parent',
@@ -73,6 +77,7 @@ export function FortuneWidget({ props, dark, small, width, height, frame }: { pr
       />
       <FlexWidget
         clickAction={clickAction}
+        clickActionData={clickAction === 'OPEN_URI' ? TODAY_URI : undefined}
         style={{
           width: 'match_parent',
           height: 'match_parent',

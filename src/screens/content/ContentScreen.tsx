@@ -56,12 +56,12 @@ function ContentHeading({ title, caption, roomy = false, tight = false, top = 32
   return (
     <View style={{ marginTop: top, marginBottom: roomy ? 20 : tight ? 12 : title === 'Coming Soon' ? 19 : 16 }}>
       <HeadTitle title={title} caption={caption} variant="figma" titleStyle={[s.sectionTitle, title === 'Coming Soon' && { letterSpacing: -0.72 }]} />
-      {title === '무료로 즐기기' ? <View pointerEvents="none" style={{ position: 'absolute', right: 0, top: 0 }}><Icon name="chevronRight" size={20} color={colors.inkMute} /></View> : null}
+      {title === '가볍게 즐기기' ? <View pointerEvents="none" style={{ position: 'absolute', right: 0, top: 0 }}><Icon name="chevronRight" size={20} color={colors.inkMute} /></View> : null}
     </View>
   );
 }
 
-/** 콘텐츠 탭 — 무료로 즐기고(공유) → 궁금한 건 프리미엄으로 */
+/** 리포트 탭 — 운알톡에서 이어지는 심층 리포트. 관계 → 인생 지도 → 올해·테마 → 기간별 운세 → 가볍게 즐기기 */
 export default function ContentScreen() {
   const { sendInvite: invite, inviteShareSheet } = useInviteShare();
   const nav = useNavigation();
@@ -85,7 +85,7 @@ export default function ContentScreen() {
   const spouseOwned = owned(ITEMS.spouse().key);
   const soon = UPCOMING.filter(c => c.status === 'soon');
   const nextYear = parseISO(today).y + 1;
-  // 배너 순서는 Figma 점 위치대로: 새해 → 평생운 → 미래 배우자 → 운알톡
+  // 배너: 새해 → 평생운 → 미래 배우자 → 운알톡
   const BANNERS: Banner[] = [
     { key: 'newyear', bg: require('../../../assets/figma/content/banner-newyear.webp'), title: [[`${nextYear}년, `, '#68F7F0'], ['나에게 어떤 일이 생길까?']], sub: `${nextYear}년 운세 확인하기 →`, go: () => nav.navigate('NewYear', { year: nextYear }) },
     { key: 'life', bg: require('../../../assets/figma/content/banner-life.webp'), title: [['내 인생은 앞으로 '], ['어떻게 펼쳐질까?', '#E5DCFF']], sub: '나의 평생운 확인하기 →', go: () => openPremium(nav, 'life') },
@@ -96,34 +96,39 @@ export default function ContentScreen() {
       title: [['마음의 소리, ', '#0098EB'], ['운알이와 대화해볼래요?']],
       sub: '운알이와 비밀대화 하러가기 →',
       textColor: '#000000',
-      go: () => nav.navigate('Tabs', { screen: 'Consult' }),
+      go: () => nav.navigate('Home'),
     },
   ];
-  // 테마 운세 끝에 붙는 반려동물 궁합 · 미래의 배우자 · 우리 아이 사주 (아이마다 / 한 번 사는 상품이라 화면으로 바로 간다)
+  // 관계 리포트 — 운알톡에서 사람 고민을 하다 넘어오는 곳. 궁합 · 우리 아이 사주 · 미래의 배우자 · 반려동물 궁합 (화면으로 바로 간다)
   const tile = (src: number) => <Image source={src} style={s.extraArt} contentFit="contain" accessible={false} />;
-  const THEME_EXTRA: [string, React.ReactNode, string, string, React.ReactNode, () => void][] = [
-    ['pet', tile(require('../../../assets/figma/content/tile-pet.webp')), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill key="pet" cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
-    ['spouse', tile(require('../../../assets/figma/content/tile-spouse.webp')), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag key="spouse" item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+  const RELATION: [string, React.ReactNode, string, string, React.ReactNode, () => void][] = [
+    ['compat', <Mascot key="compat" name="friends" size={39} />, '궁합', '그 사람과 나, 잘 맞을까?', <LineTag key="compat" label="무료" variant="figma" />, () => nav.navigate('Compatibility')],
     // 아이마다 따로 사서 보유 표시 대신 가격만
-    ['child', <Mascot key="child" name="soon-baby" size={39} />, '우리 아이 사주', '어떤 사람으로 자랄까?', <CostPill key="child" cost={ITEMS.child(0, '').cost} small variant="figma" />, () => nav.navigate('Child')],
+    ['child', <Mascot key="child" name="soon-baby" size={39} />, '우리 아이 사주', '기질 · 재능 · 공부 방식', <CostPill key="child" cost={ITEMS.child(0, '').cost} small variant="figma" />, () => nav.navigate('Child')],
+    ['spouse', tile(require('../../../assets/figma/content/tile-spouse.webp')), '미래의 배우자', '나의 미래 배우자는 누구?', <PriceTag key="spouse" item={ITEMS.spouse()} small variant="figma" />, () => nav.navigate('Spouse')],
+    ['pet', tile(require('../../../assets/figma/content/tile-pet.webp')), '반려동물 궁합', '댕냥이와 나의 궁합은?', <CostPill key="pet" cost={ITEMS.pet(0, '').cost} small variant="figma" />, () => nav.navigate('Pet')],
   ];
 
   return (
-    <Screen largeTitle="콘텐츠" sky titleStyle={s.screenTitle} right={<PointPill attendHint quiet />}>
+    <Screen largeTitle="리포트" sky titleStyle={s.screenTitle} right={<PointPill attendHint quiet />}>
       {/* 배너는 상단 바 아래 16 (Figma 100) — 바 아래 기본 여백보다 8 위 */}
       <View style={{ marginTop: -8 }}><ContentBanners items={BANNERS} /></View>
 
-      <ContentHeading title="운세" caption="오늘부터 올해까지, 기간별 흐름" roomy top={19} />
-      <View style={s.periods}>
-        {PERIODS.map(([p, art, t, bg]) => (
-          <PressableScale key={p} onPress={() => nav.navigate('Fortune', { period: p })} style={s.period} scaleTo={0.94} accessibilityLabel={`${t} 운세`}>
-            <LinearGradient colors={[bg, colors.card]} style={s.periodBox}><Mascot name={art} size={47} /></LinearGradient>
-            <Text style={s.periodT}>{t}</Text>
+      <ContentHeading title="관계 리포트" caption="사람 고민, 더 깊이 들여다보기" roomy top={19} />
+      <View style={s.grid}>
+        {RELATION.map(([k, art, t, d, price, go]) => (
+          <PressableScale key={k} onPress={go} style={s.soon} scaleTo={0.97} accessibilityLabel={t}>
+            <View style={s.freeHead}>
+              <View style={s.artBox}>{art}</View>
+              <View style={s.price}>{price}</View>
+            </View>
+            <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>
+            <View style={s.bleed}><Text style={[s.freeD, s.premiumD]} numberOfLines={1}>{d}</Text></View>
           </PressableScale>
         ))}
       </View>
 
-      <ContentHeading title="나의 인생 지도" tight />
+      <ContentHeading title="나의 인생 지도" />
       <View style={s.grid}>
         {LIFE_MAP.map(([k, art, t, d, h, top, edge]) => (
           <PressableScale key={k} onPress={() => openPremium(nav, k)} style={s.lifeCell} scaleTo={0.97} accessibilityLabel={t}>
@@ -152,20 +157,6 @@ export default function ContentScreen() {
           <PrimaryButton label={`${fmtN(bundle.cost)}알로 전부 열기`} icon={<Mascot size={14} />} onPress={() => openUnlock(bundle)} style={s.bundleButton} labelStyle={s.bundleButtonText} small />
         </GradientBorder>
       )}
-
-      <ContentHeading title="무료로 즐기기" caption={COPY.friend} roomy />
-      <View style={s.grid}>
-        {FREE.map(([art, t, d, go], i) => (
-          <PressableScale key={t} onPress={go} style={[s.free, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
-            <View style={s.freeHead}>
-              <Mascot name={art} size={i === 3 ? 44 : 39} />
-              <LineTag label="무료" variant="figma" />
-            </View>
-            <Text style={s.freeT}>{t}</Text>
-            <Text style={[s.freeD, { color: isDark ? colors.inkMute : '#555555' }]}>{d}</Text>
-          </PressableScale>
-        ))}
-      </View>
 
       <ContentHeading title="지금 가장 많이 보는" caption="새로 나온 프리미엄 콘텐츠" />
       <View style={{ gap: 16 }}>
@@ -198,19 +189,33 @@ export default function ContentScreen() {
                 <View style={s.bleed}><Text style={[s.freeD, s.premiumD, TIGHT_D[k] != null && { letterSpacing: TIGHT_D[k] }, k === 'newyear' && { fontSize: 12 }]} numberOfLines={1}>{d}</Text></View>
               </PressableScale>
             ))}
-            {g === '테마 운세' ? THEME_EXTRA.map(([k, art, t, d, price, go]) => (
-              <PressableScale key={k} onPress={go} style={s.soon} scaleTo={0.97} accessibilityLabel={t}>
-                <View style={s.freeHead}>
-                  <View style={s.artBox}>{art}</View>
-                  <View style={s.price}>{price}</View>
-                </View>
-                <Text style={[s.freeT, s.soonT]} numberOfLines={1}>{t}</Text>
-                <View style={s.bleed}><Text style={[s.freeD, s.premiumD]} numberOfLines={1}>{d}</Text></View>
-              </PressableScale>
-            )) : null}
           </View>
         </View>
       ))}
+      <ContentHeading title="기간별 운세" caption="오늘부터 올해까지, 흐름 한눈에" roomy />
+      <View style={s.periods}>
+        {PERIODS.map(([p, art, t, bg]) => (
+          <PressableScale key={p} onPress={() => nav.navigate('Fortune', { period: p })} style={s.period} scaleTo={0.94} accessibilityLabel={`${t} 운세`}>
+            <LinearGradient colors={[bg, colors.card]} style={s.periodBox}><Mascot name={art} size={47} /></LinearGradient>
+            <Text style={s.periodT}>{t}</Text>
+          </PressableScale>
+        ))}
+      </View>
+
+      <ContentHeading title="가볍게 즐기기" caption={COPY.friend} roomy />
+      <View style={s.grid}>
+        {FREE.map(([art, t, d, go], i) => (
+          <PressableScale key={t} onPress={go} style={[s.free, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
+            <View style={s.freeHead}>
+              <Mascot name={art} size={i === 3 ? 44 : 39} />
+              <LineTag label="무료" variant="figma" />
+            </View>
+            <Text style={s.freeT}>{t}</Text>
+            <Text style={[s.freeD, { color: isDark ? colors.inkMute : '#555555' }]}>{d}</Text>
+          </PressableScale>
+        ))}
+      </View>
+
       <ContentHeading title="Coming Soon" caption="먼저 알림 받고 가장 먼저 보세요" />
       <View style={s.grid}>
           {soon.map(c => (

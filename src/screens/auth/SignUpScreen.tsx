@@ -1,12 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import Screen from '../../components/Screen';
 import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import BottomSheet from '../../components/BottomSheet';
 import { FieldError, FieldLabel } from '../../components/auth/AuthKit';
-import TermsAgreement, { requiredAgreed, useAgreements } from '../../components/auth/TermsAgreement';
+import TermsAgreement, { Agreements, requiredAgreed, useAgreements } from '../../components/auth/TermsAgreement';
+import { getTokens } from '../../api/tokens';
+import { authApi } from '../../services/server/authApi';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ApiError } from '../../api/client';
@@ -25,7 +27,7 @@ const MESSAGE: Record<string, string> = {
 const messageOf = (e: unknown, fallback: string) => (e instanceof ApiError && MESSAGE[e.code]) || fallback;
 
 /**
- * 이메일 가입: 이메일·비밀번호 → 약관 시트 → 메일로 받은 인증번호 → 가입 (게스트로 쓰던 데이터는 그대로 이어짐)
+ * 이메일 가입: 이메일·비밀번호 → 약관 시트(게스트로 이미 동의했으면 건너뜀) → 메일로 받은 인증번호 → 가입 (게스트로 쓰던 데이터는 그대로 이어짐)
  * 이미 가입한 이메일이면 칸을 벗어날 때(늦어도 '다음'에서) '이미 회원이신가요?' 시트로 로그인 화면에 안내한다
  */
 export default function SignUpScreen() {
@@ -44,6 +46,7 @@ export default function SignUpScreen() {
   const [member, setMember] = useState<{ email: string; social: boolean } | null>(null);
   // 같은 이메일을 두 번 묻지 않게 (가입 안 된 이메일만 기억)
   const checked = useRef<string | null>(null);
+  const pwRef = useRef<TextInputInstance>(null);
 
   const emailBad = email.length > 0 && !isEmail(email);
   const pwBad = pw.length > 0 && !isStrongPassword(pw);
@@ -66,7 +69,16 @@ export default function SignUpScreen() {
     setBusy(true);
     const known = await isMember(email);
     setBusy(false);
-    if (!known) setSheet(true);
+    if (known) return;
+    // 게스트로 쓰면서 이미 약관에 동의했으면 다시 묻지 않는다 (가입하면 그 게스트가 그대로 회원이 된다)
+    const me = (await getTokens()) ? await authApi.me().catch(() => null) : null;
+    if (me?.status === 'guest' && me.isAllowTerms) {
+      const pre = { age: true, terms: true, privacy: true, marketing: me.isAllowMarketing };
+      setAgree(pre);
+      await submit(pre);
+      return;
+    }
+    setSheet(true);
   };
 
   /** 이미 회원: 이메일 로그인(이메일 채워서) 또는 SNS 아이콘이 있는 로그인 화면으로 */
@@ -79,8 +91,8 @@ export default function SignUpScreen() {
   };
 
   /** 약관 동의 → 인증 메일 발송 */
-  const submit = async () => {
-    if (!formOk || !requiredOk || busy) return;
+  const submit = async (pre?: Agreements) => {
+    if (!formOk || !(pre ? requiredAgreed(pre) : requiredOk)) return;
     setBusy(true); setErr(null);
     try {
       await sendSignupCode(email);
@@ -116,7 +128,7 @@ export default function SignUpScreen() {
         <Text style={[txt.title, { marginTop: 8 }]}>메일로 받은 인증번호</Text>
         <Text style={[txt.small, { marginTop: 6 }]}>{email}로 보낸 6자리 숫자를 입력해 주세요. 10분 동안 쓸 수 있어요.</Text>
         <View style={{ marginTop: 28 }}>
-          <TextField value={code} onChangeText={t => { setCode(t.replace(/\D/g, '').slice(0, 6)); setErr(null); }} placeholder="000000" keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" autoFocus invalid={!!err} />
+          <TextField value={code} onChangeText={t => { setCode(t.replace(/\D/g, '').slice(0, 6)); setErr(null); }} placeholder="000000" keyboardType="number-pad" autoComplete="one-time-code" textContentType="oneTimeCode" autoFocus returnKeyType="done" onSubmitEditing={finish} invalid={!!err} />
           <FieldError>{err}</FieldError>
           <PressableScale onPress={() => { setCodeSent(false); setCode(''); }} hitSlop={8} style={{ marginTop: 14 }}>
             <Text style={s.docLink}>메일을 다시 받을래요</Text>
@@ -134,13 +146,14 @@ export default function SignUpScreen() {
       <View style={{ marginTop: 28, gap: 20 }}>
         <View>
           <FieldLabel>이메일</FieldLabel>
-          <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus onBlur={() => { isMember(email); }} invalid={emailBad || !!err} />
+          <TextField value={email} onChangeText={t => { setEmail(t); setErr(null); }} placeholder="name@example.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" textContentType="emailAddress" autoFocus onBlur={() => { isMember(email); }} invalid={emailBad || !!err}
+            returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => (formOk ? next() : pwRef.current?.focus())} />
           <FieldError>{emailBad ? '이메일 형식을 확인해 주세요.' : err}</FieldError>
         </View>
         <View>
           <FieldLabel>비밀번호</FieldLabel>
           <View>
-            <TextField value={pw} onChangeText={setPw} placeholder={PASSWORD_HINT} secureTextEntry={!show} autoComplete="new-password" textContentType="newPassword" invalid={pwBad} containerStyle={{ paddingRight: 64 }} />
+            <TextField ref={pwRef} value={pw} onChangeText={setPw} placeholder={PASSWORD_HINT} secureTextEntry={!show} autoComplete="new-password" textContentType="newPassword" invalid={pwBad} returnKeyType="next" onSubmitEditing={next} containerStyle={{ paddingRight: 64 }} />
             <PressableScale onPress={() => setShow(v => !v)} style={s.eye} hitSlop={8} accessibilityLabel={show ? '비밀번호 숨기기' : '비밀번호 보기'}>
               <Text style={s.eyeText}>{show ? '숨기기' : '보기'}</Text>
             </PressableScale>
@@ -152,7 +165,7 @@ export default function SignUpScreen() {
       <BottomSheet visible={sheet} onClose={() => setSheet(false)}>
         <Text style={txt.h2}>약관에 동의해 주세요</Text>
         <TermsAgreement value={agree} onChange={setAgree} onOpenDoc={doc => { setSheet(false); nav.navigate('Legal', { doc }); }} />
-        <PrimaryButton label={busy ? '보내는 중…' : '동의하고 인증 메일 받기'} onPress={submit} disabled={!requiredOk || busy} style={{ marginTop: 16 }} />
+        <PrimaryButton label={busy ? '보내는 중…' : '동의하고 인증 메일 받기'} onPress={() => { if (!busy) submit(); }} disabled={!requiredOk || busy} style={{ marginTop: 16 }} />
       </BottomSheet>
 
       <BottomSheet visible={!!member} onClose={() => setMember(null)}>

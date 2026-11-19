@@ -7,6 +7,7 @@ import { ConsultCat, catOf } from '../../services/content/consult';
 import { ConsultView } from '../../services/server/consultApi';
 import { colors, isDark } from '../../theme/colors';
 import { sansW, txt } from '../../theme/typography';
+import { StreamBlock, StreamText } from '../../components/Stream';
 import Icon from '../../components/Icon';
 import { Image } from 'expo-image';
 import CatIcon from './CatIcon';
@@ -101,14 +102,17 @@ export function CounselorAvatar() {
 
 /** 운알이가 하는 말 묶음 — 왼쪽에 얼굴, 오른쪽에 내용 */
 export function Counselor({ children, at }: { children: React.ReactNode; at?: string | null }) {
+  // 답이 써질 때(Stream 안)는 말풍선이 차례대로 나타나고 안의 글이 이어서 써진다
   return (
-    <View style={s.counselor}>
-      <CounselorAvatar />
-      <View style={{ flex: 1, gap: 8 }}>
-        {children}
-        {at ? <Text style={[s.time, { alignSelf: 'flex-start' }]}>{kstHM(at)}</Text> : null}
+    <StreamBlock>
+      <View style={s.counselor}>
+        <CounselorAvatar />
+        <View style={{ flex: 1, gap: 8 }}>
+          {children}
+          {at ? <Text style={[s.time, { alignSelf: 'flex-start' }]}>{kstHM(at)}</Text> : null}
+        </View>
       </View>
-    </View>
+    </StreamBlock>
   );
 }
 
@@ -146,7 +150,7 @@ export function ReplyBubble({ children, typing, at }: { children?: string; typin
       {typing ? (
         <View style={s.typing}><Typing stages={typing} /></View>
       ) : (
-        <Text style={s.replyText}>{children}</Text>
+        <StreamText style={s.replyText}>{children ?? ''}</StreamText>
       )}
     </Counselor>
   );
@@ -156,7 +160,7 @@ export function ReplyBubble({ children, typing, at }: { children?: string; typin
 export function SuggestionChips({ items, onPick, caption }: { items: string[]; onPick(q: string): void; caption?: string }) {
   if (!items.length) return null;
   return (
-    <View style={{ marginTop: 16 }}>
+    <StreamBlock style={{ marginTop: 16 }}>
       {caption ? <Text style={[txt.caption, { textAlign: 'center' }]}>{caption}</Text> : null}
       <View style={s.counselor}>
         <CounselorAvatar />
@@ -168,27 +172,27 @@ export function SuggestionChips({ items, onPick, caption }: { items: string[]; o
           ))}
         </View>
       </View>
-    </View>
+    </StreamBlock>
   );
 }
 
-const CRUSH_ITEM: Item = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
+export const CRUSH_ITEM: Item = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
 
-/** 고민 주제에 맞는 다음 콘텐츠 (운세 탭에 있던 '약한 분야 추천'을 상담 안으로) */
+/** 고민 주제에 맞는 다음 리포트 — 서버 suggestedReport(consult-report.ts)와 같은 선택. 답변 아래에서 대화를 심층 리포트로 잇는다 */
 export const TOPIC_REC: Record<ConsultCat, { key: string; title: string; desc: string; item: Item; to: [string, Record<string, unknown>?] }> = {
   love: { key: 'theme-love', title: '연애·결혼 운세로 더 깊이', desc: '연애 스타일 · 잘 맞는 사람 · 인연이 오는 해', item: ITEMS.theme('love'), to: ['Theme', { kind: 'love' }] },
-  reunion: { key: 'crush', title: '그 사람의 속마음', desc: '궁합을 본 뒤 마음 온도 · 연락하기 좋은 날까지', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  reunion: { key: 'crush', title: '그 사람의 속마음', desc: '궁합을 본 뒤 마음 온도 · 연락하기 좋은 날까지', item: CRUSH_ITEM, to: ['Compatibility'] },
   work: { key: 'theme-career', title: '직업·적성 운세로 더 깊이', desc: '맞는 일 · 커리어 상승기 · 이직 타이밍', item: ITEMS.theme('career'), to: ['Theme', { kind: 'career' }] },
   study: { key: 'theme-career', title: '직업·적성 운세로 더 깊이', desc: '맞는 일 · 커리어 상승기 · 진로 타이밍', item: ITEMS.theme('career'), to: ['Theme', { kind: 'career' }] },
   money: { key: 'theme-money', title: '재물 운세로 더 깊이', desc: '돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), to: ['Theme', { kind: 'money' }] },
-  people: { key: 'crush', title: '그 사람과의 궁합', desc: '생년월일만 넣으면 둘의 궁합 · 속마음까지', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
-  family: { key: 'crush', title: '가족과의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
-  crush: { key: 'crush', title: '그 사람의 속마음', desc: '궁합을 본 뒤 마음 온도 · 고백하기 좋은 날까지', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  people: { key: 'crush', title: '그 사람과의 궁합', desc: '생년월일만 넣으면 둘의 궁합 · 속마음까지', item: CRUSH_ITEM, to: ['Compatibility'] },
+  family: { key: 'crush', title: '가족과의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Compatibility'] },
+  crush: { key: 'crush', title: '그 사람의 속마음', desc: '궁합을 본 뒤 마음 온도 · 고백하기 좋은 날까지', item: CRUSH_ITEM, to: ['Compatibility'] },
   marriage: { key: 'spouse', title: '미래 배우자 리포트', desc: '어떤 사람을, 언제, 어디서 만나게 될까?', item: ITEMS.spouse(), to: ['Spouse'] },
   job: { key: 'lucky', title: '길일 찾기', desc: '면접 · 계약하기 좋은 날 TOP 5', item: ITEMS.lucky('interview', new Date().toISOString().slice(0, 10)), to: ['Lucky'] },
   business: { key: 'theme-money', title: '재물 운세로 더 깊이', desc: '돈 버는 방식 · 재물이 모이는 시기', item: ITEMS.theme('money'), to: ['Theme', { kind: 'money' }] },
-  friend: { key: 'crush', title: '친구와의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
-  children: { key: 'crush', title: '아이와의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 맞는 대화법', item: CRUSH_ITEM, to: ['Tabs', { screen: 'Compatibility' }] },
+  friend: { key: 'crush', title: '친구와의 궁합', desc: '생년월일만 넣으면 둘의 궁합과 잘 지내는 법', item: CRUSH_ITEM, to: ['Compatibility'] },
+  children: { key: 'child', title: '우리 아이 사주', desc: '타고난 기질 · 재능 · 맞는 공부 방식 · 보호자와의 궁합', item: ITEMS.child(0, ''), to: ['Child'] },
   decision: { key: 'lucky', title: '길일 찾기', desc: '이사 · 계약 · 시작하기 좋은 날 TOP 5', item: ITEMS.lucky('move', new Date().toISOString().slice(0, 10)), to: ['Lucky'] },
   self: { key: 'life', title: '평생운 · 10년 대운', desc: '인생 그래프 · 황금기와 위기 · 앞으로 10년', item: ITEMS.life(), to: ['Life'] },
 };

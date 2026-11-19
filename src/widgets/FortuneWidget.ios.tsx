@@ -38,7 +38,7 @@ const FortuneWidgetLayout: (props: FortuneWidgetProps, env: WidgetEnvironment) =
     ? { ink: '#FFFFFF', score: '#FFFFFF', sub: '#B8B8B8', accent: '#28B2FE', up: '#FF7A7A', chip: '#28B2FE33', chipInk: '#FFFFFF', button: '#FFFFFF', buttonInk: '#0E1530' }
     : { ink: '#222222', score: '#363636', sub: '#666666', accent: '#28B2FE', up: '#F25555', chip: '#28B2FE33', chipInk: '#000000', button: '#222222', buttonInk: '#FFFFFF' };
   const small = env.widgetFamily !== 'systemMedium';
-  const app = 'woonpick://';
+  const app = 'woonpick://today'; // 첫 화면은 운알톡이라 오늘의 운세로 바로 연다
   // 그림이 없을 때만 보이는 바탕 (시안 하늘 · 밤하늘 색)
   const sky = containerBackground(
     { type: 'linearGradient', colors: dark ? ['#0E1638', '#1B2A5E'] : ['#1DAEFC', '#EAF6FF'], startPoint: { x: 0.5, y: 0 }, endPoint: { x: 0.5, y: 1 } },

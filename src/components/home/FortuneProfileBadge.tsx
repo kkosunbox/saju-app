@@ -24,10 +24,9 @@ const CHEVRON_INK = '#575757';
 
 /** textStyle: 제목(「님의 오늘」)과 같은 글자 스타일 — 이름이 제목의 일부로 읽히게 */
 export default function FortuneProfileBadge({ style, textStyle }: { style?: object; textStyle?: object }) {
-  const { profiles, user, fortuneUser, fortuneProfileId, selectFortuneProfile } = useApp();
+  const { user, fortuneUser } = useApp();
   const [open, setOpen] = useState(false);
   if (!user) return null;
-  const selectedId = fortuneProfileId ?? user.profileId;
   const name = fortuneUser?.nickname ?? user.nickname;
   const close = () => setOpen(false);
 
@@ -52,39 +51,71 @@ export default function FortuneProfileBadge({ style, textStyle }: { style?: obje
           </Svg>
         </View>
       </PressableScale>
-      <BottomSheet visible={open} onClose={close}>
-        <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
-          <Text style={txt.h2}>프로필 선택</Text>
-          <View style={s.list}>
-            {profiles.map(p => {
-              const selected = p.profileId === selectedId;
-              return (
-                <PressableScale
-                  key={p.profileId}
-                  onPress={() => { selectFortuneProfile(p.isPrimary ? null : p.profileId!); close(); }}
-                  style={[s.row, selected && s.rowOn]}
-                  scaleTo={0.98}
-                  accessibilityState={{ selected }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={txt.bodyStrong}>{p.nickname}{p.isPrimary ? '  · 대표' : ''}</Text>
-                    <Text style={txt.caption}>{RELATIONSHIP_LABEL[p.relationship ?? 'other']} · {dot(p.birthDateInput ?? p.birthDate)}{p.calendarType === 'lunar' ? ' (음력)' : ''}</Text>
-                  </View>
-                  {selected ? <Icon name="check" size={18} color={colors.ink} strokeWidth={2.4} /> : null}
-                </PressableScale>
-              );
-            })}
-          </View>
-          <PressableScale onPress={() => { close(); router.push('/profiles/new'); }} style={s.add} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="프로필 추가하기">
-            <Text style={s.addText}>+ 프로필 추가하기</Text>
-          </PressableScale>
-        </ScrollView>
-      </BottomSheet>
+      <FortuneProfileSheet visible={open} onClose={close} />
     </>
   );
 }
 
+/** 다른 화면의 프로필 칩과 같은 모양 — 「운픽님 ⌄」, 누르면 오늘의 운세를 볼 프로필을 고른다 */
+export function FortuneProfileChip({ style }: { style?: object }) {
+  const { user, fortuneUser } = useApp();
+  const [open, setOpen] = useState(false);
+  if (!user) return null;
+  const name = fortuneUser?.nickname ?? user.nickname;
+  return (
+    <>
+      <PressableScale onPress={() => setOpen(true)} style={[s.chip, style]} scaleTo={0.97} accessibilityLabel={`${name}님 운세를 보는 중, 다른 프로필 고르기`}>
+        <Text style={s.chipText} numberOfLines={1}>{name}님</Text>
+        <Icon name="chevronDown" size={12} color={colors.purpleSoft} strokeWidth={2.2} />
+      </PressableScale>
+      <FortuneProfileSheet visible={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** 오늘의 운세를 누구 것으로 볼지 고르는 시트 (하루 한 명 무료, 같은 날 다른 프로필은 알) */
+export function FortuneProfileSheet({ visible, onClose: close }: { visible: boolean; onClose(): void }) {
+  const { profiles, user, fortuneProfileId, selectFortuneProfile } = useApp();
+  if (!user) return null;
+  const selectedId = fortuneProfileId ?? user.profileId;
+  return (
+    <BottomSheet visible={visible} onClose={close}>
+      <ScrollView style={{ maxHeight: 520 }} showsVerticalScrollIndicator={false}>
+        <Text style={txt.h2}>프로필 선택</Text>
+        <View style={s.list}>
+          {profiles.map(p => {
+            const selected = p.profileId === selectedId;
+            return (
+              <PressableScale
+                key={p.profileId}
+                onPress={() => { selectFortuneProfile(p.isPrimary ? null : p.profileId!); close(); }}
+                style={[s.row, selected && s.rowOn]}
+                scaleTo={0.98}
+                accessibilityState={{ selected }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={txt.bodyStrong}>{p.nickname}{p.isPrimary ? '  · 대표' : ''}</Text>
+                  <Text style={txt.caption}>{RELATIONSHIP_LABEL[p.relationship ?? 'other']} · {dot(p.birthDateInput ?? p.birthDate)}{p.calendarType === 'lunar' ? ' (음력)' : ''}</Text>
+                </View>
+                {selected ? <Icon name="check" size={18} color={colors.ink} strokeWidth={2.4} /> : null}
+              </PressableScale>
+            );
+          })}
+        </View>
+        <PressableScale onPress={() => { close(); router.push('/profiles/new?for=fortune'); }} style={s.add} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="프로필 추가하기">
+          <Text style={s.addText}>+ 프로필 추가하기</Text>
+        </PressableScale>
+      </ScrollView>
+    </BottomSheet>
+  );
+}
+
 const s = StyleSheet.create({
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.lavenderSoft, maxWidth: 160,
+  },
+  chipText: { ...txt.caption, fontSize: 12, color: colors.purpleSoft, flexShrink: 1 },
   title: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   titleText: { flexShrink: 1 },
   // 피그마 576:1787 — 24 동그라미 · 흰색 40% · 그림자 y4 blur4 rgba(23,67,132,.12) · 제목과 8 간격

@@ -57,6 +57,8 @@ export default function ProfileRequestSheet({ visible, onClose, onSent }: { visi
           placeholderTextColor={colors.inkMute}
           style={s.input}
           accessibilityLabel="받을 사람 이름"
+          returnKeyType="send"
+          onSubmitEditing={() => { if (!sending) send(); }}
         />
         <PrimaryButton label={sending ? '링크 만드는 중…' : '링크 보내기'} onPress={send} disabled={sending} style={{ marginTop: 16 }} />
         <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />

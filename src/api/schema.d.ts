@@ -52,7 +52,7 @@ export interface paths {
         put?: never;
         /**
          * 게스트 계정 발급
-         * @description 프로필 입력을 마친 비회원에게 게스트 계정과 토큰을 발급합니다. refresh token을 기기에 보관하고 갱신하는 동안 계정이 유지됩니다. 같은 IP에서 시간당 생성 횟수가 제한됩니다.
+         * @description 프로필 입력을 마친 비회원에게 게스트 계정과 토큰을 발급합니다. 약관·개인정보처리방침 동의를 함께 보내면 게스트에 저장되고, 이 게스트가 소셜로 회원이 되면 약관 동의를 다시 받지 않습니다. refresh token을 기기에 보관하고 갱신하는 동안 계정이 유지됩니다. 같은 IP에서 시간당 생성 횟수가 제한됩니다.
          */
         post: operations["AuthController_createGuest_v1"];
         delete?: never;
@@ -610,6 +610,46 @@ export interface paths {
          * @description 사용자가 오늘의 운세를 뽑으면 AI가 문장(분야별 풀이·종합 이야기·행동)을 한 번 씁니다(engine=ai). 점수·요약은 바뀌지 않습니다. 이미 썼거나 AI를 쓸 수 없으면 지금 운세를 그대로 줍니다. 수십 초 걸릴 수 있습니다. 뽑았다는 기록(drawn=true)은 AI와 상관없이 남아 다른 기기에서도 뽑은 상태로 보입니다. 하루 한 번은 무료이고, 같은 날 다른 프로필을 뽑으려면 daily:{date} 열람권이 있어야 합니다 (없으면 403 CONTENT_LOCKED).
          */
         post: operations["FortuneController_drawDailyFortune_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortunes/daily/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 지난 오늘의 운세 목록
+         * @description 뽑아서 AI가 글을 쓴 운세(engine=ai)만 최신 날짜부터 줍니다. 뽑지 않은 날 · 위젯용으로 미리 만든 운세는 없습니다. 다음 페이지는 받은 마지막 id를 before로 넘기고, limit보다 적게 오면 끝입니다.
+         */
+        get: operations["FortuneController_listDailyHistory_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/fortunes/daily/history/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 지난 오늘의 운세 다시 보기
+         * @description 뽑은 운세 하나를 그때 그대로 줍니다. 읽기만 하며 새로 만들거나 뽑거나 알을 쓰지 않습니다 (drawCost=0). 내 것이 아니거나 뽑지 않은 운세면 404입니다.
+         */
+        get: operations["FortuneController_getDailyHistory_v1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2247,6 +2287,14 @@ export interface components {
             refreshToken: string | null;
             user: components["schemas"]["UserDto"];
         };
+        CreateGuestRequest: {
+            /** @description 이용 약관 동의 여부 */
+            isAllowTerms?: boolean;
+            /** @description 개인정보처리방침 동의 여부 */
+            isAllowPrivacy?: boolean;
+            /** @description 마케팅 정보 수신 동의 여부 */
+            isAllowMarketing?: boolean;
+        };
         SocialLoginResponse: {
             /** @description expires in 1h */
             accessToken: string | null;
@@ -2643,6 +2691,18 @@ export interface components {
             title: string;
             detail: string;
         };
+        AdminAccessLogRequest: {
+            /**
+             * @description 연 화면 경로 (쿼리 포함 가능)
+             * @example /users/123
+             */
+            path: string;
+            /**
+             * @description 사이드바 메뉴 이름
+             * @example 고객
+             */
+            menu?: string;
+        };
         LabelValueDto: {
             label: string;
             value: string;
@@ -2897,6 +2957,25 @@ export interface components {
             yesterdayScores: components["schemas"]["DayScoresDto"] | null;
             /** @description 공유 카드용 칭호 · 한 줄 문구 · 올해 상위 %. 규칙 점수로 만들어 뽑기 전후로 같음. 이 기능 전에 만든 운세는 null */
             shareCard: components["schemas"]["ShareCardDto"] | null;
+        };
+        DailyFortuneHistoryItemDto: {
+            /** @description 운세 id (GET daily/history/{id}로 다시 열기) */
+            id: number;
+            /**
+             * @description KST 날짜
+             * @example 2026-11-19
+             */
+            date: string;
+            /** @description 누구의 운세인지 (프로필 id). 예전 운세는 null */
+            profileId: number | null;
+            /** @description 누구의 운세인지 — 프로필의 지금 이름 (지운 프로필이면 만든 때 이름) */
+            nickname: string;
+            /** @description 종합 점수 */
+            totalScore: number;
+            /** @description 오늘의 칭호. 예전 운세는 null */
+            title: string | null;
+            /** @description 오늘의 한 줄 */
+            summary: string;
         };
         PeriodFlowDto: {
             /** @description 요일(월~일) · 주차(1주차~) · 월(1~12) */
@@ -3699,6 +3778,11 @@ export interface components {
             topic: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
             /** @enum {string} */
             risk: "none" | "concern" | "crisis";
+            /**
+             * @description 답변 아래 추천할 심층 리포트 (고민 주제로 정함). child 우리 아이 사주 · spouse 미래 배우자 · crush 그 사람의 속마음 · compat 궁합 · life 평생운 · theme:* 테마 운세 · lucky 길일 찾기. 대화 중 risk가 concern·crisis였으면 null
+             * @enum {string|null}
+             */
+            suggestedReport: "child" | "spouse" | "crush" | "compat" | "life" | "theme:love" | "theme:money" | "theme:career" | "lucky" | null;
             /** @description 고민 글 (상세 조회에서만) */
             question: string | null;
             /** @description 잠겨 있으면 headline · direct · empathy · hook · followUps만. hook은 나머지 답을 가리키는 한 줄 (예전 미리보기엔 없음). followUps는 이어 물어볼 질문 3개 (예전 답변엔 없을 수 있음) */
@@ -3818,8 +3902,8 @@ export interface components {
         ChildSetDto: {
             id: number;
             child: components["schemas"]["ChildMemberDto"];
-            mother: components["schemas"]["ChildMemberDto"] | null;
-            father: components["schemas"]["ChildMemberDto"] | null;
+            /** @description 함께 보는 보호자 (등록한 순서) */
+            parents: components["schemas"]["ChildMemberDto"][];
             /** @description 우리 아이 사주 미리보기 (아이 한 줄 · 재능 TOP 3 이름 · 엄마/아빠와의 궁합 유형과 점수). 전체는 child:{id}로 열어 /premium/contents/child/{childSetId} */
             result: Record<string, never>;
             /** Format: date-time */
@@ -3831,7 +3915,7 @@ export interface components {
         ChildMemberInput: {
             /** @description 불러올 내 프로필 id (profile과 둘 중 하나) */
             profileId?: number;
-            /** @description 직접 입력 (relationship은 무시: 아이는 자녀, 엄마·아빠는 배우자로 저장) */
+            /** @description 직접 입력 (relationship은 무시: 아이는 자녀, 보호자는 배우자로 저장) */
             profile?: components["schemas"]["UpsertFortuneProfileRequest"];
             /** @description 직접 입력한 사람을 내 프로필에도 추가 */
             saveToProfiles?: boolean;
@@ -3839,10 +3923,8 @@ export interface components {
         SaveChildSetRequest: {
             /** @description 아이 */
             child: components["schemas"]["ChildMemberInput"];
-            /** @description 엄마 */
-            mother?: components["schemas"]["ChildMemberInput"];
-            /** @description 아빠 */
-            father?: components["schemas"]["ChildMemberInput"];
+            /** @description 함께 볼 보호자 1~2명 (입력한 순서대로). 호칭은 성별로 엄마·아빠, 두 분의 성별이 같으면 이름으로 불러요 */
+            parents: components["schemas"]["ChildMemberInput"][];
         };
         DeleteChildSetDto: {
             deleted: boolean;
@@ -3958,7 +4040,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGuestRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5408,6 +5494,112 @@ export interface operations {
                         /** @example CONTENT_LOCKED */
                         code?: string;
                         /** @example CONTENT_LOCKED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneController_listDailyHistory_v1: {
+        parameters: {
+            query?: {
+                /** @description 앞 페이지에서 받은 마지막 항목의 id. 생략하면 가장 최근부터 */
+                before?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DailyFortuneHistoryItemDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FortuneController_getDailyHistory_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["DailyFortuneDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

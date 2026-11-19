@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, TextInputProps, View, StyleProp, ViewStyle } from 'react-native';
+import React, { Ref, useState } from 'react';
+import { Platform, StyleSheet, Text, TextInput, TextInputProps, View, StyleProp, ViewStyle, type TextInputInstance } from 'react-native';
 import { colors, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
 import { profileLine, profileType } from '../theme/profileDesign';
 
-interface Props extends TextInputProps { suffix?: string; containerStyle?: StyleProp<ViewStyle>; invalid?: boolean; compact?: boolean; variant?: 'default' | 'profile' }
+interface Props extends TextInputProps { ref?: Ref<TextInputInstance>; suffix?: string; containerStyle?: StyleProp<ViewStyle>; invalid?: boolean; compact?: boolean; variant?: 'default' | 'profile' }
 
 /** 흰 입력창 — 포커스되면 하늘색 테두리. compact: 회색 카드 안의 낮은 칸(36) */
 export default function TextField({ suffix, containerStyle, invalid, compact, variant = 'default', style, onFocus, onBlur, ...rest }: Props) {

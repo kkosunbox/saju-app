@@ -235,7 +235,7 @@ export default function MyPageScreen() {
               <Text style={s.todayScore}>{fortune.combined.totalScore}점</Text>
             </View>
           ) : fortune ? (
-            <PressableScale onPress={() => nav.navigate('Home')} scaleTo={0.98} accessibilityLabel="홈에서 오늘의 운세 뽑기" style={s.todayRow}>
+            <PressableScale onPress={() => nav.navigate('Today')} scaleTo={0.98} accessibilityLabel="오늘의 운세 뽑기" style={s.todayRow}>
               <Text style={s.todayLabel}>오늘의 종합운</Text>
               <Text style={s.todayDraw}>뽑으러 가기 ›</Text>
             </PressableScale>

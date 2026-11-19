@@ -46,7 +46,8 @@ export default function BirthPlaceSearch({ selected, onPick, compact, autoFocus 
   return (
     <View>
       <TextField compact={compact} value={query} onChangeText={setQuery} placeholder="예: 포항, 로스앤젤레스, Seattle"
-        autoFocus={autoFocus} autoCorrect={false} returnKeyType="search" accessibilityLabel="출생지 검색" />
+        autoFocus={autoFocus} autoCorrect={false} returnKeyType="search" accessibilityLabel="출생지 검색"
+        onSubmitEditing={() => { if (!popular && places?.length) onPick(places[0]); }} />
       {places === null ? <ActivityIndicator style={{ paddingVertical: 14 }} color={colors.inkMute} /> : null}
       {popular && places?.length ? (
         <View style={s.chips}>

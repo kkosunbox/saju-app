@@ -17,7 +17,13 @@ export interface Account {
   email: string | null;
   status: string;
   loginMethods: LoginMethod[];
+  /** 약관 동의 여부 — 게스트도 첫 프로필 저장 전에 동의한다 */
+  isAllowTerms: boolean;
+  isAllowMarketing: boolean;
 }
+
+/** 게스트를 만들 때 함께 보내는 약관 동의 (필수 항목은 동의한 상태) */
+export interface GuestConsent { marketing: boolean }
 
 /** refreshToken is absent on the web (the server puts it in an httpOnly cookie). */
 export interface LoginPayload { accessToken: string; refreshToken?: string }
@@ -30,14 +36,15 @@ export async function keep(payload: LoginPayload, isGuest: boolean, method?: Log
 }
 
 export const authApi = {
-  /** Creates a guest (called when the first profile is submitted). */
-  async startGuest(): Promise<void> {
-    await keep(await call<LoginPayload>(api.POST('/v1/auth/guest')), true);
+  /** Creates a guest (called when the first profile is submitted), keeping the terms agreement given just before. */
+  async startGuest(consent?: GuestConsent): Promise<void> {
+    const body = consent ? { isAllowTerms: true, isAllowPrivacy: true, isAllowMarketing: consent.marketing } : undefined;
+    await keep(await call<LoginPayload>(api.POST('/v1/auth/guest', { body } as never)), true);
   },
 
   async me(): Promise<Account> {
-    const user = await call<{ id: number; email: string | null; status: string; loginMethods?: LoginMethod[] }>(api.GET('/v1/auth/user'));
-    return { id: user.id, email: user.email, status: user.status, loginMethods: user.loginMethods ?? [] };
+    const user = await call<{ id: number; email: string | null; status: string; loginMethods?: LoginMethod[]; isAllowTerms?: boolean; isAllowMarketing?: boolean }>(api.GET('/v1/auth/user'));
+    return { id: user.id, email: user.email, status: user.status, loginMethods: user.loginMethods ?? [], isAllowTerms: !!user.isAllowTerms, isAllowMarketing: !!user.isAllowMarketing };
   },
 
   async login(email: string, password: string): Promise<void> {

@@ -22,6 +22,10 @@ import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
+import { CrisisCard } from './SafetyNote';
+import { Stream, StreamBlock, StreamText } from '../../components/Stream';
+import { ChatHeaderLeft } from './ChatMenu';
+import { PointPill } from '../../components/HeaderPoints';
 import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 import { CROWN, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
@@ -52,7 +56,7 @@ const ASK_ERROR: Record<string, string> = {
 /** 운알톡 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
 export default function ConsultChatScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ConsultChat'>>();
-  return params?.id === 'new' ? <PendingChat askKey={params.ask} /> : <Chat id={Number(params?.id)} />;
+  return params?.id === 'new' ? <PendingChat askKey={params.ask} /> : <Chat id={Number(params?.id)} fresh={params?.fresh === '1'} />;
 }
 
 /** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 운알이가 답을 쓰는 중 */
@@ -72,7 +76,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
         if (!live) return;
         dropAsk(key);
         if (v.viaSubscription) toast('구독 혜택으로 운알톡 1회를 썼어요. 알은 쓰지 않았어요');
-        nav.replace('ConsultChat', { id: String(v.id) });
+        nav.replace('ConsultChat', { id: String(v.id), fresh: '1' });
       },
       err => {
         if (!live) return;
@@ -84,7 +88,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
     return () => { live = false; };
   }, [key]);
 
-  const toTab = () => nav.navigate('Tabs', { screen: 'Consult' });
+  const toTab = () => nav.navigate('Home');
   if (!ask) {
     return (
       <Screen title="운알톡" titleStyle={s.chatTitle} back>
@@ -94,7 +98,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
     );
   }
   return (
-    <Screen title="운알톡" titleStyle={s.chatTitle} back sky>
+    <Screen left={<ChatHeaderLeft />} sky right={<PointPill attendHint quiet />}>
       <Text style={[txt.caption, { textAlign: 'center' }]}>{user ? `${user.nickname}님 사주로 상담 · ` : ''}나만 볼 수 있어요</Text>
       <MyBubble>{ask.worry}</MyBubble>
       {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
@@ -105,8 +109,11 @@ function PendingChat({ askKey }: { askKey?: string }) {
   );
 }
 
-function Chat({ id }: { id: number }) {
+function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   const nav = useNavigation<Nav>();
+  // 이 화면에서 새로 생긴 답만 써지는 것처럼 — 연 순간 있던 이어 묻기 수, 여기서 연 전체 답
+  const seenTurns = useRef<number | null>(null);
+  const [openedHere, setOpenedHere] = useState(false);
   const { user: u, account } = useApp();
   const { toast, goWallet, points } = usePremium();
   const insets = useSafeAreaInsets();
@@ -123,6 +130,7 @@ function Chat({ id }: { id: number }) {
   const q = useQuery({ queryKey: consultKeys.one(id), queryFn: () => consultApi.get(id), enabled: Number.isFinite(id) });
   const status = useConsultStatus(!!account);
   const turnCount = q.data?.turns?.length ?? 0;
+  if (seenTurns.current === null && q.data) seenTurns.current = turnCount;
   useWebAutoGrow(inputRef, input, INPUT_MAX);
   // 새 말이 붙으면 아래로 (첫 화면은 답변 위에서 시작)
   useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending]);
@@ -183,6 +191,7 @@ function Chat({ id }: { id: number }) {
     let opened = false;
     try {
       const v = await consultApi.unlock(id);
+      setOpenedHere(true);
       put(v);
       refreshPoints();
       opened = true;
@@ -216,6 +225,8 @@ function Chat({ id }: { id: number }) {
   };
 
   const rec = TOPIC_REC[e.topic];
+  // 힘든 마음이 보인 대화에는 리포트를 권하지 않는다 (예전 서버는 suggestedReport를 안 줘서 risk로도 본다)
+  const showRec = e.risk === 'none' && e.suggestedReport !== null;
   // 미리보기(잠김)여도 입력창을 보여 준다 — 보내면 전부 열기 안내가 뜬다
   const footer = e.locked || canAsk ? (
     <>
@@ -238,46 +249,52 @@ function Chat({ id }: { id: number }) {
   ) : (
     <>
       <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>이 대화의 이어 묻기는 끝났어요</Text>
-      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Tabs', { screen: 'Consult' })} />
+      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Home')} />
     </>
   );
 
   return (
-    <Screen title="운알톡" titleStyle={s.chatTitle} back sky scroll={false}>
+    <Screen left={<ChatHeaderLeft current={id} />} sky scroll={false} right={<PointPill attendHint quiet />}>
       {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[txt.caption, { textAlign: 'center' }]}>{e.profileNickname ? `${e.profileNickname}님 사주로 상담 · ` : ''}{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
         {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
+        <Stream active={fresh}>
         <Counselor>
-          <Text style={s.eyebrow}>{C.label} 고민에 대한 답</Text>
-          <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
-          <View style={s.headline}>
+          <StreamText style={s.eyebrow}>{`${C.label} 고민에 대한 답`}</StreamText>
+          <StreamBlock style={s.direct}><StreamText style={s.directV}>{e.answer.direct}</StreamText></StreamBlock>
+          <StreamBlock style={s.headline}>
             {!isDark ? <Image source={HEADLINE_BACKGROUND} style={StyleSheet.absoluteFill} contentFit="fill" /> : null}
-            <Text style={s.headlineV}>{e.answer.headline}</Text>
-          </View>
+            <StreamText style={s.headlineV}>{e.answer.headline}</StreamText>
+          </StreamBlock>
           {full ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <StreamBlock style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
               <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
-            </View>
+            </StreamBlock>
           ) : null}
-          <Text style={s.replyText}>{e.answer.empathy}</Text>
-          {e.locked && hook && !unlocking ? <Cliff hook={hook} /> : null}
+          <StreamText style={s.replyText}>{e.answer.empathy}</StreamText>
+          {e.locked && hook && !unlocking ? <StreamBlock><Cliff hook={hook} /></StreamBlock> : null}
         </Counselor>
+        {e.risk === 'crisis' ? <StreamBlock><CrisisCard /></StreamBlock> : null}
 
         {full ? (
-          <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
+          // 여기서 연 전체 답은 그때부터 써진다 (처음부터 열려 있던 답은 위 답에 이어서)
+          openedHere ? <Stream active><FullAnswer answer={full.answer} facts={full.facts} label={C.label} /></Stream> : <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
         ) : unlocking ? (
           <ReplyBubble typing={STAGES.rest} />
         ) : (
-          <LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => setUnlockOpen(true)} />
+          <StreamBlock><LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => setUnlockOpen(true)} /></StreamBlock>
         )}
 
-        {turns.map(t => (
+        {turns.map((t, i) => (
           <View key={t.createdAt}>
             <MyBubble at={t.createdAt}>{t.question}</MyBubble>
-            <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>
+            {/* 방금 받은 이어 묻기 답만 써진다 */}
+            {i >= (seenTurns.current ?? 0)
+              ? <Stream active><ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble></Stream>
+              : <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>}
           </View>
         ))}
         {sending ? (
@@ -295,12 +312,13 @@ function Chat({ id }: { id: number }) {
           />
         ) : null}
 
-        {full ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
+        {full && showRec ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
 
         <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
           <Text style={s.delete}>이 대화 기록 지우기</Text>
         </PressableScale>
-        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>재미와 참고를 위한 대화예요. {e.expiresAt ? `${kstDate(e.expiresAt)}에 자동으로 지워져요.` : ''}</Text>
+        </Stream>
+        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>참고를 위한 대화예요.</Text>
       </ScrollView>
       {/* 키보드가 떠 있으면 홈 인디케이터 여백 없이 키보드 바로 위에 붙인다 */}
       <View style={[s.footer, { paddingBottom: keyboard ? 10 : Math.max(insets.bottom, 10) }]}>{footer}</View>
@@ -509,29 +527,29 @@ const splitDay = (label: string) => {
 function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; facts: ConsultFacts; label: string }) {
   return (
     <>
-      <View style={[s.box, { marginTop: 24 }]}>
+      <StreamBlock style={[s.box, { marginTop: 24 }]}>
         <BoxHead icon={<BookIcon />} title="사주로 본 나" />
-        <Text style={s.boxText}>{A.me}{'\n'}{A.star}</Text>
-      </View>
+        <StreamText style={s.boxText}>{`${A.me}\n${A.star}`}</StreamText>
+      </StreamBlock>
 
-      <View style={[s.box, { marginTop: 16 }]}>
+      <StreamBlock style={[s.box, { marginTop: 16 }]}>
         <BoxHead icon={<TrendIcon />} title="지금의 흐름" caption={`앞으로 3개월 · ${label} 운`} />
-        <Text style={s.boxText}>{A.now}</Text>
-        <FlowChart flow={F.flow} />
-      </View>
+        <StreamText style={s.boxText}>{A.now}</StreamText>
+        <StreamBlock><FlowChart flow={F.flow} /></StreamBlock>
+      </StreamBlock>
 
-      <Text style={[s.sectionT, { marginTop: 24 }]}>이렇게 해 보세요</Text>
+      <StreamBlock><Text style={[s.sectionT, { marginTop: 24 }]}>이렇게 해 보세요</Text></StreamBlock>
       <View style={s.acts}>{A.dos.map(t => <Act key={t} ok>{t}</Act>)}</View>
 
-      <Text style={[s.sectionT, { marginTop: 32 }]}>이것만은 피하세요</Text>
+      <StreamBlock><Text style={[s.sectionT, { marginTop: 32 }]}>이것만은 피하세요</Text></StreamBlock>
       <View style={s.acts}>{A.avoid.map(t => <Act key={t} ok={false}>{t}</Act>)}</View>
 
-      <View style={[s.headRow, { marginTop: 32 }]}>
+      <StreamBlock style={[s.headRow, { marginTop: 32 }]}>
         <Text style={[s.sectionT, { letterSpacing: -0.64 }]}>행동하기 좋은 날</Text>
         <View style={s.headBar} />
         <Text style={[s.headCap, { flexShrink: 1 }]} numberOfLines={1}>앞으로 30일 중 이 고민에 힘이 실리는 날</Text>
-      </View>
-      <View style={s.days}>
+      </StreamBlock>
+      <StreamBlock style={s.days}>
         {F.goodDays.map(d => {
           const [date, wd] = splitDay(d.label);
           return (
@@ -541,13 +559,15 @@ function FullAnswer({ answer: A, facts: F, label }: { answer: ConsultAnswer; fac
             </View>
           );
         })}
-      </View>
+      </StreamBlock>
 
+      <StreamBlock>
       <ImageBackground source={IDIOM_BG} resizeMode="cover" style={s.closing} imageStyle={Platform.OS === 'web' ? s.closingImgWeb : s.closingImg}>
         <Text style={s.idiom}>{F.idiom[1]} · {F.idiom[0]}</Text>
         <Text style={s.idiomMean}>{F.idiom[0]} · {F.idiom[2]}.</Text>
-        <Text style={s.closeText}>{A.closing}</Text>
+        <StreamText style={s.closeText}>{A.closing}</StreamText>
       </ImageBackground>
+      </StreamBlock>
     </>
   );
 }
@@ -575,15 +595,15 @@ function BoxHead({ icon, title, caption }: { icon: React.ReactNode; title: strin
 /** 해 볼 것(파란 체크) · 피할 것(빨간 X) 한 줄 */
 function Act({ ok, children }: { ok: boolean; children: string }) {
   return (
-    <View style={s.act}>
+    <StreamBlock style={s.act}>
       <Svg width={18} height={18} viewBox="0 0 18 18">
         <Circle cx={9} cy={9} r={9} fill={ok ? (isDark ? colors.accentSoft : '#E7F0FF') : (isDark ? colors.loveBg : '#FDE9E9')} />
         {ok
           ? <Path d="M5.154 8.959l2.289 2.242a1 1 0 001.411-.011L13 7" stroke="#1DADFE" strokeWidth={2} strokeLinecap="round" fill="none" />
           : <Path d="M12 6L6 12M6 6l6 6" stroke="#DD2828" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
       </Svg>
-      <Text style={s.actText}>{children}</Text>
-    </View>
+      <StreamText style={s.actText}>{children}</StreamText>
+    </StreamBlock>
   );
 }
 

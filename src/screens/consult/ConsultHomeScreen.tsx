@@ -19,22 +19,29 @@ import { SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
 import { RootStackParamList } from '../../navigation/types';
 import { fmtP } from '../../services/premium/catalog';
 import { CONSULT_CONFIG, guessCat } from '../../services/content/consult';
-import { ConsultListKind, ConsultView, consultApi, consultKeys, useConsultStatus } from '../../services/server/consultApi';
-import { useOpened } from '../../services/content/opened';
+import { ConsultView, consultApi, useConsultStatus } from '../../services/server/consultApi';
+import { useAnyFortuneOpened, useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
 import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow, webEnterToSend } from './parts';
 import WorryMarquee from './WorryMarquee';
+import { isTodayFortuneQuestion } from './FortuneChatScreen';
+import { usePendingInviteSheet } from '../../components/PendingInviteSheet';
+import WelcomeBonusSheet from '../../components/WelcomeBonusSheet';
+import HomeNotices from './HomeNotices';
+import { Logo } from '../../components/Mascot';
+import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
 
+const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
 const TODAY_IMG = require('../../../assets/images/consult-today.webp');
-const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 
-/** 오늘의 기운 카드 바탕 — 밝은 화면은 디자인의 구름 그림, 어두운 화면은 같은 하늘색 결의 그라데이션 */
+/** 운세 카드의 구름 하늘 배경 */
 function TodayCard({ children }: { children: React.ReactNode }) {
-  if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.today}>{children}</LinearGradient>;
-  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={s.today} imageStyle={Platform.OS === 'web' ? s.todayImg : s.todayImgNative}>{children}</ImageBackground>;
+  const highlight = Platform.OS !== 'ios';
+  if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.today, highlight && s.todayHighlighted]}>{children}</LinearGradient>;
+  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={[s.today, highlight && s.todayHighlighted]} imageStyle={Platform.OS === 'web' ? s.todayImg : s.todayImgNative}>{children}</ImageBackground>;
 }
 
 const EXAMPLES = [
@@ -48,23 +55,65 @@ const EXAMPLES = [
 // 세 줄에 두 개씩 — 디자인처럼 첫째·넷째, 둘째·다섯째, 셋째·여섯째를 한 줄에
 const EXAMPLE_ROWS = [0, 1, 2].map(i => [EXAMPLES[i], EXAMPLES[i + 3]]);
 
-/** 운알톡 탭 — 운알이가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기). 지난 상담으로 돌아가 이어서 묻는다 */
+/**
+ * 오늘의 운세 카드 — 누구 운세를 볼지 프로필을 먼저 고르고 물어본다.
+ * 고른 프로필의 오늘 운세를 이미 봤으면 점수와 한 줄 요약을 보여 주고, 누르면 운알이의 답을 다시 본다
+ */
+function TodayFortuneCard({ onAsk }: { onAsk(): void }) {
+  const { user, fortune, fortuneUser, fortuneProfileId, today } = useApp();
+  const currentFortune = fortune && fortune.userId === user?.id && fortune.date === today && fortune.forProfile === fortuneProfileId
+    ? fortune
+    : null;
+  const selectedFortune = useOpened('fortune', { profileId: fortuneProfileId, fortune: currentFortune });
+  const anyFortuneOpened = useAnyFortuneOpened();
+  if (!user) return null;
+  const name = fortuneUser?.nickname ?? user.nickname;
+  const read = selectedFortune.ready && selectedFortune.opened;
+  // 프로필 전환 중에는 하단 한 줄을 비워 두고, 선택한 프로필의 응답이 오면 문구를 정한다.
+  let subtitle = '\u00A0';
+  if (currentFortune && selectedFortune.ready) {
+    if (read) {
+      subtitle = `${currentFortune.combined.totalScore}점 · ${currentFortune.combined.summary}`;
+    } else if (anyFortuneOpened.opened || (currentFortune.drawCost ?? 0) > 0) {
+      subtitle = '운알이가 운세를 봐드려요';
+    } else if (anyFortuneOpened.ready) {
+      subtitle = '운알이가 무료로 봐드려요';
+    }
+  }
+  return (
+    // 칩(프로필 고르기)이 카드 버튼 안에 들어가지 않게, 카드 전체를 덮는 버튼 위에 내용을 얹는다
+    <TodayCard>
+    <View style={s.todayContent}>
+      <PressableScale onPress={onAsk} style={StyleSheet.absoluteFill} scaleTo={1} accessibilityLabel={read ? `${name}님 오늘의 운세 다시 보기` : `${name}님 오늘의 운세 물어보기`} />
+      <View style={{ flex: 1, gap: 6 }} pointerEvents="box-none">
+        <View style={s.todayHead} pointerEvents="box-none">
+          <Text style={s.todayK} pointerEvents="none">오늘의 운세</Text>
+          <FortuneProfileChip style={s.todayProfileChip} />
+        </View>
+        <Text style={s.todayV} numberOfLines={1} pointerEvents="none">{subtitle}</Text>
+      </View>
+      <View pointerEvents="none"><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+    </View>
+    </TodayCard>
+  );
+}
+
+/**
+ * 첫 화면 운알톡 — 운알이가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기).
+ * 이어서 할 대화를 위에 두고, 지난 대화 전체는 '대화 기록' 탭에. 답변 아래에서 고민에 맞는 리포트로 이어진다
+ */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user: u, account, fortune: viewed } = useApp();
-  // 운알톡은 대표 프로필 기준 — 메인에서 다른 프로필을 보는 중이면 오늘 기운을 숨긴다
-  const fortune = viewed?.forProfile == null ? viewed : null;
-  const fortuneOpened = useOpened('fortune').opened; // 뽑기 전엔 요약 대신 홈으로 뽑으러 가게 한다
+  const { user: u, account } = useApp();
   const { points, toast } = usePremium();
   const input = useRef<TextInputInstance>(null);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
+  const invite = usePendingInviteSheet();
   const status = useConsultStatus(!!account);
-  // 각각 앞의 HOME_ROWS개만 보이고, 하나 더 받아 와서 넘치면 '더보기'로 목록 화면을 연다
-  const head = (kind: ConsultListKind) => ({ queryKey: consultKeys.head(kind), queryFn: () => consultApi.list({ kind, limit: HOME_ROWS + 1 }), enabled: !!account });
-  const openQ = useQuery(head('open'));
-  const pastQ = useQuery(head('past'));
+  // 최근 대화 HOME_ROWS개만 (이어서 할 것 · 끝난 것 구분 없이 최신순). 전체는 '대화 기록' 탭에서
+  const recentQ = useQuery({ queryKey: ['consults', 'head', 'recent'], queryFn: () => consultApi.list({ limit: HOME_ROWS }), enabled: !!account });
   useWebAutoGrow(input, text, INPUT_MAX);
   if (!u) return null;
 
@@ -92,6 +141,8 @@ export default function ConsultHomeScreen() {
   const ok = len >= CONSULT_CONFIG.minLen;
 
   const start = () => {
+    // "오늘 운세 어때?"처럼 오늘의 운세만 물으면 상담 대신 오늘의 운세로 답한다 (무료)
+    if (text.trim() && isTodayFortuneQuestion(text)) { setText(''); input.current?.blur(); nav.navigate('Today'); return; }
     if (!ok) return;
     if (!account) { toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
     if (free || viaSub) ask();
@@ -108,49 +159,37 @@ export default function ConsultHomeScreen() {
   };
 
   const openChat = (e: ConsultView) => nav.push('ConsultChat', { id: String(e.id) });
-  const section = (kind: ConsultListKind, title: string, rows: ConsultView[] | undefined) => (rows?.length ? (
+  const section = (title: string, rows: ConsultView[] | undefined) => (rows?.length ? (
     <>
       <SectionHeader
         title={title}
-        action={rows.length > HOME_ROWS ? '더보기' : undefined} showAction
-        onAction={() => nav.push('ConsultHistory', { kind })}
+        action="전체 보기" showAction
+        onAction={() => nav.navigate('Talks')}
       />
       <ConsultRows rows={rows.slice(0, HOME_ROWS)} onOpen={openChat} />
     </>
   ) : null);
 
   return (
-    <Screen largeTitle="운알톡" right={<PointPill attendHint quiet />} scroll={false}>
+    <Screen left={<Logo height={36} color={colors.ink} />} right={<PointPill attendHint quiet />} scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
             <Image source={CONSULT_MASCOT} style={s.mascot} contentFit="cover" />
-            <Text style={s.greet}>{u.nickname}님, 혼자 품고 있는 고민이 있나요?{'\n'}운알이에게만 들려주면 사주로 해결법을 찾아 줄게요.</Text>
+            <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}{u.nickname}님의 사주를 아는 운알이가 함께 답을 찾아 줄게요.</Text>
           </View>
-          {fortune && fortuneOpened ? (
-            <TodayCard>
-              <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
-              <Text style={s.todayV} numberOfLines={2}>{fortune.combined.summary}</Text>
-            </TodayCard>
-          ) : fortune ? (
-            <PressableScale onPress={() => nav.navigate('Home')} scaleTo={0.98} accessibilityLabel="홈에서 오늘의 운세 뽑기">
-              <TodayCard>
-                <Text style={s.todayK}>오늘 {u.nickname}님의 기운</Text>
-                <Text style={s.todayV}>아직 오늘의 운세를 안 뽑았어요. 홈에서 뽑아 보세요 ›</Text>
-              </TodayCard>
-            </PressableScale>
-          ) : null}
+          {/* 오늘의 운세 — 고민 주제와 따로. 누구 운세를 볼지 먼저 고르고 물어본다 (무료로 바로 답) */}
+          <TodayFortuneCard onAsk={() => nav.navigate('Today')} />
+          <HomeNotices />
+          {section('최근 대화', recentQ.data)}
 
           {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
-          <Text style={s.exampleK}>다른 분들은 이런 고민을 털어놨어요</Text>
+          <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
           <View style={{ gap: 12 }}>
             {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
           </View>
 
-          {section('open', '이어서 이야기하기', openQ.data)}
-          {section('past', '지난 대화', pastQ.data)}
-
-          <Text style={[s.note, { marginTop: 12 }]}>운알이와 나만 아는 비밀이에요. 1년 뒤 자동으로 지워져요.</Text>
+          <Text style={[s.note, { marginTop: 24 }]}>운알이와 나만 아는 비밀이에요.</Text>
         </ScrollView>
 
         {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
@@ -183,7 +222,7 @@ export default function ConsultHomeScreen() {
           <View style={s.inputRow}>
             <TextInput
               ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW} {...webEnterToSend(start)}
-              placeholder="마음의 소리를 편하게 적어 주세요" placeholderTextColor={colors.inkMute}
+              placeholder="궁금한 걸 편하게 물어보세요" placeholderTextColor={colors.inkMute}
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
             <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : viaSub ? '구독 혜택으로 물어보기' : `${cost}알로 물어보기`}>
@@ -207,13 +246,15 @@ export default function ConsultHomeScreen() {
         <PrimaryButton label="바꾸기" onPress={() => { if (swapTo) fillExample(swapTo); setSwapTo(null); }} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setSwapTo(null)} style={{ marginTop: 8 }} />
       </BottomSheet>
+      {invite.sheet}
+      <WelcomeBonusSheet hidden={invite.visible} />
     </Screen>
   );
 }
 
 const INPUT_MAX = 120;
 const TICKET_INK = isDark ? colors.accent : 'rgba(0, 163, 255, 0.8)'; // 디자인: #00A3FF 80%
-const HOME_ROWS = 10;
+const HOME_ROWS = 3;
 const FOOTER_FADE = [`${colors.cream}00`, colors.cream] as const;
 
 const s = StyleSheet.create({
@@ -221,12 +262,15 @@ const s = StyleSheet.create({
   intro: { alignItems: 'center', marginTop: 8 },
   mascot: { width: 215, height: 144 },
   greet: { marginTop: -7, fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
-  today: { gap: 5, minHeight: 72, marginTop: 28, padding: 16, borderRadius: radius.lg, overflow: 'hidden' },
-  todayImg: { width: '100%', height: '100%', borderRadius: radius.lg }, // 웹은 크기를 안 주면 그림 원래 크기로 그린다
-  // 네이티브는 그림이 이미 카드를 꽉 채운다. 100%를 주면 카드 안쪽 여백을 뺀 크기로 줄어 왼쪽 위에만 깔린다
+  today: { marginTop: 20, borderRadius: radius.lg, overflow: 'hidden' },
+  todayImg: { width: '100%', height: '100%', borderRadius: radius.lg },
   todayImgNative: { borderRadius: radius.lg },
-  todayK: { fontSize: 14, lineHeight: 17, fontWeight: '700', color: colors.ink, letterSpacing: -0.56 },
-  todayV: { fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
+  todayContent: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, minHeight: 66 },
+  todayHighlighted: { borderWidth: 1, borderColor: '#68BFF2' },
+  todayProfileChip: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(23, 75, 115, 0.2)', shadowColor: '#174B73', shadowOpacity: 0.14, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  todayHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  todayK: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
+  todayV: { fontSize: 13, lineHeight: 18, color: colors.inkSub, letterSpacing: -0.6 },
   exampleK: { fontSize: 13, fontWeight: '600', color: colors.inkMute, marginTop: 28, marginBottom: 10 },
   footer: { paddingHorizontal: SCREEN_PX, paddingTop: 4, paddingBottom: 18, backgroundColor: colors.cream },
   fade: { position: 'absolute', left: 0, right: 0, top: -28, height: 28 },

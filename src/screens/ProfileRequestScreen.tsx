@@ -14,6 +14,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import LinkStateLayout from '../components/LinkStateLayout';
 import { ApiError } from '../api/client';
 import { getTokens } from '../api/tokens';
+import { useGuestTerms } from '../components/auth/GuestTermsSheet';
 import { authApi } from '../services/server/authApi';
 import { ProfileRequestPreview, profileRequestApi } from '../services/server/profileRequestApi';
 import { RELATIONSHIP_LABEL } from '../types';
@@ -35,6 +36,7 @@ export default function ProfileRequestScreen() {
   const { toast } = usePremium();
   const [state, setState] = useState<State>(token ? 'loading' : 'gone');
   const [request, setRequest] = useState<ProfileRequestPreview | null>(null);
+  const guestTerms = useGuestTerms();
 
   const load = useCallback(() => {
     if (!token) return;
@@ -50,6 +52,7 @@ export default function ProfileRequestScreen() {
   if (state === 'ready' && request) {
     const who = request.requesterNickname;
     return (
+      <>
       <ProfileForm
         initial={user && !request.nickname ? user : null}
         initialNickname={request.nickname ?? undefined}
@@ -58,7 +61,10 @@ export default function ProfileRequestScreen() {
         submitLabel={`${who}님에게 보내기`}
         onSubmit={async input => {
           try {
-            if (!(await getTokens())) await authApi.startGuest();
+            // 계정이 없으면 약관 동의를 받고 게스트를 만든다 — 닫으면 보내지 않는다
+            const consent = await guestTerms.request();
+            if (consent === null) return;
+            if (!(await getTokens())) await authApi.startGuest(consent);
             const me = await authApi.me();
             const r = await profileRequestApi.answer(me.id, token!, input);
             if (!onboarded) await completeOnboarding();
@@ -73,6 +79,8 @@ export default function ProfileRequestScreen() {
         }}
         onClose={() => router.replace('/')}
       />
+      {guestTerms.sheet}
+      </>
     );
   }
 

@@ -23,6 +23,8 @@ interface Props {
   /** 스크롤은 두되 잠시 멈춘다 (예: 금박을 긁는 동안) */
   scrollEnabled?: boolean;
   right?: React.ReactNode;
+  /** 뒤로 가기 자리에 둘 버튼 (예: 운알톡 대화의 대화 목록 메뉴). 주면 뒤로 가기 대신 이걸 보여 준다 */
+  left?: React.ReactNode;
   contentStyle?: ViewStyle;
   bg?: string;
   /** 상단을 옅은 하늘색 그라디언트로 (콘텐츠 · 상담 대화) */
@@ -37,7 +39,7 @@ interface Props {
   floatingBar?: boolean;
 }
 
-export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollEnabled = true, right, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
+export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollEnabled = true, right, left, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar }: Props) {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
   // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
@@ -55,16 +57,17 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
   // 탭 화면(큰 제목)은 뒤로 가기 없이 제목만. 화면 안 단계가 있을 때(onBack)만 둔다.
   // 공유 링크(/r/{token})로 연 화면은 돌아갈 곳이 없으니 뒤로 가기를 두지 않는다
   const sharedView = !!useSharedView();
-  const showBack = (back || !!onBack) && !sharedView;
+  const showBack = (back || !!onBack) && !sharedView && !left;
   const goBack = onBack ?? (() => nav.goBack());
   const heading = title ?? largeTitle;
-  const bar = (heading || showBack || right) && (
+  const bar = (heading || showBack || right || left) && (
     <View style={[s.bar, { paddingLeft: Math.max(SCREEN_PX, barInsets.left), paddingRight: Math.max(SCREEN_PX, barInsets.right) }, floating && [s.floatBar, { top: barInsets.top }]]}>
       {showBack ? (
         <PressableScale onPress={goBack} hitSlop={10} style={s.iconBtn} accessibilityLabel="뒤로 가기" scaleTo={0.9}>
           <Icon name="chevronLeft" size={24} strokeWidth={2} />
         </PressableScale>
       ) : null}
+      {left ?? null}
       <Text style={[s.title, titleStyle]} numberOfLines={1} accessibilityRole="header">{heading}</Text>
       {right ? <View style={s.right}>{right}</View> : null}
     </View>

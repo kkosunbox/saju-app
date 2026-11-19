@@ -13,7 +13,7 @@ import { radius } from '../theme/typography';
 
 const MASCOT_SIZE = 88;
 
-export default function FortuneSealed({ message = '홈에서 오늘의 운세를 뽑으면\n점수와 풀이를 볼 수 있어요' }: { message?: string }) {
+export default function FortuneSealed({ message = '오늘의 운세를 뽑으면\n점수와 풀이를 볼 수 있어요' }: { message?: string }) {
   const nav = useNavigation();
   return (
     <View style={s.card}>
@@ -23,7 +23,7 @@ export default function FortuneSealed({ message = '홈에서 오늘의 운세를
       </View>
       <Text style={s.title}>오늘의 운세를 아직 뽑지 않았어요</Text>
       <Text style={s.text}>{message}</Text>
-      <PrimaryButton label="홈에서 뽑기 →" onPress={() => nav.navigate('Tabs', { screen: 'Home' })} size="medium" style={s.button} />
+      <PrimaryButton label="오늘의 운세 뽑기 →" onPress={() => nav.navigate('Today')} size="medium" style={s.button} />
     </View>
   );
 }

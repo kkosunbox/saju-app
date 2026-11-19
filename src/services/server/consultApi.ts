@@ -36,6 +36,8 @@ export interface ConsultView {
   profileNickname?: string | null;
   topic: ConsultCat;
   risk: 'none' | 'concern' | 'crisis';
+  /** 답변 아래 추천할 리포트 (서버가 주제로 정함). 대화 중 마음 건강 신호가 있었으면 null — 리포트를 권하지 않는다 */
+  suggestedReport?: string | null;
   /** 고민 글 (한 건 조회에서만) */
   question: string | null;
   /** 잠겨 있으면 ConsultPreview 항목만 */

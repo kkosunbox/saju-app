@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import PressableScale from '../components/PressableScale';
 import ProfileRequestSheet from '../components/profile/ProfileRequestSheet';
 import { colors } from '../theme/colors';
@@ -14,7 +14,9 @@ import ProfileForm from '../components/profile/ProfileForm';
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/my'));
 
 export default function ProfileNewScreen() {
-  const { saveProfile } = useApp();
+  const { saveProfile, selectFortuneProfile } = useApp();
+  // 오늘의 운세에서 추가하러 왔으면, 추가한 사람의 운세로 바로 바꿔 둔다
+  const { for: from } = useLocalSearchParams<{ for?: string }>();
   const { toast } = usePremium();
   const [asking, setAsking] = useState(false);
   return (
@@ -26,6 +28,7 @@ export default function ProfileNewScreen() {
       relationship="other"
       onSubmit={async input => {
         const saved = await saveProfile(input);
+        if (from === 'fortune' && saved.profileId != null) selectFortuneProfile(saved.isPrimary ? null : saved.profileId);
         toast(`${saved.nickname}님 프로필을 추가했어요`);
         leave();
       }}

@@ -100,6 +100,38 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
   return { ready: !!stamps && (local || !!fortune || !!fortuneError), opened: !resetToday && (local || server), open, reset };
 }
 
+/** 오늘의 운세를 이미 연 프로필이 하나라도 있는지 확인한다. 프로필 선택 중에도 전체 상태를 안정적으로 유지한다. */
+export function useAnyFortuneOpened() {
+  const { user, profiles, today, fortune } = useApp();
+  const userId = user?.id;
+  const profileUids = user
+    ? [...new Set([user.id, ...profiles.flatMap(p => p.profileId == null ? [] : [`${user.id}:f${p.profileId}`])])]
+    : [];
+  const profileKey = profileUids.join(',');
+  const [state, setState] = useState<{ userId: string | null; today: string; profileKey: string; ready: boolean; opened: boolean }>({ userId: null, today, profileKey: '', ready: false, opened: false });
+
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    const refresh = () => {
+      Promise.all(profileKey.split(',').filter(Boolean).map(uid => load(uid))).then(all => {
+        if (!live) return;
+        const locallyOpened = all.some(stamps => stamps.fortune === today);
+        const selectedServerOpened = !!fortune?.drawn && fortune.date === today;
+        setState({ userId, today, profileKey, ready: true, opened: locallyOpened || selectedServerOpened });
+      });
+    };
+    refresh();
+    subs.add(refresh);
+    return () => { live = false; subs.delete(refresh); };
+  }, [userId, today, fortune?.drawn, fortune?.date, profileKey]);
+
+  if (!userId) return { userId: null, today, ready: true, opened: false };
+  return state.userId === userId && state.today === today && state.profileKey === profileKey
+    ? state
+    : { userId, today, profileKey, ready: false, opened: false };
+}
+
 /**
  * 결과 화면(분야별·종합 풀이)에 다른 길(알림·링크)로 먼저 들어왔으면 그걸로 뽑은 셈.
  * 단, 들어온 날짜에만 — 화면을 띄워 둔 채 자정이 지나면 새 날 운세를 대신 뽑지 않고 sealed를 돌려준다 (홈에서 직접 뽑게).

@@ -153,7 +153,9 @@ export function usePushOpenRouting(ready: boolean): void {
     const data = response.notification.request.content.data;
     const readingKey = readingKeyOf(data);
     if (readingKey) openedReadings.add(readingKey);
-    const url = readingKey ? hrefOfKey(readingKey) : data?.url;
+    const raw = readingKey ? hrefOfKey(readingKey) : data?.url;
+    // 매일 운세 알림은 예전 홈 주소('/')로 온다 — 첫 화면이 운알톡이 되어 오늘의 운세로 보낸다
+    const url = raw === '/' ? '/today' : raw;
     if (typeof url === 'string' && url.startsWith('/')) router.push(url as Href);
   }, [ready, response]);
 }

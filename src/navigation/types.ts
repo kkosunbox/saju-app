@@ -5,8 +5,10 @@ import { ThemeKind } from '../services/premium/catalog';
 import type { ShareSpec } from '../services/share/shareSpecs';
 
 export type TabParamList = {
+  /** 첫 화면 = 운알톡 */
   Home: undefined;
   Consult: undefined;
+  Talks: { tab?: 'fortune' } | undefined;
   Content: undefined;
   Compatibility: { result?: CompatibilityResult; resultId?: string } | undefined;
   MyPage: undefined;
@@ -39,10 +41,15 @@ export type RootStackParamList = {
   Talisman: undefined;
   Spouse: undefined;
   Fortune: { period?: Period } | undefined;
+  /** 오늘의 운세 (마스코트를 꾹 눌러 뽑는 화면) */
+  Today: undefined;
   Consult: undefined;
   /** 상담 대화 (첫 답변 + 이어 묻기) */
   /** id 'new': 상담 탭이 시작한 요청(ask 키)의 답을 기다리는 중 */
-  ConsultChat: { id: string; ask?: string };
+  /** fresh: 방금 받은 답 — 답이 써지는 것처럼 보여 준다 */
+  ConsultChat: { id: string; ask?: string; fresh?: string };
+  /** 지난 오늘의 운세 (뽑은 운세 id) */
+  FortuneHistory: { id: string };
   /** 상담 기록 전체 (무한 스크롤) */
   ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;

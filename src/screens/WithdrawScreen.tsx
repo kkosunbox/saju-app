@@ -30,9 +30,9 @@ const REASONS = [
 type ReasonKey = (typeof REASONS)[number]['key'];
 
 /** 결제하지 않은 사람에게 보여 줄 무료 콘텐츠 */
-const FREE: { title: string; sub: string; go: '/character' | '/mbti-match' | '/past-life' | '/talisman' | { tab: 'Home' | 'Compatibility' } }[] = [
-  { title: '오늘의 운세', sub: '매일 새로 뽑는 하루 한 장', go: { tab: 'Home' } },
-  { title: '기본 궁합', sub: '그 사람과 나, 얼마나 잘 맞을까', go: { tab: 'Compatibility' } },
+const FREE: { title: string; sub: string; go: '/character' | '/mbti-match' | '/past-life' | '/talisman' | '/today' | '/compatibility' }[] = [
+  { title: '오늘의 운세', sub: '매일 새로 뽑는 하루 한 장', go: '/today' },
+  { title: '기본 궁합', sub: '그 사람과 나, 얼마나 잘 맞을까', go: '/compatibility' },
   { title: '사주 캐릭터', sub: '타고난 기운으로 그린 나의 캐릭터', go: '/character' },
   { title: '찰떡 MBTI', sub: '나와 가장 잘 맞는 MBTI', go: '/mbti-match' },
   { title: '전생 기록서', sub: '전생의 나는 어떤 사람이었을까', go: '/past-life' },
@@ -128,7 +128,7 @@ export default function WithdrawScreen() {
           </Text>
           <View style={{ marginTop: 20, gap: 8 }}>
             {FREE.map(f => (
-              <PressableScale key={f.title} onPress={() => (typeof f.go === 'string' ? router.push(f.go) : nav.navigate('Tabs', { screen: f.go.tab }))} scaleTo={0.98} style={s.free} accessibilityLabel={`${f.title} 보러 가기`}>
+              <PressableScale key={f.title} onPress={() => router.push(f.go)} scaleTo={0.98} style={s.free} accessibilityLabel={`${f.title} 보러 가기`}>
                 <View style={{ flex: 1 }}>
                   <Text style={txt.bodyStrong}>{f.title}</Text>
                   <Text style={[txt.small, { marginTop: 2 }]}>{f.sub}</Text>

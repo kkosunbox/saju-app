@@ -317,17 +317,23 @@ function SumRow({ label, value, color, sign }: { label: string; value: string | 
 }
 
 function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; who: string | null; again: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
-  // 누구 것으로 여는지 · 바뀐 정보로 다시 여는지
-  const whoLine = who ? <Text style={[txt.small, s.center, { marginTop: 6, color: colors.purple }]}>{again ? `${who}님의 바뀐 정보로 다시 열어요` : `${who}님 정보로 열어요`}</Text>
-    : again ? <Text style={[txt.small, s.center, { marginTop: 6, color: colors.purple }]}>바뀐 정보로 다시 열어요 · 예전 풀이도 남아요</Text> : null;
+  // 위쪽(제목 · 설명)은 왼쪽 정렬. 제목 오른쪽에 누구 것인지 이름 칩 (다른 화면의 프로필 칩과 같은 모양)
+  const titleRow = (marginTop: number) => (
+    <View style={[s.titleRow, { marginTop }]}>
+      <Text style={[txt.h2, { flexShrink: 1 }]}>{it.title}</Text>
+      {who ? <View style={s.whoChip}><Text style={s.whoChipText} numberOfLines={1}>{who}님</Text></View> : null}
+    </View>
+  );
+  // 바뀐 정보로 다시 열 때만 한 줄을 더한다
+  const againLine = again ? <Text style={[txt.caption, { marginTop: 6 }]}>바뀐 정보로 다시 열어요 · 예전 풀이도 남아요</Text> : null;
   if (free) {
     // 구독 혜택: 알을 쓰지 않는다는 것과 그게 구독 덕분이라는 걸 함께 보여 준다
     return (
       <View>
-        <SubscriptionBadge style={{ alignSelf: 'center' }} />
-        <Text style={[txt.h2, s.center, { marginTop: 8 }]}>{it.title}</Text>
-        <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
-        {whoLine}
+        <SubscriptionBadge style={{ alignSelf: 'flex-start' }} />
+        {titleRow(8)}
+        <Text style={[txt.small, { marginTop: 8 }]}>{it.desc}</Text>
+        {againLine}
         <View style={s.sumBox}>
           <SumRow label="원래 가격" value={it.cost} />
           <SumRow label="구독 혜택" value="이번 달 무료" color={colors.purple} />
@@ -343,10 +349,9 @@ function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onCl
   const enough = points >= it.cost;
   return (
     <View>
-      <Text style={[txt.caption, s.center]}>알 사용</Text>
-      <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{it.title}</Text>
-      <Text style={[txt.small, s.center, { marginTop: 2 }]}>{it.desc}</Text>
-      {whoLine}
+      {titleRow(0)}
+      <Text style={[txt.small, { marginTop: 8 }]}>{it.desc}</Text>
+      {againLine}
       <View style={s.sumBox}>
         <SumRow label="보유 알" value={points} />
         <SumRow label="사용할 알" value={it.cost} sign="−" color={colors.love} />
@@ -418,6 +423,9 @@ function Toast({ msg, onPress }: { msg: string; onPress?: () => void }) {
 }
 
 const s = StyleSheet.create({
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  whoChip: { flexShrink: 0, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.cream, maxWidth: 120 }, // 시트 바탕(card) 위라 흰 칩
+  whoChipText: { ...txt.caption, fontSize: 12, color: colors.purpleSoft },
   center: { textAlign: 'center' },
   sumBox: { backgroundColor: colors.cream, borderRadius: radius.lg, padding: 16, marginTop: 18, marginBottom: 12, gap: 10 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

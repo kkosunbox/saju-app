@@ -26,6 +26,7 @@ import { ProfileInput } from '../services/server/profileApi';
 import { placeLabel } from '../services/server/birthPlaceApi';
 import { getPendingInvite } from '../services/share/linkShare';
 import { webSafeTop } from '../utils/webThemeColor';
+import { useGuestTerms } from '../components/auth/GuestTermsSheet';
 
 /**
  * 한 화면에 질문이 차례로 쌓인다: 이름 → 생년월일 → 태어난 시간 → 태어난 곳 → 성별 → MBTI (직업·관심사는 마이에서 나중에).
@@ -33,7 +34,7 @@ import { webSafeTop } from '../utils/webThemeColor';
  * 칸이 큰 질문(시간·태어난 곳·MBTI)은 답하면 한 줄로 접히고, 누르면 다시 펼쳐진다.
  */
 const QUESTIONS = [
-  { q: () => '어떻게 불러드릴까요?', hint: '운세에서 불러드릴 이름이에요.' },
+  { q: () => '어떻게 불러드릴까요?', hint: '운알이가 불러드릴 이름이에요.' },
   { q: (name: string) => `${name}님, 언제 태어났나요?`, hint: '빈칸의 내용을 채워주세요.' },
   { q: () => '몇 시쯤 태어났나요?', hint: '2시간 단위로 골라요. 몰라도 괜찮아요.' },
   { q: () => '어디서 태어났나요?', hint: '시·군이나 도시 이름으로 찾아요. 해외도 돼요.' },
@@ -53,7 +54,7 @@ function restoreTime(t: string | null | undefined): { mode: TimeMode | null; sij
   return { mode: 'exact', sijin: null, jasi: null, exact: t.replace(':', '') };
 }
 
-const LOADING_MSGS = ['오늘의 운을 고르는 중', '사주 원국을 세우는 중', 'MBTI 성향을 읽는 중', '오늘의 타로 카드를 고르는 중', '태어난 요일의 행성을 찾는 중', '네 가지 결과를 엮는 중'];
+const LOADING_MSGS = ['사주 원국을 세우는 중', '타고난 기질을 읽는 중', 'MBTI 성향을 읽는 중', '오늘의 기운을 살피는 중', '운알이가 대화를 준비하는 중'];
 
 /** 새로 열린 질문이 위에서 살짝 내려오며 나타난다 */
 function Reveal({ children, reduced, style }: { children: React.ReactNode; reduced: boolean; style?: StyleProp<ViewStyle> }) {
@@ -88,6 +89,7 @@ export default function ProfileSetupScreen() {
   const bar = useTopBarInsets();
   // 몇 번째 질문까지 열렸는지 (수정할 때는 처음부터 다 열린다)
   const [stage, setStage] = useState(editing ? LAST : 0);
+  const guestTerms = useGuestTerms();
   // 접힌 질문 중 다시 펼친 것
   const [open, setOpen] = useState<'time' | 'place' | 'mbti' | null>(null);
   const [quizOpen, setQuizOpen] = useState(false);
@@ -143,6 +145,9 @@ export default function ProfileSetupScreen() {
   useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: !reduced }); }, [stage, reduced]);
 
   const finish = async () => {
+    // 계정이 아직 없으면(첫 프로필) 약관 동의부터 — 닫으면 저장하지 않는다
+    const consent = await guestTerms.request();
+    if (consent === null) return;
     setGenerating(true);
     setSaveError(null);
     const input: ProfileInput = {
@@ -159,7 +164,7 @@ export default function ProfileSetupScreen() {
     };
     const minimumShow = new Promise(resolve => setTimeout(resolve, editing ? 600 : 1800));
     try {
-      await Promise.all([saveUser(input), minimumShow]);
+      await Promise.all([saveUser(input, consent), minimumShow]);
     } catch (e) {
       const code = e instanceof ApiError ? e.code : '';
       setSaveError(
@@ -177,10 +182,10 @@ export default function ProfileSetupScreen() {
     setStage(Math.min(LAST, stage + 1));
   };
 
-  if (generating) return <MoonLoader title={editing ? '프로필을 저장하고 있어요' : `${nickname.trim()}님만의\n운세 프로필을 만들고 있어요`} messages={LOADING_MSGS} />;
+  if (generating) return <MoonLoader title={editing ? '프로필을 저장하고 있어요' : `운알이가 ${nickname.trim()}님을\n알아 가고 있어요`} messages={LOADING_MSGS} />;
 
   const title = allDone
-    ? (editing ? '프로필을 확인해 주세요' : '이대로 운세를 볼게요')
+    ? (editing ? '프로필을 확인해 주세요' : '이대로 시작할게요')
     : QUESTIONS[stage].q(nickname.trim());
   const hint = allDone ? '바꿀 항목은 눌러서 고칠 수 있어요.' : QUESTIONS[stage].hint;
   const barW = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -323,7 +328,7 @@ export default function ProfileSetupScreen() {
 
           <View style={{ paddingHorizontal: 24, paddingBottom: Math.max(24, insets.bottom) }}>
             {saveError ? <Text style={[s.error, { marginBottom: 10, textAlign: 'center' }]}>{saveError}</Text> : null}
-            <PrimaryButton size="medium" label={allDone ? (editing ? '저장하기' : inviter ? '궁합 보기' : '내 운세 보러 가기') : '다음'} onPress={next} disabled={!allDone && !curAnswered} />
+            <PrimaryButton size="medium" label={allDone ? (editing ? '저장하기' : inviter ? '궁합 보기' : '운알이 만나러 가기') : '다음'} onPress={next} disabled={!allDone && !curAnswered} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -333,6 +338,7 @@ export default function ProfileSetupScreen() {
           <MbtiQuiz onClose={() => setQuizOpen(false)} onDone={t => { setMbti(t); setSkipMbti(false); setOpen(null); setQuizOpen(false); }} />
         </SafeAreaView>
       ) : null}
+      {guestTerms.sheet}
     </View>
   );
 }

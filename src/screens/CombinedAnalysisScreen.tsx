@@ -16,7 +16,7 @@ export default function CombinedAnalysisScreen() {
   useFortuneDraw();
   if (!fortune) return null;
   // 화면을 띄워 둔 채 날짜가 바뀌었으면 새 날 운세는 홈에서 직접 뽑게 한다
-  if (sealed) return <Screen title={TITLE} back><FortuneSealed message={'날짜가 바뀌었어요\n홈에서 오늘의 운세를 새로 뽑아 주세요'} /></Screen>;
+  if (sealed) return <Screen title={TITLE} back><FortuneSealed message={'날짜가 바뀌었어요\n오늘의 운세를 새로 뽑아 주세요'} /></Screen>;
   if (fortuneWriting) return <LoadingScreen title={TITLE} message="네 가지 관점을 엮어 오늘의 이야기를 쓰고 있어요" />;
   return (
     <Screen title={TITLE} titleStyle={{ ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000', includeFontPadding: false }} back contentStyle={{ paddingTop: 0 }}>

@@ -17,6 +17,8 @@ export const RECOMMENDATION_DESIGN: Partial<Record<PromoKey, { base: number; ton
   'theme-career': { base: require('../../assets/figma/content/promo-career-base.webp'), tone: 'lime' },
   // 콘텐츠 탭 평생운 배너 그림
   life: { base: require('../../assets/figma/content/banner-life.webp'), tone: 'lavender' },
+  // 상세 사주는 따로 그린 그림이 없어 물음표 마스코트("나는 어떤 사람일까?")를 쓴다
+  sajuDeep: { base: require('../../assets/figma/content/promo-consult-base.webp'), tone: 'sky' },
 };
 /** 신년운세는 그림에 해가 적혀 있어 해마다 따로 — 홈 '더 깊이 보기'와 같은 그림 */
 export const NEW_YEAR_ART: Partial<Record<number, number>> = {

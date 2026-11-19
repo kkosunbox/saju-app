@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
 import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
@@ -12,16 +13,16 @@ import type { TodayCardData } from '../services/share/shareSpecs';
 import { todayISO } from '../utils/date';
 import { analysisTheme, colors } from '../theme/colors';
 import { fonts, radius, SCREEN_PX, txt } from '../theme/typography';
-import { COPY } from '../content/copy';
 import { webSafeTop } from '../utils/webThemeColor';
 
 const PAGES = [
-  { title: '오늘, 어떤 운을\nPICK하시겠어요?', body: COPY.pickMe, art: 'sheet' },
-  { title: '네 가지 관점으로\n나를 읽어요', body: '사주 · MBTI · 타로 · 점성술을 겹쳐 읽어요.', art: 'four' },
-  { title: '뽑은 결과는\n친구와 나눠요', body: '친구 결과와 나란히 비교하고, 스토리에도 올려 보세요.', art: 'story' },
+  { title: '말 못 할 고민,\n운알이에게 들려주세요', body: '나를 먼저 이해한 AI가 내 고민에 맞춰 대화로 답해요.', art: 'talk' },
+  { title: '사주와 MBTI로\n나를 먼저 읽어요', body: '타고난 성향을 알고 답하니까, 뻔한 위로가 아닌 내 이야기가 돼요.', art: 'four' },
+  { title: '더 알고 싶을 땐\n깊이 있는 리포트로', body: '아이 · 그 사람 · 내 인생의 흐름까지, 대화에서 필요한 리포트로 이어져요.', art: 'sheet' },
 ] as const;
 
-type Art = (typeof PAGES)[number]['art'];
+type Art = (typeof PAGES)[number]['art'] | 'story';
+const CONSULT_MASCOT = require('../../assets/images/consult-mascot.webp');
 const SOURCES = ['saju', 'thai', 'mbti', 'tarot'] as const;
 const SAMPLE_CARD: TodayCardData = {
   nickname: '운픽',
@@ -36,6 +37,13 @@ const SAMPLE_CARD: TodayCardData = {
 const STORY_SCALE = 0.48;
 
 export function Illustration({ kind }: { kind: Art }) {
+  if (kind === 'talk') {
+    return (
+      <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
+        <Image source={CONSULT_MASCOT} style={a.talk} contentFit="contain" accessible={false} />
+      </View>
+    );
+  }
   if (kind === 'sheet') {
     return (
       <View style={[a.stage, { backgroundColor: colors.accentSoft }]}>
@@ -160,6 +168,7 @@ const s = StyleSheet.create({
 const a = StyleSheet.create({
   story: { width: TODAY_W * STORY_SCALE, aspectRatio: 9 / 16, transform: [{ rotate: '3deg' }], borderRadius: 20 * STORY_SCALE, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
   storyScale: { width: TODAY_W, transform: [{ scale: STORY_SCALE }], transformOrigin: 'top left' },
+  talk: { width: 300, height: 200 },
   stage: { height: 300, marginTop: 12, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   halo: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: colors.moon, opacity: 0.12 },
   moon: { width: 120, height: 120, borderRadius: 60, backgroundColor: colors.moon, overflow: 'hidden' },

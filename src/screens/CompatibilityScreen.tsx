@@ -281,7 +281,7 @@ export default function CompatibilityScreen() {
     const deepItem = result.id != null ? ITEMS.compat(result.id, result.target.nickname, result.relationship, !!result.target.mbti) : null;
     const shareItem = deepItem && owned(deepItem.key) ? deepItem : undefined;
     return (
-      <Screen largeTitle="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={sharedView ? () => nav.goBack() : () => setResult(null)} right={<ShareIconButton item={shareItem} spec={compatSpec(me, result)} />}>
+      <Screen title="우리 둘의 궁합" titleStyle={{ lineHeight: 21, letterSpacing: 0, color: isDark ? colors.ink : '#000000' }} contentStyle={{ paddingTop: 5 }} onBack={sharedView ? () => nav.goBack() : () => setResult(null)} right={<ShareIconButton item={shareItem} spec={compatSpec(me, result)} />}>
         <Appear>
         <ImageBackground source={HERO[result.relationship]} style={s.hero} imageStyle={s.fill} resizeMode="cover">
           <View style={s.heroLogo}><Logo height={29} /></View>
@@ -361,7 +361,8 @@ export default function CompatibilityScreen() {
 
   return (
     <Screen
-      largeTitle="궁합"
+      title="궁합"
+      back
       subtitle="상대의 정보로 세 가지 관점의 궁합을 봐요"
       right={<PointPill attendHint quiet />}
       footer={(

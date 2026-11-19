@@ -8,7 +8,7 @@ import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
 import { storage } from '../services/storage/storageService';
 import { push } from '../services/push';
-import { Account, authApi } from '../services/server/authApi';
+import { Account, GuestConsent, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { ProfileInput, personToUser, profileApi } from '../services/server/profileApi';
 import { IS_WEB, getTokens } from '../api/tokens';
@@ -61,7 +61,8 @@ interface AppState {
   /** Web profile setup: opens the landing again without changing the session. */
   returnToLanding(): Promise<void>;
   /** Creates (as a guest if needed) or updates the profile. */
-  saveUser(input: ProfileInput): Promise<void>;
+  /** consent: 계정이 없을 때(첫 프로필) 받은 약관 동의 — 게스트를 만들며 함께 저장한다 */
+  saveUser(input: ProfileInput, consent?: GuestConsent): Promise<void>;
   refreshFortune(): Promise<void>;
   /** "다시 입력": opens the profile form prefilled (records are kept). */
   resetProfile(): void;
@@ -254,8 +255,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await storage.setOnboarded(false);
       setOnboarded(false);
     },
-    saveUser: async input => {
-      if (!(await getTokens())) await authApi.startGuest();
+    saveUser: async (input, consent) => {
+      if (!(await getTokens())) await authApi.startGuest(consent);
       const me = await authApi.me();
       const saved = await profileApi.save(me.id, input);
       queryClient.invalidateQueries();
