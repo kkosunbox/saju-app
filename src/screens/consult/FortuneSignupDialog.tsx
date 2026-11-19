@@ -81,7 +81,7 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
             <PromoCard variant="recommendation" {...promoDesign('newyear', year)} title={`${year}년 신년운세`}
               desc="분야별 운세와 12개월 흐름" coin cta={`${newYear.cost}알 · 미리 보기 →`} accessibilityLabel="신년운세"
               onPress={() => open({ pathname: '/premium/new-year', params: { year: String(year) } })} />
-            {visible ? <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" outlined /> : null}
+            {visible ? <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" /> : null}
           </ScrollView>
           <View style={s.signup}>
             <View style={s.reward} accessible accessibilityLabel="SNS로 처음 가입하면 50알을 드려요">
