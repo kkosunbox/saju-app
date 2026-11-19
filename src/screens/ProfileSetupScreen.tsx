@@ -176,8 +176,19 @@ export default function ProfileSetupScreen() {
     }
   };
 
+  // 처음 입력할 때는 마지막 질문(MBTI)에 답하면 버튼을 누르지 않아도 한 번 넘어간다 — 약관 동의 시트가 확인 단계가 된다.
+  // 시트를 닫으면 요약 화면에 머물고 그다음부터는 버튼으로. 수정 중이거나 이미 계정이 있으면(시트 없이 바로 저장돼서) 넘기지 않는다
+  const finishRef = useRef(finish);
+  useEffect(() => { finishRef.current = finish; });
+  const autoFinished = useRef(false);
+  useEffect(() => {
+    if (editing || account || !allDone || open !== null || quizOpen || autoFinished.current) return;
+    const t = setTimeout(() => { autoFinished.current = true; Keyboard.dismiss(); void finishRef.current(); }, 450);
+    return () => clearTimeout(t);
+  }, [editing, account, allDone, open, quizOpen]);
+
   const next = () => {
-    if (allDone) { finish(); return; }
+    if (allDone) { autoFinished.current = true; finish(); return; }
     Keyboard.dismiss();
     setStage(Math.min(LAST, stage + 1));
   };

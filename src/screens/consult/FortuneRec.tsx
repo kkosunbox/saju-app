@@ -61,18 +61,18 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
   );
 }
 
-export function FortuneSpouseBanner({ promo, screen }: { promo: Promo; screen: string }) {
+export function FortuneSpouseBanner({ promo, screen, cta }: { promo: Promo; screen: string; cta?: string }) {
   const { user } = useApp();
   const { points } = usePremium();
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !!user);
   const portrait = user && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
-  if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser />;
+  if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser cta={cta} />;
   const { cost } = promo.item;
-  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={`${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`} />;
+  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={cta ?? `${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`} coin={!cta} />;
 }
 
 /** 남색 그라데이션 카드 + 오른쪽 흐린 얼굴과 자물쇠 — 열면 또렷한 얼굴과 리포트를 본다. 글자·알약은 다른 추천 배너와 같은 모양 */
-function SpouseFaceCard({ user, portrait, cta, onPress }: { user: User; portrait: number | object; cta: string; onPress(): void }) {
+function SpouseFaceCard({ user, portrait, cta, onPress, coin = true }: { user: User; portrait: number | object; cta: string; onPress(): void; coin?: boolean }) {
   const who = user.gender === 'female' ? '남편' : '아내';
   return (
     <PressableScale onPress={onPress} style={s.face} scaleTo={0.98} accessibilityLabel={`미래의 ${who} 얼굴 열어 보기`}>
@@ -90,7 +90,7 @@ function SpouseFaceCard({ user, portrait, cta, onPress }: { user: User; portrait
       </View>
       <Text style={s.faceDesc}>사주로 그린 배우자의 얼굴 · 성격 · 만나는 때</Text>
       <View style={s.facePill}>
-        <Image source={require('../../../assets/figma/home/deeper-point.webp')} style={s.facePoint} contentFit="contain" accessible={false} />
+        {coin ? <Image source={require('../../../assets/figma/home/deeper-point.webp')} style={s.facePoint} contentFit="contain" accessible={false} /> : null}
         <Text style={s.facePillText} numberOfLines={1}>{cta}</Text>
       </View>
     </PressableScale>

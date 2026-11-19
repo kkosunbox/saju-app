@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { RootStackParamList } from '../navigation/types';
 import Screen from '../components/Screen';
@@ -21,51 +21,29 @@ import { useQuery } from '@tanstack/react-query';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { Period } from '../types';
 import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
-import { useFortuneDraw } from '../services/content/opened';
-import FortuneSealed from '../components/FortuneSealed';
-import CombinedAnalysisContent from '../components/CombinedAnalysisContent';
+import { radius } from '../theme/typography';
 
-const TABS: { key: Period; label: string }[] = [
-  { key: 'daily', label: '오늘' }, { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
+/** 오늘의 운세는 운알톡(오늘의 운세 대화)에서 본다 — 여기는 기간 운세만 */
+type PeriodTab = Exclude<Period, 'daily'>;
+const TABS: { key: PeriodTab; label: string }[] = [
+  { key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' },
 ];
 const TONES: (keyof typeof PROMO_TONE)[] = ['mint', 'lime', 'gold'];
 const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 
-/**
- * 오늘 · 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다).
- * 들어온다고 오늘의 운세를 뽑지 않는다 — 안 뽑았으면 '오늘' 탭만 봉인하고 홈으로 보낸다. 주간·월간·연간은 기간 운세라 그대로 보인다.
- */
+/** 주간 · 월간 · 연간 운세 (홈 · 콘텐츠에서 들어온다). 기간 운세라 오늘의 운세를 뽑지 않아도 보인다 */
 export default function FortuneScreen() {
-  const { user, fortune, today, fortuneWriting } = useApp();
-  const draw = useFortuneDraw();
+  const { user, today } = useApp();
   const nav = useNavigation();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Fortune'>>();
-  const [tab, setTab] = useState<Period>(TABS.some(t => t.key === params?.period) ? params!.period! : 'daily');
+  const [tab, setTab] = useState<PeriodTab>(TABS.some(t => t.key === params?.period) ? params!.period as PeriodTab : 'weekly');
   const periodQuery = useQuery({
     queryKey: ['period', tab, user?.id, user?.version, today],
-    enabled: !!user && tab !== 'daily',
-    queryFn: () => fortuneApi.period(tab as 'weekly' | 'monthly' | 'yearly'),
+    enabled: !!user,
+    queryFn: () => fortuneApi.period(tab),
   });
-  const period = tab === 'daily' ? null : periodQuery.data ?? null;
-  if (!user || !fortune) return null;
-  // 오늘 탭인데 아직 안 뽑았으면 점수·문장을 그리지 않는다 (기록을 읽기 전엔 깜빡이지 않게 비워 둔다)
-  const locked = tab === 'daily' && !draw.opened;
-  if (tab === 'daily') {
-    return (
-      <Screen title="운세" back>
-        <Segmented<Period> options={TABS} value={tab} onChange={setTab} />
-        {locked ? (draw.ready ? <FortuneSealed /> : null) : fortuneWriting ? (
-          <View style={s.writing}>
-            <ActivityIndicator color={colors.purple} />
-            <Text style={[txt.small, s.writingText]}>네 가지 관점을 엮어 오늘의 이야기를 쓰고 있어요</Text>
-          </View>
-        ) : (
-          <View style={s.dailyContent}><CombinedAnalysisContent fortune={fortune} today={today} /></View>
-        )}
-      </Screen>
-    );
-  }
+  const period = periodQuery.data ?? null;
+  if (!user) return null;
 
   const score = period?.score ?? 0;
   const label = period?.label ?? '';
@@ -76,14 +54,14 @@ export default function FortuneScreen() {
   const weak = CATS.reduce((a, b) => (scoreOf(b) < scoreOf(a) ? b : a));
   const P = promosOf(nav, today);
   const WEAK_TITLE: Record<CategoryKey, string> = { love: `${label} 연애운이 아쉽다면`, money: `${label} 재물운이 아쉽다면`, work: `${label} 직장운이 아쉽다면`, relationship: '사람 때문에 고민이라면' };
-  const BY_TAB: Record<Exclude<Period, 'daily'>, PromoKey[]> = {
+  const BY_TAB: Record<PeriodTab, PromoKey[]> = {
     weekly: ['lucky', 'crush'], monthly: ['monthly', 'lucky'], yearly: ['newyear', 'life'],
   };
   const recs = [PROMO_OF_CATEGORY[weak], ...BY_TAB[tab]].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
 
   return (
     <Screen title="운세" back>
-      <Segmented<Period> options={TABS} value={tab} onChange={setTab} />
+      <Segmented<PeriodTab> options={TABS} value={tab} onChange={setTab} />
 
       <LinearGradient colors={gradients.skyCard} style={s.hero}>
         {/* 홈처럼 하늘 위에 옅은 구름을 깔고, 마스코트 발밑에 그림자를 둔다 */}
@@ -138,9 +116,6 @@ export default function FortuneScreen() {
 }
 
 const s = StyleSheet.create({
-  dailyContent: { marginTop: 20 },
-  writing: { paddingVertical: 80, alignItems: 'center', justifyContent: 'center' },
-  writingText: { textAlign: 'center', marginTop: 14 },
   hero: { marginTop: 20, minHeight: 180, borderRadius: radius.lg, overflow: 'hidden', paddingTop: 19, paddingBottom: 16, paddingHorizontal: 16 },
   // 홈 하늘(375×406)과 같은 비율로 깔고 위쪽 구름만 보이게
   heroClouds: { position: 'absolute', top: 0, left: 0, right: 0, height: 354, opacity: 0.7 },

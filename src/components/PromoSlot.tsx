@@ -54,10 +54,12 @@ interface Props {
   teaser?: boolean;
   variant?: React.ComponentProps<typeof PromoCard>['variant'];
   base?: React.ComponentProps<typeof PromoCard>['base'];
+  /** 가격 대신 보일 버튼 문구 (홈은 '확인하러 가기 →'처럼 가격 없이) */
+  cta?: string;
 }
 
 /** 유료 콘텐츠 추천 카드 — 보유 여부 · 가진 알로 바로 열기 · 미리보기 한 줄 · 노출/클릭 기록 */
-export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser, variant = 'recommendation', base }: Props) {
+export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser, variant = 'recommendation', base, cta }: Props) {
   const { owned, points } = usePremium();
   const have = owned(promo.item.key);
   const preview = usePremiumPreview<unknown>(promo.ref ?? { kind: 'saju' }, !!teaser && !!promo.ref && !have);
@@ -73,7 +75,7 @@ export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser,
     <PromoCard
       tone={recommendation ? design.tone : tone} variant={variant} base={base ?? (recommendation ? design.base : undefined)} descInset={recommendation && !base ? design.descInset : undefined} title={title ?? promo.title} desc={desc}
       isNew={variant === 'home'} badgePlacement={variant === 'home' ? 'inline' : undefined}
-      owned={have} coin={!have} cta={have ? '다시보기 →' : `${promo.item.cost}${variant === 'home' ? 'P' : recommendation ? '알' : ''} · ${verb} →`}
+      owned={have} coin={!have && !cta} cta={have ? '다시보기 →' : cta ?? `${promo.item.cost}${variant === 'home' ? 'P' : recommendation ? '알' : ''} · ${verb} →`}
       onPress={onPress}
     />
   );

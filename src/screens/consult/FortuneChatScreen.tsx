@@ -22,7 +22,7 @@ import { useScreenLive } from '../../utils/motion';
 import { Counselor, MyBubble, ReplyBubble, SuggestionChips } from './parts';
 import { ChatHeaderLeft } from './ChatMenu';
 import FortuneRec from './FortuneRec';
-import { useReserveFortuneSignup } from './FortuneSignupDialog';
+import { useFortuneSignup } from './FortuneSignupDialog';
 import { queryClient } from '../../api/query';
 import { fortuneHistoryKeys } from '../../services/server/fortuneApi';
 import { Stream, StreamBlock, StreamText } from '../../components/Stream';
@@ -173,12 +173,18 @@ export default function FortuneChatScreen() {
   const live = useScreenLive();
   const [alarmAsk, setAlarmAsk] = useState(false);
   const [signupSeen, setSignupSeen] = useState<boolean | null>(null);
-  const reserveSignup = useReserveFortuneSignup();
+  const { reserve: reserveSignup, setHostLive: setSignupHostLive } = useFortuneSignup();
   const signupReserved = useRef(false);
   const readingEnd = useRef<{ key: string; y: number } | null>(null);
-  const readingScroll = useRef<{ key: string; y: number; viewportHeight: number } | null>(null);
+  const readingScroll = useRef<{ key: string; y: number } | null>(null);
+  const viewportHeight = useRef(0);
   const readingKey = `${today}:${fortuneProfileId ?? 'primary'}`;
   const guest = !booting && !!user && !account;
+  // 예약된 가입 안내는 이 화면이 앞에 있을 때만 뜬다
+  useEffect(() => {
+    setSignupHostLive(live);
+    return () => setSignupHostLive(false);
+  }, [live, setSignupHostLive]);
 
   useEffect(() => {
     if (!guest) return;
@@ -207,20 +213,26 @@ export default function FortuneChatScreen() {
 
   const f = fortune?.combined;
   const watchForSignup = guest && signupSeen === false && ready && !!f && live && !alarmAsk;
-  // 첫 운세는 본문이 순서대로 나타난다. 스크롤과 본문 끝 위치가 모두 필요하다.
+  // 첫 운세는 본문이 순서대로 나타난다. 본문 끝(추천 질문)이 화면에 들어오면 예약한다 —
+  // 큰 화면이라 스크롤 없이 다 보이면 스크롤하지 않아도.
   const checkSignupPosition = useCallback(() => {
     if (!watchForSignup || signupReserved.current) return;
     const end = readingEnd.current;
-    const position = readingScroll.current;
-    if (end?.key !== readingKey || position?.key !== readingKey
-      || position.y <= 0 || position.y + position.viewportHeight < end.y) return;
+    if (end?.key !== readingKey || viewportHeight.current <= 0) return;
+    const y = readingScroll.current?.key === readingKey ? readingScroll.current.y : 0;
+    if (y + viewportHeight.current < end.y) return;
     signupReserved.current = true;
     reserveSignup();
   }, [readingKey, reserveSignup, watchForSignup]);
   useEffect(() => { checkSignupPosition(); }, [checkSignupPosition]);
 
   const onFortuneScroll = ({ nativeEvent: { contentOffset, layoutMeasurement } }: NativeSyntheticEvent<NativeScrollEvent>) => {
-    readingScroll.current = { key: readingKey, y: contentOffset.y, viewportHeight: layoutMeasurement.height };
+    readingScroll.current = { key: readingKey, y: contentOffset.y };
+    viewportHeight.current = layoutMeasurement.height;
+    checkSignupPosition();
+  };
+  const onFortuneViewportLayout = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    viewportHeight.current = layout.height;
     checkSignupPosition();
   };
   const onFortuneEndLayout = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
@@ -254,7 +266,8 @@ export default function FortuneChatScreen() {
       )}
     >
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
-        onScroll={guest && signupSeen !== true ? onFortuneScroll : undefined} scrollEventThrottle={32}>
+        onScroll={guest && signupSeen !== true ? onFortuneScroll : undefined} scrollEventThrottle={32}
+        onLayout={onFortuneViewportLayout}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>{formatKoreanDate(today)} · 오늘의 운세</Text>
         {/* 누구의 운세를 볼지 — 누르면 프로필을 고른다 */}
         <View style={s.whoRow}>
@@ -295,7 +308,7 @@ export default function FortuneChatScreen() {
             <FortuneRec fortune={f} mine={fortuneProfileId == null} />
 
             <StreamBlock>
-            <PressableScale onPress={() => nav.navigate('Home')} style={s.consult} scaleTo={0.98} accessibilityLabel="오늘의 기운으로 고민 상담하기">
+            <PressableScale onPress={() => nav.navigate('Consult')} style={s.consult} scaleTo={0.98} accessibilityLabel="오늘의 기운으로 고민 상담하기">
               <Text style={s.consultT}>마음에 걸리는 일이 있나요?</Text>
               <Text style={s.consultD}>오늘의 기운을 아는 운알이에게 털어놔 보세요 ›</Text>
             </PressableScale>

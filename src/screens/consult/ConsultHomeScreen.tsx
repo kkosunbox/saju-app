@@ -27,10 +27,7 @@ import { radius, SCREEN_PX, txt } from '../../theme/typography';
 import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow, webEnterToSend } from './parts';
 import WorryMarquee from './WorryMarquee';
 import { isTodayFortuneQuestion } from './FortuneChatScreen';
-import { usePendingInviteSheet } from '../../components/PendingInviteSheet';
-import WelcomeBonusSheet from '../../components/WelcomeBonusSheet';
-import HomeNotices from './HomeNotices';
-import { Logo } from '../../components/Mascot';
+import { ChatHeaderLeft } from './ChatMenu';
 import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
 import { trackAction } from '../../services/screenViews';
 
@@ -119,7 +116,6 @@ export default function ConsultHomeScreen() {
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
-  const invite = usePendingInviteSheet();
   const status = useConsultStatus(!!account);
   // 최근 대화 HOME_ROWS개만 (이어서 할 것 · 끝난 것 구분 없이 최신순). 전체는 '대화 기록' 탭에서
   const recentQ = useQuery({ queryKey: ['consults', 'head', 'recent'], queryFn: () => consultApi.list({ limit: HOME_ROWS }), enabled: !!account });
@@ -181,7 +177,7 @@ export default function ConsultHomeScreen() {
   ) : null);
 
   return (
-    <Screen left={<Logo height={36} color={colors.ink} />} right={<PointPill attendHint quiet />} scroll={false}>
+    <Screen left={<ChatHeaderLeft />} right={<PointPill attendHint quiet />} scroll={false}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={s.intro}>
@@ -190,7 +186,6 @@ export default function ConsultHomeScreen() {
           </View>
           {/* 오늘의 운세 — 고민 주제와 따로. 누구 운세를 볼지 먼저 고르고 물어본다 (무료로 바로 답) */}
           <TodayFortuneCard onAsk={() => nav.navigate('Today')} />
-          <HomeNotices />
           {section('최근 대화', recentQ.data)}
 
           {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
@@ -250,8 +245,6 @@ export default function ConsultHomeScreen() {
         <PrimaryButton label="바꾸기" onPress={() => { if (swapTo) fillExample(swapTo); setSwapTo(null); }} style={{ marginTop: 20 }} />
         <PrimaryButton label="취소" variant="soft" onPress={() => setSwapTo(null)} style={{ marginTop: 8 }} />
       </BottomSheet>
-      {invite.sheet}
-      <WelcomeBonusSheet hidden={invite.visible} />
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { router, type Href } from 'expo-router';
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,32 +18,51 @@ import { FortuneSpouseBanner } from './FortuneRec';
 import { trackAction } from '../../services/screenViews';
 
 const FORTUNE_SIGNUP_DELAY_MS = 3_000;
-const ReserveFortuneSignupContext = createContext(() => {});
+type FortuneSignupControl = { reserve(): void; setHostLive(live: boolean): void };
+const FortuneSignupContext = createContext<FortuneSignupControl>({ reserve: () => {}, setHostLive: () => {} });
 
-export function useReserveFortuneSignup() {
-  return useContext(ReserveFortuneSignupContext);
+/** 운세 화면이 가입 안내를 예약하고, 자기가 지금 앞에 떠 있는지 알린다 */
+export function useFortuneSignup() {
+  return useContext(FortuneSignupContext);
 }
 
-/** 가입 안내의 예약과 표시를 라우트 전환과 별도로 유지한다. */
+/**
+ * 가입 안내의 예약과 표시를 라우트 전환과 별도로 유지한다.
+ * 예약하고 3초가 지나도 운세 화면이 앞에 없으면(다른 화면으로 갔거나 앱이 뒤로 갔으면) 돌아올 때까지 미룬다 —
+ * 로그인·결제 같은 다른 화면이나 모달 위에 겹쳐 뜨지 않게.
+ */
 export function FortuneSignupProvider({ children }: { children: ReactNode }) {
   const { booting, account, user, today } = useApp();
   const [open, setOpen] = useState(false);
   const reserved = useRef(false);
+  const due = useRef(false);
+  const hostLive = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reserve = useCallback(() => {
     if (reserved.current) return;
     reserved.current = true;
-    timer.current = setTimeout(() => setOpen(true), FORTUNE_SIGNUP_DELAY_MS);
+    timer.current = setTimeout(() => {
+      if (hostLive.current) setOpen(true);
+      else due.current = true;
+    }, FORTUNE_SIGNUP_DELAY_MS);
+  }, []);
+  const setHostLive = useCallback((live: boolean) => {
+    hostLive.current = live;
+    if (live && due.current) {
+      due.current = false;
+      setOpen(true);
+    }
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
+  const control = useMemo(() => ({ reserve, setHostLive }), [reserve, setHostLive]);
   const visible = open && !booting && !!user && !account;
   useEffect(() => { if (visible) { void storage.markFortuneSignupSeen(); trackAction('fortune_signup_shown'); } }, [visible]);
 
   return (
-    <ReserveFortuneSignupContext.Provider value={reserve}>
+    <FortuneSignupContext.Provider value={control}>
       {children}
       <FortuneSignupDialog visible={visible} onClose={() => setOpen(false)} today={today} />
-    </ReserveFortuneSignupContext.Provider>
+    </FortuneSignupContext.Provider>
   );
 }
 
@@ -82,7 +101,8 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
             <PromoCard variant="recommendation" {...promoDesign('newyear', year)} title={`${year}년 신년운세`}
               desc="분야별 운세와 12개월 흐름" coin cta={`${newYear.cost}알 · 미리 보기 →`} accessibilityLabel="신년운세"
               onPress={() => open({ pathname: '/premium/new-year', params: { year: String(year) } })} />
-            {visible ? <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" /> : null}
+            {/* 닫히며 흐려지는 동안에도 그대로 둔다 — 먼저 빠지면 카드 높이가 줄며 튄다 (안 보일 때는 Modal이 안을 그리지 않는다) */}
+            <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" />
           </ScrollView>
           <View style={s.signup}>
             <View style={s.reward} accessible accessibilityLabel="SNS로 처음 가입하면 50알을 드려요">

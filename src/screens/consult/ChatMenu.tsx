@@ -5,7 +5,6 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigation } from '@/navigation/compat';
 import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
-import { Logo } from '../../components/Mascot';
 import { useApp } from '../../context/AppContext';
 import { ConsultView, consultApi } from '../../services/server/consultApi';
 import { colors } from '../../theme/colors';
@@ -37,17 +36,9 @@ export function ChatMenuButton({ current }: { current?: Current }) {
   );
 }
 
-/** 대화 화면 왼쪽 위 — 대화 목록 메뉴 + 로고(누르면 운알톡 첫 화면) */
+/** 대화 화면 왼쪽 위 — 대화 목록 메뉴 (운알톡 · 오늘의 운세 · 상담 대화가 같이 쓴다) */
 export function ChatHeaderLeft({ current }: { current?: Current }) {
-  const nav = useNavigation();
-  return (
-    <View style={s.left}>
-      <ChatMenuButton current={current} />
-      <PressableScale onPress={() => nav.navigate('Home')} hitSlop={6} scaleTo={0.94} accessibilityRole="button" accessibilityLabel="운알톡 처음 화면으로">
-        <Logo height={36} color={colors.ink} />
-      </PressableScale>
-    </View>
-  );
+  return <ChatMenuButton current={current} />;
 }
 
 function ChatDrawer({ visible, onClose, current }: { visible: boolean; onClose(): void; current?: Current }) {
@@ -119,7 +110,7 @@ function ChatDrawer({ visible, onClose, current }: { visible: boolean; onClose()
           </PressableScale>
         </View>
 
-        <PressableScale onPress={() => go(() => nav.navigate('Home'))} style={s.action} scaleTo={0.98} accessibilityLabel="새 대화 시작하기">
+        <PressableScale onPress={() => go(() => nav.navigate('Consult'))} style={s.action} scaleTo={0.98} accessibilityLabel="새 대화 시작하기">
           <Icon name="plus" size={18} strokeWidth={2.2} />
           <Text style={s.actionT}>새 대화</Text>
         </PressableScale>

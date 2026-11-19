@@ -108,8 +108,6 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="today" />
           <Stack.Screen name="fortune-history/[id]" />
-          <Stack.Screen name="compatibility" />
-          <Stack.Screen name="consult/index" />
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="profiles/new" />
           <Stack.Screen name="profiles/[id]" />

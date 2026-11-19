@@ -13,7 +13,7 @@ export { useFocusEffect } from 'expo-router';
 
 /** 화면 이름 → 경로. 탭 화면은 (tabs) 그룹이라 경로에 그룹 이름이 없다. */
 export const ROUTES: Record<string, string> = {
-  // 첫 화면(운알톡). 오늘의 운세는 Today
+  // 첫 화면(홈). 운알톡은 Consult, 오늘의 운세 대화는 Today
   Home: '/',
   Today: '/today',
   FortuneHistory: '/fortune-history/[id]',
@@ -48,7 +48,7 @@ export const ROUTES: Record<string, string> = {
   Character: '/character',
   Talisman: '/talisman',
   Spouse: '/spouse',
-  Consult: '/',
+  Consult: '/consult',
   PastLife: '/past-life',
   Pet: '/pet',
   Child: '/child',

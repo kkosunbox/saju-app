@@ -88,7 +88,7 @@ function PendingChat({ askKey }: { askKey?: string }) {
     return () => { live = false; };
   }, [key]);
 
-  const toTab = () => nav.navigate('Home');
+  const toTab = () => nav.navigate('Consult');
   if (!ask) {
     return (
       <Screen title="운알톡" titleStyle={s.chatTitle} back>
@@ -249,7 +249,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   ) : (
     <>
       <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>이 대화의 이어 묻기는 끝났어요</Text>
-      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Home')} />
+      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Consult')} />
     </>
   );
 

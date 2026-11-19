@@ -5,7 +5,7 @@ import { ThemeKind } from '../services/premium/catalog';
 import type { ShareSpec } from '../services/share/shareSpecs';
 
 export type TabParamList = {
-  /** 첫 화면 = 운알톡 */
+  /** 첫 화면 = 홈 (오늘의 운세 요약) */
   Home: undefined;
   Consult: undefined;
   Talks: { tab?: 'fortune' } | undefined;

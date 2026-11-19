@@ -106,7 +106,7 @@ function ConsultList() {
       showsVerticalScrollIndicator={false}
       onEndReached={() => { if (pastQ.hasNextPage && !pastQ.isFetchingNextPage) pastQ.fetchNextPage(); }}
       onEndReachedThreshold={0.5}
-      ListEmptyComponent={<Empty title="아직 나눈 대화가 없어요" body={'혼자 품고 있던 고민을 운알이에게 들려주세요.\n대화가 여기에 차곡차곡 쌓여요.'} cta="첫 고민 들려주기 →" onPress={() => nav.navigate('Home')} />}
+      ListEmptyComponent={<Empty title="아직 나눈 대화가 없어요" body={'혼자 품고 있던 고민을 운알이에게 들려주세요.\n대화가 여기에 차곡차곡 쌓여요.'} cta="첫 고민 들려주기 →" onPress={() => nav.navigate('Consult')} />}
       ListFooterComponent={pastQ.isFetchingNextPage ? <View style={s.more}><ActivityIndicator color={colors.purple} /></View> : undefined}
     />
   );

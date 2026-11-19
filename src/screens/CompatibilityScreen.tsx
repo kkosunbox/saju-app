@@ -361,8 +361,7 @@ export default function CompatibilityScreen() {
 
   return (
     <Screen
-      title="궁합"
-      back
+      largeTitle="궁합"
       subtitle="상대의 정보로 세 가지 관점의 궁합을 봐요"
       right={<PointPill attendHint quiet />}
       footer={(
