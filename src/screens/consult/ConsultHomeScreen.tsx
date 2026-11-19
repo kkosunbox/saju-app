@@ -32,16 +32,18 @@ import WelcomeBonusSheet from '../../components/WelcomeBonusSheet';
 import HomeNotices from './HomeNotices';
 import { Logo } from '../../components/Mascot';
 import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
+import { trackAction } from '../../services/screenViews';
 
 const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
 const TODAY_IMG = require('../../../assets/images/consult-today.webp');
 
 /** 운세 카드의 구름 하늘 배경 */
-function TodayCard({ children }: { children: React.ReactNode }) {
-  const highlight = Platform.OS !== 'ios';
-  if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.today, highlight && s.todayHighlighted]}>{children}</LinearGradient>;
-  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={[s.today, highlight && s.todayHighlighted]} imageStyle={Platform.OS === 'web' ? s.todayImg : s.todayImgNative}>{children}</ImageBackground>;
+function TodayCard({ children, emphasize }: { children: React.ReactNode; emphasize?: boolean }) {
+  // 아직 안 본 운세는 모든 기기에서 진한 테두리로 눈에 띄게
+  const border = emphasize ? s.todayEmphasized : Platform.OS !== 'ios' && s.todayHighlighted;
+  if (isDark) return <LinearGradient colors={TODAY_BG} locations={[0, 0.63, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[s.today, border]}>{children}</LinearGradient>;
+  return <ImageBackground source={TODAY_IMG} resizeMode="cover" style={[s.today, border]} imageStyle={Platform.OS === 'web' ? s.todayImg : s.todayImgNative}>{children}</ImageBackground>;
 }
 
 const EXAMPLES = [
@@ -72,27 +74,34 @@ function TodayFortuneCard({ onAsk }: { onAsk(): void }) {
   // 프로필 전환 중에는 하단 한 줄을 비워 두고, 선택한 프로필의 응답이 오면 문구를 정한다.
   let subtitle = '\u00A0';
   if (currentFortune && selectedFortune.ready) {
-    if (read) {
-      subtitle = `${currentFortune.combined.totalScore}점 · ${currentFortune.combined.summary}`;
-    } else if (anyFortuneOpened.opened || (currentFortune.drawCost ?? 0) > 0) {
-      subtitle = '운알이가 운세를 봐드려요';
-    } else if (anyFortuneOpened.ready) {
-      subtitle = '운알이가 무료로 봐드려요';
-    }
+    subtitle = read
+      ? `${currentFortune.combined.totalScore}점 · ${currentFortune.combined.summary}`
+      : '운알이가 오늘의 운세를 봐줄 거예요';
   }
+  // 아직 안 본 운세 — 처음 온 사람이 지나치지 않게 카드를 키우고 채운 버튼으로 부른다
+  const unread = !!currentFortune && selectedFortune.ready && !read;
+  const freeDraw = anyFortuneOpened.ready && !anyFortuneOpened.opened && (currentFortune?.drawCost ?? 0) === 0;
   return (
     // 칩(프로필 고르기)이 카드 버튼 안에 들어가지 않게, 카드 전체를 덮는 버튼 위에 내용을 얹는다
-    <TodayCard>
-    <View style={s.todayContent}>
-      <PressableScale onPress={onAsk} style={StyleSheet.absoluteFill} scaleTo={1} accessibilityLabel={read ? `${name}님 오늘의 운세 다시 보기` : `${name}님 오늘의 운세 물어보기`} />
+    <TodayCard emphasize={unread}>
+    <View style={[s.todayContent, unread && s.todayContentBig]}>
+      <PressableScale onPress={onAsk} style={StyleSheet.absoluteFill} scaleTo={1} accessibilityLabel={read ? `${name}님 오늘의 운세 다시 보기` : `${name}님 오늘의 운세 ${freeDraw ? '무료로 ' : ''}보기`} />
       <View style={{ flex: 1, gap: 6 }} pointerEvents="box-none">
         <View style={s.todayHead} pointerEvents="box-none">
           <Text style={s.todayK} pointerEvents="none">오늘의 운세</Text>
-          <FortuneProfileChip style={s.todayProfileChip} />
+          {/* 안 본 상태에서는 칩이 버튼처럼 보이지 않게 흰 바탕·그림자를 뺀다 */}
+          <FortuneProfileChip style={unread ? s.todayProfileChipQuiet : s.todayProfileChip} />
         </View>
-        <Text style={s.todayV} numberOfLines={1} pointerEvents="none">{subtitle}</Text>
+        <Text style={[s.todayV, unread && s.todayVUnread]} numberOfLines={unread ? 2 : 1} pointerEvents="none">{subtitle}</Text>
       </View>
-      <View pointerEvents="none"><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+      {unread ? (
+        <View style={s.todayBtn} pointerEvents="none">
+          <Text style={s.todayBtnText}>{freeDraw ? '무료로 보기' : '보기'}</Text>
+          <Icon name="chevronRight" size={14} color={colors.white} strokeWidth={2.4} />
+        </View>
+      ) : (
+        <View pointerEvents="none"><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
+      )}
     </View>
     </TodayCard>
   );
@@ -144,7 +153,7 @@ export default function ConsultHomeScreen() {
     // "오늘 운세 어때?"처럼 오늘의 운세만 물으면 상담 대신 오늘의 운세로 답한다 (무료)
     if (text.trim() && isTodayFortuneQuestion(text)) { setText(''); input.current?.blur(); nav.navigate('Today'); return; }
     if (!ok) return;
-    if (!account) { toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
+    if (!account) { trackAction('consult_ask_login_required'); toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
     if (free || viaSub) ask();
     else setConfirm(true);
   };
@@ -152,6 +161,7 @@ export default function ConsultHomeScreen() {
   // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 운알이가 답을 쓰는 중)
   const ask = () => {
     setConfirm(false);
+    trackAction('consult_ask');
     const key = startAsk(text.trim(), cat ?? undefined);
     setText('');
     input.current?.blur();
@@ -196,14 +206,9 @@ export default function ConsultHomeScreen() {
           {/* 스크롤 내용이 안내 줄에서 탁 잘리지 않게 위로 바탕색 페이드 */}
           <LinearGradient pointerEvents="none" colors={FOOTER_FADE} style={s.fade} />
           <View style={s.between}>
-            {/* 오늘 남은 무료 대화 횟수 — 마지막 한 번이면 다음부터 알이 쓰인다고 미리 알려 준다 */}
+            {/* 남은 무료 횟수는 따로 보여 주지 않는다 — 마지막 한 번이면 다음부터 알이 쓰인다고만 미리 알려 준다 */}
             <View style={s.hintRow}>
-              {free ? (
-                <View style={s.hintRow} accessibilityLabel={`오늘 무료 대화 ${perDay}회 중 ${freeLeft}회 남음`}>
-                  <Text style={s.freeK}>오늘 무료 대화</Text>
-                  <View style={s.ticket}><Text style={s.ticketText}>{freeLeft}회 남음</Text></View>
-                </View>
-              ) : viaSub && sub ? (
+              {viaSub && sub ? (
                 <View style={s.hintRow} accessibilityLabel={`구독 운알톡 ${sub.total}회 중 ${sub.left}회 남음`}>
                   <SubscriptionBadge label="구독 운알톡" small />
                   <View style={s.ticket}><Text style={s.ticketText}>{sub.left}/{sub.total}회 남음</Text></View>
@@ -266,6 +271,12 @@ const s = StyleSheet.create({
   todayImgNative: { borderRadius: radius.lg },
   todayContent: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, minHeight: 66 },
   todayHighlighted: { borderWidth: 1, borderColor: '#68BFF2' },
+  todayEmphasized: { borderWidth: 1.5, borderColor: colors.accent },
+  todayContentBig: { paddingVertical: 18, minHeight: 80 },
+  todayVUnread: { fontWeight: '600', color: colors.ink },
+  todayBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: colors.accent },
+  todayBtnText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: colors.white, letterSpacing: -0.5 },
+  todayProfileChipQuiet: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(23, 75, 115, 0.2)' },
   todayProfileChip: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(23, 75, 115, 0.2)', shadowColor: '#174B73', shadowOpacity: 0.14, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   todayHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   todayK: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.5 },
@@ -275,7 +286,6 @@ const s = StyleSheet.create({
   fade: { position: 'absolute', left: 0, right: 0, top: -28, height: 28 },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  freeK: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: colors.inkMute, letterSpacing: -0.6 },
   hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
   ticket: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
   ticketText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: TICKET_INK },

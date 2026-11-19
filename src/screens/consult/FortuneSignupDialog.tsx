@@ -15,6 +15,7 @@ import { colors } from '../../theme/colors';
 import { txt } from '../../theme/typography';
 import { motion, useReducedMotion } from '../../utils/motion';
 import { FortuneSpouseBanner } from './FortuneRec';
+import { trackAction } from '../../services/screenViews';
 
 const FORTUNE_SIGNUP_DELAY_MS = 3_000;
 const ReserveFortuneSignupContext = createContext(() => {});
@@ -36,7 +37,7 @@ export function FortuneSignupProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
   const visible = open && !booting && !!user && !account;
-  useEffect(() => { if (visible) void storage.markFortuneSignupSeen(); }, [visible]);
+  useEffect(() => { if (visible) { void storage.markFortuneSignupSeen(); trackAction('fortune_signup_shown'); } }, [visible]);
 
   return (
     <ReserveFortuneSignupContext.Provider value={reserve}>

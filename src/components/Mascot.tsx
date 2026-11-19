@@ -109,11 +109,14 @@ function isLight(hex: string) {
  * 상자는 Figma 로고 프레임(65×55)대로 아래에 여백이 있어 레터링이 상자 한가운데 온다 — 옆 글자와 가운데 정렬하면 레터링 기준으로 맞는다.
  * height = 여백까지 포함한 상자 높이.
  */
+/** 말풍선이 viewBox 맨 위·오른쪽 끝에 닿아 있어, iOS Safari가 소수 픽셀 크기에서 경계를 반 픽셀쯤 잘라낸다 — 경계 밖도 그리게 둔다 */
+const LOGO_SVG = { position: 'absolute', overflow: 'visible' } as const;
+
 export function Logo({ height = 55, color = '#FFFFFF', face = true }: { height?: number; color?: string; face?: boolean }) {
   const k = height / 55;
   return (
     <View style={{ width: 65 * k, height }} accessible accessibilityLabel="운픽">
-      <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={{ position: 'absolute' }}>
+      <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={LOGO_SVG}>
         {LOGO_PATHS.map(d => <Path key={d.slice(0, 12)} d={d} fill={color} />)}
       </Svg>
       {face ? <LogoBubble height={height} color={color} /> : null}
@@ -126,7 +129,7 @@ export function Logo({ height = 55, color = '#FFFFFF', face = true }: { height?:
 export function LogoBubble({ height = 55, color = '#FFFFFF' }: { height?: number; color?: string }) {
   const k = height / 55;
   return (
-    <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={{ position: 'absolute' }}>
+    <Svg width={65 * k} height={height} viewBox="0 0 65 55" style={LOGO_SVG}>
       <Path d={LOGO_BUBBLE} fill={isLight(color) ? '#003560' : '#59C3FB'} />
     </Svg>
   );
