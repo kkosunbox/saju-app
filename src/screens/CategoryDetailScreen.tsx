@@ -64,7 +64,7 @@ export default function CategoryDetailScreen() {
         </View>
       </AlmanacHero>
 
-      <Figure title="관점별 영향" caption={f.viewpointImpacts ? '각 관점 반영 전후의 점수 차이 · 합산하지 않아요' : '이전에 계산된 운세의 관점별 신호예요'}>
+      <Figure title="관점별 영향" caption={f.viewpointImpacts ? undefined : '이전에 계산된 운세의 관점별 신호예요'}>
         <View style={{ gap: 14 }}>
           {contributions.map(c => {
             const { icon, color } = VIEWPOINTS[c.key];

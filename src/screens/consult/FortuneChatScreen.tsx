@@ -50,14 +50,10 @@ function todayStory(f: CombinedFortune): string {
   return body.trim() || f.storyBrief || f.summary;
 }
 
-/** 좋은 시간을 칸에 한 줄로 — "09:00~11:00" → "오전 9~11시", 정각이 아니면 그대로 */
+/** 행운의 시간을 칸에 한 줄로 — "11:00~13:00" → "11시~13시", 정각이 아니면 그대로 */
 function shortTime(t: string): string {
   const m = /^(\d{1,2}):00\s*[~-]\s*(\d{1,2}):00$/.exec(t.trim());
-  if (!m) return t;
-  const [a, b] = [Number(m[1]), Number(m[2])];
-  const half = (h: number) => (h < 12 ? '오전' : '오후');
-  const h12 = (h: number) => (h % 12 === 0 ? 12 : h % 12);
-  return half(a) === half(b % 24) || b === 12 ? `${half(a)} ${h12(a)}~${h12(b)}시` : `${half(a)} ${h12(a)}~${half(b % 24)} ${h12(b)}시`;
+  return m ? `${Number(m[1])}시~${Number(m[2])}시` : t;
 }
 
 /** 할 것 · 피할 것은 행동만 — 예전 운세의 "— 이유"는 뗀다 */
@@ -128,7 +124,7 @@ export function FortuneReading({ fortune, who, onCategory }: { fortune: DailyFor
             <View style={s.luckyRow}><Text style={s.luckyV}>{f.luckyNumber}</Text></View>
           </View>
           <View style={s.luckyCell}>
-            <Text style={s.luckyK}>좋은 시간</Text>
+            <Text style={s.luckyK}>행운의 시간</Text>
             <View style={s.luckyRow}><Text style={s.luckyV} numberOfLines={1}>{shortTime(f.luckyTime)}</Text></View>
           </View>
         </StreamBlock>
@@ -319,7 +315,6 @@ export default function FortuneChatScreen() {
         {DEV_TOOLS && draw.opened ? (
           <Text style={[txt.caption, { textAlign: 'center', marginTop: 24 }]} onPress={() => { draw.reset(); setJustDrawn(false); }}>뽑기 초기화 (테스트용)</Text>
         ) : null}
-        <Text style={[txt.caption, { textAlign: 'center', marginTop: 24 }]}>운세는 재미와 참고를 위한 내용이에요. 내일 다시 물어보면 새 운세를 알려 줘요.</Text>
       </ScrollView>
       <FortuneAlarmPrompt visible={alarmAsk} onClose={() => setAlarmAsk(false)} />
     </Screen>
@@ -351,7 +346,8 @@ const s = StyleSheet.create({
   catV: { fontSize: 16, fontWeight: '800' },
   catT: { fontSize: 13, lineHeight: 19, color: colors.inkSub, letterSpacing: -0.5 },
   lucky: { flexDirection: 'row', gap: 8 },
-  luckyCell: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: radius.md, backgroundColor: colors.card },
+  // 칸 너비를 내용 길이에 맞춰 나눠, "오전 11~오후 1시"처럼 긴 값도 한 줄에 들어가게 한다
+  luckyCell: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto', alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: radius.md, backgroundColor: colors.card },
   luckyRow: { height: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, maxWidth: '100%' },
   dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: colors.line },
   luckyV: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, flexShrink: 1 },

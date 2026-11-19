@@ -8,7 +8,6 @@ import PrimaryButton from '../../components/PrimaryButton';
 import PromoCard from '../../components/PromoCard';
 import { promoDesign } from '../../components/PromoSlot';
 import { useApp } from '../../context/AppContext';
-import { ITEMS } from '../../services/premium/catalog';
 import { newYearOf, spousePromo } from '../../services/promo/promos';
 import { storage } from '../../services/storage/storageService';
 import { colors } from '../../theme/colors';
@@ -82,7 +81,6 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
   }, [reducedMotion, scale, visible]);
   const verticalMargin = Math.max(insets.top, insets.bottom, 16);
   const year = newYearOf(today);
-  const newYear = ITEMS.newyear(year);
   const open = (destination: Href) => {
     onClose();
     router.push(destination);
@@ -99,10 +97,10 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
               desc="연인 · 친구 · 가족과의 관계를 살펴봐요" cta="무료 궁합 보기 →" accessibilityLabel="궁합"
               onPress={() => open('/compatibility')} />
             <PromoCard variant="recommendation" {...promoDesign('newyear', year)} title={`${year}년 신년운세`}
-              desc="분야별 운세와 12개월 흐름" coin cta={`${newYear.cost}알 · 미리 보기 →`} accessibilityLabel="신년운세"
+              desc="분야별 운세와 12개월 흐름" cta="확인하러 가기 →" accessibilityLabel="신년운세"
               onPress={() => open({ pathname: '/premium/new-year', params: { year: String(year) } })} />
             {/* 닫히며 흐려지는 동안에도 그대로 둔다 — 먼저 빠지면 카드 높이가 줄며 튄다 (안 보일 때는 Modal이 안을 그리지 않는다) */}
-            <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" />
+            <FortuneSpouseBanner promo={spousePromo(() => open('/spouse'))} screen="fortune_signup" cta="확인하러 가기 →" />
           </ScrollView>
           <View style={s.signup}>
             <View style={s.reward} accessible accessibilityLabel="SNS로 처음 가입하면 50알을 드려요">

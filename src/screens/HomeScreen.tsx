@@ -37,8 +37,6 @@ import { formatKoreanDate } from '../utils/date';
 import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import { COPY } from '../content/copy';
-import { KEYWORDS } from '../data/keywords';
-import { KeywordTag } from '../types';
 import { YearPreview } from '../types/premium';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
 import { usePendingInviteSheet } from '../components/PendingInviteSheet';
@@ -58,7 +56,7 @@ const CATEGORY_LABEL_OFFSET = { love: 0, money: 0.5, work: -0.5, relationship: 0
 /** 점수 링 색 — 디자인의 분야별 링 그라디언트 시작색 */
 const RING: Record<CategoryKey, string> = { love: '#C93B3B', money: '#E1A338', work: '#28B2FE', relationship: '#06C755' };
 
-/** 마스코트 밑 해시태그 — 관점별 한 줄의 태그 중 여러 관점에 겹친 것부터, 3개(길면 2개)까지 */
+/** 마스코트 밑 해시태그 — 서버가 오늘의 핵심 근거 순으로 정한 키워드(한마디·이야기와 같은 근거), 3개(길면 2개)까지 */
 const TAG_MAX_CHARS = 12;
 const TAG_FONT = 13;
 /** 키워드 글자색과, 글자 위로만 훑고 지나가는 빛 */
@@ -127,10 +125,8 @@ function useTagSweep() {
   return sweep;
 }
 
-function mascotTags(lists: KeywordTag[][]): string[] {
-  const count = new Map<KeywordTag, number>();
-  lists.flat().forEach(t => count.set(t, (count.get(t) ?? 0) + 1));
-  const top = [...count.keys()].sort((x, y) => count.get(y)! - count.get(x)!).slice(0, 3).map(t => KEYWORDS[t].label);
+function mascotTags(keywords: readonly string[]): string[] {
+  const top = keywords.slice(0, 3);
   return top.join('').length > TAG_MAX_CHARS ? top.slice(0, 2) : top;
 }
 
@@ -255,8 +251,7 @@ export default function HomeScreen() {
     );
   }
   const f = fortune.combined;
-  const a = fortune.analyses;
-  const tags = mascotTags([a.saju.tags, a.thai.tags, a.mbti.tags, a.tarot?.tags ?? []]);
+  const tags = mascotTags(f.keywords ?? []);
 
   // 오늘의 무료 콘텐츠 — 뽑은 뒤에만 결과 한 줄을 보여준다
   type Free = { k: string; art?: ArtName; big?: string; title: string; sub: string; sealed?: boolean; isNew?: boolean; go(): void };
