@@ -81,7 +81,9 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
   useEffect(() => {
     if (!uid) return;
     let live = true;
-    load(uid, legacyUid).then(stamps => live && setSaved({ uid, stamps }));
+    // 읽은 값이 아니라 지금 값을 쓴다 — 읽는 사이에 open()이 새로 저장했으면 그걸 옛 값으로 덮지 않게
+    // (오늘의 운세 화면이 들어오자마자 뽑으면 뽑음이 되돌려져 서버에 뽑기 요청이 안 나가던 문제)
+    load(uid, legacyUid).then(() => live && setSaved({ uid, stamps: mem.get(uid) ?? null }));
     const f = () => { if (live) setSaved({ uid, stamps: mem.get(uid) ?? null }); };
     subs.add(f);
     return () => { live = false; subs.delete(f); };

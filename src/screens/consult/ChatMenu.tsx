@@ -12,6 +12,7 @@ import { colors } from '../../theme/colors';
 import { radius } from '../../theme/typography';
 import { catOf } from '../../services/content/consult';
 import { kstDate, kstMonth } from './parts';
+import { webSafeTop } from '../../utils/webThemeColor';
 
 const PAGE = 20;
 /** 지금 보는 화면 — 상담 id · 오늘의 운세 · 지난 운세(`fortune:{id}`) */
@@ -108,7 +109,7 @@ function ChatDrawer({ visible, onClose, current }: { visible: boolean; onClose()
       <View style={s.frameWrap} pointerEvents="box-none">
       <View style={s.frame} pointerEvents="box-none">
       <Animated.View
-        style={[s.drawer, { width: drawerW, paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 12), transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [-drawerW, 0] }) }] }]}
+        style={[s.drawer, { width: drawerW, paddingTop: webSafeTop(insets.top) + 8, paddingBottom: Math.max(insets.bottom, 12), transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [-drawerW, 0] }) }] }]}
         accessibilityViewIsModal
       >
         <View style={s.head}>

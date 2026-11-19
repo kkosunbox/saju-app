@@ -14,6 +14,7 @@ import React, { useSyncExternalStore } from 'react';
 import { Platform, StyleSheet, type ViewProps } from 'react-native';
 import { requireNativeView, requireOptionalNativeModule } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { webSafeTop } from './webThemeColor';
 
 export interface TopBarInsets {
   top: number;
@@ -51,9 +52,12 @@ export function TopBarProbe() {
   return <NativeProbe pointerEvents="none" style={StyleSheet.absoluteFill} barHeight={TOP_BAR_H} onRegionChange={onRegionChange} />;
 }
 
-/** 상단 바의 위 · 왼쪽 · 오른쪽 여백. 상단 바 아래 본문은 이 값과 상관없이 바 아래에 놓인다 */
+/**
+ * 상단 바의 위 · 왼쪽 · 오른쪽 여백. 상단 바 아래 본문은 이 값과 상관없이 바 아래에 놓인다.
+ * 아이폰 Safari 탭에서는 안전 영역 위가 0이라, 상단 바 색을 칠하는 띠(webThemeColor)가 로고 말풍선 윗부분을 덮지 않게 띠 높이만큼은 띄운다
+ */
 export function useTopBarInsets(): TopBarInsets {
   const safe = useSafeAreaInsets();
   const region = useSyncExternalStore(subscribe, snapshot, snapshot);
-  return region ?? { top: safe.top, left: safe.left, right: safe.right };
+  return region ?? { top: webSafeTop(safe.top), left: safe.left, right: safe.right };
 }
