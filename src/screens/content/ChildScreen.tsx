@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
@@ -9,11 +10,12 @@ import BottomSheet from '../../components/BottomSheet';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
+import SolidIcon from '../../components/SolidIcon';
 import FriendCompare from '../../components/FriendCompare';
 import LoadingScreen from '../../components/LoadingScreen';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import ProfileForm from '../../components/profile/ProfileForm';
-import { BodyState, Bullet, DarkChip, Hero, heroTxt, LockGate, Para, Rank, SubHead, Tip } from '../../components/premium/Kit';
+import { BodyState, LockGate, Para, Rank, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
@@ -33,7 +35,47 @@ import { RELATIONSHIP_LABEL, User } from '../../types';
 import { colors } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
-const ART = require('../../../assets/images/soon-baby.webp');
+/** 입력 화면 위 배너 · 결과 첫 카드 배경 (아기 그림까지 한 장, Figma 그대로) */
+const INTRO_ART = require('../../../assets/images/child-intro.webp');
+const HERO_ART = require('../../../assets/images/child-hero.webp');
+/** Figma 우리 아이 사주 전용 색 */
+const LIKE_LINE = '#92D8FF';
+const CARE_LINE = '#FFB1B1';
+const HERO_INK = '#000000';
+const HERO_SUB = '#555555';
+const HERO_TITLE = '#00A4FF';
+const TAG_INK = '#003A5A';
+const BOND_SUB = '#B7B7B7';
+const INTRO_SUB = '#666666';
+
+/** 하루 리듬 아이콘 (Figma 28 칸 안의 그림) — 아침 · 낮 · 저녁 */
+function RhythmIcon({ time, index }: { time: string; index: number }) {
+  const kind = /아침|새벽/.test(time) ? 0 : /낮|오후|점심/.test(time) ? 1 : /저녁|밤/.test(time) ? 2 : Math.min(index, 2);
+  if (kind === 0) {
+    return (
+      <Svg width={24} height={24} viewBox="0 0 24 24">
+        <Path fill="#F07777" d="M21.0547 19L2.89744 18.9947C2.31872 18.9947 1.98245 18.3675 2.00071 17.9154C2.02353 17.3439 2.41509 16.8787 3.01308 16.8761L5.85289 16.864C6.15771 14.107 8.07898 11.7973 10.6971 11.1584C12.2568 10.7779 13.8747 11.0963 15.2193 11.9693C16.89 13.0529 17.9694 14.8242 18.1515 16.8613L21.0197 16.8808C21.5943 16.8845 21.9747 17.3771 21.9991 17.9144C22.0209 18.4001 21.6582 19.0005 21.0547 19Z" />
+        <Path fill="#F07777" d="M6.55646 9.74309C7.08275 10.261 7.15296 11.0085 6.70109 11.5446C6.26662 12.0595 5.44208 12.1825 4.90379 11.6803C4.3655 11.1782 3.8134 10.6263 3.28652 10.0563C2.83104 9.56378 2.94866 8.72116 3.42754 8.31045C3.90642 7.89974 4.66075 7.87733 5.14983 8.35891L6.55646 9.74309Z" />
+        <Path fill="#F07777" d="M13.1104 7.74735C13.1163 8.48572 12.6374 9.06395 11.9388 9.1235C11.2674 9.18038 10.5975 8.68429 10.5719 7.94857C10.5464 7.21284 10.5462 6.43224 10.5767 5.6566C10.6029 4.98629 11.2819 4.47363 11.9109 4.52184C12.54 4.57004 13.0892 5.08758 13.0945 5.77395L13.1104 7.74735Z" />
+        <Path fill="#F07777" d="M19.1266 11.6319C18.638 12.131 17.8989 12.0996 17.4282 11.6761C16.9575 11.2525 16.822 10.461 17.2915 9.98245L18.8915 8.35108C19.4022 7.83025 20.2923 7.90275 20.7314 8.47675C21.0744 8.92447 21.1132 9.60421 20.7057 10.0205L19.1272 11.6319H19.1266Z" />
+      </Svg>
+    );
+  }
+  if (kind === 1) {
+    const rays = ['M14 7V5', 'M14 23V21', 'M18.95 9.05L20.364 7.636', 'M7.637 20.364L9.051 18.95', 'M21 14L23 14', 'M5 14L7 14', 'M18.95 18.95L20.364 20.364', 'M7.637 7.636L9.051 9.05'];
+    return (
+      <Svg width={28} height={28} viewBox="0 0 28 28">
+        <Circle cx={14} cy={14} r={4} fill="#FCBD51" />
+        {rays.map(d => <Path key={d} d={d} stroke="#FCBD51" strokeWidth={2} strokeLinecap="round" />)}
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={28} height={28} viewBox="0 0 28 28">
+      <Path fill={colors.accent} d="M17 6C17.2931 6 17.4397 6 17.5799 6.04196C18.1934 6.22551 18.4787 6.931 18.1653 7.48943C18.0937 7.61708 17.8753 7.82826 17.4386 8.25062C15.935 9.70471 15 11.7429 15 14C15 16.2569 15.9349 18.2945 17.4384 19.7483C17.8759 20.1714 18.0947 20.383 18.1664 20.5108C18.4796 21.0691 18.1943 21.7743 17.5812 21.958C17.4408 22 17.2939 22 17 22C12.5817 22 9 18.4183 9 14C9 9.58172 12.5817 6 17 6Z" />
+    </Svg>
+  );
+}
 
 /** 열어 본 결과에서 첫 화면(무료)에 그리는 부분 — 서버 childPreviewOf와 같다 */
 function previewOf(R: ChildReport): ChildPreview {
@@ -173,8 +215,7 @@ function ChildForm({ onCancel, onSaved }: { onCancel?(): void; onSaved(set: Chil
     <Screen title="우리 아이 사주" back={!onCancel} onBack={active === 'child' ? onCancel : () => goTo(active === 'parent2' ? 'parent1' : 'child')}
       footer={<PrimaryButton label={label} onPress={next} disabled={saving || (active === 'child' ? !picks.child : !ready)} />}>
       <View style={s.formIntro}>
-        <View style={s.introHalo} />
-        <Image source={ART} style={s.introBaby} contentFit="contain" accessible={false} />
+        <Image source={INTRO_ART} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} />
         <Text accessibilityRole="header" style={s.introTitle}>{active === 'child' ? '우리 아이는\n어떤 빛을 품었을까?' : '우리 아이와 나는\n어떤 사이일까?'}</Text>
         <Text style={s.introBody}>{active === 'child' ? '타고난 기질과 재능,\n아이만의 빛을 발견해 보세요.' : '서로를 더 잘 이해하는 힌트,\n아이와 나의 사주에서 찾아볼까요?'}</Text>
       </View>
@@ -206,14 +247,14 @@ function ChildForm({ onCancel, onSaved }: { onCancel?(): void; onSaved(set: Chil
                 <Text accessibilityRole="header" style={s.formSectionLabel}>{slot === 'child' ? '우리 아이 알아보기' : slot === 'parent1' ? '아이와 함께 볼 분' : '한 분 더 함께 볼게요'}</Text>
                 <PressableScale onPress={() => { Keyboard.dismiss(); setChoosing(slot); }} style={s.importAction} hitSlop={4} accessibilityRole="button" accessibilityLabel={`${SLOT_LABEL[slot]} 프로필에서 불러오기`}>
                   <Text style={s.importLabel}>프로필에서 불러오기</Text>
-                  <Icon name="chevronRight" size={12} color={colors.inkMute} />
+                  <Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} />
                 </PressableScale>
               </View>
               <View style={s.memberForm}>
                 <ChildMemberFields key={sources[slot]?.revision ?? 0} slot={slot} initial={sources[slot]?.profile} onChange={change} />
-                {picks[slot]?.kind !== 'profile' ? <PressableScale onPress={() => setSaveProfiles(p => ({ ...p, [slot]: !p[slot] }))} style={s.check} scaleTo={0.98} accessibilityRole="checkbox" accessibilityLabel="프로필에도 등록" accessibilityState={{ checked: saveProfiles[slot] }}>
-                  <View style={[s.box, saveProfiles[slot] && s.boxOn]}>{saveProfiles[slot] ? <Icon name="check" size={12} color={colors.white} strokeWidth={3} /> : null}</View>
-                  <Text style={txt.small}>프로필에도 등록</Text>
+                {picks[slot]?.kind !== 'profile' ? <PressableScale onPress={() => setSaveProfiles(p => ({ ...p, [slot]: !p[slot] }))} style={s.check} scaleTo={0.98} hitSlop={12} accessibilityRole="checkbox" accessibilityLabel="프로필에도 등록" accessibilityState={{ checked: saveProfiles[slot] }}>
+                  <View style={[s.box, saveProfiles[slot] && s.boxOn]}>{saveProfiles[slot] ? <Icon name="check" size={13} color={colors.white} strokeWidth={2.6} /> : null}</View>
+                  <Text style={s.checkLabel}>프로필에도 등록</Text>
                 </PressableScale> : null}
               </View>
             </View>
@@ -320,17 +361,17 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
       {shared ? null : <FriendCompare route="Child" spec={spec} />}
       {setRow}
       <PreviewReveal gate={making}>
-        <Hero mascot={false}>
-          <Image source={ART} style={s.heroArt} contentFit="contain" accessible={false} />
-          <Text style={heroTxt.eyebrow}>{sum.child.age ? `${sum.child.age}살 ` : ''}{eunNeun(callOf(name))}</Text>
-          <Text accessibilityRole="header" style={[heroTxt.summ, s.heroHeadline]}>{sum.child.headline}</Text>
-          <Text style={[heroTxt.body, { maxWidth: 220 }]}>{sum.child.title}</Text>
+        <View style={s.hero}>
+          <Image source={HERO_ART} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right bottom" accessible={false} />
+          <Text style={s.heroEyebrow}>{sum.child.age ? `${sum.child.age}살 ` : ''}{eunNeun(callOf(name))}</Text>
+          <Text accessibilityRole="header" style={s.heroHeadline}>{sum.child.headline}</Text>
+          <Text style={s.heroTitle}>{sum.child.title}</Text>
           <View style={s.chips}>
-            <DarkChip gold>{el.ko}({el.hanja})의 기운</DarkChip>
-            <DarkChip>{sum.child.animal}띠</DarkChip>
+            <View style={[s.chip, s.chipDark]}><Text style={s.chipDarkText}>{el.ko}({el.hanja})의 기운</Text></View>
+            <View style={[s.chip, s.chipLight]}><Text style={s.chipLightText}>{sum.child.animal}띠</Text></View>
           </View>
-          <View style={[s.chips, { marginTop: 8 }]}>{sum.child.keywords.map(k => <Text key={k} style={s.tag}>#{k}</Text>)}</View>
-        </Hero>
+          <View style={s.tags}>{sum.child.keywords.map(k => <View key={k} style={s.tag}><Text style={s.tagText}>#{k}</Text></View>)}</View>
+        </View>
 
         <SubHead title={`${callOf(name)}의 타고난 재능 TOP 3`} caption="사주 속 가장 강한 힘" />
         <Card style={{ gap: 12 }}>
@@ -345,16 +386,15 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
         <SubHead title={bondTitle(sum.parents.map(p => p.title))} />
         <View style={{ gap: 10 }}>
           {sum.parents.map((p, i) => (
-            <Card key={i}>
-              <View style={s.bondHead}>
-                <View style={{ flex: 1 }}>
-                  <Text style={txt.caption}>{p.title === p.nickname ? p.nickname : `${p.title} · ${p.nickname}`} × {name}</Text>
-                  <Text style={[txt.h3, { marginTop: 2 }]}>{p.type.name}</Text>
-                </View>
-                <Text style={s.score} accessibilityLabel={`궁합 ${p.score}점`}>{p.score}<Text style={s.scoreUnit}>점</Text></Text>
+            <View key={i} style={s.bondCard}>
+              <Text style={s.bondSub}>{p.title === p.nickname ? p.nickname : `${p.title} · ${p.nickname}`} × {name}</Text>
+              <Text style={[s.score, s.bondScore]} accessibilityLabel={`궁합 ${p.score}점`}>{p.score}<Text style={s.bondScoreUnit}>점</Text></Text>
+              <View style={s.bondName}>
+                <SolidIcon name="favorite" size={20} color={colors.accent} />
+                <Text style={s.bondNameText}>{p.type.name}</Text>
               </View>
-              <Text style={[txt.small, { marginTop: 6 }]}>{p.type.line}</Text>
-            </Card>
+              <Text style={s.bondLine}>{p.type.line}</Text>
+            </View>
           ))}
         </View>
       </PreviewReveal>
@@ -404,7 +444,7 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
           </>
         ) : writing ? pending(5) : <Para mt={0}>{R.child.persona}</Para>}
         <View style={s.memo}>
-          <Text style={s.label}>기운의 크기</Text>
+          <Text style={s.memoLabel}>기운의 크기</Text>
           <Para mt={4}>{R.child.energy}</Para>
         </View>
       </Card>
@@ -424,18 +464,28 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
       ) : null}
 
       <SubHead title={`02 · ${waGwa(callOf(name))} 잘 지내는 법`} />
-      <Card>
-        {portrait ? (
-          <>
-            <Text style={s.label}>좋아하기 쉬운 것</Text>
-            <View style={s.wrap}>{portrait.manual.likes.map(t => <Text key={t} style={[s.pill, s.pillOk]}>{t}</Text>)}</View>
-            <Text style={[s.label, { marginTop: 14 }]}>힘들어하기 쉬운 것</Text>
-            <View style={s.wrap}>{portrait.manual.dislikes.map(t => <Text key={t} style={[s.pill, s.pillCare]}>{t}</Text>)}</View>
-            <Text style={[s.label, { marginTop: 14 }]}>속상할 때 다독이는 법</Text>
-            <Para mt={4}>{portrait.manual.comfort}</Para>
-          </>
-        ) : pending(5)}
-      </Card>
+      {portrait ? (
+        <>
+          <View style={s.manualRow}>
+            {([['좋아해요', portrait.manual.likes, LIKE_LINE], ['힘들어해요', portrait.manual.dislikes, CARE_LINE]] as const).map(([title, items, line], i) => (
+              <View key={title} style={[s.manualCard, { borderColor: line }]} accessible accessibilityLabel={`${i ? '힘들어하기 쉬운 것' : '좋아하기 쉬운 것'}: ${items.join(', ')}`}>
+                <View style={s.manualHead}>
+                  <SolidIcon name={i ? 'dismissCircle' : 'favorite'} size={24} color={i ? colors.danger : colors.accent} />
+                  <Text style={s.manualTitle}>{title}</Text>
+                </View>
+                <View style={s.manualItems}>{items.map(t => <Text key={t} style={s.manualItem}>{t}</Text>)}</View>
+              </View>
+            ))}
+          </View>
+          <View style={s.comfort}>
+            <View style={s.manualHead}>
+              <SolidIcon name="book" size={20} color={colors.accent} />
+              <Text style={s.manualTitle}>속상할 때 다독이는 법</Text>
+            </View>
+            <Text style={s.comfortText}>{portrait.manual.comfort}</Text>
+          </View>
+        </>
+      ) : <Card>{pending(5)}</Card>}
 
       <SubHead title="03 · 타고난 재능" caption="사주 속 다섯 가지 힘" />
       <Card style={{ gap: 12 }}>
@@ -457,7 +507,7 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
               <View style={s.talentRow}><Rank n={i + 1} first={i === 0} /><Text style={[txt.h3, { flex: 1 }]}>{t.name}</Text></View>
               {w ? <Para>{w.text}</Para> : writing ? pending(3) : <Para>{t.line}</Para>}
               <View style={s.memo}>
-                <Text style={s.label}>키워 주는 법</Text>
+                <Text style={s.memoLabel}>키워 주는 법</Text>
                 <Para mt={4}>{w ? w.grow : t.activities.slice(0, 3).join(' · ')}</Para>
               </View>
             </Card>
@@ -471,7 +521,14 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
         {talent ? (
           <>
             <Para>{talent.learning.summary}</Para>
-            <View style={{ marginTop: 12, gap: 6 }}>{talent.learning.tips.map(t => <Bullet key={t}>{t}</Bullet>)}</View>
+            <View style={s.tips}>
+              {talent.learning.tips.map((t, i) => (
+                <View key={t} style={[s.tipRow, i ? s.tipLine : null]}>
+                  <View style={s.tipNum}><Text style={s.tipNumText}>{i + 1}</Text></View>
+                  <Text style={s.tipText}>{t}</Text>
+                </View>
+              ))}
+            </View>
             <Text style={[s.label, { marginTop: 14 }]}>집중이 잘 되는 환경</Text>
             <Para mt={4}>{talent.learning.environment}</Para>
             <Text style={[s.label, { marginTop: 14 }]}>잘 통하는 칭찬</Text>
@@ -567,13 +624,28 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
       <Card>{growth ? <Para mt={0}>{growth.thisYear}</Para> : writing ? pending(3) : <Para mt={0}>{R.thisYear.line}</Para>}</Card>
 
       <SubHead title="09 · 하루 리듬과 행운 색" caption={`${callOf(name)}에게 필요한 ${R.habits.elementKo}의 기운`} />
-      <Card>
-        {growth ? growth.rhythm.map((r, i) => (
-          <View key={r.time} style={[s.rhythm, i ? s.line : null]}>
-            <Text style={s.rhythmTime}>{r.time}</Text>
-            <Text style={[txt.small, { flex: 1, color: colors.ink }]}>{r.text}</Text>
+      {growth ? (
+        <View style={s.rhythmBox}>
+          {growth.rhythm.map((r, i) => (
+            <View key={r.time} style={s.rhythmRow}>
+              {i < growth.rhythm.length - 1 ? <View style={s.rhythmRail} /> : null}
+              <View style={s.rhythmTile}><RhythmIcon time={r.time} index={i} /></View>
+              <View style={s.rhythmBody}>
+                <Text style={s.rhythmTime}>{r.time}</Text>
+                <Text style={s.rhythmText}>{r.text}</Text>
+              </View>
+            </View>
+          ))}
+          <View style={s.luckyColor}>
+            <View style={s.manualHead}>
+              <View style={[s.luckyDot, { backgroundColor: habitColor.hex }]} />
+              <Text style={s.luckyName}>{habitColor.name}</Text>
+            </View>
+            <Text style={s.rhythmText}>{growth.color}</Text>
           </View>
-        )) : writing ? pending(4) : (
+        </View>
+      ) : <Card>
+        {writing ? pending(4) : (
           <>
             <Text style={s.label}>함께하면 좋은 것</Text><Para mt={4}>{R.habits.activity}</Para>
             <Text style={[s.label, { marginTop: 12 }]}>어울리는 곳</Text><Para mt={4}>{R.habits.place}</Para>
@@ -583,20 +655,65 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
           <View style={[s.swatch, { backgroundColor: habitColor.hex }]} />
           <View style={{ flex: 1 }}>
             <Text style={txt.bodyStrong}>{habitColor.name}</Text>
-            <Text style={txt.small}>{growth?.color ?? '방 소품이나 옷, 학용품에 이 색을 더해 주세요.'}</Text>
+            <Text style={txt.small}>방 소품이나 옷, 학용품에 이 색을 더해 주세요.</Text>
           </View>
         </View>
-      </Card>
+      </Card>}
       <Tip title="기억해 두세요" style={{ marginTop: 16 }}>{growth?.closing ?? '사주는 타고난 경향일 뿐이에요. 아이는 믿어 주는 어른 곁에서 가장 잘 자라요.'}</Tip>
     </>
   );
 }
 
 const s = StyleSheet.create({
-  heroArt: { position: 'absolute', right: 8, bottom: 8, width: 104, height: 90, opacity: 0.95 },
-  heroHeadline: { maxWidth: 220 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
-  tag: { ...sansW('600'), fontSize: 12, color: 'rgba(255,255,255,0.75)' },
+  // 결과 첫 카드 (Figma 327×282, 안쪽 28/24, 줄 사이 10)
+  hero: { minHeight: 282, marginTop: 12, paddingTop: 28, paddingBottom: 24, paddingHorizontal: 24, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.accentSoft, gap: 10 },
+  heroEyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: HERO_SUB },
+  heroHeadline: { ...sansW('700'), fontSize: 22, lineHeight: 29, letterSpacing: -1.1, color: HERO_INK, maxWidth: 220 },
+  heroTitle: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: HERO_TITLE, maxWidth: 200 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, maxWidth: 220 },
+  chip: { paddingVertical: 7, paddingHorizontal: 16, borderRadius: 30 },
+  chipDark: { backgroundColor: HERO_INK },
+  chipDarkText: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: '#FFFFFF' },
+  chipLight: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E2E2', paddingVertical: 6 },
+  chipLightText: { ...sansW('500'), fontSize: 14, lineHeight: 17, color: HERO_INK, opacity: 0.8 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, maxWidth: 220 },
+  tag: { paddingVertical: 2, paddingHorizontal: 4, borderRadius: 5, borderWidth: 0.5, borderColor: TAG_INK },
+  tagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, color: TAG_INK, opacity: 0.8 },
+  // 미리보기 궁합 카드 (Figma 먹남색 카드)
+  bondCard: { paddingTop: 12, paddingBottom: 16, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#1D212D' },
+  bondSub: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: BOND_SUB, paddingRight: 56 },
+  bondScore: { position: 'absolute', top: 12, right: 16 },
+  bondScoreUnit: { ...sansW('700'), fontSize: 14, color: colors.accent },
+  bondName: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingRight: 56 },
+  bondNameText: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: '#FFFFFF', flexShrink: 1 },
+  bondLine: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#FFFFFF', marginTop: 2 },
+  memoLabel: { ...sansW('700'), fontSize: 12, lineHeight: 18, letterSpacing: -0.6, color: colors.accent },
+  // 02 잘 지내는 법
+  manualRow: { flexDirection: 'row', gap: 12 },
+  manualCard: { flex: 1, minHeight: 131, padding: 16, borderRadius: 12, borderWidth: 1, backgroundColor: colors.cream },
+  manualHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  manualTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink, flexShrink: 1 },
+  manualItems: { marginTop: 9, gap: 6 },
+  manualItem: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
+  comfort: { marginTop: 16, padding: 16, borderRadius: 8, backgroundColor: colors.card },
+  comfortText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink, marginTop: 6 },
+  // 04 공부 방식 팁 (흰 칸 안 번호 목록)
+  tips: { marginTop: 12, borderRadius: 12, backgroundColor: colors.surface },
+  tipRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, minHeight: 56 },
+  tipLine: { borderTopWidth: 1, borderTopColor: colors.line },
+  tipNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  tipNumText: { ...sansW('700'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: '#FFFFFF' },
+  tipText: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink, flex: 1 },
+  // 09 하루 리듬 (Figma 타임라인)
+  rhythmBox: { padding: 14, paddingBottom: 16, borderRadius: 8, backgroundColor: colors.card, gap: 6 },
+  rhythmRow: { flexDirection: 'row', gap: 8 },
+  rhythmRail: { position: 'absolute', left: 13, top: 28, bottom: -6, width: 2, backgroundColor: colors.surface },
+  rhythmTile: { width: 28, height: 28, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  rhythmBody: { flex: 1, paddingTop: 6, paddingRight: 2 },
+  rhythmText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink, marginTop: 6 },
+  luckyColor: { marginTop: 12, marginHorizontal: 2, padding: 12, borderRadius: 6, backgroundColor: colors.surface },
+  luckyDot: { width: 16, height: 16, borderRadius: 8 },
+  luckyName: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.65, color: colors.ink },
   kidRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
   kid: { paddingHorizontal: 14, height: 32, borderRadius: radius.pill, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', maxWidth: 140 },
   kidOn: { backgroundColor: colors.navy },
@@ -615,8 +732,6 @@ const s = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '700', color: colors.inkSub },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   pill: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: colors.ink, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 30, backgroundColor: colors.surface, overflow: 'hidden' },
-  pillOk: { backgroundColor: colors.okBg },
-  pillCare: { backgroundColor: colors.careBg },
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   barTrack: { height: 6, borderRadius: 3, backgroundColor: colors.surface, marginTop: 6, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
@@ -628,21 +743,18 @@ const s = StyleSheet.create({
   stageHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   now: { ...sansW('700'), fontSize: 11, color: colors.white, backgroundColor: colors.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, overflow: 'hidden' },
   line: { borderTopWidth: 1, borderTopColor: colors.line },
-  rhythm: { flexDirection: 'row', gap: 12, paddingVertical: 10 },
-  rhythmTime: { ...sansW('700'), fontSize: 13, width: 32, color: colors.accent },
+  rhythmTime: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink },
   colorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, padding: 12, borderRadius: radius.md, backgroundColor: colors.surface },
   swatch: { width: 32, height: 32, borderRadius: 16 },
-  slotHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 22, marginBottom: 12, flexWrap: 'wrap' },
+  slotHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 31, marginBottom: 11, flexWrap: 'wrap' },
   formIntro: { minHeight: 142, padding: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.accentSoft },
-  introHalo: { position: 'absolute', right: -28, bottom: -60, width: 180, height: 180, borderRadius: 90, backgroundColor: colors.card, opacity: 0.65 },
-  introBaby: { position: 'absolute', width: 108, height: 108, right: -2, bottom: 0 },
-  introTitle: { ...sansW('800'), fontSize: 20, lineHeight: 25, letterSpacing: -0.8, color: colors.ink, maxWidth: '78%' },
-  introBody: { ...sansW('500'), fontSize: 12, lineHeight: 18, letterSpacing: -0.4, color: colors.inkSub, marginTop: 12, maxWidth: '76%' },
-  formStep: { ...sansW('600'), fontSize: 16, lineHeight: 22, color: colors.accent },
-  formSectionLabel: { ...sansW('600'), fontSize: 16, lineHeight: 22, letterSpacing: -0.5, color: colors.ink, flexGrow: 1 },
+  introTitle: { ...sansW('800'), fontSize: 20, lineHeight: 24, letterSpacing: -0.8, color: HERO_INK, maxWidth: '66%' },
+  introBody: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INTRO_SUB, marginTop: 11, maxWidth: '62%' },
+  formStep: { ...sansW('600'), fontSize: 18, lineHeight: 22, color: colors.accent },
+  formSectionLabel: { ...sansW('600'), fontSize: 18, lineHeight: 22, color: colors.ink, flexGrow: 1 },
   memberForm: { padding: 16, borderRadius: 12, backgroundColor: colors.card },
-  importAction: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  importLabel: { ...sansW('500'), fontSize: 12, color: colors.inkMute },
+  importAction: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  importLabel: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkMute },
   memberTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   memberTab: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.sm, flexShrink: 1, backgroundColor: colors.card },
   memberTabSelect: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 40, paddingHorizontal: 10, flexShrink: 1 },
@@ -655,8 +767,9 @@ const s = StyleSheet.create({
   addParentLabel: { ...sansW('500'), fontSize: 14, lineHeight: 20, letterSpacing: -0.4, color: colors.inkSub, flex: 1 },
   addParentOptional: { ...sansW('400'), fontSize: 12, lineHeight: 18, color: colors.inkMute },
   link: { ...txt.small, color: colors.inkSub },
-  check: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, minHeight: 44, alignSelf: 'flex-start' },
-  box: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: colors.lineStrong, alignItems: 'center', justifyContent: 'center' },
-  boxOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, alignSelf: 'flex-start' },
+  checkLabel: { ...sansW('500'), fontSize: 13, lineHeight: 16, color: colors.inkMute },
+  box: { width: 16, height: 16, borderRadius: 4, borderWidth: 1.5, borderColor: colors.lineStrong, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  boxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   manage: { alignItems: 'center', marginTop: 20 },
 });
