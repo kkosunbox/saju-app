@@ -11,6 +11,8 @@ import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
 import { DEV_TOOLS } from '../../utils/devTools';
 import { DailyFortune } from '../../types';
+import { requestData } from '../../api/client';
+import { trackAction } from '../screenViews';
 
 /**
  * 오늘의 운세 · 타로를 누구 것으로 볼지 — 주지 않으면 메인에서 고른 프로필.
@@ -89,7 +91,18 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
     return () => { live = false; subs.delete(f); };
   }, [uid, legacyUid]);
 
-  const open = useCallback(() => { if (uid) save(uid, kind, stamp); }, [uid, kind, stamp]);
+  const open = useCallback(() => {
+    if (!uid) return;
+    if (kind !== 'fortune' && kind !== 'tarot') {
+      const previous = mem.get(uid)?.[kind];
+      const alreadyOpened = daily ? previous === stamp : !!previous;
+      if (!alreadyOpened) {
+        void requestData('/v1/contents/draw-completion', { content: kind, profileId }, 'PUT').catch(() => {});
+        trackAction('free_content_draw_completed');
+      }
+    }
+    save(uid, kind, stamp);
+  }, [uid, kind, stamp, daily, profileId]);
   const reset = useCallback(() => {
     if (uid) save(uid, kind, kind === 'fortune' && DEV_TOOLS ? `reset:${stamp}` : undefined);
   }, [uid, kind, stamp]);
