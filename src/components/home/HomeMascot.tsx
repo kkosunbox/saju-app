@@ -1,24 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import ResultMascot from '../ResultMascot';
 import MascotShadow from '../MascotShadow';
-import { type MascotScores } from '../../utils/resultMascot';
+import MascotPolish from '../MascotPolish';
+import { useMascotPlay } from '../useMascotPlay';
+import { getResultMascot, type MascotScores } from '../../utils/resultMascot';
 import { colors } from '../../theme/colors';
 import { motion, useReducedMotion, useScreenLive } from '../../utils/motion';
-import { haptic } from '../../utils/haptic';
 
 const SIZE = 103;
 const BOX = 136;
+/** 화면을 열거나 한동안 비웠다가 앱으로 돌아왔을 때 이 확률로 졸고 있다 */
+const DOZE_CHANCE = 0.06;
+/** 이만큼 넘게 앱을 비웠다 돌아와야 졸 수 있다 — 잠깐 나갔다 오면 깨어 있다 */
+const DOZE_AWAY_MS = 10 * 60 * 1000;
 
 /**
- * 홈의 말풍선 아래 운알이. 둥실 떠 있다가 누르면 폴짝 뛰고 오늘의 운세 대화로 넘어간다 (꾹 눌러 뽑기 없음).
- * 아직 안 본 날(sealed)엔 기본 모습에 '눌러서 들어 보기' 안내, 본 뒤엔 오늘 점수에 맞는 포즈.
+ * 홈의 말풍선 아래 운알이. 둥실 떠 있다.
+ * 아직 안 본 날(sealed)엔 기본 모습에 안내, 누르면 onSealedPress (오늘의 운세 대화로).
+ * 본 뒤엔 오늘 점수에 맞는 포즈 — 누를 때마다 튕기며 운세 공개 때의 반짝임을 다시 재생한다 (화면은 넘어가지 않는다).
+ * 화면을 열었을 때 가끔 꾸벅꾸벅 졸고 있고, 누르면 깨어난다.
  */
-export default function HomeMascot({ sealed, hint, scores, onPress }: { sealed: boolean; hint?: string; scores?: MascotScores; onPress(): void }) {
+export default function HomeMascot({ sealed, hint, scores, onSealedPress }: { sealed: boolean; hint?: string; scores?: MascotScores; onSealedPress(): void }) {
   const reduced = useReducedMotion();
   const live = useScreenLive();
+  const playful = !sealed;
+  const play = useMascotPlay(playful, reduced);
   const [y] = useState(() => new Animated.Value(0));
-  const [hop] = useState(() => new Animated.Value(0));
+
+  // 이미 본 날 화면이 열릴 때만 굴린다
+  const [dozing, setDozing] = useState(() => playful && Math.random() < DOZE_CHANCE);
+  useEffect(() => { if (!playful) setDozing(false); }, [playful]);
+  const playfulRef = useRef(playful);
+  playfulRef.current = playful;
+  useEffect(() => {
+    let last = AppState.currentState;
+    let leftAt = 0;
+    const sub = AppState.addEventListener('change', next => {
+      if (last === 'active' && next !== 'active') leftAt = Date.now();
+      if (last !== 'active' && next === 'active' && playfulRef.current && Date.now() - leftAt > DOZE_AWAY_MS && Math.random() < DOZE_CHANCE) setDozing(true);
+      last = next;
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (reduced || !live) { y.setValue(0); return; }
@@ -30,21 +54,12 @@ export default function HomeMascot({ sealed, hint, scores, onPress }: { sealed: 
     return () => a.stop();
   }, [reduced, live, y]);
 
+  const mascot = getResultMascot(scores);
+  const variant = !playful ? 'original' : dozing ? 'sleepy' : mascot.pose ?? 'original';
   const press = () => {
-    haptic.tap();
-    if (!reduced) {
-      hop.setValue(1);
-      Animated.spring(hop, { toValue: 0, speed: 16, bounciness: 9, useNativeDriver: true }).start();
-    }
-    onPress();
-  };
-
-  const bounce = {
-    transform: [
-      { translateY: hop.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, -9, 2] }) },
-      { scaleX: hop.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 0.96, 1.05] }) },
-      { scaleY: hop.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 1.05, 0.95] }) },
-    ],
+    if (sealed) { onSealedPress(); return; }
+    setDozing(false);
+    play.play();
   };
 
   return (
@@ -52,8 +67,8 @@ export default function HomeMascot({ sealed, hint, scores, onPress }: { sealed: 
       <Pressable
         onPress={press}
         accessibilityRole="button"
-        accessibilityLabel={sealed ? '운알이에게 오늘의 운세 듣기' : '운알이에게 오늘의 운세 다시 듣기'}
-        accessibilityHint="누르면 운알이와의 오늘의 운세 대화로 넘어가요"
+        accessibilityLabel={sealed ? '운알이에게 오늘의 운세 듣기' : mascot.label}
+        accessibilityHint={sealed ? '누르면 운알이와의 오늘의 운세 대화로 넘어가요' : '누르면 운알이가 튕기며 반짝여요'}
         style={s.hit}
       >
         <Animated.View style={[s.shadowBox, {
@@ -63,8 +78,10 @@ export default function HomeMascot({ sealed, hint, scores, onPress }: { sealed: 
           <MascotShadow size={SIZE} />
         </Animated.View>
         <Animated.View style={{ transform: [{ translateY: y }] }}>
-          <Animated.View style={bounce}>
-            <ResultMascot pose={sealed ? null : undefined} scores={sealed ? undefined : scores} size={SIZE} accessible={false} revealed={!sealed} />
+          <Animated.View style={play.style}>
+            <MascotPolish busy={false} reduced={reduced} size={SIZE} variant={variant} sparkleTrigger={play.sparkleTrigger}>
+              <ResultMascot pose={sealed ? null : undefined} scores={sealed ? undefined : scores} dozing={dozing} size={SIZE} accessible={false} revealed={!sealed} />
+            </MascotPolish>
           </Animated.View>
         </Animated.View>
       </Pressable>

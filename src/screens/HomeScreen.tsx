@@ -325,6 +325,12 @@ export default function HomeScreen() {
                       <ScoreDeltaText now={f.totalScore} before={yesterday?.totalScore} style={[s.bubbleDelta, !isDark && { color: f.totalScore > (yesterday?.totalScore ?? f.totalScore) ? '#DD2828' : '#3D79D4' }]} />
                     </View>
                   )}
+                {/* 말풍선을 누르면 오늘의 운세 대화로 넘어간다는 작은 표시 */}
+                {!hidden && (
+                    <View style={s.bubbleChevron} accessible={false}>
+                      <Icon name="chevronRight" size={16} color={colors.inkMute} strokeWidth={2} />
+                    </View>
+                  )}
               </Animated.View>
               {isDark && <View style={s.tail} />}
             </PressableScale>
@@ -332,7 +338,7 @@ export default function HomeScreen() {
               sealed={hidden}
               hint={sealed ? (drawCost > 0 ? `${drawCost}알로 열기` : '눌러서 오늘의 운세 듣기') : reading ? '운알이가 쓰는 중…' : undefined}
               scores={hidden ? undefined : f}
-              onPress={askToday}
+              onSealedPress={askToday}
             />
             {!hidden && later(300, (
               <View style={s.mascotTags} accessibilityLabel={`오늘의 키워드 ${tags.join(', ')}`}>
@@ -500,7 +506,8 @@ const s = StyleSheet.create({
   bubbleArt: { position: 'absolute', top: -5, left: -9, right: -9, bottom: -32 },
   bubbleBody: { flex: 1, gap: 4, paddingRight: 5 },
   bubbleScore: { ...sansW('700'), fontSize: 32, lineHeight: 38, minWidth: 40, textAlign: 'center', color: colors.ink, letterSpacing: -1.28, fontVariant: ['tabular-nums'], includeFontPadding: false },
-  bubbleText: { ...sansW('600'), flex: 1, fontSize: 16, lineHeight: 19, color: colors.ink, letterSpacing: -0.64, includeFontPadding: false },
+  bubbleText: { ...sansW('600'), flex: 1, fontSize: 15, lineHeight: 18, color: colors.ink, letterSpacing: -0.6, includeFontPadding: false },
+  bubbleChevron: { marginLeft: -20, marginRight: -10, opacity: 0.8 },
   bubbleDelta: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: -0.48, includeFontPadding: false },
   mascotTags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: -12, marginBottom: 20, paddingHorizontal: 0 },
   // Figma 키워드 칩: 흰 바탕, 10×6 패딩, 옅은 하늘색 그림자

@@ -25,7 +25,7 @@ import { router } from 'expo-router';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 
-type Sheet = { type: 'unlock'; item: Item; onDone?(): void; profileId?: number } | { type: 'charge'; i: number } | null;
+type Sheet = { type: 'unlock'; item: Item; onDone?(): void; profileId?: number } | null;
 
 interface PremiumState {
   ready: boolean;
@@ -187,9 +187,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  /** 결제 화면은 플랫폼별로 웹 Toss / iOS App Store / Android Play를 사용한다. */
+  /** 결제 화면은 플랫폼별로 웹 Toss / iOS App Store / Android Play를 사용한다. 상품·금액은 결제 화면이 보여 주므로 확인 시트 없이 바로 간다 */
   function doCharge(i: number) {
-    setSheet(null);
     router.push({ pathname: '/charge', params: { productId: PACKS[i][3] } });
   }
 
@@ -239,7 +238,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       if (owned(item.key, profileId)) { onDone?.(); return; }
       setSheet({ type: 'unlock', item, onDone, profileId });
     },
-    openCharge: i => { if (!requireLogin()) setSheet({ type: 'charge', i }); },
+    openCharge: i => { if (!requireLogin()) doCharge(i); },
     attend: async () => {
       if (requireLogin() || wallet.data?.attendedToday) return;
       try {
@@ -284,8 +283,6 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       <BottomSheet visible={!!sheet} onClose={() => setSheet(null)}>
         {sheet?.type === 'unlock' ? (
           <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key, sheet.profileId)} busy={busy} who={whoOf(sheet.profileId)} again={records(sheet.item.key, sheet.profileId).length > 0} onConfirm={() => doUnlock(sheet.item, sheet.onDone, sheet.profileId)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
-        ) : sheet?.type === 'charge' ? (
-          <ChargeSheet i={sheet.i} points={points} onConfirm={() => doCharge(sheet.i)} onClose={() => setSheet(null)} />
         ) : null}
       </BottomSheet>
       {toastMsg ? (
@@ -362,34 +359,6 @@ function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onCl
       {enough
         ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}${ro(it.cost)} 열기`} icon={busy ? undefined : <Coin size={18} />} onPress={onConfirm} disabled={busy} />
         : <PrimaryButton label="알 충전하러 가기" onPress={onWallet} />}
-      <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
-    </View>
-  );
-}
-
-function ChargeSheet({ i, points, onConfirm, onClose }: { i: number; points: number; onConfirm(): void; onClose(): void }) {
-  const [w, p, b] = PACKS[i];
-  const price = Platform.OS === 'web' ? w.toLocaleString('ko-KR') + '원' : '스토어에서 확인';
-  return (
-    <View>
-      <Text style={[txt.caption, s.center]}>알 충전</Text>
-      <Text style={[txt.h2, s.center, { marginTop: 6 }]}>{fmtP(p + b)} 충전</Text>
-      {b ? <Text style={[txt.small, s.center, { marginTop: 2 }]}>기본 {fmtP(p)} + 보너스 {fmtP(b)}</Text> : null}
-      <View style={s.sumBox}>
-        <SumRow label="결제 금액" value={price} />
-        <SumRow label="충전 후 잔액" value={points + p + b} color={colors.purple} />
-      </View>
-      {Platform.OS === 'web' ? (
-        <>
-          <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>토스페이먼츠 결제창으로 이동해요</Text>
-          <PrimaryButton label={`${w.toLocaleString('ko-KR')}원 결제하기`} onPress={onConfirm} />
-        </>
-      ) : (
-        <>
-          <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}에서 결제 금액을 확인하고 구매해요</Text>
-          <PrimaryButton label="스토어 결제로 계속" onPress={onConfirm} />
-        </>
-      )}
       <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
     </View>
   );
