@@ -160,7 +160,7 @@ export default function WalletScreen() {
       )}
 
       <SubHead title="알 충전하기" />
-      {firstCharge ? <Text style={s.firstNote}>첫 충전은 1+1 · 충전한 알만큼 보너스를 더 드려요</Text> : null}
+      {firstCharge ? <Text style={s.firstNote}>첫 충전 1+1 · 충전한 만큼 더 받아요</Text> : null}
       <View style={{ gap: 12 }}>
         {PACKS.map((pack, i) => {
           const [w, p, , productId] = pack;
@@ -170,9 +170,9 @@ export default function WalletScreen() {
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <CoinBox />
-                <Text style={s.packCount}>{fmtN(p)}</Text>
+                <Text style={s.packCount}>{fmtP(p)}</Text>
                 {firstCharge
-                  ? <View style={s.firstBonus}><Text style={s.firstBonusText}>1+1 +{fmtN(b)}</Text></View>
+                  ? <View style={s.firstBonus}><Text style={s.firstBonusText}>보너스 {fmtP(b)}</Text></View>
                   : b ? <View style={s.bonus}><Text style={s.chipText}>+{b} 보너스</Text></View> : null}
               </View>
               <Text style={s.won}>{price}</Text>
