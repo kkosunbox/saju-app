@@ -28,6 +28,8 @@ import { ChatHeaderLeft } from './ChatMenu';
 import { PointPill } from '../../components/HeaderPoints';
 import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
+import { goLogin } from '../../services/loginIntent';
+import { trackAction } from '../../services/screenViews';
 import { CROWN, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
 import SolidIcon from '../../components/SolidIcon';
 
@@ -51,6 +53,7 @@ const ASK_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 알은 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
   DUPLICATE_REQUEST: '이미 답을 쓰고 있어요. 잠시만 기다려 주세요',
   INSUFFICIENT_POINTS: '물어보는 데 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
+  MEMBER_ONLY: '무료 상담은 한 번까지예요. 로그인하면 이어서 물어볼 수 있어요',
 };
 
 /** 운알톡 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
@@ -82,6 +85,14 @@ function PendingChat({ askKey }: { askKey?: string }) {
         if (!live) return;
         const code = err instanceof ApiError ? err.code : '';
         if (code === 'INSUFFICIENT_POINTS') goWallet?.();
+        // 게스트의 무료 한 번을 이미 썼다 — 이 질문을 기억해 두고 로그인으로 (로그인하면 상담 탭이 이어서 보낸다)
+        if (code === 'MEMBER_ONLY') {
+          dropAsk(key);
+          trackAction('consult_ask_login_required');
+          nav.goBack();
+          goLogin({ kind: 'consult', worry: ask.worry, topic: ask.topic });
+          return;
+        }
         setState({ kind: 'error', message: ASK_ERROR[code] ?? ASK_ERROR.CONSULT_UNAVAILABLE });
       },
     );
@@ -128,7 +139,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   const [unlocking, setUnlocking] = useState(false);
   const [del, setDel] = useState(false);
   const q = useQuery({ queryKey: consultKeys.one(id), queryFn: () => consultApi.get(id), enabled: Number.isFinite(id) });
-  const status = useConsultStatus(!!account);
+  const status = useConsultStatus(!!u);
   const turnCount = q.data?.turns?.length ?? 0;
   if (seenTurns.current === null && q.data) seenTurns.current = turnCount;
   useWebAutoGrow(inputRef, input, INPUT_MAX);
@@ -162,7 +173,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   const send = (raw: string) => {
     const question = raw.trim();
     if (!question || sending) return;
-    if (e.locked) { setPendingQ(question); setUnlockOpen(true); return; }
+    if (e.locked) { askUnlock(question); return; }
     if (!canAsk) { toast(SEND_ERROR.CONSULT_CLOSED); return; }
     post(question);
   };
@@ -173,7 +184,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
       put(await consultApi.followUp(id, question));
     } catch (err) {
       const code = err instanceof ApiError ? err.code : '';
-      if (code === 'CONTENT_LOCKED') setUnlockOpen(true);
+      if (code === 'CONTENT_LOCKED') askUnlock();
       if (code === 'CONSULT_CLOSED') q.refetch();
       else setInput(question); // 다시 보낼 수 있게 되돌려 둔다
       toast(SEND_ERROR[code] ?? '답변을 만들지 못했어요. 다시 물어봐 주세요');
@@ -183,6 +194,16 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   };
 
   const closeUnlock = () => { setUnlockOpen(false); setPendingQ(null); };
+  // 게스트는 알이 없으니 여는 대신 로그인으로 — 로그인하면 이 대화로 돌아온다 (게스트 대화는 계정으로 옮겨진다)
+  const askUnlock = (question?: string) => {
+    if (!account) {
+      trackAction('consult_unlock_login_required');
+      goLogin({ kind: 'unlock', title: '운알톡 전체 답변', returnTo: `/consult/${id}` });
+      return;
+    }
+    if (question) setPendingQ(question);
+    setUnlockOpen(true);
+  };
 
   const unlock = async () => {
     const question = pendingQ;
@@ -242,7 +263,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
       </View>
       <Text style={s.footCap}>
         {e.locked
-          ? (unlocking ? '나머지 답을 쓰고 있어요' : `${viaSub ? '구독 혜택으로' : `${cost}알로`} 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
+          ? (unlocking ? '나머지 답을 쓰고 있어요' : !account ? '로그인하면 전체 답을 열고 이어서 물어볼 수 있어요' : `${viaSub ? '구독 혜택으로' : `${cost}알로`} 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
           : `${e.followUpsLeft}번 더 물어볼 수 있어요${e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}`}
       </Text>
     </>
@@ -285,7 +306,7 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
         ) : unlocking ? (
           <ReplyBubble typing={STAGES.rest} />
         ) : (
-          <StreamBlock><LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => setUnlockOpen(true)} /></StreamBlock>
+          <StreamBlock><LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => askUnlock()} /></StreamBlock>
         )}
 
         {turns.map((t, i) => (
@@ -307,16 +328,19 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
         {!sending && !unlocking && (e.locked || canAsk) ? (
           <SuggestionChips
             items={suggestions}
-            caption={e.locked ? `궁금한 질문을 누르면 ${viaSub ? '구독 혜택으로' : `${cost}알로`} 열고 바로 답해 드려요` : '이어서 물어보기'}
+            caption={e.locked ? (account ? `궁금한 질문을 누르면 ${viaSub ? '구독 혜택으로' : `${cost}알로`} 열고 바로 답해 드려요` : '로그인하면 전체 답을 열고 이어서 물어볼 수 있어요') : '이어서 물어보기'}
             onPick={send}
           />
         ) : null}
 
         {full && showRec ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
 
-        <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
-          <Text style={s.delete}>이 대화 기록 지우기</Text>
-        </PressableScale>
+        {/* 게스트는 지울 수 없다 (서버가 회원만 허용) — 오래 안 쓰면 게스트 정리 때 함께 지워진다 */}
+        {account ? (
+          <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
+            <Text style={s.delete}>이 대화 기록 지우기</Text>
+          </PressableScale>
+        ) : null}
         </Stream>
         <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>참고를 위한 대화예요.</Text>
       </ScrollView>

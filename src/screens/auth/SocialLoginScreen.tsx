@@ -4,6 +4,7 @@ import { isWebSocial, SocialLoginError, startWebSocialLogin } from '../../servic
 import { appleSignInAvailable, prepareAppleSignIn, signInWithApple } from '../../services/server/appleAuth';
 import { nativeSocialAvailable, signInNative } from '../../services/server/nativeSocialAuth';
 import { useAfterSocialLogin } from './useAfterSocialLogin';
+import { loginIntentReturnTo } from '../../services/loginIntent';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PressableScale from '../../components/PressableScale';
@@ -59,7 +60,7 @@ export default function SocialLoginScreen() {
       return;
     }
     if (!isWebSocial(p)) return;
-    try { await startWebSocialLogin(p); } catch { setFailed(`${brand} 로그인 페이지를 열지 못했어요. 잠시 후 다시 시도해 주세요.`); setBusy(false); }
+    try { await startWebSocialLogin(p, loginIntentReturnTo()); } catch { setFailed(`${brand} 로그인 페이지를 열지 못했어요. 잠시 후 다시 시도해 주세요.`); setBusy(false); }
   };
   const goingText = inPlace ? '로그인하는 중…' : '이동하는 중…';
   const liveNote = inPlace ? `${brand} 계정으로 바로 로그인해요. 지금까지 본 운세는 그대로 이어져요.` : `${brand} 로그인 페이지로 이동해요. 지금까지 본 운세는 그대로 이어져요.`;

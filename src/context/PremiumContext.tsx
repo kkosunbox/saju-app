@@ -21,7 +21,9 @@ import { listReadings, readingsKey } from '../services/server/premiumReadings';
 import { ApiError } from '../api/client';
 import { queryClient } from '../api/query';
 import PrimaryButton from '../components/PrimaryButton';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
+import { goLogin } from '../services/loginIntent';
+import { trackAction } from '../services/screenViews';
 import { colors } from '../theme/colors';
 import { radius, txt } from '../theme/typography';
 
@@ -193,10 +195,12 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   }
 
   /** 게스트가 포인트 기능을 쓰려 하면 로그인으로 보낸다. 로그인했으면 false */
-  const requireLogin = (): boolean => {
+  // 열려던 콘텐츠는 로그인 화면에 보여 주고, 로그인한 뒤 이 화면으로 돌아온다
+  const pathname = usePathname();
+  const requireLogin = (reason: 'unlock' | 'charge' | 'attend', title?: string): boolean => {
     if (account) return false;
-    toast('로그인하면 열어볼 수 있어요');
-    router.push('/login');
+    trackAction(`login_required_${reason}`);
+    goLogin(title ? { kind: 'unlock', title, returnTo: pathname } : undefined);
     return true;
   };
 
@@ -234,13 +238,13 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     // 프로필 × 콘텐츠 하나씩 (보유 콘텐츠 목록과 같은 기준)
     ownedCount: ownedContents(entitlements, primaryId).length,
     openUnlock: (item, onDone, profileId) => {
-      if (requireLogin()) return;
+      if (requireLogin('unlock', item.title)) return;
       if (owned(item.key, profileId)) { onDone?.(); return; }
       setSheet({ type: 'unlock', item, onDone, profileId });
     },
-    openCharge: i => { if (!requireLogin()) doCharge(i); },
+    openCharge: i => { if (!requireLogin('charge')) doCharge(i); },
     attend: async () => {
-      if (requireLogin() || wallet.data?.attendedToday) return;
+      if (requireLogin('attend') || wallet.data?.attendedToday) return;
       try {
         const t = await pointsApi.attend();
         toast(t.amount > 10 ? `출석 체크 +${t.amount}알 · 구독 혜택 2배` : `출석 체크 +${t.amount}알`);

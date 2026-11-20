@@ -14,6 +14,8 @@ import { storage } from '../../services/storage/storageService';
 import { colors } from '../../theme/colors';
 import { fonts, radius, txt } from '../../theme/typography';
 import { COPY } from '../../content/copy';
+import { clearLoginIntent } from '../../services/loginIntent';
+import { trackAction } from '../../services/screenViews';
 
 /** 로그인: 큰 문구 + 소셜 아이콘 한 줄. 이메일은 보조 동선으로. 유료 콘텐츠·포인트·마이 탭에서 띄운다 */
 export default function LoginScreen() {
@@ -50,7 +52,7 @@ export default function LoginScreen() {
     <SafeAreaView style={s.root}>
       {/* 필요한 순간에 위로 띄우는 화면이라 닫고 돌아갈 수 있게 */}
       {nav.canGoBack() ? (
-        <PressableScale onPress={() => nav.goBack()} hitSlop={12} style={s.close} accessibilityLabel="닫기" scaleTo={0.9}>
+        <PressableScale onPress={() => { trackAction('login_closed'); clearLoginIntent(); nav.goBack(); }} hitSlop={12} style={s.close} accessibilityLabel="닫기" scaleTo={0.9}>
           <Icon name="close" size={22} />
         </PressableScale>
       ) : null}
@@ -75,13 +77,13 @@ export default function LoginScreen() {
           {SOCIAL_PROVIDERS.map(p => (
             <View key={p}>
               {last === p ? <LastBadge /> : null}
-              <SocialCircle provider={p} onPress={() => nav.navigate('SocialLogin', { provider: p })} />
+              <SocialCircle provider={p} onPress={() => { trackAction(`login_click_${p}`); nav.navigate('SocialLogin', { provider: p }); }} />
             </View>
           ))}
         </View>
         {/* 로그인 화면부터 — 처음이면 거기서 회원가입으로 */}
         <View style={{ marginTop: 26 }}>
-          <PressableScale onPress={() => nav.navigate('EmailLogin')} hitSlop={8}>
+          <PressableScale onPress={() => { trackAction('login_click_email'); nav.navigate('EmailLogin'); }} hitSlop={8}>
             <Text style={s.emailLink}>이메일로 시작하기</Text>
           </PressableScale>
           {last === 'email' ? <LastBadge side="right" /> : null}

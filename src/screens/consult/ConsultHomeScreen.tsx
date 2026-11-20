@@ -1,8 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import Icon from '../../components/Icon';
@@ -30,6 +29,7 @@ import { isTodayFortuneQuestion } from './FortuneChatScreen';
 import { ChatHeaderLeft } from './ChatMenu';
 import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
 import { trackAction } from '../../services/screenViews';
+import { goLogin, takeConsultIntent } from '../../services/loginIntent';
 
 const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
@@ -111,24 +111,46 @@ function TodayFortuneCard({ onAsk }: { onAsk(): void }) {
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account } = useApp();
-  const { points, toast } = usePremium();
+  const { points } = usePremium();
   const input = useRef<TextInputInstance>(null);
   const [text, setText] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
-  const status = useConsultStatus(!!account);
+  // 너무 짧게 보내면 버튼을 잠그지 않고, 왜 안 가는지 안내 줄에 알려 준다
+  const [short, setShort] = useState(false);
+  // 게스트도 받는다 — 게스트는 처음 한 번 무료 (freePerDay 1)
+  const status = useConsultStatus(!!u);
   // 최근 대화 HOME_ROWS개만 (이어서 할 것 · 끝난 것 구분 없이 최신순). 전체는 '대화 기록' 탭에서
-  const recentQ = useQuery({ queryKey: ['consults', 'head', 'recent'], queryFn: () => consultApi.list({ limit: HOME_ROWS }), enabled: !!account });
+  const recentQ = useQuery({ queryKey: ['consults', 'head', 'recent'], queryFn: () => consultApi.list({ limit: HOME_ROWS }), enabled: !!u });
   useWebAutoGrow(input, text, INPUT_MAX);
+  // 로그인 전에 보내려던 질문, 또는 오늘의 운세에서 넘어온 (알이 드는) 질문 — 이 화면에 오면 이어서 보낸다.
+  // 무료 · 구독 횟수가 남았으면 바로 보내고, 알이 드는 경우엔 입력창에 채우고 확인을 묻는다
+  const resumeReady = !!u && !!account && status.isSuccess;
+  useEffect(() => {
+    if (!resumeReady) return;
+    const pending = takeConsultIntent();
+    if (!pending) return;
+    trackAction('consult_ask_resumed');
+    const d = status.data;
+    const canFree = (d?.freeLeft ?? 0) > 0 || (d?.subscription?.left ?? 0) > 0;
+    if (canFree) {
+      trackAction('consult_ask');
+      nav.push('ConsultChat', { id: 'new', ask: startAsk(pending.worry, pending.topic) });
+    } else {
+      setText(pending.worry);
+      setConfirm(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeReady]);
   if (!u) return null;
 
   const cost = status.data?.cost ?? CONSULT_CONFIG.cost;
   const maxLen = status.data?.maxLength ?? CONSULT_CONFIG.maxLen;
   const limit = status.data?.followUpLimit ?? 10;
   const hours = status.data?.followUpHours ?? 24;
-  // 로그인 전에도 '무료'로 보여 준다 (가입하면 바로 쓸 수 있다)
-  const perDay = status.data?.freePerDay ?? 5;
-  const freeLeft = account ? status.data?.freeLeft ?? perDay : perDay;
+  // 회원은 하루 5번, 게스트는 처음 한 번 무료 (상태를 받기 전에도 '무료'로 보여 준다)
+  const perDay = status.data?.freePerDay ?? (account ? 5 : 1);
+  const freeLeft = status.data?.freeLeft ?? perDay;
   const free = freeLeft > 0;
   // 하루 무료를 다 쓰면 구독 운알톡 횟수를 알보다 먼저 쓴다 (서버가 판단)
   const sub = account ? status.data?.subscription ?? null : null;
@@ -136,7 +158,10 @@ export default function ConsultHomeScreen() {
 
   // 주제는 글에서 추측해 서버에 함께 보낸다 (서버가 다시 판단한다)
   const cat = text.trim() ? guessCat(text) : null;
-  const onText = (t: string) => setText(t);
+  const onText = (t: string) => {
+    setText(t);
+    if (short && (!t.trim() || t.trim().length >= CONSULT_CONFIG.minLen)) setShort(false);
+  };
   const fillExample = (ex: string) => { onText(ex); input.current?.focus(); };
   const pickExample = (ex: string) => {
     if (!text.trim() || text === ex) return fillExample(ex);
@@ -148,8 +173,9 @@ export default function ConsultHomeScreen() {
   const start = () => {
     // "오늘 운세 어때?"처럼 오늘의 운세만 물으면 상담 대신 오늘의 운세로 답한다 (무료)
     if (text.trim() && isTodayFortuneQuestion(text)) { setText(''); input.current?.blur(); nav.navigate('Today'); return; }
-    if (!ok) return;
-    if (!account) { trackAction('consult_ask_login_required'); toast('로그인하면 운알이와 대화할 수 있어요'); router.push('/login'); return; }
+    if (!ok) { setShort(true); input.current?.focus(); return; }
+    // 게스트가 무료 한 번을 이미 썼으면, 적은 질문은 기억해 두고 로그인으로 — 로그인하면 이 화면으로 돌아와 그대로 보낸다
+    if (!account && !free) { trackAction('consult_ask_login_required'); goLogin({ kind: 'consult', worry: text.trim(), topic: cat ?? undefined }); return; }
     if (free || viaSub) ask();
     else setConfirm(true);
   };
@@ -209,8 +235,11 @@ export default function ConsultHomeScreen() {
                   <View style={s.ticket}><Text style={s.ticketText}>{sub.left}/{sub.total}회 남음</Text></View>
                 </View>
               ) : null}
-              <Text style={s.hint} numberOfLines={1}>
-                {free
+              <Text style={[s.hint, short && { color: colors.danger }]} numberOfLines={1}>
+                {short ? `고민을 ${CONSULT_CONFIG.minLen}자 이상 적어 주세요 (${len}/${CONSULT_CONFIG.minLen})`
+                  : !account
+                  ? (free ? '로그인 없이 한 번 무료로 물어볼 수 있어요' : '로그인하면 하루 5번 무료로 물어볼 수 있어요')
+                  : free
                   ? (freeLeft === 1 ? (sub && sub.left > 0 ? `다음부터 구독 ${sub.left}회에서 써요` : '오늘 마지막 무료 대화예요') : '')
                   : viaSub ? '알은 쓰지 않아요'
                   : `${cost}알로 물어보기${account ? ` · 보유 ${fmtP(points)}` : ''}`}
@@ -224,7 +253,7 @@ export default function ConsultHomeScreen() {
               placeholder="궁금한 걸 편하게 물어보세요" placeholderTextColor={colors.inkMute}
               style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
             />
-            <PressableScale onPress={start} disabled={!ok} style={[s.sendBtn, !ok && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : viaSub ? '구독 혜택으로 물어보기' : `${cost}알로 물어보기`}>
+            <PressableScale onPress={start} disabled={!len} style={[s.sendBtn, !len && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : viaSub ? '구독 혜택으로 물어보기' : `${cost}알로 물어보기`}>
               <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
             </PressableScale>
           </View>

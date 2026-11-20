@@ -81,15 +81,17 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
   }, [reducedMotion, scale, visible]);
   const verticalMargin = Math.max(insets.top, insets.bottom, 16);
   const year = newYearOf(today);
-  const open = (destination: Href) => {
+  const open = (destination: Href, action = 'fortune_signup_promo') => {
+    trackAction(action);
     onClose();
     router.push(destination);
   };
+  const later = () => { trackAction('fortune_signup_later'); onClose(); };
 
   return (
-    <Modal visible={visible} transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+    <Modal visible={visible} transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={later} statusBarTranslucent navigationBarTranslucent>
       <View style={[s.overlay, { paddingLeft: Math.max(insets.left, 16), paddingRight: Math.max(insets.right, 16) }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={later} accessible={false} />
         <Animated.View style={[s.dialog, { maxHeight: height - verticalMargin * 2, transform: [{ scale: reducedMotion ? 1 : scale }] }]} accessibilityViewIsModal>
           <Text style={[txt.h2, s.heading]} accessibilityRole="header">더 많은 콘텐츠가 있어요</Text>
           <ScrollView style={s.scroll} contentContainerStyle={s.banners}>
@@ -114,10 +116,10 @@ function FortuneSignupDialog({ visible, onClose, today }: { visible: boolean; on
             <View style={s.social}>
               {SOCIAL_PROVIDERS.map(provider => (
                 <SocialCircle key={provider} provider={provider}
-                  onPress={() => open({ pathname: '/login/social/[provider]', params: { provider } })} />
+                  onPress={() => open({ pathname: '/login/social/[provider]', params: { provider } }, `fortune_signup_click_${provider}`)} />
               ))}
             </View>
-            <PrimaryButton label="나중에" variant="text" onPress={onClose} />
+            <PrimaryButton label="나중에" variant="text" onPress={later} />
           </View>
         </Animated.View>
       </View>

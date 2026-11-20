@@ -93,6 +93,8 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
 
   const open = useCallback(() => {
     if (!uid) return;
+    // 오늘의 운세를 실제로 뽑은 순간 (화면만 열고 나간 사람과 구분)
+    if (kind === 'fortune' && mem.get(uid)?.fortune !== stamp) trackAction('fortune_drawn');
     if (kind !== 'fortune' && kind !== 'tarot') {
       const previous = mem.get(uid)?.[kind];
       const alreadyOpened = daily ? previous === stamp : !!previous;

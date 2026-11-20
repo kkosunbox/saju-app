@@ -4,8 +4,8 @@
  */
 export const COPY = {
   slogan: '오늘의 운, 하나만 Pick!',
-  ask: '오늘, 어떤 운을 PICK하시겠어요?',
-  pickMe: '사주부터 MBTI까지, 오늘의 나를 PICK하다.',
+  ask: '나를 가장 잘 아는 운세, 운Pick',
+  pickMe: '사주부터 MBTI까지, 매일의 나를 들여다봐요',
   four: '네 가지 관점으로 고른, 오늘 나에게 맞는 운',
   content: '궁금한 운만 골라서 PICK',
   deeper: '더 깊이 알고 싶은 운, 하나 더 PICK',
