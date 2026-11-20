@@ -1,5 +1,5 @@
 import { RefObject } from 'react';
-import type { ViewInstance } from 'react-native';
+import { Platform, type ViewInstance } from 'react-native';
 import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
 import { ShareSpec } from './shareSpecs';
@@ -8,6 +8,12 @@ import { WebCard, shareCardImage, shareFileName } from '../shareService';
 
 /** 링크 대신 이미지로 보낼 결과 (예: 오늘의 부적) — prepared는 웹에서 미리 그려 둔 이미지 */
 export interface ShareImage { ref: RefObject<ViewInstance | null>; aspectRatio?: number; prepared?: () => WebCard | null }
+
+/** 웹에서 복사만 가능한 환경에는 공유 보상을 표시하지 않는다. */
+export function useShareRewardAvailable() {
+  const { shareRewardsLeft } = usePremium();
+  return shareRewardsLeft > 0 && (Platform.OS !== 'web' || typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+}
 
 /**
  * 공유 동작 모음 — 링크에는 내 결과 한 줄을 담아 친구가 열면 나란히 비교되게 하고,

@@ -1,8 +1,7 @@
-import type { ImageSource } from 'expo-image';
 import { STEMS, type Element } from '../../data/sajuData';
 import type { User } from '../../types';
 
-type Portrait = { full: ImageSource | number; preview: ImageSource | number };
+type Portrait = { full: number; preview: number };
 
 // Metro resolves bundled images from literal paths.
 const PORTRAITS: Record<string, Record<User['gender'], Portrait>> = {

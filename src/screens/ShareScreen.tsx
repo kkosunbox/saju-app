@@ -6,11 +6,11 @@ import ShareCard from '../components/ShareCard';
 import PrimaryButton from '../components/PrimaryButton';
 import Icon from '../components/Icon';
 import { useApp } from '../context/AppContext';
-import { usePremium } from '../context/PremiumContext';
+import { SHARE_P, usePremium } from '../context/PremiumContext';
 import { RootStackParamList } from '../navigation/types';
 import { WebCard, renderCardWeb, shareCardImage, shareFileName } from '../services/shareService';
 import { todaySpec } from '../services/share/shareSpecs';
-import { useShare } from '../services/share/useShare';
+import { useShare, useShareRewardAvailable } from '../services/share/useShare';
 import { copyText } from '../services/share/linkShare';
 import { colors, isDark } from '../theme/colors';
 import { sansW } from '../theme/typography';
@@ -28,31 +28,41 @@ export default function ShareScreen() {
   const { fortune, user, fortuneUser, today } = useApp();
   const { toast } = usePremium();
   const { sendImage, urlOf } = useShare();
+  const rewardAvailable = useShareRewardAvailable();
   const ref = useRef<ViewInstance>(null);
   const [busy, setBusy] = useState<'share' | 'save' | null>(null);
   const spec = params?.spec ?? (fortune && fortuneUser ? todaySpec(fortuneUser, fortune.combined, fortune.shareCard) : null);
   // 받는 쪽에 보이는 파일 이름 (spec.file은 공유 보상 기준이라 그대로 둔다)
   const fileName = spec ? shareFileName((params?.spec ? user : fortuneUser)?.nickname ?? '', spec.kind) : 'woonpick';
-  const pastLifeKey = spec?.pastLife ? JSON.stringify(spec.pastLife) : null;
-  const [readyPastLife, setReadyPastLife] = useState<string | null>(null);
-  const artReady = !pastLifeKey || readyPastLife === pastLifeKey;
-  const onArtReady = useCallback(() => setReadyPastLife(pastLifeKey), [pastLifeKey]);
+  const spouse = spec?.route === 'Spouse';
+  const portrait = spec?.spousePortrait;
+  const artKey = portrait ? `spouse:${portrait}` : spec?.pastLife ? JSON.stringify(spec.pastLife) : null;
+  const [displayedArt, setDisplayedArt] = useState<string | null>(null);
+  const artReady = !artKey || displayedArt === artKey;
+  const onArtReady = useCallback(() => setDisplayedArt(artKey), [artKey]);
+  const portraitCaptureKey = portrait && Platform.OS === 'web' ? JSON.stringify([artKey, fileName, spec?.text]) : null;
+  const [preparedPortrait, setPreparedPortrait] = useState<string | null>(null);
+  const cardReady = artReady && (!portraitCaptureKey || preparedPortrait === portraitCaptureKey);
+  const showReward = spouse && rewardAvailable;
   // 웹은 미리 그려 둔다 — 누른 뒤에 그리면 iOS 사파리가 공유를 막는다 (아직 못 그렸으면 누를 때 그린다)
   const prepared = useRef<WebCard | null>(null);
   useEffect(() => {
     if (Platform.OS !== 'web' || !spec || !artReady) return;
     let alive = true;
     const t = setTimeout(() => {
-      renderCardWeb(ref, fileName).then(c => { if (alive) prepared.current = c; }).catch(() => {});
-    }, 300);
+      renderCardWeb(ref, fileName)
+        .then(card => { if (alive) prepared.current = card; })
+        .catch(() => {})
+        .finally(() => { if (alive && portraitCaptureKey) setPreparedPortrait(portraitCaptureKey); });
+    }, portraitCaptureKey ? 0 : 300);
     return () => { alive = false; clearTimeout(t); prepared.current = null; };
     // spec은 매번 새로 만들어지니 내용(파일 이름·문구)이 바뀔 때만 다시 그린다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileName, spec?.text, pastLifeKey, artReady]);
+  }, [fileName, spec?.text, artKey, artReady, portraitCaptureKey]);
   if (!spec) return null;
 
   const save = async () => {
-    if (!artReady) return;
+    if (!cardReady) return;
     setBusy('save');
     const r = await shareCardImage(ref, { file: fileName, text: spec.text, url: urlOf(spec), mode: 'save', prepared: prepared.current });
     setBusy(null);
@@ -66,7 +76,7 @@ export default function ShareScreen() {
   };
   // 이미지 공유가 안 되는 브라우저(데스크톱 · 일부 인앱)는 다운로드 대신 문구·링크로 공유한다
   const share = async () => {
-    if (!artReady) return;
+    if (!cardReady) return;
     setBusy('share');
     await sendImage(spec, { ref, prepared: () => prepared.current });
     setBusy(null);
@@ -80,19 +90,20 @@ export default function ShareScreen() {
       contentStyle={{ alignItems: 'center', flexGrow: 1, paddingTop: 16 }}
       footer={
         <View style={{ flexDirection: 'row', gap: 12 }}>
-          <PrimaryButton size="medium" label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={save} disabled={!!busy || !artReady} style={{ flex: 111 }} icon={busy === 'save' ? undefined : <View style={{ marginRight: -4 }}><Icon name="download" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
+          <PrimaryButton size="medium" label={busy === 'save' ? '만드는 중…' : '이미지 저장'} variant="soft" onPress={save} disabled={!!busy || !cardReady} style={{ flex: 111 }} icon={busy === 'save' ? undefined : <View style={{ marginRight: -4 }}><Icon name="download" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
           {Platform.OS === 'web' && (
             <PrimaryButton size="medium" label="링크 복사" variant="soft" onPress={copyLink} disabled={!!busy} style={{ flex: 100 }} icon={<View style={{ marginRight: -4 }}><Icon name="copy" size={16} strokeWidth={1.95} color={colors.ink} /></View>} />
           )}
-          <PrimaryButton size="medium" label={busy === 'share' ? '만드는 중…' : '공유하기'} onPress={share} disabled={!!busy || !artReady} style={{ flex: Platform.OS === 'web' ? 111 : 204 }} icon={busy ? undefined : <View style={{ marginRight: -4 }}><Icon name="external" size={16} strokeWidth={1.95} color={colors.white} /></View>} />
+          <PrimaryButton size="medium" label={busy === 'share' || (portrait && !cardReady) ? '만드는 중…' : showReward ? `공유하고 ${SHARE_P}알` : '공유하기'} onPress={share} disabled={!!busy || !cardReady} style={{ flex: Platform.OS === 'web' ? 111 : 204 }} icon={busy || showReward ? undefined : <View style={{ marginRight: -4 }}><Icon name="external" size={16} strokeWidth={1.95} color={colors.white} /></View>} />
         </View>
       }
     >
-      <View style={[s.todayShadow, spec.tarot && { backgroundColor: '#1B2D65' }]}>
+      <View style={[s.todayShadow, spec.tarot && { backgroundColor: '#1B2D65' }, !!portrait && { backgroundColor: '#21141E' }]}>
         <ShareCard ref={ref} spec={spec} today={today} onArtReady={onArtReady} />
       </View>
       <Text style={s.todayCaption}>{spec.today
         ? `올해 ${daysInYear(today)}일 중 오늘의 순위를 담았어요.`
+        : showReward ? `오늘 첫 공유를 완료하면 ${SHARE_P}알을 받아요.`
         : '나의 결과를 공유해 보세요.'}</Text>
     </Screen>
   );

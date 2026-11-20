@@ -39,6 +39,8 @@ export interface ShareSpec {
   /** 결과 링크로 친구가 열 화면 · 친구에게 보일 결과 한 줄 */
   route: string;
   short: string;
+  /** 열람한 미래 배우자 리포트에 표시된 번들 사진 */
+  spousePortrait?: number;
   /** 오늘의 부적: 스토리 카드에 부적 종이를 그대로 그린다 */
   talisman?: TalismanPaperData;
   tarot?: TarotReading;
@@ -214,7 +216,7 @@ export function petSpec(u: User, p: Pet): ShareSpec {
 
 /* ---------- 프리미엄 ---------- */
 /** 배우자 리포트는 첫 화면(미리보기) 내용만 싣는다 */
-export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
+export function spouseSpec(u: User, R: SpousePreview, spousePortrait?: number): ShareSpec {
   return {
     kind: '미래 배우자 리포트', seal: '緣', eyebrow: `${u.nickname}님의 미래 배우자는`,
     headline: R.headline, sub: `${R.ageGap} 상대`,
@@ -222,6 +224,7 @@ export function spouseSpec(u: User, R: SpousePreview): ShareSpec {
     stats: [['상대 MBTI', R.mbti], ['상대 띠', `${R.animal}띠`], ['올해 만남운', `${R.thisYear}점`]],
     teaser: '그 사람을 처음 만나는 곳',
     hook: '내 미래 배우자는 누구일까?',
+    spousePortrait,
     text: `${u.nickname}님의 미래 배우자는 '${R.headline}'${ieyo(R.headline)}.\n${seeMine('미래 배우자')}`, file: 'woonpick-spouse', route: 'Spouse', short: R.headline,
   };
 }

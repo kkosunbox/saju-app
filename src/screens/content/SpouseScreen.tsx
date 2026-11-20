@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigation } from '@/navigation/compat';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,16 +26,19 @@ import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
 import LoadingScreen from '../../components/LoadingScreen';
 import { Logo } from '../../components/Mascot';
+import SpouseShareSpotlight, { useSpouseShareSpotlight } from './SpouseShareSpotlight';
 import { spousePortraitFor } from './spousePortraits';
 
 /** 프리미엄: 미래 배우자 리포트 — 첫 화면은 무료로 보여주고 나머지는 잠금 */
 export default function SpouseScreen() {
   const { user: u } = useApp();
+  const nav = useNavigation();
   const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
   const { reading, retry } = useReading<SpouseReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !content.open);
   const making = usePreviewMaking('spouse', !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.spouse.length);
+  const spotlight = useSpouseShareSpotlight(content.open && !!content.data?.data && !gate.show && !making.making);
   if (!u) return null;
   const item = ITEMS.spouse();
   if (content.open && gate.show) return <ReadingStepsScreen title="미래 배우자 리포트" kind="spouse" reading={reading} />;
@@ -54,47 +58,57 @@ export default function SpouseScreen() {
   }
   if (!sum) return <LoadingScreen />;
   const el = ELEMENT_INFO[sum.spouseEl];
-  const spec = spouseSpec(u, sum);
   const portrait = spousePortraitFor(content.data?.person ?? u, sum.spouseEl, R?.persona.hanja);
   const portraitSource = content.open && R ? portrait?.full : portrait?.preview;
+  const spec = spouseSpec(u, sum, content.open && R ? portrait?.full : undefined);
 
   return (
-    <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} />}>
-      <FriendCompare route="Spouse" spec={spec} />
-      <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
-      <PreviewReveal gate={making}>
-        <View style={s.hero} testID="spouse-portrait">
-          {portraitSource ? <Image source={portraitSource} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} /> : null}
-          {!content.open && portraitSource ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.previewWash]} /> : null}
-          <LinearGradient
-            pointerEvents="none"
-            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
-            locations={[0.176, 0.746]}
-            style={s.heroShade}
-          />
-          <View style={s.heroTop}><Logo height={30} /></View>
-          <View style={s.heroCopy}>
-            <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
-            <Text style={s.headline}>{sum.headline.replace(', ', ',\n')}</Text>
-            <View style={s.chips}>
-              <View style={[s.chip, { borderColor: GOLD }]}><Text style={[s.chipText, { color: GOLD, opacity: 1 }]}>{sum.mbti}</Text></View>
-              <View style={s.chip}><Text style={s.chipText}>{sum.animal}띠</Text></View>
-              <View style={s.chip}><Text style={s.chipText}>{sum.ageGap}</Text></View>
+    <View style={s.frame}>
+      <View style={s.frame} importantForAccessibility={spotlight.visible ? 'no-hide-descendants' : 'auto'} aria-hidden={spotlight.visible}>
+        <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} onOpen={spotlight.dismiss} />}>
+          <FriendCompare route="Spouse" spec={spec} />
+          <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
+          <PreviewReveal gate={making}>
+            <View style={s.hero} testID="spouse-portrait">
+              {portraitSource ? <Image source={portraitSource} style={StyleSheet.absoluteFill} contentFit="cover" accessible={false} /> : null}
+              {!content.open && portraitSource ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.previewWash]} /> : null}
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']}
+                locations={[0.176, 0.746]}
+                style={s.heroShade}
+              />
+              <View style={s.heroTop}><Logo height={30} /></View>
+              <View style={s.heroCopy}>
+                <Text style={s.eyebrow}>{u.nickname}님의 미래 배우자는</Text>
+                <Text style={s.headline}>{sum.headline.replace(', ', ',\n')}</Text>
+                <View style={s.chips}>
+                  <View style={[s.chip, { borderColor: GOLD }]}><Text style={[s.chipText, { color: GOLD, opacity: 1 }]}>{sum.mbti}</Text></View>
+                  <View style={s.chip}><Text style={s.chipText}>{sum.animal}띠</Text></View>
+                  <View style={s.chip}><Text style={s.chipText}>{sum.ageGap}</Text></View>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
-        <View style={s.stats}>
-          <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
-          <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
-        </View>
-      </PreviewReveal>
+            <View style={s.stats}>
+              <View style={s.stat}><Text style={s.statLabel}>올해 인연 지수</Text><Text style={s.statNum}>{sum.thisYear}</Text></View>
+              <View style={s.stat}><Text style={s.statLabel}>인연이 가장 강한 해</Text><Text style={s.statNum}>{sum.bestYear}</Text></View>
+            </View>
+          </PreviewReveal>
 
-      {!content.open ? <LockGate item={item} />
-        : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
-        : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
-      <ShareCta item={item} spec={spec} />
-      <Disclaimer compact />
-    </Screen>
+          {!content.open ? <LockGate item={item} />
+            : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
+            : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+          <ShareCta item={item} spec={spec} />
+          <Disclaimer compact />
+        </Screen>
+      </View>
+      {spotlight.visible ? (
+        <SpouseShareSpotlight dismiss={spotlight.dismiss} openCard={() => {
+          spotlight.dismiss();
+          nav.navigate('Share', { spec });
+        }} />
+      ) : null}
+    </View>
   );
 }
 
@@ -336,6 +350,7 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 }
 
 const s = StyleSheet.create({
+  frame: { flex: 1 },
   // Figma 327×409 portrait, with the headline anchored above the bottom chips.
   hero: { marginTop: 12, aspectRatio: 327 / 409, minHeight: 280, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },
   heroTop: { marginLeft: 16, alignSelf: 'flex-start' },

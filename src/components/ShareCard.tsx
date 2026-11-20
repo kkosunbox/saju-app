@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { Platform, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import ShareCardBackdrop, { STORY_WIDTH, STORY_HEIGHT } from './ShareCardBackdrop';
 import { Logo } from './Mascot';
 import ShareLinkBadge from './ShareLinkBadge';
@@ -46,6 +47,7 @@ const ART = {
 const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onArtReady?: () => void }>(function ShareCard({ spec, today, onArtReady }, ref) {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
+  if (spec.spousePortrait) return <SpouseShareCard ref={ref} spec={spec} onArtReady={onArtReady} />;
   const gold = !!spec.talisman;
   // 전생·찰떡 MBTI: 밤하늘 카드 — 글자는 흰색·연회색, 지표 칸은 남색
   const night = !!spec.pastLife || !!spec.mbti;
@@ -104,6 +106,71 @@ const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onA
   );
 });
 export default ShareCard;
+
+const SpouseShareCard = forwardRef<ViewInstance, { spec: ShareSpec; onArtReady?: () => void }>(function SpouseShareCard({ spec, onArtReady }, ref) {
+  const detail = spec.big;
+  const stats = detail ? [...spec.stats.slice(0, 2), [detail.label, `${detail.value}${detail.unit ?? ''}`]] : spec.stats;
+  return (
+    <View ref={ref} collapsable={false} style={spouse.card} testID="share-card">
+      <View style={spouse.photo}>
+        <Image
+          key={spec.spousePortrait}
+          source={spec.spousePortrait}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={0}
+          onDisplay={onArtReady}
+          onError={onArtReady}
+          accessible={false}
+        />
+        <LinearGradient
+          colors={['rgba(30, 17, 28, 0.5)', 'rgba(30, 17, 28, 0)', 'rgba(30, 17, 28, 0)', '#21141E']}
+          locations={[0, 0.23, 0.45, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={spouse.brand}>
+          <Logo height={30} />
+          <Text style={spouse.kind}>{spec.kind}</Text>
+        </View>
+        <View style={spouse.caption}>
+          <Text style={spouse.eyebrow} numberOfLines={1}>{spec.eyebrow}</Text>
+          <Text style={[spouse.title, KEEP]} numberOfLines={2} adjustsFontSizeToFit>{spec.headline}</Text>
+          {spec.sub ? <Text style={spouse.sub} numberOfLines={1}>{spec.sub}</Text> : null}
+        </View>
+      </View>
+      <View style={spouse.stats} testID="share-stats">
+        {stats.map(([label, value]) => (
+          <View key={label} style={spouse.stat}>
+            <Text style={spouse.statLabel} numberOfLines={1}>{label}</Text>
+            <Text style={spouse.statValue} numberOfLines={1}>{value}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={spouse.footer}>
+        <Text style={[spouse.hook, KEEP]} numberOfLines={2}>{spec.hook}</Text>
+        <ShareLinkBadge />
+      </View>
+    </View>
+  );
+});
+
+const spouse = StyleSheet.create({
+  card: { width: CARD_W, height: CARD_H, borderRadius: 20, overflow: 'hidden', backgroundColor: '#FFF4ED' },
+  // The bundled portrait is 981 × 1227, so the photo keeps the framing on export.
+  photo: { width: CARD_W, height: Math.round(CARD_W * 1227 / 981), backgroundColor: '#21141E' },
+  brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 22, marginTop: 18 },
+  kind: { ...sansW('700'), fontSize: 12, color: '#FFF4ED' },
+  caption: { position: 'absolute', left: 22, right: 22, bottom: 20, gap: 4 },
+  eyebrow: { ...sansW('600'), color: '#F9C7CE', fontSize: 13, lineHeight: 18 },
+  title: { ...EXTRA, color: '#FFFFFF', fontSize: 25, lineHeight: 29, letterSpacing: -1 },
+  sub: { ...sansW('500'), color: '#FFE4E3', fontSize: 13, lineHeight: 18 },
+  stats: { height: 81, marginHorizontal: 18, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E4C8C5' },
+  stat: { flex: 1, alignItems: 'center', gap: 4 },
+  statLabel: { ...sansW('500'), color: '#78535B', fontSize: 11, lineHeight: 15, letterSpacing: -0.35 },
+  statValue: { ...EXTRA, color: '#492333', fontSize: 19, lineHeight: 24 },
+  footer: { flex: 1, flexDirection: 'row', alignItems: 'center', marginHorizontal: 22, gap: 10 },
+  hook: { ...sansW('700'), flex: 1, color: '#492333', fontSize: 15, lineHeight: 19, letterSpacing: -0.5 },
+});
 
 /** 오늘의 타로 (피그마 482:2937) — 카드 그림 (115, 104) 80×115, 모서리 7, 빛 2 2 12 2 rgba(254,247,219,.5) */
 const t = StyleSheet.create({

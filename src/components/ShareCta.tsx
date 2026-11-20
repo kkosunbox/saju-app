@@ -47,12 +47,12 @@ export default function ShareCta({ item, spec, style }: { item?: Item; spec?: Sh
 const BANNER_INK = '#222222';
 
 /** 유료 화면 상단 오른쪽 공유 아이콘 — 열람한 사람에게만 보인다 */
-export function ShareIconButton({ item, spec }: { item?: Item; spec?: ShareSpec | null }) {
+export function ShareIconButton({ item, spec, onOpen }: { item?: Item; spec?: ShareSpec | null; onOpen?: () => void }) {
   const share = useShareChooser(item, spec);
   if (!share) return null;
   return (
     <>
-      <PressableScale onPress={share.open} scaleTo={0.9} hitSlop={10} accessibilityLabel={share.full ? '결과 공유하기' : '결과를 카드로 공유하기'} style={{ width: 24, height: 44, justifyContent: 'center' }}>
+      <PressableScale onPress={() => { onOpen?.(); share.open(); }} scaleTo={0.9} hitSlop={10} accessibilityLabel={share.full ? '결과 공유하기' : '결과를 카드로 공유하기'} style={{ width: 24, height: 44, justifyContent: 'center' }}>
         <Icon name="external" size={24} strokeWidth={2} color={colors.ink} />
       </PressableScale>
       {share.sheet}
@@ -252,7 +252,7 @@ function useShareChooser(item: Item | undefined, spec: ShareSpec | null | undefi
   ) : null;
 
   const sheet = full ? (
-    <BottomSheet visible={visible} onClose={() => setVisible(false)} transitionKey={confirming ? 'revoke' : pdfGuide && pdf ? 'pdf' : 'menu'}>
+    <BottomSheet visible={visible} onClose={() => setVisible(false)} scrollable transitionKey={confirming ? 'revoke' : pdfGuide && pdf ? 'pdf' : 'menu'}>
       {confirming ? confirm : pdfGuide && pdf ? pdf : menu}
     </BottomSheet>
   ) : null;
