@@ -6,7 +6,7 @@ import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import BusinessFooter from '../../components/BusinessFooter';
 import { usePremium, refreshPoints } from '../../context/PremiumContext';
-import { PACKS, fmtP } from '../../services/premium/catalog';
+import { PACKS, fmtP, packBonus, safeReturnTo } from '../../services/premium/catalog';
 import { TossOrder, pointsApi } from '../../services/server/pointsApi';
 import { ApiError } from '../../api/client';
 import { TOSS_FAIL_MESSAGE as FAIL_MESSAGE, TossWidgets, loadToss } from '../../services/premium/tossSdk';
@@ -20,9 +20,12 @@ type Phase = 'loading' | 'ready' | 'paying' | 'confirming' | 'error';
  * 결제창에서 돌아올 때 이 화면이 successUrl/failUrl 로 다시 열린다 (?result=success|fail).
  */
 export default function ChargeScreen() {
-  const q = useLocalSearchParams<{ productId?: string; result?: string; paymentKey?: string; orderId?: string; amount?: string; code?: string; message?: string }>();
-  const { toast } = usePremium();
+  const q = useLocalSearchParams<{ productId?: string; returnTo?: string; result?: string; paymentKey?: string; orderId?: string; amount?: string; code?: string; message?: string }>();
+  const { toast, firstCharge } = usePremium();
   const pack = PACKS.find(([, , , id]) => id === q.productId);
+  // 콘텐츠를 열다가 알이 모자라 온 거면 충전 후 그 화면으로 돌아간다 (결제창을 다녀와도 successUrl 에 실어 둔다)
+  const returnTo = safeReturnTo(q.returnTo);
+  const bonus = pack ? packBonus(pack, firstCharge) : 0;
   // 처음 상태: 앱(준비 중) · 결제창에서 돌아옴(승인 중 / 실패) · 처음 열림(결제창 준비)
   const initial = ((): { phase: Phase; error: string | null } => {
     if (Platform.OS !== 'web') return { phase: 'error', error: '앱 결제는 준비 중이에요. 지금은 웹에서 충전할 수 있어요.' };
@@ -47,8 +50,8 @@ export default function ChargeScreen() {
       pointsApi.confirmToss({ paymentKey: q.paymentKey ?? '', orderId: q.orderId ?? '', amount: Number(q.amount) })
         .then(async () => {
           await refreshPoints();
-          toast('알이 충전됐어요');
-          router.replace('/wallet');
+          toast(returnTo ? '알이 충전됐어요 · 이제 열 수 있어요' : '알이 충전됐어요');
+          router.replace((returnTo ?? '/wallet') as never);
         })
         .catch(e => fail(e instanceof ApiError && e.code === 'PAYMENT_FAILED'
           ? '결제가 승인되지 않았어요. 돈은 빠져나가지 않았어요.'
@@ -84,8 +87,9 @@ export default function ChargeScreen() {
     if (!widgets.current || !order) return;
     setPhase('paying');
     const back = `${window.location.origin}/charge`;
+    const extra = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : '';
     try {
-      await widgets.current.requestPayment({ orderId: order.orderId, orderName: order.orderName, successUrl: `${back}?result=success`, failUrl: `${back}?result=fail` });
+      await widgets.current.requestPayment({ orderId: order.orderId, orderName: order.orderName, successUrl: `${back}?result=success${extra}`, failUrl: `${back}?result=fail${extra}` });
     } catch (e) {
       // 결제창을 닫으면 여기로 온다 (리다이렉트 없이)
       const code = (e as { code?: string }).code ?? '';
@@ -100,8 +104,8 @@ export default function ChargeScreen() {
     <Screen title="알 충전" back footer={footer} contentStyle={s.fill}>
       {pack && phase !== 'confirming' && phase !== 'error' ? (
         <View style={s.sum}>
-          <Amount value={pack[1] + pack[2]} size={22} style={txt.h2} />
-          <Text style={txt.small}>{pack[2] ? `기본 ${fmtP(pack[1])} + 보너스 ${fmtP(pack[2])} · ` : ''}{pack[0].toLocaleString('ko-KR')}원</Text>
+          <Amount value={pack[1] + bonus} size={22} style={txt.h2} />
+          <Text style={txt.small}>{bonus ? `기본 ${fmtP(pack[1])} + ${bonus > pack[2] ? '첫 충전 1+1 ' : ''}보너스 ${fmtP(bonus)} · ` : ''}{pack[0].toLocaleString('ko-KR')}원</Text>
         </View>
       ) : null}
       {phase === 'loading' || phase === 'confirming' ? (

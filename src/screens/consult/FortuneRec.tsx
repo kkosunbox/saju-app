@@ -6,6 +6,8 @@ import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import PromoSlot from '../../components/PromoSlot';
+import FreeContentRow from '../../components/home/FreeContentRow';
+import { Discount, DiscountChip, DiscountPrice } from '../../components/PromoCard';
 import { Promo, PromoKey, promosOf } from '../../services/promo/promos';
 import { StreamBlock } from '../../components/Stream';
 import { useApp } from '../../context/AppContext';
@@ -14,7 +16,7 @@ import { usePremiumPreview } from '../../services/server/premiumApi';
 import { CombinedFortune, User } from '../../types';
 import { SpousePreview } from '../../types/premium';
 import { colors } from '../../theme/colors';
-import { radius, sansW } from '../../theme/typography';
+import { radius, sansW, SCREEN_PX } from '../../theme/typography';
 import { spousePortraitFor } from '../content/spousePortraits';
 
 type Cat = 'love' | 'money' | 'work' | 'relationship';
@@ -31,9 +33,10 @@ const CAT_PROMOS: Record<Cat, PromoKey[]> = {
 const EVERGREEN: PromoKey[] = ['newyear', 'life', 'sajuDeep'];
 
 /**
- * 오늘의 운세 아래 '더 깊이 보기' 배너 두 장.
- * 1) 오늘 점수가 가장 높은 분야의 리포트 — 연애운이면 미래 배우자의 흐린 얼굴 (내 운세를 볼 때만, 얼굴은 내 사주로 고른다)
+ * 오늘의 운세 아래 '더 깊이 보기' 배너 두 장 + 무료 콘텐츠 카드 줄.
+ * 1) 미래 배우자(아직 안 열었으면 항상, 이벤트 할인) — 내 운세면 흐린 얼굴. 열었으면 오늘 점수가 가장 높은 분야의 리포트
  * 2) 신년운세 · 평생운 · 상세 사주 중 하나 (아직 안 산 것 중 무작위)
+ * 3) 무료로 즐기기 (부적 · 찰떡 MBTI · 사주 캐릭터 · 전생테스트)
  */
 export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFortune; mine: boolean }) {
   const nav = useNavigation();
@@ -42,21 +45,28 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
   const promos = promosOf(nav as never, today);
   const top = (Object.keys(CAT_LABEL) as Cat[]).sort((a, b) => f[b] - f[a])[0];
   const fresh = (k: PromoKey) => !owned(promos[k].item.key);
-  const catKey = CAT_PROMOS[top].find(fresh) ?? null;
+  // 미래 배우자는 이벤트 할인 중이라 아직 안 열었으면 분야와 상관없이 맨 위에 둔다
+  const catKey = fresh('spouse') ? 'spouse' : CAT_PROMOS[top].find(fresh) ?? null;
   // 화면을 다시 그려도 바뀌지 않게 처음 한 번만 고른다
   const [roll] = useState(() => Math.random());
   const pool = EVERGREEN.filter(fresh);
   const extra = pool.length ? pool[Math.floor(roll * pool.length)] : null;
-  if (!user || (!catKey && !extra)) return null;
+  if (!user) return null;
+  // 가격은 할인 중인 콘텐츠(미래 배우자)에만 보이고, 나머지는 버튼 문구만
+  const noPrice = (k: PromoKey) => (promos[k].item.event ? undefined : `${promos[k].verb} →`);
 
   return (
     <StreamBlock style={{ marginTop: 28, gap: 12 }}>
       {catKey === 'spouse' && mine ? (
         <FortuneSpouseBanner promo={promos.spouse} screen="fortune_chat" />
       ) : catKey ? (
-        <PromoSlot screen="fortune_chat" promo={promos[catKey]} teaser />
+        <PromoSlot screen="fortune_chat" promo={promos[catKey]} teaser cta={noPrice(catKey)} />
       ) : null}
-      {extra ? <PromoSlot screen="fortune_chat" promo={promos[extra]} teaser /> : null}
+      {extra ? <PromoSlot screen="fortune_chat" promo={promos[extra]} teaser cta={noPrice(extra)} /> : null}
+      {/* 무료 콘텐츠 — 가로 스크롤은 화면 끝까지 */}
+      <View style={{ marginTop: 16, marginHorizontal: -SCREEN_PX }}>
+        <FreeContentRow inset={SCREEN_PX} />
+      </View>
     </StreamBlock>
   );
 }
@@ -67,12 +77,13 @@ export function FortuneSpouseBanner({ promo, screen, cta }: { promo: Promo; scre
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !!user);
   const portrait = user && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
   if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser cta={cta} />;
-  const { cost } = promo.item;
-  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={cta ?? `${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`} coin={!cta} />;
+  const { cost, event, orig } = promo.item;
+  const discount = event && orig ? { orig, cost } : undefined;
+  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={cta ?? (discount ? (points >= cost ? '바로 열기 →' : '리포트 열기 →') : `${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`)} coin={!cta || !!discount} discount={discount} />;
 }
 
 /** 남색 그라데이션 카드 + 오른쪽 흐린 얼굴과 자물쇠 — 열면 또렷한 얼굴과 리포트를 본다. 글자·알약은 다른 추천 배너와 같은 모양 */
-function SpouseFaceCard({ user, portrait, cta, onPress, coin = true }: { user: User; portrait: number | object; cta: string; onPress(): void; coin?: boolean }) {
+function SpouseFaceCard({ user, portrait, cta, onPress, coin = true, discount }: { user: User; portrait: number | object; cta: string; onPress(): void; coin?: boolean; discount?: Discount }) {
   const who = user.gender === 'female' ? '남편' : '아내';
   return (
     <PressableScale onPress={onPress} style={s.face} scaleTo={0.98} accessibilityLabel={`미래의 ${who} 얼굴 열어 보기`}>
@@ -86,12 +97,12 @@ function SpouseFaceCard({ user, portrait, cta, onPress, coin = true }: { user: U
       </LinearGradient>
       <View style={s.faceTitleRow}>
         <Text style={s.faceTitle}>미래 배우자 리포트</Text>
-        <View style={s.faceNew}><Text style={s.faceNewText}>NEW</Text></View>
+        {discount ? <DiscountChip /> : <View style={s.faceNew}><Text style={s.faceNewText}>NEW</Text></View>}
       </View>
       <Text style={s.faceDesc}>사주로 그린 배우자의 얼굴 · 성격 · 만나는 때</Text>
       <View style={s.facePill}>
         {coin ? <Image source={require('../../../assets/figma/home/deeper-point.webp')} style={s.facePoint} contentFit="contain" accessible={false} /> : null}
-        <Text style={s.facePillText} numberOfLines={1}>{cta}</Text>
+        <Text style={s.facePillText} numberOfLines={1}>{discount ? <DiscountPrice discount={discount} /> : null}{cta}</Text>
       </View>
     </PressableScale>
   );

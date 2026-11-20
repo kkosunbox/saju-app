@@ -75,8 +75,9 @@ export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser,
     <PromoCard
       tone={recommendation ? design.tone : tone} variant={variant} base={base ?? (recommendation ? design.base : undefined)} descInset={recommendation && !base ? design.descInset : undefined} title={title ?? promo.title} desc={desc}
       isNew={variant === 'home'} badgePlacement={variant === 'home' ? 'inline' : undefined}
-      owned={have} coin={!have && !cta} cta={have ? '다시보기 →' : cta ?? `${promo.item.cost}${variant === 'home' ? 'P' : recommendation ? '알' : ''} · ${verb} →`}
+      owned={have} coin={!have && !cta} cta={have ? '다시보기 →' : cta ?? (promo.item.event ? `${verb} →` : undefined) ?? `${promo.item.cost}${variant === 'home' ? 'P' : recommendation ? '알' : ''} · ${verb} →`}
       onPress={onPress}
+      discount={!have && promo.item.event && promo.item.orig ? { orig: promo.item.orig, cost: promo.item.cost } : undefined}
     />
   );
 }

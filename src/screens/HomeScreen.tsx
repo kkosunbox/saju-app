@@ -387,6 +387,11 @@ export default function HomeScreen() {
             <HomeOutlineIcon name="chevronRight" size={16} color={colors.inkMute} />
           </PressableScale>
 
+          {/* 미래 배우자 — 오늘의 운세 바로 아래에 항상 (이벤트 할인 중) */}
+          <View style={{ marginTop: 24 }}>
+            {spouseOwned ? <PromoSlot screen="home" promo={promos.spouse} /> : <FortuneSpouseBanner promo={promos.spouse} screen="home" cta={CHECK} />}
+          </View>
+
           {/* 나의 인생 지도 — 신년운세 · 평생운 · 상세 사주 */}
           <SectionHeader variant="figma" titleStyle={{ letterSpacing: 0 }} title="나의 인생 지도" caption="타고난 사주로 그려 보는 내 삶의 큰 그림" />
           <View style={{ marginBottom: 16 }}>
@@ -451,7 +456,7 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* 테마 운세 — 미래 배우자 · 직업 · 반려동물 */}
+          {/* 테마 운세 — 직업 · 반려동물 (미래 배우자는 오늘의 운세 아래) */}
           {/* 무료로 즐기기와 같은 머리 — 오른쪽 화살표는 콘텐츠 탭으로 */}
           <View style={s.freeHeader}>
             <Text style={s.freeHeading} accessibilityRole="header">골라 보는 테마 운세</Text>
@@ -462,7 +467,6 @@ export default function HomeScreen() {
             </PressableScale>
           </View>
           <View style={{ gap: 16 }}>
-            {spouseOwned ? <PromoSlot screen="home" promo={promos.spouse} /> : <FortuneSpouseBanner promo={promos.spouse} screen="home" cta={CHECK} />}
             <PromoSlot screen="home" promo={promos['theme-career']} teaser cta={CHECK} />
             <TrackedPromoCard
               screen="home" item="pet"

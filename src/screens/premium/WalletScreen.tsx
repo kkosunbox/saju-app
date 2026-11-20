@@ -12,7 +12,7 @@ import { Coin, Hero, SubHead } from '../../components/premium/Kit';
 import { usePremium } from '../../context/PremiumContext';
 import { CROWN, SUB_BG, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
 import { subscriptionLine } from './subscriptionText';
-import { PACKS, SUBSCRIPTION, fmtN, fmtP } from '../../services/premium/catalog';
+import { PACKS, SUBSCRIPTION, fmtN, fmtP, packBonus } from '../../services/premium/catalog';
 import { TransactionDirection, TransactionType, pointsApi, pointsKeys } from '../../services/server/pointsApi';
 import { useApp } from '../../context/AppContext';
 import { useStoreBilling } from '../../context/StoreBillingContext';
@@ -96,7 +96,7 @@ const FLOW_PAD = 30;
 export default function WalletScreen() {
   const { account } = useApp();
   const billing = useStoreBilling();
-  const { points, expiringSoon, attendedToday: att, attendanceReward: reward, attendanceDoubled: doubled, ownedCount, attend, openCharge, subscription } = usePremium();
+  const { points, expiringSoon, attendedToday: att, attendanceReward: reward, attendanceDoubled: doubled, ownedCount, attend, openCharge, subscription, firstCharge } = usePremium();
   const [filter, setFilter] = useState<TransactionDirection>();
   const q = useInfiniteQuery({
     queryKey: [...pointsKeys.transactions, account?.id, filter],
@@ -160,15 +160,20 @@ export default function WalletScreen() {
       )}
 
       <SubHead title="알 충전하기" />
+      {firstCharge ? <Text style={s.firstNote}>첫 충전은 1+1 · 충전한 알만큼 보너스를 더 드려요</Text> : null}
       <View style={{ gap: 12 }}>
-        {PACKS.map(([w, p, b, productId], i) => {
+        {PACKS.map((pack, i) => {
+          const [w, p, , productId] = pack;
+          const b = packBonus(pack, firstCharge);
           const price = Platform.OS === 'web' ? `${w.toLocaleString('ko-KR')}원` : billing.products[productId]?.displayPrice ?? '가격 확인';
           const row = (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <CoinBox />
                 <Text style={s.packCount}>{fmtN(p)}</Text>
-                {b ? <View style={s.bonus}><Text style={s.chipText}>+{b} 보너스</Text></View> : null}
+                {firstCharge
+                  ? <View style={s.firstBonus}><Text style={s.firstBonusText}>1+1 +{fmtN(b)}</Text></View>
+                  : b ? <View style={s.bonus}><Text style={s.chipText}>+{b} 보너스</Text></View> : null}
               </View>
               <Text style={s.won}>{price}</Text>
             </>
@@ -234,6 +239,9 @@ const s = StyleSheet.create({
   packCount: { ...sansW('700'), fontSize: 14, letterSpacing: -0.56, color: colors.ink },
   bonus: { backgroundColor: colors.surface, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
   chipText: { ...sansW('600'), fontSize: 12, color: SKY, opacity: 0.8 },
+  firstBonus: { backgroundColor: colors.accent, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs },
+  firstBonusText: { ...sansW('600'), fontSize: 12, color: colors.white },
+  firstNote: { ...sansW('600'), fontSize: 13, letterSpacing: -0.52, color: colors.accent, marginTop: -4, marginBottom: 12 },
   won: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   popular: { borderRadius: radius.sm, padding: 1.5, overflow: 'hidden' },
   // 안드로이드는 elevation을 주면 형제(테두리·내용) 위로 올라와 흰 배경이 셀을 덮고 깜빡여서, shadow* 대신 boxShadow로 빛만 낸다

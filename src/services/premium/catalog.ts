@@ -11,6 +11,8 @@ import { RELATIONSHIP_INFO } from '../../data/relationships';
 export interface Item {
   key: string; title: string; cost: number; scope: string; desc: string;
   until?: string; orig?: number; includes?: string[];
+  /** 이벤트 할인 중 (가격 옆에 '이벤트' 딱지). orig에 원래 가격 */
+  event?: boolean;
 }
 
 export type ThemeKind = 'love' | 'money' | 'career';
@@ -38,7 +40,7 @@ export const ITEMS = {
     key: 'daily:' + date, title: name + '님의 오늘의 운세', cost, scope: '오늘 하루 볼 수 있어요',
     desc: '오늘의 종합운과 분야별 점수 · 오늘의 이야기 · 해볼 일과 피할 일 · 타로 한 장',
   }),
-  spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 300, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
+  spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 50, orig: 300, event: true, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
   /** 등록한 가족(아이 · 엄마 · 아빠)마다 산다 (서버 child:{id}, 프로필을 고쳐도 그대로) */
   child: (childSetId: number, name: string): Item => ({ key: 'child:' + childSetId, title: name ? `${name} · 우리 아이 사주` : '우리 아이 사주', cost: 300, scope: '이 아이의 사주는 계속 볼 수 있어요', desc: '타고난 기질과 매력 · 잘 지내는 법 · 재능 TOP 3와 키워 주는 법 · 맞는 공부 방식 · 엄마·아빠와의 궁합 · 자라는 시기별 흐름 · 올해 · 하루 리듬' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
@@ -73,13 +75,31 @@ export function bundleFor(owned: (key: string) => boolean): Item | null {
 export const PRICE_TABLE: [string, string][] = [
   ['오늘의 운세 · 4가지 분석 · 종합', '무료'], ['주간 운세 · 기본 궁합', '무료'], ['찰떡 MBTI · 사주 캐릭터 · 오늘의 부적', '무료'], ['월별 상세운세', '100알 / 월'], ['신년운세', '300알 / 해'],
   ['상세 사주 해석', '300알 · 소장'], ['평생운 · 10년 대운', '500알 · 소장'], ['테마 운세 (연애 · 재물 · 직업)', '각 200알 · 소장'],
-  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '300알 · 소장'], ['우리 아이 사주', '300알 / 아이 1명'], ['운알톡 · 비밀 고민 해결', '100알 / 1회'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
+  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '이벤트 50알 (300알 → 50알) · 소장'], ['우리 아이 사주', '300알 / 아이 1명'], ['운알톡 · 비밀 고민 해결', '100알 / 1회'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
 ];
 
 /** 충전 상품: [원, 포인트, 보너스, 상품 ID]. 상품 ID는 서버와 같고 처음 가격을 그대로 쓴다 (points_1000 = 900원). */
-export const PACKS: [number, number, number, string][] = [
+export const PACKS: Pack[] = [
   [900, 100, 0, 'points_1000'], [2900, 300, 0, 'points_3000'], [4900, 500, 50, 'points_5000'], [9900, 1000, 150, 'points_10000'], [29900, 3000, 600, 'points_30000'],
 ];
+
+export type Pack = [number, number, number, string];
+
+/** 그 상품으로 받는 보너스 알. 첫 충전이면 1+1 (보너스 = 상품 알만큼, 서버 chargeBonusOf 와 같은 규칙) */
+export const packBonus = (pack: Pack, firstCharge: boolean) => (firstCharge ? Math.max(pack[1], pack[2]) : pack[2]);
+
+/** 모자란 알을 한 번에 채우는 가장 작은 상품 (어느 것도 못 채우면 가장 큰 상품) */
+export function packFor(shortfall: number, firstCharge: boolean): Pack {
+  return PACKS.find(pack => pack[1] + packBonus(pack, firstCharge) >= shortfall) ?? PACKS[PACKS.length - 1];
+}
+
+/** 충전 후 돌아갈 앱 안 경로만 받는다 (다른 사이트로 보내지 않게) */
+export const safeReturnTo = (path?: string): string | undefined =>
+  typeof path === 'string' &&
+  path.startsWith('/') &&
+  !/^\/(?:\/|%2f|%5c)/i.test(path) &&
+  !/[\\\s]/.test(path) &&
+  !path.startsWith('/charge') ? path : undefined;
 
 /**
  * 정기 구독 — 서버 상품 premium_monthly 와 같은 ID (docs/payment-design.md 4.6).

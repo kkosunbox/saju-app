@@ -3339,6 +3339,8 @@ export interface components {
             shareRewardsLeft: number;
             /** @description 이번 호출로 준 가입 축하 포인트 (지갑을 처음 만든 호출만, 그 밖엔 0) */
             signupBonus: number;
+            /** @description 아직 알을 충전한 적이 없어 다음 충전이 1+1 (보너스 = 상품 알만큼) */
+            firstChargeEligible: boolean;
         };
         ShareRewardDto: {
             /** @description 이번 공유로 포인트를 받았는지 */

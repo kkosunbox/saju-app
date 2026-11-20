@@ -55,6 +55,7 @@ export function CostPill({ cost, small, variant = 'default' }: { cost: number; s
 
 export const FREE_BLUE = '#00A3FF';
 export const OWNED_GREEN = '#00A220';
+export const EVENT_PINK = '#FF4D8D';
 
 /** 테두리만 있는 작은 태그 — 무료(파랑) · 보유(초록) */
 export function LineTag({ label, color = FREE_BLUE, variant = 'default' }: { label: string; color?: string; variant?: 'default' | 'figma' }) {
@@ -66,7 +67,8 @@ export function PriceTag({ item, small, variant = 'default' }: { item: Item; sma
   const { owned, subscriptionFree } = usePremium();
   if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} variant={variant} />;
   if (subscriptionFree(item.key)) return <SubscriptionBadge label="구독 무료" small={small} />;
-  return <CostPill cost={item.cost} small={small} variant={variant} />;
+  const cost = <CostPill cost={item.cost} small={small} variant={variant} />;
+  return item.event ? <View style={s.row4}><LineTag label="이벤트" color={EVENT_PINK} variant={variant} />{cost}</View> : cost;
 }
 
 /** 화면 상단: 열람 중 / 미리보기 */
@@ -293,7 +295,8 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
       </View>
       <View style={s.lockPanel}>
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
-        {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} /> : null}
+        {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} />
+          : item.event && item.orig ? <View style={{ alignSelf: 'center', marginTop: 10 }}><LineTag label={`이벤트 할인 · ${fmtP(item.orig)} → ${fmtP(item.cost)}`} color={EVENT_PINK} /></View> : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
         <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{earlier ? '프로필이 바뀌었어요' : item.desc}</Text>
         {earlier ? <PrimaryButton label="이전 풀이 보기" variant="soft" small onPress={showOlder} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}

@@ -10,7 +10,7 @@ import { FullWindowOverlay } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, fmtP, ro } from '../services/premium/catalog';
+import { Item, PACKS, Pack, fmtN, fmtP, packBonus, packFor, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
@@ -54,7 +54,10 @@ interface PremiumState {
   ownedCount: number;
   /** profileId: 어느 프로필로 열지 (없으면 대표 프로필) */
   openUnlock(item: Item, onDone?: () => void, profileId?: number): void;
-  openCharge(i: number): void;
+  /** returnTo: 충전을 마치면 돌아갈 화면 (없으면 내 알 화면) */
+  openCharge(i: number, returnTo?: string): void;
+  /** 아직 알을 충전한 적이 없어 다음 충전이 1+1 (게스트는 가입하면 받을 수 있어 true) */
+  firstCharge: boolean;
   attend(): Promise<void>;
   toggleMission(key: string): void;
   /** 공유 보상: 하루 한 번 +10알 (서버가 판단). 링크를 복사만 한 경우는 요청하지 않는다 */
@@ -157,6 +160,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     [entitlements, profileOf, primaryId],
   );
   const points = wallet.data?.balance ?? 0;
+  const firstCharge = member ? !!wallet.data?.firstChargeEligible : true;
   const subscription = member ? sub.data ?? null : null;
   const subscribed = !!subscription?.benefits.active;
   const subscriptionFree = useCallback(
@@ -190,8 +194,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   }
 
   /** 결제 화면은 플랫폼별로 웹 Toss / iOS App Store / Android Play를 사용한다. 상품·금액은 결제 화면이 보여 주므로 확인 시트 없이 바로 간다 */
-  function doCharge(i: number) {
-    router.push({ pathname: '/charge', params: { productId: PACKS[i][3] } });
+  function doCharge(i: number, returnTo?: string) {
+    router.push({ pathname: '/charge', params: { productId: PACKS[i][3], ...(returnTo ? { returnTo } : null) } });
   }
 
   /** 게스트가 포인트 기능을 쓰려 하면 로그인으로 보낸다. 로그인했으면 false */
@@ -242,7 +246,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       if (owned(item.key, profileId)) { onDone?.(); return; }
       setSheet({ type: 'unlock', item, onDone, profileId });
     },
-    openCharge: i => { if (!requireLogin('charge')) doCharge(i); },
+    openCharge: (i, returnTo) => { if (!requireLogin('charge')) doCharge(i, returnTo); },
+    firstCharge,
     attend: async () => {
       if (requireLogin('attend') || wallet.data?.attendedToday) return;
       try {
@@ -286,7 +291,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       {children}
       <BottomSheet visible={!!sheet} onClose={() => setSheet(null)}>
         {sheet?.type === 'unlock' ? (
-          <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key, sheet.profileId)} busy={busy} who={whoOf(sheet.profileId)} again={records(sheet.item.key, sheet.profileId).length > 0} onConfirm={() => doUnlock(sheet.item, sheet.onDone, sheet.profileId)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
+          <UnlockSheet item={sheet.item} points={points} free={subscriptionFree(sheet.item.key, sheet.profileId)} busy={busy} who={whoOf(sheet.profileId)} again={records(sheet.item.key, sheet.profileId).length > 0} firstCharge={firstCharge} onCharge={pack => { setSheet(null); doCharge(PACKS.indexOf(pack), pathname); }} onConfirm={() => doUnlock(sheet.item, sheet.onDone, sheet.profileId)} onClose={() => setSheet(null)} onWallet={() => { setSheet(null); goWalletRef.current?.(); }} />
         ) : null}
       </BottomSheet>
       {toastMsg ? (
@@ -317,7 +322,7 @@ function SumRow({ label, value, color, sign }: { label: string; value: string | 
   );
 }
 
-function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; who: string | null; again: boolean; onConfirm(): void; onClose(): void; onWallet(): void }) {
+function UnlockSheet({ item: it, points, free, busy, who, again, firstCharge, onCharge, onConfirm, onClose, onWallet }: { item: Item; points: number; free: boolean; busy: boolean; who: string | null; again: boolean; firstCharge: boolean; onCharge(pack: Pack): void; onConfirm(): void; onClose(): void; onWallet(): void }) {
   // 위쪽(제목 · 설명)은 왼쪽 정렬. 제목 오른쪽에 누구 것인지 이름 칩 (다른 화면의 프로필 칩과 같은 모양)
   const titleRow = (marginTop: number) => (
     <View style={[s.titleRow, { marginTop }]}>
@@ -348,22 +353,39 @@ function UnlockSheet({ item: it, points, free, busy, who, again, onConfirm, onCl
     );
   }
   const enough = points >= it.cost;
+  // 모자라면 한 번에 채우는 가장 작은 충전 상품을 권한다 (첫 충전이면 1+1로 계산)
+  const pack = enough ? null : packFor(it.cost - points, firstCharge);
+  const bonus = pack ? packBonus(pack, firstCharge) : 0;
+  const doubled = !!pack && firstCharge && bonus > pack[2];
   return (
     <View>
       {titleRow(0)}
       <Text style={[txt.small, { marginTop: 8 }]}>{it.desc}</Text>
       {againLine}
       <View style={s.sumBox}>
+        {it.event && it.orig ? <SumRow label="이벤트 할인" value={`${fmtP(it.orig)} → ${fmtP(it.cost)}`} color={colors.purple} /> : null}
         <SumRow label="보유 알" value={points} />
         <SumRow label="사용할 알" value={it.cost} sign="−" color={colors.love} />
         <View style={s.hr} />
         <SumRow label={enough ? '사용 후 잔액' : '부족한 알'} value={enough ? points - it.cost : it.cost - points} color={enough ? colors.purple : colors.danger} />
       </View>
       <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{it.scope}</Text>
-      {enough
-        ? <PrimaryButton label={busy ? '여는 중…' : `${it.cost}${ro(it.cost)} 열기`} icon={busy ? undefined : <Coin size={18} />} onPress={onConfirm} disabled={busy} />
-        : <PrimaryButton label="알 충전하러 가기" onPress={onWallet} />}
-      <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />
+      {pack ? (
+        <View style={s.packBox}>
+          {doubled ? <View style={s.firstChip}><Text style={s.firstChipText}>첫 충전 1+1</Text></View> : null}
+          <Text style={s.packTitle}>{fmtP(pack[1] + bonus)} 충전하면 바로 열 수 있어요</Text>
+          <Text style={txt.caption}>
+            {bonus ? `기본 ${fmtN(pack[1])} + ${doubled ? '1+1 ' : ''}보너스 ${fmtN(bonus)}` : `${fmtP(pack[1])}`}
+            {Platform.OS === 'web' ? ` · ${pack[0].toLocaleString('ko-KR')}원` : ''}
+          </Text>
+        </View>
+      ) : null}
+      {pack
+        ? <PrimaryButton label={`${fmtP(pack[1] + bonus)} 충전하기`} onPress={() => onCharge(pack)} />
+        : <PrimaryButton label={busy ? '여는 중…' : `${it.cost}${ro(it.cost)} 열기`} icon={busy ? undefined : <Coin size={18} />} onPress={onConfirm} disabled={busy} />}
+      {pack
+        ? <PrimaryButton label="다른 충전 상품 보기" variant="soft" onPress={onWallet} style={{ marginTop: 8 }} />
+        : <PrimaryButton label="취소" variant="soft" onPress={onClose} style={{ marginTop: 8 }} />}
     </View>
   );
 }
@@ -404,6 +426,10 @@ const s = StyleSheet.create({
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sumVal: { fontSize: 15, fontWeight: '700', color: colors.ink },
   hr: { height: 1, backgroundColor: colors.lineStrong },
+  packBox: { borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentSoft, borderRadius: radius.lg, padding: 14, marginBottom: 14, gap: 4 },
+  firstChip: { alignSelf: 'flex-start', backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 2 },
+  firstChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  packTitle: { fontSize: 15, fontWeight: '700', color: colors.ink },
   toast: { position: 'absolute', alignSelf: 'center', backgroundColor: colors.heroBg, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 15, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
   // 누를 수 있는 토스트는 여백까지 누를 수 있게 안쪽(Pressable)에 여백을 둔다
   toastPressable: { paddingHorizontal: 0, paddingVertical: 0 },

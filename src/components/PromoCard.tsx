@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import PressableScale from './PressableScale';
 import { MascotPeek } from './Mascot';
 import { HomePromoArt } from './home/HomeDesignAssets';
-import { Coin } from './premium/Kit';
+import { Coin, EVENT_PINK } from './premium/Kit';
 import { colors } from '../theme/colors';
 import { radius, sansW } from '../theme/typography';
 
@@ -30,10 +30,24 @@ interface Props {
   descInset?: number;
   onPress(): void;
   accessibilityLabel?: string;
+  /** 할인 중: NEW 대신 '할인중' 칩, 알약 앞에 원래 가격(취소선)과 할인 가격 */
+  discount?: Discount;
+}
+
+export interface Discount { orig: number; cost: number }
+
+/** 할인 칩 — NEW 칩과 같은 자리 · 같은 크기 */
+export function DiscountChip() {
+  return <View style={s.sale}><Text style={s.saleText}>할인중</Text></View>;
+}
+
+/** 알약 안 가격: ~~300~~ 50 · (뒤에 버튼 문구) */
+export function DiscountPrice({ discount }: { discount: Discount }) {
+  return <><Text style={s.orig}>{discount.orig.toLocaleString('ko-KR')}</Text> <Text style={s.salePrice}>{discount.cost.toLocaleString('ko-KR')}</Text>{' · '}</>;
 }
 
 /** 어두운 남색 프로모션 카드 — 제목 · 한 줄 설명 · 알약 버튼 · 오른쪽 아래 마스코트 실루엣 */
-export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, descInset, onPress, accessibilityLabel }: Props) {
+export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, descInset, onPress, accessibilityLabel, discount }: Props) {
   const home = variant === 'home';
   const recommendation = variant === 'recommendation';
   const figma = variant !== 'default';
@@ -49,17 +63,17 @@ export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold'
       {ownBase ? null : figma ? <HomePromoArt /> : <MascotPeek width={112} top={17} opacity={0.2} />}
       <View style={[s.titleRow, figma && badgePlacement === 'inline' && (home ? s.homeTitleRow : s.figmaInlineTitleRow)]}>
         <Text style={[s.title, figma && s.figmaTitle, figma && badgePlacement === 'inline' && s.figmaInlineTitle, (home || recommendation) && s.homeTitle, { color: PROMO_TONE[tone] }]} numberOfLines={recommendation ? 1 : undefined}>{title}</Text>
-        {isNew ? <View style={[s.new, figma && s.figmaNew, figma && badgePlacement === 'inline' && s.figmaInlineNew]}><Text style={[s.newText, figma && { ...sansW('600') }, figma && badgePlacement === 'inline' && s.figmaInlineNewText]}>NEW</Text></View> : null}
+        {discount ? <DiscountChip /> : isNew ? <View style={[s.new, figma && s.figmaNew, figma && badgePlacement === 'inline' && s.figmaInlineNew]}><Text style={[s.newText, figma && { ...sansW('600') }, figma && badgePlacement === 'inline' && s.figmaInlineNewText]}>NEW</Text></View> : null}
       </View>
       <Text style={[s.desc, figma && s.figmaDesc, recommendation && s.recommendationDesc, descInset != null && { paddingRight: descInset }]} numberOfLines={recommendation ? 1 : undefined}>{desc}</Text>
       <View style={[s.cta, home && s.homeCta]}>
-        {home && (coin || owned) ? (
+        {home && (coin || owned || discount) ? (
           <Image source={require('../../assets/figma/home/deeper-point.webp')} style={s.homePoint} contentFit="contain" accessible={false} />
-        ) : recommendation && coin ? (
+        ) : recommendation && (coin || discount) ? (
           <Image source={require('../../assets/figma/home/deeper-point.webp')} style={s.recommendationPoint} contentFit="contain" accessible={false} />
-        ) : coin ? <Coin size={16} /> : null}
+        ) : coin || discount ? <Coin size={16} /> : null}
         <Text style={[s.ctaText, figma && s.figmaCtaText]}>
-          {owned ? <><Text style={{ color: home ? '#28B2FE' : '#4392F7' }}>{recommendation ? '보유중' : '보유중 · '}</Text>{recommendation ? ' · ' : null}</> : null}{cta}
+          {owned ? <><Text style={{ color: home ? '#28B2FE' : '#4392F7' }}>{recommendation ? '보유중' : '보유중 · '}</Text>{recommendation ? ' · ' : null}</> : null}{discount ? <DiscountPrice discount={discount} /> : null}{cta}
         </Text>
       </View>
     </PressableScale>
@@ -73,6 +87,11 @@ const s = StyleSheet.create({
   // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 반투명 테두리와 줄높이를 정해 둔다
   new: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 5, borderWidth: 1, borderColor: 'rgba(255,122,60,0.7)' },
   newText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: '#FF7A3C', opacity: 0.85 },
+  // 할인 칩: NEW(figma inline)와 같은 크기, 분홍
+  sale: { height: 18, minWidth: 40, paddingHorizontal: 4, justifyContent: 'center', alignItems: 'center', borderRadius: 5, borderWidth: 1, borderColor: EVENT_PINK, backgroundColor: 'rgba(255,77,141,0.12)' },
+  saleText: { ...sansW('700'), fontSize: 12, lineHeight: 14, color: EVENT_PINK, includeFontPadding: false },
+  orig: { ...sansW('500'), color: '#999999', textDecorationLine: 'line-through' },
+  salePrice: { ...sansW('800'), color: EVENT_PINK },
   desc: { fontSize: 13, lineHeight: 18, color: colors.white, letterSpacing: -0.6, marginTop: 8, paddingRight: 80 },
   cta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: '#F5F6F8' },
   ctaText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: '#000', letterSpacing: -0.6 },
