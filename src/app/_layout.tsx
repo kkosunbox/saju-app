@@ -18,6 +18,7 @@ import SiteHead from '@/components/SiteHead';
 import LandingScreen from '@/screens/LandingScreen';
 import GuideScreen from '@/screens/GuideScreen';
 import { FortuneSignupProvider } from '@/screens/consult/FortuneSignupDialog';
+import { LoginPromptHost } from '@/screens/auth/LoginPromptSheet';
 import { guideSlugOf } from '@/content/guides';
 import { colors, isDark } from '@/theme/colors';
 import { FONT_FILES } from '@/theme/fontFiles';
@@ -190,6 +191,8 @@ export default function RootLayout() {
                 <FortuneSignupProvider>
                   <RootStack hold={!introDone} onShown={() => setShown(true)} />
                 </FortuneSignupProvider>
+                {/* 게스트가 막힌 순간 로그인 화면 대신 먼저 띄우는 가입 안내 */}
+                <LoginPromptHost />
                 {Platform.OS !== 'web' ? <LaunchSplash ready={shown} settled={fontsLoaded || !!fontError} onIntroDone={() => setIntroDone(true)} /> : null}
               </StoreBillingProvider>
             </PremiumProvider>

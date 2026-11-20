@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import { Amount } from '../../components/premium/Kit';
+import { FirstChargeTag } from '../../components/premium/FirstCharge';
 import { usePremium } from '../../context/PremiumContext';
 import { useStoreBilling } from '../../context/StoreBillingContext';
 import { PACKS, fmtP, packBonus, safeReturnTo } from '../../services/premium/catalog';
@@ -44,8 +45,9 @@ export default function ChargeScreen() {
       </View>
     }>
       {pack ? <View style={s.summary}>
+        {bonus > pack[2] ? <FirstChargeTag /> : null}
         <Amount value={pack[1] + bonus} size={22} style={txt.h2} />
-        {bonus ? <Text style={txt.small}>기본 {fmtP(pack[1])} + {bonus > pack[2] ? '첫 충전 1+1 ' : ''}보너스 {fmtP(bonus)}</Text> : null}
+        {bonus ? <Text style={txt.small}>기본 {fmtP(pack[1])} + {bonus > pack[2] ? '첫 충전 ' : ''}보너스 {fmtP(bonus)}</Text> : null}
         {product ? <Text style={txt.body}>{product.displayPrice}</Text> : null}
       </View> : <Text style={txt.body}>충전 상품을 찾지 못했어요.</Text>}
       <View style={s.content}>

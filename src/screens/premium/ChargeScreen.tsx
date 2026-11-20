@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Amount } from '../../components/premium/Kit';
+import { FirstChargeTag } from '../../components/premium/FirstCharge';
 import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import BusinessFooter from '../../components/BusinessFooter';
@@ -104,8 +105,9 @@ export default function ChargeScreen() {
     <Screen title="알 충전" back footer={footer} contentStyle={s.fill}>
       {pack && phase !== 'confirming' && phase !== 'error' ? (
         <View style={s.sum}>
+          {bonus > pack[2] ? <FirstChargeTag style={{ marginBottom: 4 }} /> : null}
           <Amount value={pack[1] + bonus} size={22} style={txt.h2} />
-          <Text style={txt.small}>{bonus ? `기본 ${fmtP(pack[1])} + ${bonus > pack[2] ? '첫 충전 1+1 ' : ''}보너스 ${fmtP(bonus)} · ` : ''}{pack[0].toLocaleString('ko-KR')}원</Text>
+          <Text style={txt.small}>{bonus ? `기본 ${fmtP(pack[1])} + ${bonus > pack[2] ? '첫 충전 ' : ''}보너스 ${fmtP(bonus)} · ` : ''}{pack[0].toLocaleString('ko-KR')}원</Text>
         </View>
       ) : null}
       {phase === 'loading' || phase === 'confirming' ? (

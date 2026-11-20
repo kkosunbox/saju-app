@@ -10,7 +10,7 @@ import { FullWindowOverlay } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, Pack, fmtN, fmtP, packBonus, packFor, ro } from '../services/premium/catalog';
+import { Item, PACKS, Pack, fmtP, packBonus, packFor, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
@@ -25,7 +25,7 @@ import { router, usePathname } from 'expo-router';
 import { goLogin } from '../services/loginIntent';
 import { trackAction } from '../services/screenViews';
 import { colors } from '../theme/colors';
-import { radius, txt } from '../theme/typography';
+import { radius, sansW, txt } from '../theme/typography';
 
 type Sheet = { type: 'unlock'; item: Item; onDone?(): void; profileId?: number } | null;
 
@@ -204,7 +204,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const requireLogin = (reason: 'unlock' | 'charge' | 'attend', title?: string): boolean => {
     if (account) return false;
     trackAction(`login_required_${reason}`);
-    goLogin(title ? { kind: 'unlock', title, returnTo: pathname } : undefined);
+    goLogin(title ? { kind: 'unlock', title, returnTo: pathname } : undefined, reason === 'unlock' ? undefined : reason);
     return true;
   };
 
@@ -370,18 +370,9 @@ function UnlockSheet({ item: it, points, free, busy, who, again, firstCharge, on
         <SumRow label={enough ? '사용 후 잔액' : '부족한 알'} value={enough ? points - it.cost : it.cost - points} color={enough ? colors.purple : colors.danger} />
       </View>
       <Text style={[txt.caption, s.center, { marginBottom: 14 }]}>{it.scope}</Text>
-      {pack ? (
-        <View style={s.packBox}>
-          {doubled ? <View style={s.firstChip}><Text style={s.firstChipText}>첫 충전 1+1</Text></View> : null}
-          <Text style={s.packTitle}>{fmtP(pack[1] + bonus)} 충전하면 바로 열 수 있어요</Text>
-          <Text style={txt.caption}>
-            {bonus ? `기본 ${fmtN(pack[1])} + ${doubled ? '1+1 ' : ''}보너스 ${fmtN(bonus)}` : `${fmtP(pack[1])}`}
-            {Platform.OS === 'web' ? ` · ${pack[0].toLocaleString('ko-KR')}원` : ''}
-          </Text>
-        </View>
-      ) : null}
+      {pack && doubled ? <Text style={s.firstLine}>첫 충전 1+1 · {fmtP(pack[1])}만 사도 {fmtP(pack[1] + bonus)}</Text> : null}
       {pack
-        ? <PrimaryButton label={`${fmtP(pack[1] + bonus)} 충전하기`} onPress={() => onCharge(pack)} />
+        ? <PrimaryButton label={Platform.OS === 'web' ? `${fmtP(pack[1] + bonus)} 충전하기 · ${pack[0].toLocaleString('ko-KR')}원` : `${fmtP(pack[1] + bonus)} 충전하기`} onPress={() => onCharge(pack)} />
         : <PrimaryButton label={busy ? '여는 중…' : `${it.cost}${ro(it.cost)} 열기`} icon={busy ? undefined : <Coin size={18} />} onPress={onConfirm} disabled={busy} />}
       {pack
         ? <PrimaryButton label="다른 충전 상품 보기" variant="soft" onPress={onWallet} style={{ marginTop: 8 }} />
@@ -426,10 +417,7 @@ const s = StyleSheet.create({
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sumVal: { fontSize: 15, fontWeight: '700', color: colors.ink },
   hr: { height: 1, backgroundColor: colors.lineStrong },
-  packBox: { borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentSoft, borderRadius: radius.lg, padding: 14, marginBottom: 14, gap: 4 },
-  firstChip: { alignSelf: 'flex-start', backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3, marginBottom: 2 },
-  firstChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  packTitle: { fontSize: 15, fontWeight: '700', color: colors.ink },
+  firstLine: { ...sansW('600'), fontSize: 13, letterSpacing: -0.52, color: colors.accent, textAlign: 'center', marginBottom: 10 },
   toast: { position: 'absolute', alignSelf: 'center', backgroundColor: colors.heroBg, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 15, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
   // 누를 수 있는 토스트는 여백까지 누를 수 있게 안쪽(Pressable)에 여백을 둔다
   toastPressable: { paddingHorizontal: 0, paddingVertical: 0 },

@@ -63,9 +63,20 @@ export function loginIntentReturnTo(): string | undefined {
   return undefined;
 }
 
-/** 하려던 일을 기억하고 로그인 화면으로 */
-export function goLogin(intent?: NewIntent) {
+/** 막힌 순간 띄우는 가입 안내 시트(LoginPromptHost)에 넘기는 내용 */
+export type LoginPrompt = { intent?: NewIntent; reason?: 'charge' | 'attend' };
+let promptListener: ((p: LoginPrompt) => void) | null = null;
+
+/** 가입 안내 시트가 앱에 붙어 있을 때 goLogin이 시트를 띄우게 한다. 해제 함수를 돌려준다 */
+export function subscribeLoginPrompt(listener: (p: LoginPrompt) => void) {
+  promptListener = listener;
+  return () => { if (promptListener === listener) promptListener = null; };
+}
+
+/** 하려던 일을 기억하고 가입 안내 시트를 띄운다 (시트가 없으면 로그인 화면으로). reason은 시트 문구에만 쓴다 */
+export function goLogin(intent?: NewIntent, reason?: LoginPrompt['reason']) {
   if (intent) setLoginIntent(intent);
   else clearLoginIntent();
-  router.push('/login');
+  if (promptListener) promptListener({ intent, reason });
+  else router.push('/login');
 }
