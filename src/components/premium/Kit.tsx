@@ -26,6 +26,7 @@ import { ART, MascotPeek } from '../Mascot';
 import GradientBorder from '../GradientBorder';
 import HScroll from '../HScroll';
 import { Coin } from '../Amount';
+import { ItemContents } from './ItemContents';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
 
@@ -298,7 +299,9 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} />
           : item.event && item.orig ? <View style={{ alignSelf: 'center', marginTop: 10 }}><LineTag label={`이벤트 할인 · ${fmtP(item.orig)} → ${fmtP(item.cost)}`} color={EVENT_PINK} /></View> : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
-        <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>{earlier ? '프로필이 바뀌었어요' : item.desc}</Text>
+        {earlier
+          ? <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>프로필이 바뀌었어요</Text>
+          : <ItemContents desc={item.desc} center style={{ marginTop: 10 }} />}
         {earlier ? <PrimaryButton label="이전 풀이 보기" variant="soft" small onPress={showOlder} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
         {free
           ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
@@ -354,7 +357,7 @@ export function PriceCard({ item, onUnlocked }: { item: Item; onUnlocked?(): voi
     <PressableScale onPress={() => openUnlock(item, onUnlocked)} style={s.priceCard} accessibilityLabel={`${item.title} 열기`}>
       <View style={s.between}><PriceTag item={item} /><View style={s.row4}><Icon name="lock" size={13} color={colors.inkMute} /><Text style={txt.caption}>잠김</Text></View></View>
       <Text style={[txt.h3, { marginTop: 10 }]}>{item.title}</Text>
-      <Text style={[txt.small, { marginTop: 4 }]}>{item.desc}</Text>
+      <ItemContents desc={item.desc} style={{ marginTop: 8 }} />
     </PressableScale>
   );
 }
@@ -369,7 +372,7 @@ export function LockedCard({ item, onUnlocked }: { item: Item; onUnlocked?(): vo
         <Text style={s.lockedTitle}>{item.title}</Text>
         <View style={s.lockedChip}><Icon name="lock" size={12} color={FREE_BLUE} strokeWidth={2} /><Text style={s.lockedChipText}>잠김</Text></View>
       </View>
-      <Text style={s.lockedDesc}>{item.desc}</Text>
+      <ItemContents desc={item.desc} style={{ marginTop: 10 }} />
       <PressableScale onPress={() => openUnlock(item, onUnlocked)} style={s.lockedBtn} scaleTo={0.98} accessibilityLabel={`${item.title} ${item.cost}알로 열기`}>
         <Coin size={14} />
         <Text style={s.lockedBtnText}>{item.cost.toLocaleString('ko-KR')}으로 전부 열기</Text>
@@ -535,7 +538,6 @@ const s = StyleSheet.create({
   lockedTitle: { flexShrink: 1, fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8, color: FREE_BLUE },
   lockedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
   lockedChipText: { fontSize: 12, fontWeight: '600', color: FREE_BLUE, opacity: 0.8 },
-  lockedDesc: { marginTop: 8, fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink },
   lockedBtn: { marginTop: 12, marginHorizontal: -4, height: 40, borderRadius: radius.sm, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   lockedBtnText: { fontSize: 14, fontWeight: '500', color: colors.white },
   priceCard: { marginTop: 24, backgroundColor: colors.cream, borderRadius: radius.lg, padding: 18, borderWidth: 1, borderColor: colors.accent },

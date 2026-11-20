@@ -338,7 +338,6 @@ function UnlockSheet({ item: it, points, free, busy, who, again, firstCharge, on
       <View>
         <SubscriptionBadge style={{ alignSelf: 'flex-start' }} />
         {titleRow(8)}
-        <Text style={[txt.small, { marginTop: 8 }]}>{it.desc}</Text>
         {againLine}
         <View style={s.sumBox}>
           <SumRow label="원래 가격" value={it.cost} />
@@ -360,7 +359,6 @@ function UnlockSheet({ item: it, points, free, busy, who, again, firstCharge, on
   return (
     <View>
       {titleRow(0)}
-      <Text style={[txt.small, { marginTop: 8 }]}>{it.desc}</Text>
       {againLine}
       <View style={s.sumBox}>
         {it.event && it.orig ? <SumRow label="이벤트 할인" value={`${fmtP(it.orig)} → ${fmtP(it.cost)}`} color={colors.purple} /> : null}
