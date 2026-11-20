@@ -139,6 +139,8 @@ export default function CompatibilityScreen() {
   const [result, setResult] = useState<CompatibilityResult | null>(sharedView?.compat ?? null);
   const [showMbti, setShowMbti] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // 천생연분 스타에서 '궁합 상대로 추가'로 들어왔으면 그 스타 이름 (입력 칸을 채워 두고 폼을 먼저 보여 준다)
+  const [fromStar, setFromStar] = useState<string | null>(null);
   // 저장된 상대 = 궁합 기록 (상대마다 하나, 최근에 본 순)
   const saved = useQuery({ queryKey: [...compatKeys.list, primary?.id, primary?.version], queryFn: () => compatApi.list(primary!.id), enabled: !!primary && !sharedView });
   // 내 링크로 상대가 본 궁합이 언제든 들어오니 탭에 올 때마다 새로
@@ -168,6 +170,7 @@ export default function CompatibilityScreen() {
     setPlace(null); setShowPlace(false);
     setGender(null); setMbti(null); setShowMbti(false);
     setPartnerProfileId(null); setPresetTime(null);
+    setFromStar(null);
   };
 
   /** 상대 칸을 내 프로필 목록의 사람으로 채운다 */
@@ -242,6 +245,21 @@ export default function CompatibilityScreen() {
   if (params?.result !== seenResult) {
     setSeenResult(params?.result);
     if (params?.result) setResult(params.result);
+  }
+  // 천생연분 스타에서 '궁합 상대로 추가' — 스타 정보로 칸을 채운다 (양력 · 시간 모름 · 동성이면 친구, 아니면 연인)
+  const [seenStar, setSeenStar] = useState<NonNullable<typeof params>['star']>();
+  if (params?.star && params.star !== seenStar) {
+    const star = params.star;
+    setSeenStar(star);
+    resetForm();
+    setResult(null);
+    setName(star.nickname.slice(0, 12));
+    setBirth(star.birthDate.replace(/\D/g, ''));
+    setCalendar('solar');
+    setGender(star.gender);
+    // 나와 같은 성별이면 친구, 아니면 연인으로 골라 둔다
+    setRelationship(user && star.gender === user.gender ? 'friend' : 'lover');
+    setFromStar(star.nickname);
   }
   // 풀이 완성 알림을 눌러 오면 그 상대의 궁합을 연다 (기록 목록이 온 뒤 한 번)
   const [seenResultId, setSeenResultId] = useState<string | undefined>();
@@ -396,7 +414,17 @@ export default function CompatibilityScreen() {
         <Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} />
       </PressableScale>
 
-      {saved.data?.length ? (
+      {fromStar ? (
+        <View style={[s.listRow, { marginTop: 16 }]}>
+          <View style={s.rowIco}><Text style={s.savedSealText}>緣</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowTitle} numberOfLines={1}>{fromStar}님 정보를 넣어 뒀어요</Text>
+            <Text style={s.rowSub}>공개된 양력 생일로 채웠어요. 확인하고 궁합을 보세요</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {saved.data?.length && !fromStar ? (
         <>
           <SectionHeader title="저장된 상대" caption="눌러서 자세히 보기" />
           <View style={{ gap: 8 }}>

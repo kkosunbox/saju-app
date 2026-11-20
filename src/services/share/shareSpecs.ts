@@ -5,7 +5,7 @@
 import { CombinedFortune, CompatibilityResult, ShareCard, User, TarotReading } from '../../types';
 import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
-import { MbtiMatches, PastLife, Pet, SajuCharacter, Talisman } from '../../types/content';
+import { MbtiMatches, PastLife, Pet, SajuCharacter, StarScore, Talisman } from '../../types/content';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { ChildPreview, CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
@@ -147,6 +147,19 @@ export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
     character: c.bestFriendBasis
       ? { nickname: u.nickname, mine: { hanja: c.hanja, name: c.name, core: c.core, element: PLAIN_ELEMENT[c.element], strength }, friend: { hanja: c.bestFriendHanja, name: c.bestFriend }, bond: c.bestFriendBasis }
       : undefined,
+  };
+}
+
+/** 천생연분 스타 — 오늘의 궁합. 사진 없이 그 스타의 사주 캐릭터 그림과 오늘의 점수로 */
+export function starSpec(u: User, star: StarScore, me: { character: string }): ShareSpec {
+  return {
+    kind: '오늘의 천생연분 스타', seal: '緣', pillar: star.hanja, eyebrow: `${u.nickname}님의 오늘의 천생연분은`,
+    headline: star.name, sub: `${me.character} × ${star.character}`,
+    big: { value: String(star.score), unit: '점', label: '오늘의 궁합' },
+    stats: [['스타 캐릭터', star.character], ['나의 캐릭터', me.character], ['오늘의 궁합', `${star.score}점`]],
+    hook: '너의 오늘의 천생연분 스타는?',
+    text: `${u.nickname}님의 오늘의 천생연분 스타는 ${star.name}, 오늘의 궁합 ${star.score}점이에요.\n${seeMine('오늘의 천생연분 스타', '찾을')}`,
+    file: 'woonpick-star', route: 'StarMatch', short: `${star.name} · ${star.score}점`,
   };
 }
 

@@ -12,3 +12,8 @@ export const DEV_TOOLS =
   (Platform.OS === 'web'
     ? typeof location !== 'undefined' && DEV_HOSTS.includes(location.hostname)
     : process.env.EXPO_PUBLIC_WEB_URL === DEV_WEB_URL);
+
+/** 로컬(개발 서버)에서만 보이는 테스트 버튼 — dev 배포에서도 숨긴다 */
+export const LOCAL_TOOLS =
+  __DEV__ ||
+  (Platform.OS === 'web' && typeof location !== 'undefined' && ['localhost', '127.0.0.1'].includes(location.hostname));

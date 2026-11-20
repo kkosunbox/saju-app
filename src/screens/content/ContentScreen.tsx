@@ -19,6 +19,7 @@ import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
+import { StarMatchArt } from '../../components/home/HomeDesignAssets';
 import { TrackedPromoCard } from '../../components/PromoSlot';
 import GradientBorder from '../../components/GradientBorder';
 import { Period } from '../../types';
@@ -74,12 +75,13 @@ export default function ContentScreen() {
   const bundle = owned(BUNDLE.key) ? null : bundleFor(owned);
 
 
-  const FREE: [ArtName, string, string, () => void][] = [
+  const FREE: [ArtName | 'star', string, string, () => void][] = [
     ['soon-tarot', '오늘의 타로', '오늘 나에게 온 카드 한 장', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
+    ['star', '천생연분 스타', '오늘 나와 천생연분인 스타는?', () => nav.navigate('StarMatch')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);
@@ -159,7 +161,7 @@ export default function ContentScreen() {
         {FREE.map(([art, t, d, go], i) => (
           <PressableScale key={t} onPress={go} style={[s.free, i === FREE.length - 1 && FREE.length % 2 === 1 && { width: '100%' }]} scaleTo={0.97} accessibilityLabel={t}>
             <View style={s.freeHead}>
-              <Mascot name={art} size={i === 3 ? 44 : 39} />
+              {art === 'star' ? <StarMatchArt /> : <Mascot name={art} size={i === 3 ? 44 : 39} />}
               <LineTag label="무료" variant="figma" />
             </View>
             <Text style={s.freeT}>{t}</Text>

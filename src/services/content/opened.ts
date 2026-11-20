@@ -20,8 +20,9 @@ import { trackAction } from '../screenViews';
  */
 export interface DailyTarget { profileId: number | null; fortune: DailyFortune | null; error?: unknown }
 
-export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life';
-const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman'];
+export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life' | 'celebrity-match';
+// 천생연분 스타는 '오늘의 궁합'이라 날마다 새로 뽑는다
+const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman', 'celebrity-match'];
 
 /** 프로필별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } */
 type Stamps = Partial<Record<OpenKind, string>>;

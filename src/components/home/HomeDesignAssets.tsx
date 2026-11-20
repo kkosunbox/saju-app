@@ -53,7 +53,19 @@ export function HomeOutlineIcon({ name, size = 24, color }: { name: HomeOutlineN
   return <Image source={source} style={{ width: size, height: size, transform: chevron ? [{ rotate: name === 'chevronRight' ? '180deg' : '-90deg' }] : undefined }} contentFit="contain" tintColor={color} accessible={false} />;
 }
 
-export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' | 'inv' }) {
+export function StarMatchArt({ size = 39 }: { size?: number }) {
+  return (
+    <Image
+      source={require('../../../assets/figma/home/free-star.webp')}
+      style={{ width: size, height: size }}
+      contentFit="contain"
+      accessible={false}
+    />
+  );
+}
+
+export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' | 'inv' | 'star' }) {
+  if (kind === 'star') return <StarMatchArt />;
   // Figma 288:2739 — 사주 캐릭터 카드는 내 캐릭터 대신 이 그림으로 고정
   if (kind === 'char') {
     return <Image source={require('../../../assets/figma/home/free-character.webp')} style={{ position: 'absolute', left: -3, top: -8, width: 48, height: 48 }} contentFit="cover" accessible={false} />;

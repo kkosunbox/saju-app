@@ -10,7 +10,8 @@ export type TabParamList = {
   Consult: undefined;
   Talks: { tab?: 'fortune' } | undefined;
   Content: undefined;
-  Compatibility: { result?: CompatibilityResult; resultId?: string } | undefined;
+  /** star: 천생연분 스타에서 '궁합 상대로 추가' — 그 스타의 이름·양력 생일·성별로 입력 칸을 채운다 */
+  Compatibility: { result?: CompatibilityResult; resultId?: string; star?: { nickname: string; birthDate: string; gender: 'female' | 'male' } } | undefined;
   MyPage: undefined;
 };
 
@@ -53,6 +54,10 @@ export type RootStackParamList = {
   /** 상담 기록 전체 (무한 스크롤) */
   ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;
+  /** 천생연분 스타 (뽑기 · 결과 · 다른 스타 목록) */
+  StarMatch: undefined;
+  /** 천생연분 스타 한 명과의 궁합 */
+  StarMatchDetail: { id: string };
   Pet: undefined;
   Child: undefined;
   Legal: { doc: 'terms' | 'privacy' };

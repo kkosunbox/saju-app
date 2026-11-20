@@ -7,12 +7,13 @@ import { HomeFreeArt } from './HomeDesignAssets';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW } from '../../theme/typography';
 
-type Kind = 'tal' | 'mbti' | 'char' | 'past';
+type Kind = 'tal' | 'mbti' | 'char' | 'past' | 'star';
 const ITEMS: { k: Kind; title: string; sub: string; to: string }[] = [
   { k: 'tal', title: '오늘의 부적', sub: '오늘 부적 받기', to: 'Talisman' },
   { k: 'mbti', title: '찰떡 MBTI', sub: '잘맞는 유형은?', to: 'MbtiMatch' },
   { k: 'char', title: '사주 캐릭터', sub: '나의 캐릭터는?', to: 'Character' },
   { k: 'past', title: '전생테스트', sub: '나의 전생은?', to: 'PastLife' },
+  { k: 'star', title: '천생연분 스타', sub: '오늘의 스타는?', to: 'StarMatch' },
 ];
 
 /** 무료 콘텐츠 카드 줄 — 홈 '무료로 즐기기'와 같은 카드. inset: 좌우 여백(가로 스크롤 안쪽) */
@@ -42,6 +43,7 @@ const s = StyleSheet.create({
   mbti: { backgroundColor: '#1D212D' },
   char: { backgroundColor: isDark ? colors.card : '#DFE9FF' },
   past: { backgroundColor: isDark ? colors.card : '#F2EEFB' },
+  star: { backgroundColor: isDark ? colors.card : '#FFF0F3' },
   top: { height: 39, marginBottom: 8, justifyContent: 'center' },
   title: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },
   titleDark: { color: '#FFFFFF' },

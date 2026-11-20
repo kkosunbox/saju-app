@@ -177,7 +177,7 @@ export default function HomeScreen() {
     played.current = false;
   };
   const opened = {
-    tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'),
+    tal: useOpened('talisman'), mbti: useOpened('mbti-match'), char: useOpened('character'), past: useOpened('past-life'), star: useOpened('celebrity-match'),
   };
 
   // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
@@ -260,13 +260,14 @@ export default function HomeScreen() {
     { k: 'mbti', art: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: '잘맞는 유형은?', go: () => nav.navigate('MbtiMatch') },
     { k: 'char', art: 'tiger', title: '사주 캐릭터', sub: '나의 캐릭터는?', go: () => nav.navigate('Character') },
     { k: 'past', art: 'pastLife', title: '전생테스트', sub: '나의 전생은?', go: () => nav.navigate('PastLife') },
+    { k: 'star', title: '천생연분 스타', sub: '오늘의 스타는?', go: () => nav.navigate('StarMatch') },
     { k: 'inv', art: 'friends', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
   ] as Free[]).map((x): Free => {
     const o = opened[x.k as keyof typeof opened];
     if (!o) return x;
     if (!o.ready) return { ...x, sub: '…' };
-    // 부적은 날마다 새로 뽑아서 'NEW'
-    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' ? '잘맞는 유형은?' : '눌러서 뽑기' };
+    // 부적·천생연분 스타는 날마다 새로 뽑아서 'NEW'
+    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal' || x.k === 'star', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' ? '잘맞는 유형은?' : x.k === 'star' ? '오늘의 천생연분' : '눌러서 뽑기' };
   });
   const spouseOwned = owned(ITEMS.spouse().key);
   const promos = promosOf(nav, today);
@@ -429,9 +430,9 @@ export default function HomeScreen() {
         </View>
         <HScroll contentContainerStyle={{ paddingHorizontal: SCREEN_PX, gap: 12 }}>
           {FREE.map(x => (
-            <PressableScale key={x.k} onPress={x.go} style={[s.freeCard, x.k === 'tal' ? s.freeTalisman : x.k === 'mbti' ? s.freeMbti : x.k === 'char' ? s.freeCharacter : x.k === 'past' ? s.freePast : s.freeInvite]} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
+            <PressableScale key={x.k} onPress={x.go} style={[s.freeCard, x.k === 'tal' ? s.freeTalisman : x.k === 'mbti' ? s.freeMbti : x.k === 'char' ? s.freeCharacter : x.k === 'past' ? s.freePast : x.k === 'star' ? s.freeStar : s.freeInvite]} scaleTo={0.96} accessibilityLabel={x.sealed ? `${x.title}, 아직 안 뽑음` : `${x.title}, ${x.sub}`}>
               <View style={s.freeTop}>
-                <HomeFreeArt kind={x.k as 'tal' | 'mbti' | 'char' | 'past' | 'inv'} />
+                <HomeFreeArt kind={x.k as 'tal' | 'mbti' | 'char' | 'past' | 'inv' | 'star'} />
               </View>
               {/* 뽑기 전 표시는 카드 오른쪽 위 — NEW는 그 아래에 */}
               {x.isNew ? <View style={s.freeNew}><Text style={s.freeNewText}>NEW</Text></View> : null}
@@ -552,6 +553,7 @@ const s = StyleSheet.create({
   freeMbti: { backgroundColor: '#1D212D' },
   freeCharacter: { backgroundColor: isDark ? colors.card : '#DFE9FF' },
   freePast: { backgroundColor: isDark ? colors.card : '#F2EEFB' },
+  freeStar: { backgroundColor: isDark ? colors.card : '#FFF0F3' },
   freeInvite: { backgroundColor: isDark ? colors.card : '#F0F6FF' },
   freeTop: { height: 39, marginBottom: 8, justifyContent: 'center' },
   freeNew: { position: 'absolute', top: 16, right: 12, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, backgroundColor: colors.seal },

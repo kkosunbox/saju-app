@@ -62,3 +62,54 @@ export type PetPreview = Pick<PetCompatibility, 'basis' | 'score' | 'type'> & {
   pet: Pick<PetCompatibility['pet'], 'title' | 'stem' | 'element' | 'elementKo' | 'animal' | 'keywords' | 'persona'>;
 };
 export interface Pet extends PetInput { id: number; result: PetPreview; createdAt: string }
+
+/** 천생연분 스타 — 후보 한 명과 나의 점수 (사진 없이 그 스타의 사주 캐릭터로 보여준다) */
+export interface StarScore {
+  id: number;
+  name: string;
+  /** 이름 아래 한 줄 (예: 가수 · 배우) */
+  description: string;
+  gender: 'female' | 'male';
+  /** 스타의 일주 한자 — 사주 캐릭터 그림 */
+  hanja: string;
+  /** 스타의 사주 캐릭터 이름 (예: 푸른 용) */
+  character: string;
+  element: Element;
+  /** 나와의 오늘 궁합 점수 (50~99, 날마다 바뀐다) — 낮아도 그대로 보여준다 */
+  score: number;
+}
+
+export type StarGender = 'female' | 'male' | 'all';
+
+/** 고르기 목록의 스타 한 명 (점수 없이) */
+export type StarCard = Omit<StarScore, 'score'>;
+
+/** 천생연분 스타 뽑기 결과: 뽑힌 한 명 + 가장 잘 맞는 세 명 + 고르기 목록 */
+export interface StarMatch {
+  gender: StarGender;
+  pick: StarScore | null;
+  /** 오늘 가장 잘 맞는 세 명 (뽑힌 스타 포함) — 돌림판의 세 칸 */
+  finalists: StarScore[];
+  poolSize: number;
+  /** 남녀 모든 스타, 이름순 */
+  stars: StarCard[];
+  /** 나의 사주 캐릭터 */
+  me: { hanja: string; character: string };
+}
+
+/** 스타 한 명과의 궁합 (무료) */
+export interface StarMatchDetail extends StarScore {
+  /** 양력 생일 — 궁합 상대로 추가할 때 칸을 채운다 */
+  birthDate: string;
+  /** 타고난 궁합 점수 (score는 여기에 오늘의 기운을 더한 오늘의 점수) */
+  baseScore: number;
+  /** 오늘 두 사람에게 닿는 기운 한 줄 */
+  todayLine: string;
+  summary: string;
+  /** 두 캐릭터 사이 한 줄 (예: 함께 빛나는 사이) */
+  bond: string;
+  reasons: string[];
+  scores: { love: number; personality: number; conversation: number; life: number };
+  together: string[];
+  me: { hanja: string; character: string; element: Element };
+}
