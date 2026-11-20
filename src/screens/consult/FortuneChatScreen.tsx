@@ -34,7 +34,7 @@ import { PointPill } from '../../components/HeaderPoints';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const ASK_INPUT_MAX = 120;
-/** 입력창 위 질문 프리셋 — 한쪽으로 천천히 흐르고, 누르면 바로 운알이에게 보낸다 (모두 최소 글자 수 이상) */
+/** 입력창 위 질문 프리셋 — 한쪽으로 천천히 흐르고, 누르면 입력창에 채운다 (고쳐서 보낼 수 있게) */
 const ASK_PRESETS = [
   '썸남에게 오늘 먼저 연락해도 될까요?',
   '오늘 회사에 퇴사하겠다고 말해도 될까요?',
@@ -282,6 +282,7 @@ export default function FortuneChatScreen() {
     if (askShort && (!t.trim() || t.trim().length >= CONSULT_CONFIG.minLen)) setAskShort(false);
   };
   const askLen = askText.trim().length;
+  const pickPreset = (q: string) => { setAskText(q); setAskShort(false); askInput.current?.focus(); };
   const unlock = () => {
     if (!fortune) return;
     openUnlock(ITEMS.daily(fortune.date, who, drawCost), () => { draw.open(); setJustDrawn(true); void refreshFortune(); }, fortune.forProfile ?? undefined);
@@ -356,7 +357,7 @@ export default function FortuneChatScreen() {
           <Text style={s.askHint} accessibilityLiveRegion="polite">고민을 {CONSULT_CONFIG.minLen}자 이상 적어 주세요 ({askLen}/{CONSULT_CONFIG.minLen})</Text>
         ) : !askText ? (
           <View style={s.presetRow}>
-            <WorryMarquee items={ASK_PRESETS} onPick={askConsult} />
+            <WorryMarquee items={ASK_PRESETS} onPick={pickPreset} />
           </View>
         ) : null}
         <View style={s.askRow}>
