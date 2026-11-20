@@ -45,7 +45,12 @@ export default function CharacterScene({ hanja, name, size, style }: Props & { s
 export function CharacterAvatar({ hanja, name, size }: Props) {
   const scene = characterScene(hanja, name);
   if (!scene) return null;
-  return <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: scene.palette.soft, borderWidth: 1, borderColor: scene.palette.floor, alignItems: 'center', justifyContent: 'center' }}>
-    <CharacterArt hanja={hanja} name={name} size={size * 0.88} />
+  return <View style={[avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: scene.palette.soft, borderColor: scene.palette.floor }]}>
+    {/* 정사각형 그림의 모서리까지 원 테두리 안에 들어오도록 여백을 둔다. */}
+    <CharacterArt hanja={hanja} name={name} size={(size - 2) * 0.68} />
   </View>;
 }
+
+const avatar = StyleSheet.create({
+  frame: { overflow: 'hidden', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+}).frame;

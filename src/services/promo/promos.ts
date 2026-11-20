@@ -57,9 +57,8 @@ export function promosOf(nav: Nav, today: string): Record<PromoKey, Promo> {
   const month = `${mo.y}-${String(mo.m).padStart(2, '0')}`;
   return {
     'theme-love': {
-      key: 'theme-love', track: 'theme:love', title: '연애·결혼 운세', desc: '연애 스타일 · 잘 맞는 사람 · 인연이 오는 해',
-      item: ITEMS.theme('love'), verb: '자세히 보기', ref: { kind: 'theme', theme: 'love' },
-      teaser: d => { const p = d as ThemePreview; return p.kind === 'love' && p.st ? `내 연애 스타일은 「${p.st}」 · 잘 맞는 사람 · 인연이 오는 해` : null; },
+      key: 'theme-love', track: 'theme:love', title: '연애·결혼 운세', desc: '내 연애 스타일과 관계에서 반복되는 패턴',
+      item: ITEMS.theme('love'), verb: '자세히 보기',
       go: () => nav.navigate('Theme', { kind: 'love' }),
     },
     'theme-money': {

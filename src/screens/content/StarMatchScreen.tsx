@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import ShareActions from '../../components/ShareActions';
@@ -25,7 +24,6 @@ import { LOCAL_TOOLS } from '../../utils/devTools';
 import { radius, sansW, txt } from '../../theme/typography';
 import type { StarCard } from '../../types/content';
 
-const THREAD = '#FF5A7A';
 /** 결과 아래 '다른 스타'는 남녀 가리지 않고 랜덤 몇 명만 */
 const OTHERS = 5;
 
@@ -76,7 +74,7 @@ export default function StarMatchScreen() {
       <ProfileSwitch style={{ marginBottom: 12 }} />
       {pick ? wrap(
         <View>
-          <LinearGradient colors={['#141826', '#26203A', '#3A2338']} style={s.hero}>
+          <View style={s.hero}>
             <Text style={s.heroEyebrow}>{m}월 {d}일 · 오늘의 천생연분</Text>
             <View style={s.pair}>
               <View style={s.side}>
@@ -90,8 +88,8 @@ export default function StarMatchScreen() {
             </View>
             <Text style={s.heroName}>{pick.name}</Text>
             {pick.description ? <Text style={s.heroDesc}>{pick.description}</Text> : null}
-            <View style={s.scorePill}><Text style={s.scorePillText}>오늘의 궁합 {pick.score}점</Text></View>
-          </LinearGradient>
+            <Text style={s.heroScore}>오늘의 궁합 <Text style={s.scoreValue}>{pick.score}점</Text></Text>
+          </View>
           <PrimaryButton label={`${pick.name}님과 궁합 자세히 보기 →`} onPress={() => open(pick)} style={{ marginTop: 12 }} />
           {LOCAL_TOOLS ? (
             <PressableScale onPress={() => { draw.reset(); setDrawn(false); }} hitSlop={4} scaleTo={0.9} style={s.devReset} accessibilityLabel="돌림판 돌리기 전으로 되돌리기 (로컬 테스트용)">
@@ -109,7 +107,7 @@ export default function StarMatchScreen() {
       <View style={s.row}>
         {others.map(star => (
           <PressableScale key={star.id} onPress={() => open(star)} style={s.cell} scaleTo={0.94} accessibilityLabel={`${star.name}, 오늘의 궁합 보기`}>
-            <CharacterAvatar hanja={star.hanja} size={54} />
+            <CharacterAvatar hanja={star.hanja} size={42} />
             <Text style={s.cellName} numberOfLines={1}>{star.name}</Text>
             <Text style={s.cellSub} numberOfLines={1}>{star.character}</Text>
           </PressableScale>
@@ -122,20 +120,20 @@ export default function StarMatchScreen() {
 
 const s = StyleSheet.create({
   headRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  hero: { borderRadius: radius.lg, paddingVertical: 22, paddingHorizontal: 20, alignItems: 'center' },
+  hero: { borderRadius: radius.lg, backgroundColor: colors.heroBg, paddingTop: 20, paddingBottom: 24, paddingHorizontal: 16, alignItems: 'center' },
   heroEyebrow: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: 'rgba(255,255,255,0.7)' },
-  pair: { flexDirection: 'row', alignItems: 'center', gap: 24, marginTop: 16 },
-  side: { alignItems: 'center', width: 96 },
+  pair: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 18 },
+  side: { flex: 1, minWidth: 0, maxWidth: 96, alignItems: 'center' },
   sideName: { ...sansW('600'), fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.75)', marginTop: 6, letterSpacing: -0.4 },
   heroName: { ...sansW('800'), fontSize: 30, lineHeight: 38, letterSpacing: -1.4, color: '#FFFFFF', marginTop: 14 },
-  heroDesc: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  scorePill: { marginTop: 12, paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: 'rgba(255,90,122,0.2)', borderWidth: 1, borderColor: THREAD },
-  scorePillText: { ...sansW('700'), fontSize: 14, lineHeight: 18, color: '#FFD3DC', letterSpacing: -0.4 },
+  heroDesc: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: 'rgba(255,255,255,0.7)', marginTop: 4, textAlign: 'center' },
+  heroScore: { ...sansW('500'), fontSize: 13, lineHeight: 22, color: 'rgba(255,255,255,0.75)', marginTop: 12 },
+  scoreValue: { ...sansW('700'), fontSize: 17, color: '#F3C5DD', fontVariant: ['tabular-nums'] },
   empty: { padding: 20, borderRadius: radius.lg, backgroundColor: colors.card },
   devReset: { alignSelf: 'center', marginTop: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
-  row: { flexDirection: 'row', paddingVertical: 14, borderRadius: radius.lg, backgroundColor: colors.card },
-  cell: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  row: { flexDirection: 'row', paddingVertical: 16, borderRadius: radius.lg, backgroundColor: colors.card },
+  cell: { flex: 1, minWidth: 0, alignItems: 'center', paddingHorizontal: 2 },
   cellName: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: colors.ink, marginTop: 6 },
   cellSub: { ...sansW('500'), fontSize: 10, lineHeight: 14, color: colors.inkMute, letterSpacing: -0.3 },
 });
