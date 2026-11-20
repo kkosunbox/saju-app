@@ -260,14 +260,14 @@ export default function HomeScreen() {
     { k: 'mbti', art: 'mbti', big: opened.mbti.opened ? match?.type ?? 'MBTI' : 'MBTI', title: '찰떡 MBTI', sub: '잘맞는 유형은?', go: () => nav.navigate('MbtiMatch') },
     { k: 'char', art: 'tiger', title: '사주 캐릭터', sub: '나의 캐릭터는?', go: () => nav.navigate('Character') },
     { k: 'past', art: 'pastLife', title: '전생테스트', sub: '나의 전생은?', go: () => nav.navigate('PastLife') },
-    { k: 'star', title: '천생연분 스타', sub: '오늘의 스타는?', go: () => nav.navigate('StarMatch') },
+    { k: 'star', title: '연예인 궁합', sub: '오늘의 천생연분', go: () => nav.navigate('StarMatch') },
     { k: 'inv', art: 'friends', title: '친구 궁합 초대', sub: '링크로 보내기', go: sendInvite },
   ] as Free[]).map((x): Free => {
     const o = opened[x.k as keyof typeof opened];
     if (!o) return x;
     if (!o.ready) return { ...x, sub: '…' };
-    // 부적·천생연분 스타는 날마다 새로 뽑아서 'NEW'
-    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal' || x.k === 'star', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' ? '잘맞는 유형은?' : x.k === 'star' ? '오늘의 천생연분' : '눌러서 뽑기' };
+    // 부적·연예인 궁합은 날마다 새로 뽑아서 'NEW'
+    return o.opened ? x : { ...x, sealed: true, isNew: x.k === 'tal' || x.k === 'star', sub: x.k === 'tal' ? '오늘 부적 받기' : x.k === 'mbti' || x.k === 'star' ? x.sub : '눌러서 뽑기' };
   });
   const spouseOwned = owned(ITEMS.spouse().key);
   const promos = promosOf(nav, today);

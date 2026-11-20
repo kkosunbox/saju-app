@@ -81,7 +81,7 @@ export default function ContentScreen() {
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
-    ['star', '천생연분 스타', '오늘 나와 천생연분인 스타는?', () => nav.navigate('StarMatch')],
+    ['star', '연예인 궁합', '오늘의 천생연분', () => nav.navigate('StarMatch')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);

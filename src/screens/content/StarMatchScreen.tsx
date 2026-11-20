@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
+import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
+import SectionHeader from '../../components/SectionHeader';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import ProfileSwitch from '../../components/premium/ProfileSwitch';
@@ -11,7 +13,6 @@ import Reveal from '../../components/Reveal';
 import LoadingScreen from '../../components/LoadingScreen';
 import StarRoulette from '../../components/StarRoulette';
 import { CharacterAvatar } from '../../components/CharacterScene';
-import { SubHead } from '../../components/premium/Kit';
 import { PointPill } from '../../components/HeaderPoints';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
@@ -24,7 +25,7 @@ import { LOCAL_TOOLS } from '../../utils/devTools';
 import { radius, sansW, txt } from '../../theme/typography';
 import type { StarCard } from '../../types/content';
 
-/** 결과 아래 '다른 스타'는 남녀 가리지 않고 랜덤 몇 명만 */
+/** 결과 아래 '다른 연예인'은 남녀 가리지 않고 랜덤 몇 명만 */
 const OTHERS = 5;
 
 const shuffled = <T,>(items: T[]) => {
@@ -37,8 +38,8 @@ const shuffled = <T,>(items: T[]) => {
 };
 
 /**
- * 무료: 천생연분 스타 — 오늘의 궁합. 오늘 나와 가장 잘 맞는 반대 성별 스타 세 명을 돌림판에 올려 한 명을 뽑는다.
- * 점수는 날마다 바뀌고 날마다 새로 뽑는다. 결과 아래에는 다른 스타 다섯 명을 랜덤으로 보여 준다 (점수 없이).
+ * 무료: 연예인 궁합. 오늘 나와 가장 잘 맞는 반대 성별 연예인 세 명을 돌림판에 올려 한 명을 뽑는다.
+ * 점수는 날마다 바뀌고 날마다 새로 뽑는다. 결과 아래에는 다른 연예인 다섯 명을 랜덤으로 보여 준다 (점수 없이).
  */
 export default function StarMatchScreen() {
   const nav = useNavigation();
@@ -47,21 +48,21 @@ export default function StarMatchScreen() {
   const q = useStarMatch();
   const draw = useOpened('celebrity-match');
   const [drawn, setDrawn] = useState(false);
-  // 다른 스타: 남녀 가리지 않고 랜덤 다섯 명 (화면을 열 때 한 번 섞는다)
+  // 다른 연예인: 남녀 가리지 않고 랜덤 다섯 명 (화면을 열 때 한 번 섞는다)
   const data = q.data;
   const pick = data?.pick ?? null;
   const others = useMemo(() => shuffled((data?.stars ?? []).filter(st => st.id !== pick?.id)).slice(0, OTHERS), [data, pick]);
   if (!u) return null;
-  if (!data || !draw.ready) return <LoadingScreen title="천생연분 스타" error={q.error} onRetry={q.refetch} />;
+  if (!data || !draw.ready) return <LoadingScreen title="연예인 궁합" error={q.error} onRetry={q.refetch} />;
   const open = (star: StarCard) => nav.navigate('StarMatchDetail', { id: String(star.id), profileId: scope?.profileId ?? undefined });
 
   const { m, d } = parseISO(today);
   // 오늘 아직 안 돌렸으면 돌림판부터
   if (!draw.opened && pick) {
     return (
-      <Screen title="천생연분 스타" back>
+      <Screen title="연예인 궁합" back>
         <ProfileSwitch style={{ marginBottom: 12 }} />
-        <Text style={[txt.title, { marginTop: 8, marginBottom: 20 }]}>오늘의 천생연분 스타는?</Text>
+        <Text style={[txt.title, { marginTop: 8, marginBottom: 20 }]}>오늘의 천생연분 연예인</Text>
         <StarRoulette pick={pick} finalists={data.finalists} onDone={() => { setDrawn(true); draw.open(); }} />
       </Screen>
     );
@@ -70,24 +71,24 @@ export default function StarMatchScreen() {
   const spec = pick ? starSpec(u, pick, data.me) : null;
   const wrap = (node: React.ReactNode) => (drawn ? <Reveal>{node}</Reveal> : node);
   return (
-    <Screen title="천생연분 스타" back right={<View style={s.headRight}><PointPill attendHint quiet /><ShareIconButton spec={spec} /></View>}>
+    <Screen title="연예인 궁합" back right={<View style={s.headRight}><PointPill attendHint quiet /><ShareIconButton spec={spec} /></View>}>
       <ProfileSwitch style={{ marginBottom: 12 }} />
       {pick ? wrap(
         <View>
           <View style={s.hero}>
-            <Text style={s.heroEyebrow}>{m}월 {d}일 · 오늘의 천생연분</Text>
+            <Text style={s.heroEyebrow}>{m}월 {d}일 · 오늘의 천생연분 연예인</Text>
             <View style={s.pair}>
               <View style={s.side}>
                 <CharacterAvatar hanja={data.me.hanja} size={72} />
-                <Text style={s.sideName} numberOfLines={1}>{data.me.character}</Text>
+                <Text style={s.sideName} numberOfLines={1}>{u.nickname}</Text>
+                <Text style={s.sideCharacter} numberOfLines={1}>{data.me.character}</Text>
               </View>
               <View style={s.side}>
                 <CharacterAvatar hanja={pick.hanja} size={72} />
-                <Text style={s.sideName} numberOfLines={1}>{pick.character}</Text>
+                <Text style={s.sideName} numberOfLines={1}>{pick.name}</Text>
+                <Text style={s.sideCharacter} numberOfLines={1}>{pick.character}</Text>
               </View>
             </View>
-            <Text style={s.heroName}>{pick.name}</Text>
-            {pick.description ? <Text style={s.heroDesc}>{pick.description}</Text> : null}
             <Text style={s.heroScore}>오늘의 궁합 <Text style={s.scoreValue}>{pick.score}점</Text></Text>
           </View>
           <PrimaryButton label={`${pick.name}님과 궁합 자세히 보기 →`} onPress={() => open(pick)} style={{ marginTop: 12 }} />
@@ -98,12 +99,16 @@ export default function StarMatchScreen() {
           ) : null}
         </View>,
       ) : (
-        <View style={s.empty}><Text style={txt.body}>지금은 볼 수 있는 스타가 없어요. 잠시 후 다시 찾아 주세요.</Text></View>
+        <View style={s.empty}><Text style={txt.body}>지금은 궁합을 볼 수 있는 연예인이 없어요. 잠시 후 다시 찾아 주세요.</Text></View>
       )}
 
-      {spec ? <ShareActions spec={spec} title="나의 천생연분 스타를 공유해 볼까요?" sub="오늘의 궁합 점수까지 카드 한 장에 담았어요" marginTop={16} /> : null}
+      {spec ? <ShareActions spec={spec} title="오늘의 천생연분 연예인을 공유해 볼까요?" sub="오늘의 궁합 점수까지 카드 한 장에 담았어요" marginTop={16} /> : null}
 
-      <SubHead title="다른 스타와 오늘의 궁합" />
+      <SectionHeader
+        title="다른 연예인과의 궁합"
+        action="연예인 검색"
+        onAction={() => router.push({ pathname: '/star/search', params: { profileId: scope?.profileId ?? undefined } })}
+      />
       <View style={s.row}>
         {others.map(star => (
           <PressableScale key={star.id} onPress={() => open(star)} style={s.cell} scaleTo={0.94} accessibilityLabel={`${star.name}, 오늘의 궁합 보기`}>
@@ -123,10 +128,9 @@ const s = StyleSheet.create({
   hero: { borderRadius: radius.lg, backgroundColor: colors.heroBg, paddingTop: 20, paddingBottom: 24, paddingHorizontal: 16, alignItems: 'center' },
   heroEyebrow: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: 'rgba(255,255,255,0.7)' },
   pair: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 18 },
-  side: { flex: 1, minWidth: 0, maxWidth: 96, alignItems: 'center' },
-  sideName: { ...sansW('600'), fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.75)', marginTop: 6, letterSpacing: -0.4 },
-  heroName: { ...sansW('800'), fontSize: 30, lineHeight: 38, letterSpacing: -1.4, color: '#FFFFFF', marginTop: 14 },
-  heroDesc: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: 'rgba(255,255,255,0.7)', marginTop: 4, textAlign: 'center' },
+  side: { flex: 1, minWidth: 0, maxWidth: 112, alignItems: 'center' },
+  sideName: { ...sansW('700'), fontSize: 17, lineHeight: 23, color: '#FFFFFF', marginTop: 8, maxWidth: '100%', textAlign: 'center' },
+  sideCharacter: { ...sansW('600'), fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.75)', marginTop: 2, maxWidth: '100%', letterSpacing: -0.4 },
   heroScore: { ...sansW('500'), fontSize: 13, lineHeight: 22, color: 'rgba(255,255,255,0.75)', marginTop: 12 },
   scoreValue: { ...sansW('700'), fontSize: 17, color: '#F3C5DD', fontVariant: ['tabular-nums'] },
   empty: { padding: 20, borderRadius: radius.lg, backgroundColor: colors.card },

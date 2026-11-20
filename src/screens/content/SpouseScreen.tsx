@@ -8,6 +8,7 @@ import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } fr
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
+import FreeContentRow from '../../components/home/FreeContentRow';
 import PromoSlot, { TrackedPromoCard } from '../../components/PromoSlot';
 import { BodyState, Bullet, HeadRow, LockGate, Para, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
@@ -25,7 +26,7 @@ import { usePremiumContent, usePremiumPreview, useReading } from '../../services
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors, isDark } from '../../theme/colors';
-import { fonts, radius, sansW, txt } from '../../theme/typography';
+import { fonts, radius, sansW, SCREEN_PX, txt } from '../../theme/typography';
 import ShareCta, { ShareIconButton } from '../../components/ShareCta';
 import { spouseSpec } from '../../services/share/shareSpecs';
 import FriendCompare from '../../components/FriendCompare';
@@ -142,6 +143,9 @@ export default function SpouseScreen() {
                     go: () => router.push({ pathname: '/premium/saju', params: { profileId } }),
                   }}
                 />
+              </View>
+              <View style={s.freeContent}>
+                <FreeContentRow inset={SCREEN_PX} kinds={['mbti', 'star', 'char']} />
               </View>
             </>
           ) : null}
@@ -398,6 +402,7 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 
 const s = StyleSheet.create({
   recommendations: { gap: 12 },
+  freeContent: { marginTop: 28, marginHorizontal: -SCREEN_PX },
   frame: { flex: 1 },
   // Figma 327×409 portrait, with the headline anchored above the bottom chips.
   hero: { marginTop: 12, aspectRatio: 327 / 409, minHeight: 280, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle, Path } from 'react-native-svg';
 import CharacterArt from './CharacterArt';
 import PrimaryButton from './PrimaryButton';
@@ -38,11 +39,11 @@ const wedgePath = (deg: number, step: number, r: number) => {
 };
 
 /**
- * 천생연분 스타 — 오늘의 궁합 돌림판.
+ * 연예인 궁합 — 오늘의 궁합 돌림판.
  * 오늘 나와 궁합이 가장 잘 맞는 세 명이 실루엣으로 한 칸씩 자리해 있다. '돌림판 돌리기'를 누르면 세 명을
  * 한 명씩 공개한 뒤 돌림판이 돌고, 칸 경계를 지날 때마다 '똑',
  * 점점 느려지다 위쪽 바늘 아래에 오늘의 천생연분이 멈춘다. 멈추면 가운데 점수가 차오르고 onDone.
- * 결과(그날의 스타)는 서버가 정해 둔 것이라 돌림판은 그 칸에 멈추도록 돈다. 누르면 건너뛴다.
+ * 결과(그날의 연예인)는 서버가 정해 둔 것이라 돌림판은 그 칸에 멈추도록 돈다. 누르면 건너뛴다.
  */
 export default function StarRoulette({ pick, finalists, onDone }: { pick: StarScore; finalists: StarScore[]; onDone(): void }) {
   const reduced = useReducedMotion();
@@ -61,7 +62,7 @@ export default function StarRoulette({ pick, finalists, onDone }: { pick: StarSc
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (ms: number, run: () => void) => { timers.current.push(setTimeout(run, ms)); };
 
-  // 세 칸: 운명의 스타가 늘 같은 칸에 있지 않게 (같은 결과면 같은 배치)
+  // 세 칸: 뽑힐 연예인이 늘 같은 칸에 있지 않게 (같은 결과면 같은 배치)
   const slots = useMemo(() => {
     const list = finalists.some(f => f.id === pick.id) ? finalists.slice(0, 3) : [...finalists.slice(0, 2), pick];
     const shift = pick.id % list.length;
@@ -125,7 +126,7 @@ export default function StarRoulette({ pick, finalists, onDone }: { pick: StarSc
   return (
     <View>
       <View style={s.stage}>
-        <Text style={s.title}>{done ? '오늘의 천생연분을 찾았어요' : `오늘 나와 궁합이 가장 잘 맞는 스타 ${slots.length}명`}</Text>
+        <Text style={s.title}>{done ? '오늘의 천생연분 연예인을 찾았어요' : `오늘 나와 궁합이 가장 잘 맞는 연예인 ${slots.length}명`}</Text>
         <Pressable onPress={phase === 'idle' ? start : finish} accessibilityRole="button" accessibilityLabel={phase === 'idle' ? '돌림판 돌리기' : '연출 건너뛰고 결과 보기'} style={[s.wheelBox, { width: wheelSize, height: wheelSize + WHEEL_TOP }]}>
           <Animated.View style={{ transform: [{ rotate }] }}>
             <Svg width={wheelSize} height={wheelSize} viewBox={`0 0 ${SIZE} ${SIZE}`}>
@@ -146,9 +147,10 @@ export default function StarRoulette({ pick, finalists, onDone }: { pick: StarSc
               );
             })}
           </Animated.View>
-          {/* 가운데 단추: 돌리기 전엔 '오늘', 멈추면 오늘의 점수 */}
+          {/* 가운데 단추: 결과가 나오면 하트가 오늘의 점수로 바뀐다 */}
           <Animated.View pointerEvents="none" style={[s.hub, { left: (wheelSize - HUB_SIZE) / 2, top: WHEEL_TOP + (wheelSize - HUB_SIZE) / 2 }, done && { transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }]}>
-            {done ? <><Text style={s.hubScore}>{score}</Text><Text style={s.hubUnit}>점</Text></> : <Text style={s.hubText}>{phase === 'show' ? `${shown}/${slots.length}` : '오늘'}</Text>}
+            {done ? <><Text style={s.hubScore}>{score}</Text><Text style={s.hubUnit}>점</Text></>
+              : <Image source={require('../../assets/figma/saju/heart-red.svg')} style={s.hubHeart} tintColor="#F3C5DD" contentFit="contain" accessible={false} />}
           </Animated.View>
           <View pointerEvents="none" style={[s.pointer, { left: wheelSize / 2 - 10 }]}>
             <Svg width={20} height={22}><Path d="M10 20 L2 4 Q10 0 18 4 Z" fill={POINTER} stroke="#FFF9FC" strokeWidth={1.5} strokeLinejoin="round" /></Svg>
@@ -161,7 +163,7 @@ export default function StarRoulette({ pick, finalists, onDone }: { pick: StarSc
   );
 }
 
-/** 돌림판 한 칸의 스타 — 공개 전엔 실루엣과 '?', 공개되면 통 튀어 오르며 그림과 이름이 드러난다 */
+/** 돌림판 한 칸의 연예인 — 공개 전엔 실루엣과 '?', 공개되면 통 튀어 오르며 그림과 이름이 드러난다 */
 function Slot({ star, open, artSize }: { star: StarScore; open: boolean; artSize: number }) {
   const [pop] = useState(() => new Animated.Value(open ? 1 : 0));
   useEffect(() => {
@@ -187,7 +189,7 @@ const s = StyleSheet.create({
   slotName: { ...sansW('700'), fontSize: 13, lineHeight: 17, letterSpacing: -0.4, color: '#2A2135', marginTop: 2, maxWidth: '100%' },
   slotHidden: { fontSize: 16, color: 'rgba(42,33,53,0.55)' },
   hub: { position: 'absolute', width: HUB_SIZE, height: HUB_SIZE, borderRadius: HUB_SIZE / 2, backgroundColor: colors.heroBg, borderWidth: 2, borderColor: '#FFF9FC', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  hubText: { ...sansW('700'), fontSize: 13, lineHeight: 16, color: '#F3C5DD' },
+  hubHeart: { width: 32, height: 32 },
   hubScore: { ...sansW('800'), fontSize: 23, lineHeight: 28, color: '#FFFFFF', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   hubUnit: { ...sansW('700'), fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
   pointer: { position: 'absolute', top: 0 },

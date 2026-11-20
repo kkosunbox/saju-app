@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@/navigation/compat';
 import Screen from '../../components/Screen';
@@ -17,22 +17,32 @@ import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
 const THREAD = isDark ? '#E6A9C3' : '#B96284';
+const MIN_LOADING_MS = 480;
 const BARS: ['love' | 'personality' | 'conversation' | 'life', string][] = [['love', '연애'], ['personality', '성격'], ['conversation', '대화'], ['life', '생활']];
 
-/** 무료: 천생연분 스타 한 명과의 궁합 — 점수 · 왜 잘 맞는지 · 함께라면 */
+/** 무료: 연예인 한 명과의 궁합 — 점수 · 왜 잘 맞는지 · 함께라면 */
 export default function StarDetailScreen() {
   const nav = useNavigation();
   const { params } = useRoute<{ params: { id?: string } }>();
   const id = params?.id && /^\d+$/.test(params.id) ? Number(params.id) : null;
   const { user: u } = useApp();
   const q = useStarDetail(id);
+  const [readyId, setReadyId] = useState<number | null>(null);
+  useEffect(() => {
+    if (id == null) return;
+    const timer = setTimeout(() => setReadyId(id), MIN_LOADING_MS);
+    return () => clearTimeout(timer);
+  }, [id]);
   if (!u) return null;
   const d = q.data;
-  if (!d) return <LoadingScreen title="스타 궁합" error={q.error ?? (id == null ? new Error('스타를 찾을 수 없어요') : undefined)} onRetry={q.refetch} />;
+  if (!d || readyId !== id) {
+    const error = id == null ? new Error('연예인을 찾을 수 없어요') : !d ? q.error : undefined;
+    return <LoadingScreen title="연예인 궁합" error={error} onRetry={id == null ? undefined : q.refetch} message="두 사람의 궁합을 살펴보고 있어요" />;
+  }
   const spec = starSpec(u, d, d.me);
 
   return (
-    <Screen title="스타 궁합" back right={<ShareIconButton spec={spec} />}>
+    <Screen title="연예인 궁합" back right={<ShareIconButton spec={spec} />}>
       <ProfileSwitch style={{ marginBottom: 12 }} />
       <View style={s.hero}>
         <View style={s.pair}>
@@ -76,8 +86,8 @@ export default function StarDetailScreen() {
         {d.together.map(t => <Bullet key={t} color={THREAD} textStyle={txt.body}>{t}</Bullet>)}
       </Card>
 
-      <PrimaryButton label="다른 스타와도 궁합 보기" onPress={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('StarMatch'))} style={{ marginTop: 24 }} />
-      {/* 이 스타의 이름·양력 생일·성별을 채운 궁합 상대 추가 화면으로 (저장은 거기서 궁합을 볼 때) */}
+      <PrimaryButton label="다른 연예인과도 궁합 보기" onPress={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('StarMatch'))} style={{ marginTop: 24 }} />
+      {/* 이 연예인의 이름·양력 생일·성별을 채운 궁합 상대 추가 화면으로 (저장은 거기서 궁합을 볼 때) */}
       <PrimaryButton variant="soft" label="궁합 상대로 추가" onPress={() => nav.navigate('Compatibility', { star: { nickname: d.name, birthDate: d.birthDate, gender: d.gender } })} style={{ marginTop: 8 }} />
     </Screen>
   );

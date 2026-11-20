@@ -8,28 +8,32 @@ import { colors, isDark } from '../../theme/colors';
 import { radius, sansW } from '../../theme/typography';
 
 type Kind = 'tal' | 'mbti' | 'char' | 'past' | 'star';
-const ITEMS: { k: Kind; title: string; sub: string; to: string }[] = [
-  { k: 'tal', title: '오늘의 부적', sub: '오늘 부적 받기', to: 'Talisman' },
-  { k: 'mbti', title: '찰떡 MBTI', sub: '잘맞는 유형은?', to: 'MbtiMatch' },
-  { k: 'char', title: '사주 캐릭터', sub: '나의 캐릭터는?', to: 'Character' },
-  { k: 'past', title: '전생테스트', sub: '나의 전생은?', to: 'PastLife' },
-  { k: 'star', title: '천생연분 스타', sub: '오늘의 스타는?', to: 'StarMatch' },
-];
+const ITEMS: Record<Kind, { title: string; sub: string; to: string }> = {
+  tal: { title: '오늘의 부적', sub: '오늘 부적 받기', to: 'Talisman' },
+  mbti: { title: '찰떡 MBTI', sub: '잘맞는 유형은?', to: 'MbtiMatch' },
+  char: { title: '사주 캐릭터', sub: '나의 캐릭터는?', to: 'Character' },
+  past: { title: '전생테스트', sub: '나의 전생은?', to: 'PastLife' },
+  star: { title: '연예인 궁합', sub: '오늘의 천생연분', to: 'StarMatch' },
+};
+const DEFAULT_KINDS: Kind[] = ['tal', 'mbti', 'char', 'past', 'star'];
 
 /** 무료 콘텐츠 카드 줄 — 홈 '무료로 즐기기'와 같은 카드. inset: 좌우 여백(가로 스크롤 안쪽) */
-export default function FreeContentRow({ inset }: { inset: number }) {
+export default function FreeContentRow({ inset, kinds = DEFAULT_KINDS }: { inset: number; kinds?: readonly Kind[] }) {
   const nav = useNavigation();
   return (
     <View>
       <Text style={[s.heading, { paddingHorizontal: inset }]} accessibilityRole="header">무료로 즐기기</Text>
       <HScroll contentContainerStyle={{ paddingHorizontal: inset, gap: 12 }}>
-        {ITEMS.map(x => (
-          <PressableScale key={x.k} onPress={() => nav.navigate(x.to as never)} style={[s.card, s[x.k]]} scaleTo={0.96} accessibilityLabel={`${x.title}, ${x.sub}`}>
-            <View style={s.top}><HomeFreeArt kind={x.k} /></View>
-            <Text style={[s.title, x.k === 'mbti' && s.titleDark]}>{x.title}</Text>
-            <Text style={[s.sub, x.k === 'mbti' && s.subDark]} numberOfLines={1}>{x.sub}</Text>
-          </PressableScale>
-        ))}
+        {kinds.map(k => {
+          const { title, sub, to } = ITEMS[k];
+          return (
+            <PressableScale key={k} onPress={() => nav.navigate(to as never)} style={[s.card, s[k]]} scaleTo={0.96} accessibilityLabel={`${title}, ${sub}`}>
+              <View style={s.top}><HomeFreeArt kind={k} /></View>
+              <Text style={[s.title, k === 'mbti' && s.titleDark]}>{title}</Text>
+              <Text style={[s.sub, k === 'mbti' && s.subDark]} numberOfLines={1}>{sub}</Text>
+            </PressableScale>
+          );
+        })}
       </HScroll>
     </View>
   );
