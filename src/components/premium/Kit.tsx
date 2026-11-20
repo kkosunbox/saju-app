@@ -535,7 +535,7 @@ const s = StyleSheet.create({
   lockBlur: { maxHeight: 440, overflow: 'hidden', opacity: 0.5 },
   lockPanel: { position: 'absolute', left: 4, right: 4, top: 40, backgroundColor: colors.cream, borderRadius: radius.lg, paddingVertical: 24, paddingHorizontal: 20, alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.lineStrong, shadowColor: '#28200A', shadowOpacity: 0.22, shadowRadius: 25, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
   lockedArt: { position: 'absolute', right: 0, bottom: 0, width: 112, height: 137, opacity: 0.55 },
-  lockedTitle: { flexShrink: 1, fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8, color: FREE_BLUE },
+  lockedTitle: { flexShrink: 1, fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8, color: colors.ink },
   lockedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
   lockedChipText: { fontSize: 12, fontWeight: '600', color: FREE_BLUE, opacity: 0.8 },
   lockedBtn: { marginTop: 12, marginHorizontal: -4, height: 40, borderRadius: radius.sm, backgroundColor: colors.navy, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
