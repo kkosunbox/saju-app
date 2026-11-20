@@ -305,7 +305,7 @@ export function LockGate({ item, children, onUnlocked }: { item: Item; children?
         {earlier ? <PrimaryButton label="이전 풀이 보기" variant="soft" small onPress={showOlder} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
         {free
           ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
-          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 새로 풀기` : `${item.cost}${ro(item.cost)} 전체 보기`} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
+          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 새로 풀기` : (item.key === 'spouse' ? '전체 보기' : `${item.cost}${ro(item.cost)} 전체 보기`)} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
         <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
       </View>
       <ProfileSheet contentKey={item.key} visible={picking} onClose={() => setPicking(false)} />

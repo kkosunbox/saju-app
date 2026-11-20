@@ -7,7 +7,7 @@ import Icon from '../../components/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import PromoSlot from '../../components/PromoSlot';
 import FreeContentRow from '../../components/home/FreeContentRow';
-import { Discount, DiscountChip, DiscountPrice } from '../../components/PromoCard';
+import { DiscountChip } from '../../components/PromoCard';
 import { Promo, PromoKey, promosOf } from '../../services/promo/promos';
 import { StreamBlock } from '../../components/Stream';
 import { useApp } from '../../context/AppContext';
@@ -52,8 +52,8 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
   const pool = EVERGREEN.filter(fresh);
   const extra = pool.length ? pool[Math.floor(roll * pool.length)] : null;
   if (!user) return null;
-  // 가격은 할인 중인 콘텐츠(미래 배우자)에만 보이고, 나머지는 버튼 문구만
-  const noPrice = (k: PromoKey) => (promos[k].item.event ? undefined : `${promos[k].verb} →`);
+  // 가격은 보이지 않고 버튼 문구만
+  const noPrice = (k: PromoKey) => `${promos[k].verb} →`;
 
   return (
     <StreamBlock style={{ marginTop: 28, gap: 12 }}>
@@ -76,14 +76,14 @@ export function FortuneSpouseBanner({ promo, screen, cta }: { promo: Promo; scre
   const { points } = usePremium();
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !!user);
   const portrait = user && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
-  if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser cta={cta} />;
-  const { cost, event, orig } = promo.item;
-  const discount = event && orig ? { orig, cost } : undefined;
-  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={cta ?? (discount ? (points >= cost ? '바로 열기 →' : '리포트 열기 →') : `${cost}알 · ${points >= cost ? '바로 열기' : '리포트 열기'} →`)} coin={!cta || !!discount} discount={discount} />;
+  // 가격은 보이지 않는다 — 버튼 문구만
+  const label = cta ?? (points >= promo.item.cost ? '바로 열기 →' : '리포트 열기 →');
+  if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser cta={label} />;
+  return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={label} event={!!promo.item.event} />;
 }
 
 /** 남색 그라데이션 카드 + 오른쪽 흐린 얼굴과 자물쇠 — 열면 또렷한 얼굴과 리포트를 본다. 글자·알약은 다른 추천 배너와 같은 모양 */
-function SpouseFaceCard({ user, portrait, cta, onPress, coin = true, discount }: { user: User; portrait: number | object; cta: string; onPress(): void; coin?: boolean; discount?: Discount }) {
+function SpouseFaceCard({ user, portrait, cta, onPress, event }: { user: User; portrait: number | object; cta: string; onPress(): void; event?: boolean }) {
   const who = user.gender === 'female' ? '남편' : '아내';
   return (
     <PressableScale onPress={onPress} style={s.face} scaleTo={0.98} accessibilityLabel={`미래의 ${who} 얼굴 열어 보기`}>
@@ -97,12 +97,11 @@ function SpouseFaceCard({ user, portrait, cta, onPress, coin = true, discount }:
       </LinearGradient>
       <View style={s.faceTitleRow}>
         <Text style={s.faceTitle}>미래 배우자 리포트</Text>
-        {discount ? <DiscountChip /> : <View style={s.faceNew}><Text style={s.faceNewText}>NEW</Text></View>}
+        {event ? <DiscountChip /> : <View style={s.faceNew}><Text style={s.faceNewText}>NEW</Text></View>}
       </View>
       <Text style={s.faceDesc}>사주로 그린 배우자의 얼굴 · 성격 · 만나는 때</Text>
       <View style={s.facePill}>
-        {coin ? <Image source={require('../../../assets/figma/home/deeper-point.webp')} style={s.facePoint} contentFit="contain" accessible={false} /> : null}
-        <Text style={s.facePillText} numberOfLines={1}>{discount ? <DiscountPrice discount={discount} /> : null}{cta}</Text>
+        <Text style={s.facePillText} numberOfLines={1}>{cta}</Text>
       </View>
     </PressableScale>
   );
@@ -122,6 +121,5 @@ const s = StyleSheet.create({
   faceNewText: { ...sansW('600'), fontSize: 12, lineHeight: 14, color: '#FF7A3C', opacity: 0.8, includeFontPadding: false },
   faceDesc: { ...sansW('400'), marginTop: 8, fontSize: 13, lineHeight: 18, color: colors.white, letterSpacing: -0.65, includeFontPadding: false },
   facePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.white },
-  facePoint: { width: 16, height: 15 },
   facePillText: { ...sansW('700'), fontSize: 13, lineHeight: 18, color: '#000', letterSpacing: -0.65, includeFontPadding: false },
 });
