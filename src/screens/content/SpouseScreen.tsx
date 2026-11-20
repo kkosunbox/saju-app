@@ -110,16 +110,6 @@ export default function SpouseScreen() {
             <>
               <SubHead title="이어서 보기" />
               <View style={s.recommendations}>
-                <PromoSlot
-                  screen="spouse_report"
-                  profileId={profileId}
-                  cta={`${recommendations['theme-love'].verb} →`}
-                  promo={{
-                    ...recommendations['theme-love'],
-                    desc: '내 연애 스타일과 관계에서 반복되는 패턴',
-                    go: () => router.push({ pathname: '/premium/theme/[kind]', params: { kind: 'love', profileId } }),
-                  }}
-                />
                 <TrackedPromoCard
                   screen="spouse_report"
                   item={recommendations.consult.track}
@@ -131,6 +121,16 @@ export default function SpouseScreen() {
                   desc="인연을 기다릴까, 먼저 다가갈까?"
                   cta="운알이에게 물어보기 →"
                   onPress={recommendations.consult.go}
+                />
+                <PromoSlot
+                  screen="spouse_report"
+                  profileId={profileId}
+                  cta={`${recommendations['theme-love'].verb} →`}
+                  promo={{
+                    ...recommendations['theme-love'],
+                    desc: '내 연애 스타일과 관계에서 반복되는 패턴',
+                    go: () => router.push({ pathname: '/premium/theme/[kind]', params: { kind: 'love', profileId } }),
+                  }}
                 />
                 <PromoSlot
                   screen="spouse_report"
