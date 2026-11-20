@@ -66,7 +66,7 @@ export default function ContentScreen() {
   const { sendInvite: invite, inviteShareSheet } = useInviteShare();
   const nav = useNavigation();
   const { user, today } = useApp();
-  const { points, owned, openUnlock, toast } = usePremium();
+  const { owned, openUnlock, toast } = usePremium();
   const [notify, setNotify] = useState<string[]>([]);
   const [peek, setPeek] = useState<ContentEntry | null>(null);
   const [soonAll, setSoonAll] = useState(false);
@@ -175,7 +175,7 @@ export default function ContentScreen() {
         <TrackedPromoCard
           screen="content" item="spouse"
           tone="pink" variant="recommendation" title="미래 배우자 리포트" desc="어떤 사람을, 언제, 어디서 만나게 될까?"
-          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · ${points >= ITEMS.spouse().cost ? '가진 알로 바로 열기' : '리포트 열기'} →`}
+          owned={spouseOwned} coin={!spouseOwned} cta={spouseOwned ? '리포트 다시보기 →' : `${ITEMS.spouse().cost}알 · 리포트 열기 →`}
           base={require('../../../assets/figma/content/promo-spouse-base.webp')}
           onPress={() => nav.navigate('Spouse')}
         />

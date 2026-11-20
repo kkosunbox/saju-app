@@ -26,6 +26,8 @@ interface Props {
   badgePlacement?: 'inline' | 'end';
   /** 그림까지 들어 있는 배경 (figma) — 주면 기본 배경·마스코트 대신 쓴다 */
   base?: number;
+  /** 밝은 배경 그림에 맞춰 제목과 설명을 어둡게 표시한다 */
+  lightBackground?: boolean;
   /** 그림이 설명 줄까지 올라오는 배경에서 설명 오른쪽을 비워 둔다 */
   descInset?: number;
   onPress(): void;
@@ -46,14 +48,14 @@ export function DiscountPrice({ discount }: { discount: Discount }) {
   return <><Text style={s.orig}>{discount.orig.toLocaleString('ko-KR')}</Text> <Text style={s.salePrice}>{discount.cost.toLocaleString('ko-KR')}</Text>{' · '}</>;
 }
 
-/** 어두운 남색 프로모션 카드 — 제목 · 한 줄 설명 · 알약 버튼 · 오른쪽 아래 마스코트 실루엣 */
-export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, descInset, onPress, accessibilityLabel, discount }: Props) {
+/** 프로모션 카드 — 제목 · 한 줄 설명 · 알약 버튼 · 오른쪽 그림 */
+export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold', isNew, variant = 'default', badgePlacement = 'end', base, lightBackground, descInset, onPress, accessibilityLabel, discount }: Props) {
   const home = variant === 'home';
   const recommendation = variant === 'recommendation';
   const figma = variant !== 'default';
   const ownBase = figma && !!base;
   return (
-    <PressableScale onPress={onPress} style={[s.card, (home || recommendation) && s.homeCard]} scaleTo={0.98} accessibilityLabel={accessibilityLabel ?? title} accessibilityHint={recommendation ? desc : undefined}>
+    <PressableScale onPress={onPress} style={[s.card, (home || recommendation) && s.homeCard, lightBackground && s.lightCard]} scaleTo={0.98} accessibilityLabel={accessibilityLabel ?? title} accessibilityHint={recommendation ? desc : undefined}>
       {/* 그림이 카드보다 넓으면 마스코트가 있는 오른쪽을 남긴다 */}
       {ownBase ? <Image source={base} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" accessible={false} /> : null}
       {figma && !ownBase && tone === 'lime' ? <HomePromoArt large /> : null}
@@ -62,10 +64,10 @@ export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold'
       ) : null}
       {ownBase ? null : figma ? <HomePromoArt /> : <MascotPeek width={112} top={17} opacity={0.2} />}
       <View style={[s.titleRow, figma && badgePlacement === 'inline' && (home ? s.homeTitleRow : s.figmaInlineTitleRow)]}>
-        <Text style={[s.title, figma && s.figmaTitle, figma && badgePlacement === 'inline' && s.figmaInlineTitle, (home || recommendation) && s.homeTitle, { color: PROMO_TONE[tone] }]} numberOfLines={recommendation ? 1 : undefined}>{title}</Text>
+        <Text style={[s.title, figma && s.figmaTitle, figma && badgePlacement === 'inline' && s.figmaInlineTitle, (home || recommendation) && s.homeTitle, { color: lightBackground ? '#005E94' : PROMO_TONE[tone] }]} numberOfLines={recommendation ? 1 : undefined}>{title}</Text>
         {discount ? <DiscountChip /> : isNew ? <View style={[s.new, figma && s.figmaNew, figma && badgePlacement === 'inline' && s.figmaInlineNew]}><Text style={[s.newText, figma && { ...sansW('600') }, figma && badgePlacement === 'inline' && s.figmaInlineNewText]}>NEW</Text></View> : null}
       </View>
-      <Text style={[s.desc, figma && s.figmaDesc, recommendation && s.recommendationDesc, descInset != null && { paddingRight: descInset }]} numberOfLines={recommendation ? 1 : undefined}>{desc}</Text>
+      <Text style={[s.desc, figma && s.figmaDesc, recommendation && s.recommendationDesc, lightBackground && s.lightDesc, descInset != null && { paddingRight: descInset }]} numberOfLines={recommendation ? 1 : undefined}>{desc}</Text>
       <View style={[s.cta, home && s.homeCta]}>
         {home && (coin || owned || discount) ? (
           <Image source={require('../../assets/figma/home/deeper-point.webp')} style={s.homePoint} contentFit="contain" accessible={false} />
@@ -82,6 +84,8 @@ export default function PromoCard({ title, desc, cta, coin, owned, tone = 'gold'
 
 const s = StyleSheet.create({
   card: { minHeight: 110, padding: 16, borderRadius: radius.lg, backgroundColor: colors.heroBg, overflow: 'hidden' },
+  lightCard: { backgroundColor: '#DFEAF9' },
+  lightDesc: { color: '#1D212D' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   title: { fontSize: 16, lineHeight: 18, fontWeight: '700', letterSpacing: -0.8 },
   // 0.5px 테두리와 줄높이 없는 글자는 iOS 사파리에서 아래가 잘려서 1px 반투명 테두리와 줄높이를 정해 둔다

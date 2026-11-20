@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type StyleProp, type TextInputInstance, type TextStyle } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
@@ -395,11 +395,11 @@ function Cliff({ hook }: { hook: string }) {
 
 const CLIFF_LINES = ['94%', '82%', '58%'] as const;
 
-/** 보유 알 — 이미 가진 알로 열 수 있는지 */
-function Balance({ cost, points }: { cost: number; points: number }) {
+/** 보유 알과 부족할 때 필요한 충전량 */
+function Balance({ cost, points, style }: { cost: number; points: number; style?: StyleProp<TextStyle> }) {
   return (
-    <Text style={[txt.caption, { textAlign: 'center', marginTop: 8 }]}>
-      보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}
+    <Text style={style ?? [txt.caption, { textAlign: 'center', marginTop: 8 }]}>
+      보유 {fmtN(points)}알{points < cost ? ` · ${fmtN(cost - points)}알 충전하면 열 수 있어요` : ''}
     </Text>
   );
 }
@@ -475,7 +475,7 @@ function LockedRest({ teaser: T, cost, points, hours, limit, sub, onUnlock }: { 
       </PressableScale>
       {sub
         ? <SubQuota sub={sub} />
-        : <Text style={s.lockBalance}>보유 {fmtN(points)}알 · {points >= cost ? '바로 열 수 있어요' : `${fmtN(cost - points)}알 충전하면 열 수 있어요`}</Text>}
+        : <Balance cost={cost} points={points} style={s.lockBalance} />}
     </View>
   );
 }

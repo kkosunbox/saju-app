@@ -47,6 +47,8 @@ interface Props {
   /** 기록용 화면 이름 (fortune_daily, category_love …) */
   screen: string;
   promo: Promo;
+  /** 추천한 콘텐츠를 열 프로필 */
+  profileId?: number;
   tone?: keyof typeof PROMO_TONE;
   /** 제목을 화면 맥락에 맞게 바꿀 때 */
   title?: string;
@@ -58,17 +60,16 @@ interface Props {
   cta?: string;
 }
 
-/** 유료 콘텐츠 추천 카드 — 보유 여부 · 가진 알로 바로 열기 · 미리보기 한 줄 · 노출/클릭 기록 */
-export default function PromoSlot({ screen, promo, tone = 'gold', title, teaser, variant = 'recommendation', base, cta }: Props) {
-  const { owned, points } = usePremium();
-  const have = owned(promo.item.key);
+/** 유료 콘텐츠 추천 카드 — 보유 여부 · 미리보기 한 줄 · 노출/클릭 기록 */
+export default function PromoSlot({ screen, promo, profileId, tone = 'gold', title, teaser, variant = 'recommendation', base, cta }: Props) {
+  const { owned } = usePremium();
+  const have = owned(promo.item.key, profileId);
   const preview = usePremiumPreview<unknown>(promo.ref ?? { kind: 'saju' }, !!teaser && !!promo.ref && !have);
   const onPress = usePromoTrack(screen, promo.track, promo.go);
   const body = (teaser && !have && preview.data ? promo.teaser?.(preview.data) : null) ?? promo.desc;
   // 제목을 바꾸면 상품 이름은 설명 앞에 둔다
   const desc = title ? `${promo.title} · ${body}` : body;
-  // 상담은 하루 무료 횟수가 있고 속마음은 상대를 먼저 골라야 해서 가진 알 안내를 하지 않는다
-  const verb = promo.key !== 'consult' && promo.key !== 'crush' && points >= promo.item.cost ? '가진 알로 바로 열기' : promo.verb;
+  const { verb } = promo;
   const design = promoDesign(promo.key, promo.ref?.kind === 'newyear' ? promo.ref.year : undefined);
   const recommendation = variant === 'recommendation';
   return (

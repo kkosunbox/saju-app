@@ -73,11 +73,10 @@ export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFort
 
 export function FortuneSpouseBanner({ promo, screen, cta }: { promo: Promo; screen: string; cta?: string }) {
   const { user } = useApp();
-  const { points } = usePremium();
   const preview = usePremiumPreview<SpousePreview>({ kind: 'spouse' }, !!user);
   const portrait = user && preview.data ? spousePortraitFor(user, preview.data.spouseEl)?.preview : undefined;
   // 가격은 보이지 않는다 — 버튼 문구만
-  const label = cta ?? (points >= promo.item.cost ? '바로 열기 →' : '리포트 열기 →');
+  const label = cta ?? `${promo.verb} →`;
   if (!user || !portrait) return <PromoSlot screen={screen} promo={promo} teaser cta={label} />;
   return <SpouseFaceCard user={user} portrait={portrait} onPress={promo.go} cta={label} event={!!promo.item.event} />;
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigation } from '@/navigation/compat';
+import { router } from 'expo-router';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,14 +8,18 @@ import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } fr
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
+import PromoSlot, { TrackedPromoCard } from '../../components/PromoSlot';
 import { BodyState, Bullet, HeadRow, LockGate, Para, SubHead, Tip } from '../../components/premium/Kit';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { ReadingView, SpouseReading } from '../../types/reading';
 import { useApp } from '../../context/AppContext';
+import { useContentScope } from '../../context/ContentScopeContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { pText } from '../../services/premium/helpers';
+import { promosOf } from '../../services/promo/promos';
 import { SpousePreview, SpouseReport } from '../../types/premium';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
 import { ELEMENT_INFO } from '../../data/sajuData';
@@ -31,8 +36,10 @@ import { spousePortraitFor } from './spousePortraits';
 
 /** 프리미엄: 미래 배우자 리포트 — 첫 화면은 무료로 보여주고 나머지는 잠금 */
 export default function SpouseScreen() {
-  const { user: u } = useApp();
+  const { user: u, today } = useApp();
   const nav = useNavigation();
+  const profileId = useContentScope()?.profileId ?? undefined;
+  const shared = useSharedView();
   const content = usePremiumContent<SpouseReport>({ kind: 'spouse' });
   const { reading, retry } = useReading<SpouseReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
@@ -61,6 +68,7 @@ export default function SpouseScreen() {
   const portrait = spousePortraitFor(content.data?.person ?? u, sum.spouseEl, R?.persona.hanja);
   const portraitSource = content.open && R ? portrait?.full : portrait?.preview;
   const spec = spouseSpec(u, sum, content.open && R ? portrait?.full : undefined);
+  const recommendations = content.open && R && !shared ? promosOf(nav, today) : null;
 
   return (
     <View style={s.frame}>
@@ -98,6 +106,45 @@ export default function SpouseScreen() {
           {!content.open ? <LockGate item={item} />
             : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
             : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+          {recommendations ? (
+            <>
+              <SubHead title="이어서 보기" />
+              <View style={s.recommendations}>
+                <PromoSlot
+                  screen="spouse_report"
+                  profileId={profileId}
+                  cta={`${recommendations['theme-love'].verb} →`}
+                  promo={{
+                    ...recommendations['theme-love'],
+                    desc: '내 연애 스타일과 관계에서 반복되는 패턴',
+                    go: () => router.push({ pathname: '/premium/theme/[kind]', params: { kind: 'love', profileId } }),
+                  }}
+                />
+                <TrackedPromoCard
+                  screen="spouse_report"
+                  item={recommendations.consult.track}
+                  variant="recommendation"
+                  lightBackground
+                  base={require('../../../assets/figma/content/banner-consult.webp')}
+                  descInset={80}
+                  title="운알이의 연애 상담소"
+                  desc="인연을 기다릴까, 먼저 다가갈까?"
+                  cta="운알이에게 물어보기 →"
+                  onPress={recommendations.consult.go}
+                />
+                <PromoSlot
+                  screen="spouse_report"
+                  profileId={profileId}
+                  cta={`${recommendations.sajuDeep.verb} →`}
+                  promo={{
+                    ...recommendations.sajuDeep,
+                    desc: '오행으로 풀어보는 내 본성과 타고난 운',
+                    go: () => router.push({ pathname: '/premium/saju', params: { profileId } }),
+                  }}
+                />
+              </View>
+            </>
+          ) : null}
           <ShareCta item={item} spec={spec} />
           <Disclaimer compact />
         </Screen>
@@ -350,6 +397,7 @@ function SignRow({ care, children }: { care?: boolean; children: string }) {
 }
 
 const s = StyleSheet.create({
+  recommendations: { gap: 12 },
   frame: { flex: 1 },
   // Figma 327×409 portrait, with the headline anchored above the bottom chips.
   hero: { marginTop: 12, aspectRatio: 327 / 409, minHeight: 280, borderRadius: 12, backgroundColor: '#122041', overflow: 'hidden', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },
