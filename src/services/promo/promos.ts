@@ -39,7 +39,7 @@ export function monthOf(today: string): { y: number; m: number; next: boolean } 
 }
 
 /** 운알톡 · 속마음은 상대·질문마다 따로 사서 목록에는 가격만 보여 준다 */
-const CONSULT_ITEM = { ...ITEMS.consult('preview'), title: '운알톡 1회' };
+const CONSULT_ITEM = { ...ITEMS.consult('chat'), title: '운알톡' };
 const CRUSH_ITEM = { ...ITEMS.crush(0, ''), key: 'crush:preview', title: '그 사람의 속마음' };
 
 export function spousePromo(go: () => void): Promo {
@@ -74,7 +74,7 @@ export function promosOf(nav: Nav, today: string): Record<PromoKey, Promo> {
       go: () => nav.navigate('Theme', { kind: 'career' }),
     },
     consult: {
-      key: 'consult', track: 'consult', title: '운알톡', desc: '비밀 고민 · 해결법부터 · 하루 5번 무료',
+      key: 'consult', track: 'consult', title: '운알톡', desc: '운알이와 가벼운 대화 · 매일 무료로 시작',
       item: CONSULT_ITEM, verb: '운알이와 대화하기', go: () => nav.navigate('Tabs', { screen: 'Consult' }),
     },
     lucky: {

@@ -1,19 +1,23 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Screen from '../../components/Screen';
+import { useNavigation } from '@/navigation/compat';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
+import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, HeadRow, LockGate, Hero, Pill, heroTxt } from '../../components/premium/Kit';
 import { Bullet, Closing, InfoRows, Para, SajuHeading, SajuIconName, SourceMark, SubHead, Tip, ViewRow } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../components/premium/ReadingGate';
 import { useApp } from '../../context/AppContext';
+import { useSharedView } from '../../context/SharedViewContext';
 import { ITEMS } from '../../services/premium/catalog';
 import { ELS, axisVerdict, elName, mainStem, stage12, strength3, tenGod, thaiDay } from '../../services/premium/helpers';
 import { CrossAxis, Daeun, DaeunTable, SajuFull, SajuPreview, SrcKey } from '../../types/premium';
 import { Period, ReadingView, SajuReading, Titled } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { User } from '../../types';
 import {
   EL_LUCK, GROUP_DESC, GROUP_KO, HIDDEN, SINSAL, STAGE12, STEM_PERSONA, TG,
@@ -83,7 +87,7 @@ export default function SajuDeepScreen() {
   const spec = F ? sajuDeepSpec(u, F) : null;
 
   return (
-    <Screen title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
       <Text style={s.profileTitle}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
       <Text style={s.profileMeta}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
@@ -112,6 +116,8 @@ export default function SajuDeepScreen() {
         : F && content.data ? (
           <ReadingReveal on={gate.appeared}><SajuBody u={u} F={F} data={content.data.data} reading={reading} onRetry={retry} today={today} /></ReadingReveal>
         ) : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
@@ -127,14 +133,23 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
   const dayName = `${me.ko}${BRANCHES[ch.day.branch].ko}일주`;
   const gk = Object.keys(g) as TenGodGroup[];
   const L = EL_LUCK[F.yong];
+  const nav = useNavigation();
+  // 공유 링크로 연 사람은 평생운을 열 수 없으니 이동 버튼을 숨긴다
+  const shared = !!useSharedView();
   const writing = reading?.status === 'writing';
   const { core, structure, fields, flow } = reading?.parts ?? {};
   const age = ageOn(u.birthDate, today);
   const nowIdx = data.daeun.list.reduce((found, d, i) => (age >= d.age ? i : found), -1);
+  // saju-v23까지의 풀이에만 대운 글이 있다. 그 뒤로 대운은 평생운이 맡고, 여기서는 네 기둥을 쓴다
+  const oldDaeun = !!flow && flow.daeunNow !== undefined;
   const periods: [string, Daeun | undefined, Period | null | undefined][] = [
     ['지금의 10년', data.daeun.list[nowIdx], flow?.daeunNow],
     ['다음 10년', data.daeun.list[nowIdx + 1], flow?.daeunNext],
   ];
+  const curDaeun = data.daeun.list[nowIdx];
+  // 섹션 번호는 보이는 섹션만 센다 (이전 풀이에는 네 기둥이, 새 풀이에는 대운이 없다)
+  let no = 0;
+  const num = (title: string) => `${String(++no).padStart(2, '0')} · ${title}`;
 
   return (
     <>
@@ -155,7 +170,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         )}
       </Hero>
 
-      <SubHead title="01 · 타고난 성품" caption="겉모습과 속마음, 일주가 그리는 나" />
+      <SubHead title={num('타고난 성품')} caption="겉모습과 속마음, 일주가 그리는 나" />
       {core ? (
         <>
           <Card style={CORE_BG.outer}>
@@ -179,7 +194,31 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </>
       ) : <Card><PartPending writing={writing} lines={6} /></Card>}
 
-      <SubHead title="02 · 오행의 균형" caption="타고난 다섯 기운" />
+      {!oldDaeun ? (
+        <>
+          <SubHead title={num('네 기둥 이야기')} caption="년주 · 월주 · 시주, 자리마다 맡은 나" />
+          {flow?.pillars ? (
+            <View style={{ gap: 10 }}>
+              {flow.pillars.map(p => {
+                const pillar = ch[PILLAR_KEY[p.position] ?? 'day'];
+                return (
+                  <Card key={p.position}>
+                    <View style={s.between}>
+                      <Text style={s.label}>{p.position} · {PILLAR_SEAT[p.position] ?? ''}</Text>
+                      {pillar ? <Pill>{`${STEMS[pillar.stem].ko}${BRANCHES[pillar.branch].ko}(${STEMS[pillar.stem].hanja}${BRANCHES[pillar.branch].hanja})`}</Pill> : null}
+                    </View>
+                    <Text style={[s.cardTitle, { marginTop: 8 }]}>{p.title}</Text>
+                    <Para>{p.text}</Para>
+                  </Card>
+                );
+              })}
+              {!ch.hour ? <Text style={[txt.caption, { textAlign: 'center' }]}>태어난 시간을 모르면 시주는 풀지 않아요.</Text> : null}
+            </View>
+          ) : <Card><PartPending writing={writing} lines={4} /></Card>}
+        </>
+      ) : null}
+
+      <SubHead title={num('오행의 균형')} caption="타고난 다섯 기운" />
       <Card>
         <View style={{ gap: 10 }}>{ELS.map(e => <Meter key={e} label={elName(e)} color={EL_HEX[e]} value={F.elc[e]} max={mx} />)}</View>
         {structure ? (
@@ -191,7 +230,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         ) : <PartPending writing={writing} />}
       </Card>
 
-      <SubHead title="03 · 신강·신약과 용신" caption="나를 돕는 기운과 가장 필요한 기운" />
+      <SubHead title={num('신강·신약과 용신')} caption="나를 돕는 기운과 가장 필요한 기운" />
       <Card>
         <LinearGradient colors={['#9FB0CF', '#D8CFBF', '#D3A08E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.gauge}><View style={[s.gaugeDot, { left: `${Math.min(97, Math.max(3, Math.round(F.ratio * 100)))}%` }]} /></LinearGradient>
         <View style={[s.between, { marginTop: 6 }]}><Text style={txt.caption}>신약</Text><Text style={txt.caption}>중화</Text><Text style={txt.caption}>신강</Text></View>
@@ -209,7 +248,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         {structure ? <Para mt={14}>{structure.strength}</Para> : <PartPending writing={writing} />}
       </Card>
 
-      <SubHead title="04 · 십성과 재능" caption="열 가지 관계로 본 삶의 방식" />
+      <SubHead title={num('십성과 재능')} caption="열 가지 관계로 본 삶의 방식" />
       <Card>
         <View style={{ gap: 10 }}>
           {gk.map(k => (
@@ -235,7 +274,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </View>
       ) : null}
 
-      <SubHead title="05 · 신살" caption="사주에 깃든 특별한 별" />
+      <SubHead title={num('신살')} caption="사주에 깃든 특별한 별" />
       {F.sinsal.length ? (
         <View style={{ gap: 10 }}>
           {F.sinsal.map(k => {
@@ -254,7 +293,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </View>
       ) : <Card><Para mt={0}>두드러진 신살이 없는 담백한 사주예요. 특정 기운에 휘둘리지 않고 노력한 만큼 결과가 정직하게 돌아와요.</Para></Card>}
 
-      <SubHead title="06 · 분야별 타고난 운" caption="연애 · 재물 · 일 · 관계 · 건강" />
+      <SubHead title={num('분야별 타고난 운')} caption="연애 · 재물 · 일 · 관계 · 건강" />
       {fields ? (
         <View style={{ gap: 16 }}>
           {FIELD_ORDER.map(([k, label, icon]) => (
@@ -269,25 +308,42 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </View>
       ) : <Card><PartPending writing={writing} lines={6} /></Card>}
 
-      <SubHead title="07 · 대운의 흐름" caption={`10년마다 바뀌는 큰 운 · ${data.daeun.fwd ? '순행' : '역행'} ${data.daeun.start}세 시작`} />
-      <View style={{ gap: 10 }}>
-        {periods.map(([label, d, text]) => d ? (
-          <Card key={label}>
-            <View style={s.between}>
-              <Text style={s.label}>{label} · {d.age}~{d.age + 9}세</Text>
-              <Pill>{`${STEMS[d.p.stem].ko}${BRANCHES[d.p.branch].ko}(${STEMS[d.p.stem].hanja}${BRANCHES[d.p.branch].hanja})`}</Pill>
-            </View>
-            {text ? (
-              <>
-                <Text style={[s.cardTitle, { marginTop: 8 }]}>{text.title}</Text>
-                <Para>{text.text}</Para>
-              </>
-            ) : <PartPending writing={writing} lines={3} />}
-          </Card>
-        ) : null)}
-      </View>
+      {oldDaeun ? (
+        <>
+          <SubHead title={num('대운의 흐름')} caption={`10년마다 바뀌는 큰 운 · ${data.daeun.fwd ? '순행' : '역행'} ${data.daeun.start}세 시작`} />
+          <View style={{ gap: 10 }}>
+            {periods.map(([label, d, text]) => d ? (
+              <Card key={label}>
+                <View style={s.between}>
+                  <Text style={s.label}>{label} · {d.age}~{d.age + 9}세</Text>
+                  <Pill>{`${STEMS[d.p.stem].ko}${BRANCHES[d.p.branch].ko}(${STEMS[d.p.stem].hanja}${BRANCHES[d.p.branch].hanja})`}</Pill>
+                </View>
+                {text ? (
+                  <>
+                    <Text style={[s.cardTitle, { marginTop: 8 }]}>{text.title}</Text>
+                    <Para>{text.text}</Para>
+                  </>
+                ) : <PartPending writing={writing} lines={3} />}
+              </Card>
+            ) : null)}
+          </View>
+        </>
+      ) : curDaeun ? (
+        <Card style={{ marginTop: 24 }}>
+          <View style={s.between}>
+            <Text style={s.label}>지금의 10년 · {curDaeun.age}~{curDaeun.age + 9}세</Text>
+            <Pill>{`${STEMS[curDaeun.p.stem].ko}${BRANCHES[curDaeun.p.branch].ko}(${STEMS[curDaeun.p.stem].hanja}${BRANCHES[curDaeun.p.branch].hanja})`}</Pill>
+          </View>
+          <Para>타고난 사주가 시간 속에서 어떻게 펼쳐지는지, 대운 여덟 개와 지금의 10년은 평생운에서 자세히 풀어 드려요.</Para>
+          {!shared ? (
+            <PressableScale onPress={() => nav.navigate('Life')} style={s.linkRow} scaleTo={0.98}>
+              <Text style={s.linkText}>평생운에서 대운 보기 →</Text>
+            </PressableScale>
+          ) : null}
+        </Card>
+      ) : null}
 
-      <SubHead title="08 · 개운법" caption={`용신 ${elName(F.yong)}의 기운을 생활 속으로`} />
+      <SubHead title={num('개운법')} caption={`용신 ${elName(F.yong)}의 기운을 생활 속으로`} />
       <InfoRows rows={[['luck-color', '행운의 색', L.color], ['luck-number', '행운의 숫자', L.num], ['luck-direction', '좋은 방향', L.dir], ['luck-season', '기운이 오르는 계절', L.season], ['luck-food', '추천 음식', L.food], ['luck-items', '곁에 두면 좋은 물건', L.items], ['luck-activity', '추천 활동', L.act]]} />
       {flow ? (
         <Card style={{ marginTop: 12 }}>
@@ -299,7 +355,7 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
         </Card>
       ) : writing ? <Card style={{ marginTop: 12 }}><PartPending writing /></Card> : null}
 
-      <SubHead title="09 · 세 관점 성향 분석" caption="사주 · 점성술 · MBTI로 읽는 타고난 성향" />
+      <SubHead title={num('세 관점 성향 분석')} caption="사주 · 점성술 · MBTI로 읽는 타고난 성향" />
       <Card style={{ gap: 16 }}>
         {data.axes.map(a => {
           const { pos, neg, verdict } = axisVerdict(a);
@@ -339,6 +395,10 @@ function SajuBody({ u, F, data, reading, onRetry, today }: {
 const FIELD_ORDER: [keyof SajuReading['fields'], string, SajuIconName][] = [
   ['love', '연애 · 결혼', 'field-love'], ['money', '재물', 'field-money'], ['work', '일 · 적성', 'field-work'], ['people', '인간관계', 'field-people'], ['health', '건강', 'field-health'],
 ];
+
+/** 서버 facts.pillars 의 position → 원국 기둥, 자리가 맡는 것 */
+const PILLAR_KEY: Record<string, 'year' | 'month' | 'day' | 'hour'> = { 년주: 'year', 월주: 'month', 일주: 'day', 시주: 'hour' };
+const PILLAR_SEAT: Record<string, string> = { 년주: '뿌리와 첫인상', 월주: '사회와 자라온 환경', 시주: '속마음과 아랫사람' };
 
 function TitledRow({ t, color }: { t: Titled; color: string }) {
   return (
@@ -398,5 +458,7 @@ const s = StyleSheet.create({
   heroBody: { fontSize: 13, lineHeight: 20, marginTop: 10 },
   fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, marginTop: 8 },
+  linkRow: { marginTop: 12, paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: colors.lavenderSoft },
+  linkText: { ...sansW('700'), fontSize: 14, letterSpacing: -0.7, color: colors.purple },
 });
 

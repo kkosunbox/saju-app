@@ -36,7 +36,7 @@ const EVERGREEN: PromoKey[] = ['newyear', 'life', 'sajuDeep'];
  * 오늘의 운세 아래 '더 깊이 보기' 배너 두 장 + 무료 콘텐츠 카드 줄.
  * 1) 미래 배우자(아직 안 열었으면 항상, 이벤트 할인) — 내 운세면 흐린 얼굴. 열었으면 오늘 점수가 가장 높은 분야의 리포트
  * 2) 신년운세 · 평생운 · 상세 사주 중 하나 (아직 안 산 것 중 무작위)
- * 3) 무료로 즐기기 (부적 · 찰떡 MBTI · 사주 캐릭터 · 전생테스트)
+ * 3) 무료로 즐기기 (연예인 궁합 · 전생테스트 · 사주 캐릭터 · 찰떡 MBTI · 부적)
  */
 export default function FortuneRec({ fortune: f, mine }: { fortune: CombinedFortune; mine: boolean }) {
   const nav = useNavigation();

@@ -44,7 +44,12 @@ const TEXT_PAUSE = 6;
 
 const noop = () => () => {};
 
-export function Stream({ active, children, onDone }: { active: boolean; children: React.ReactNode; onDone?: () => void }) {
+export function Stream({ active, children, onDone, charactersPerSecond = CHARS_PER_SEC }: {
+  active: boolean;
+  children: React.ReactNode;
+  onDone?: () => void;
+  charactersPerSecond?: number;
+}) {
   const reduced = useReducedMotion();
   // 처음 그릴 때만 본다 — 다 쓴 뒤 다시 그려도 다시 쓰지 않는다
   const [store] = useState(() => new Store(active && !reduced));
@@ -56,12 +61,12 @@ export function Stream({ active, children, onDone }: { active: boolean; children
     let last = Date.now();
     const t = setInterval(() => {
       const now = Date.now();
-      const finished = store.advance(((now - last) * CHARS_PER_SEC) / 1000);
+      const finished = store.advance(((now - last) * charactersPerSecond) / 1000);
       last = now;
       if (finished) { clearInterval(t); done.current?.(); }
     }, 33);
     return () => clearInterval(t);
-  }, [store]);
+  }, [store, charactersPerSecond]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

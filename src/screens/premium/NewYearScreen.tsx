@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
@@ -16,12 +16,15 @@ import { ReadingReveal, ReadingStepsScreen, useReadingGate } from '../../compone
 import { useApp } from '../../context/AppContext';
 import { useSharedArg, useSharedView } from '../../context/SharedViewContext';
 import { RootStackParamList } from '../../navigation/types';
-import { ITEMS } from '../../services/premium/catalog';
+import { ITEMS, newYearFor } from '../../services/premium/catalog';
+import { newYearOf } from '../../services/promo/promos';
+import { useScopedPremium } from '../../context/ContentScopeContext';
 import { CATS, pText } from '../../services/premium/helpers';
 import { SajuFull, YearData, YearPreview } from '../../types/premium';
 import { Pillar } from '../../types/content';
 import { ReadingView, YearReading } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { EL_LUCK } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
 import { colors, isDark } from '../../theme/colors';
@@ -34,10 +37,12 @@ type FieldKey = 'money' | 'work' | 'love' | 'health' | 'people' | 'study';
 export default function NewYearScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'NewYear'>>();
   const { user: u, today } = useApp();
+  const { owned } = useScopedPremium();
   const cy = Number(today.slice(0, 4));
   // 공유 링크로 열면 공유된 해만 (해 고르기는 숨긴다)
   const sharedArg = useSharedArg();
-  const [y, setY] = useState(sharedArg ? Number(sharedArg) : Number(params?.year) || cy);
+  // 기본은 홈 배너와 같은 해 (11월부터는 새해)
+  const [y, setY] = useState(sharedArg ? Number(sharedArg) : Number(params?.year) || newYearOf(today));
   const ref = { kind: 'newyear', year: y } as const;
   const content = usePremiumContent<YearContent>(ref);
   const { reading, retry } = useReading<YearReading>(content);
@@ -45,7 +50,8 @@ export default function NewYearScreen() {
   const preview = usePremiumPreview<YearPreview>(ref, !content.open);
   const making = usePreviewMaking(`newyear-${y}`, !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.newyear.length);
   if (!u) return null;
-  const item = ITEMS.newyear(y);
+  // 그해 월별 상세운세를 이미 연 달은 40알씩 빼서 판다
+  const item = content.open ? ITEMS.newyear(y) : newYearFor(y, owned);
   if (content.open && gate.show) return <ReadingStepsScreen title="신년운세" kind="year" reading={reading} />;
   const D = content.data?.data; const F = content.data?.F;
   const top: YearPreview | undefined = D ?? preview.data;
@@ -53,7 +59,7 @@ export default function NewYearScreen() {
   const spec = D ? newYearSpec(u, D) : null;
 
   return (
-    <Screen title="신년운세" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="신년운세" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${top ? top.myAnimal + '띠 · ' : ''}${u.mbti}`} />
       {sharedArg === null ? <ChipSelect<number> items={[[cy, cy + '년', '올해'], [cy + 1, cy + 1 + '년', '새해 미리보기']]} value={y} onChange={setY} /> : null}
       {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.newyear} title={`${y}년 미리보기를 만들고 있어요`} />
@@ -71,6 +77,8 @@ export default function NewYearScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : D ? <ReadingReveal on={gate.appeared}><NewYearBody D={D} F={F ?? null} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
@@ -169,7 +177,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
         })}
       </View>
 
-      <SubHead title="05 · 12개월 흐름" caption={shared ? '달마다 들어오는 기운' : '막대를 누르면 그 달의 상세운세로 이동해요'} captionStyle={{ letterSpacing: -0.91 }} />
+      <SubHead title="05 · 12개월 흐름" caption={shared ? '달마다 들어오는 기운' : `${y}년 1~12월 상세운세가 함께 열려 있어요 · 달을 누르면 이어서 볼 수 있어요`} captionStyle={{ letterSpacing: -0.91 }} />
       <MonthLine months={D.months} onPress={goMonth} />
       <View style={{ gap: 10, marginTop: 12 }}>
         {D.months.map((x, i) => {
@@ -192,6 +200,7 @@ function NewYearBody({ D, F, reading, onRetry }: { D: YearContent; F: SajuFull |
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                 {CATS.map(c => <Text key={c} style={s.catScore}>{CAT_LABEL[c]} · {x[c]}</Text>)}
               </View>
+              {goMonth ? <Text style={s.monthMore}>{x.m}월 상세운세 보기 ›</Text> : null}
             </Card>
           );
         })}
@@ -270,6 +279,7 @@ const s = StyleSheet.create({
   cell2: { width: '47%', flexGrow: 1, padding: 16 },
   flag: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 14 },
   label: { ...sansW('600'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, color: colors.ink },
+  monthMore: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.65, color: colors.purple, marginTop: 10, textAlign: 'right' },
   catScore: { ...sansW('500'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
   caution: { backgroundColor: isDark ? colors.card : CAUTION_BG },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },

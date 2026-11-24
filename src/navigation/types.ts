@@ -45,7 +45,7 @@ export type RootStackParamList = {
   /** 오늘의 운세 (마스코트를 꾹 눌러 뽑는 화면) */
   Today: undefined;
   Consult: undefined;
-  /** 상담 대화 (첫 답변 + 이어 묻기) */
+  /** 운알톡 대화 (예전 고민 상담 기록은 읽기만) */
   /** id 'new': 상담 탭이 시작한 요청(ask 키)의 답을 기다리는 중 */
   /** fresh: 방금 받은 답 — 답이 써지는 것처럼 보여 준다 */
   ConsultChat: { id: string; ask?: string; fresh?: string };

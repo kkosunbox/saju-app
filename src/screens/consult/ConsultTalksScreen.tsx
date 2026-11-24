@@ -27,8 +27,8 @@ type Tab = 'consult' | 'fortune';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 /**
- * 대화 기록 탭 — 고민 상담과 지난 오늘의 운세(뽑은 날만)를 위 탭으로 나눠 본다.
- * 상담은 이어서 이야기할 대화를 맨 위에, 지난 대화는 한 달씩 묶어 끝까지 내리면 더 불러온다
+ * 대화 기록 탭 — 운알톡 대화(예전 고민 상담 포함)와 지난 오늘의 운세(뽑은 날만)를 위 탭으로 나눠 본다.
+ * 대화는 이어서 이야기할 대화를 맨 위에, 지난 대화는 한 달씩 묶어 끝까지 내리면 더 불러온다
  */
 export default function ConsultTalksScreen() {
   const { tab: initial } = useLocalSearchParams<{ tab?: string }>();
@@ -39,7 +39,7 @@ export default function ConsultTalksScreen() {
   return (
     <Screen {...header} scroll={false}>
       <View style={s.tabs} accessibilityRole="tablist">
-        {([['consult', '고민 상담'], ['fortune', '오늘의 운세']] as [Tab, string][]).map(([k, label]) => (
+        {([['consult', '운알톡'], ['fortune', '오늘의 운세']] as [Tab, string][]).map(([k, label]) => (
           <PressableScale key={k} onPress={() => setTab(k)} style={[s.tab, tab === k && s.tabOn]} scaleTo={0.97} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
             <Text style={[s.tabText, tab === k && s.tabTextOn]}>{label}</Text>
           </PressableScale>
@@ -106,7 +106,7 @@ function ConsultList() {
       showsVerticalScrollIndicator={false}
       onEndReached={() => { if (pastQ.hasNextPage && !pastQ.isFetchingNextPage) pastQ.fetchNextPage(); }}
       onEndReachedThreshold={0.5}
-      ListEmptyComponent={<Empty title="아직 나눈 대화가 없어요" body={'혼자 품고 있던 고민을 운알이에게 들려주세요.\n대화가 여기에 차곡차곡 쌓여요.'} cta="첫 고민 들려주기 →" onPress={() => nav.navigate('Consult')} />}
+      ListEmptyComponent={<Empty title="아직 나눈 대화가 없어요" body={'운알이에게 편하게 말을 걸어 보세요.\n대화가 여기에 차곡차곡 쌓여요.'} cta="운알이와 이야기하기 →" onPress={() => nav.navigate('Consult')} />}
       ListFooterComponent={pastQ.isFetchingNextPage ? <View style={s.more}><ActivityIndicator color={colors.purple} /></View> : undefined}
     />
   );

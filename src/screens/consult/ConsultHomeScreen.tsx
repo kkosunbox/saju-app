@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useQuery } from '@tanstack/react-query';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
+import { useFocusEffect, useIsFocused } from 'expo-router';
 import Screen from '../../components/Screen';
 import Icon from '../../components/Icon';
 import { PointPill } from '../../components/HeaderPoints';
@@ -13,12 +14,9 @@ import PressableScale from '../../components/PressableScale';
 import BottomSheet from '../../components/BottomSheet';
 import SectionHeader from '../../components/SectionHeader';
 import { useApp } from '../../context/AppContext';
-import { usePremium } from '../../context/PremiumContext';
-import { SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
 import { RootStackParamList } from '../../navigation/types';
-import { fmtP } from '../../services/premium/catalog';
-import { CONSULT_CONFIG, guessCat } from '../../services/content/consult';
-import { ConsultView, consultApi, useConsultStatus } from '../../services/server/consultApi';
+import { CHAT_CONFIG } from '../../services/content/consult';
+import { ConsultView, consultApi, nextChatCost, useConsultStatus } from '../../services/server/consultApi';
 import { useAnyFortuneOpened, useOpened } from '../../services/content/opened';
 import { startAsk } from './pendingAsk';
 import { colors, isDark } from '../../theme/colors';
@@ -27,9 +25,14 @@ import { ConsultRows, WEB_ONE_ROW, useWebAutoGrow, webEnterToSend } from './part
 import WorryMarquee from './WorryMarquee';
 import { isTodayFortuneQuestion } from './FortuneChatScreen';
 import { ChatHeaderLeft } from './ChatMenu';
+import { useChatCostConfirm } from './ChatCostSheet';
 import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
 import { trackAction } from '../../services/screenViews';
 import { goLogin, takeConsultIntent } from '../../services/loginIntent';
+import { storage } from '../../services/storage/storageService';
+import ConsultWelcomeIntro, { consultMascotSize } from './ConsultWelcomeIntro';
+
+let playedWelcomeIntro = false;
 
 const CONSULT_MASCOT = require('../../../assets/images/consult-mascot.webp');
 const TODAY_BG = ['#15202B', '#172636', '#1B3348'] as const;
@@ -44,12 +47,12 @@ function TodayCard({ children, emphasize }: { children: React.ReactNode; emphasi
 }
 
 const EXAMPLES = [
-  '헤어진 지 3개월, 아직도 연락할지 말지 매일 고민돼요',
-  '회사가 너무 힘든데 지금 퇴사해도 괜찮을까요?',
-  '썸 타는 사람이 있는데 먼저 고백해도 될까요?',
-  '친한 친구에게 서운한 게 쌓였는데 말해야 할까요?',
-  '부모님과 자꾸 부딪히는데 어떻게 해야 할까요?',
-  '모아 둔 돈으로 이사를 할지 더 모을지 고민이에요',
+  '전 애인한테 연락 올까?',
+  '오늘 회사 가기 너무 싫다',
+  '썸 타는 사람한테 먼저 고백해도 될까?',
+  '친구한테 서운한 거 말할까 말까',
+  '요즘 왜 이렇게 의욕이 없지',
+  '이번 달 돈 좀 모일까?',
 ];
 // 세 줄에 두 개씩 — 디자인처럼 첫째·넷째, 둘째·다섯째, 셋째·여섯째를 한 줄에
 const EXAMPLE_ROWS = [0, 1, 2].map(i => [EXAMPLES[i], EXAMPLES[i + 3]]);
@@ -105,86 +108,120 @@ function TodayFortuneCard({ onAsk }: { onAsk(): void }) {
 }
 
 /**
- * 첫 화면 운알톡 — 운알이가 먼저 말을 걸고, 아래 입력창에 고민을 보낸다(하루 5번 무료 미리보기).
- * 이어서 할 대화를 위에 두고, 지난 대화 전체는 '대화 기록' 탭에. 답변 아래에서 고민에 맞는 리포트로 이어진다
+ * 첫 화면 운알톡 — 운알이가 먼저 말을 걸고, 아래 입력창에 편하게 말을 보낸다 (가벼운 대화).
+ * 최근 대화를 위에 두고, 지난 대화 전체는 '대화 기록' 탭에. 대화 중 어울리는 리포트가 있으면 운알이가 말풍선으로 권한다
  */
 export default function ConsultHomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: u, account } = useApp();
-  const { points } = usePremium();
+  const focused = useIsFocused();
+  const hasUser = !!u;
+  const [intro, setIntro] = useState<'pending' | 'welcome' | 'leaving' | 'revealing' | 'done'>(() => playedWelcomeIntro ? 'done' : 'pending');
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [introOpacity] = useState(() => new Animated.Value(1));
+  const [uiProgress] = useState(() => new Animated.Value(0));
+  const finishIntro = useCallback(() => setIntro('done'), []);
+  const introVisible = intro !== 'done';
+  const showWelcome = intro === 'welcome' || intro === 'leaving';
+
+  useEffect(() => {
+    if (intro !== 'leaving' && intro !== 'revealing') return;
+    const leaving = intro === 'leaving';
+    const duration = leaving ? 180 : REVEAL_DURATION + REVEAL_GAP * 4;
+    const animation = Animated.timing(leaving ? introOpacity : uiProgress, {
+      toValue: leaving ? 0 : duration,
+      duration,
+      easing: leaving ? Easing.out(Easing.cubic) : Easing.linear,
+      useNativeDriver: Platform.OS !== 'web',
+      isInteraction: false,
+    });
+    animation.start(({ finished }) => {
+      if (finished) setIntro(leaving ? 'revealing' : 'done');
+    });
+    return () => animation.stop();
+  }, [intro, introOpacity, uiProgress]);
+
+  useEffect(() => {
+    if (!focused || !hasUser || intro !== 'pending') return;
+    let live = true;
+    void Promise.all([
+      storage.hasSeenConsultWelcome(),
+      AccessibilityInfo.isReduceMotionEnabled().catch(() => true),
+    ]).then(([seen, reduced]) => {
+      if (!live) return;
+      if (playedWelcomeIntro || seen) {
+        playedWelcomeIntro = true;
+        finishIntro();
+        return;
+      }
+      playedWelcomeIntro = true;
+      void storage.markConsultWelcomeSeen();
+      setReducedMotion(reduced);
+      setIntro('welcome');
+    });
+    return () => { live = false; };
+  }, [finishIntro, focused, hasUser, intro]);
+
+  useFocusEffect(useCallback(() => () => {
+    setIntro(current => current === 'welcome' ? 'done' : current);
+  }, []));
+
+  const continueToChat = () => {
+    if (intro !== 'welcome') return;
+    setIntro(reducedMotion ? 'done' : 'leaving');
+  };
   const input = useRef<TextInputInstance>(null);
   const [text, setText] = useState('');
-  const [confirm, setConfirm] = useState(false);
   const [swapTo, setSwapTo] = useState<string | null>(null);
-  // 너무 짧게 보내면 버튼을 잠그지 않고, 왜 안 가는지 안내 줄에 알려 준다
-  const [short, setShort] = useState(false);
-  // 게스트도 받는다 — 게스트는 처음 한 번 무료 (freePerDay 1)
+  // 게스트도 받는다 — 게스트는 처음 한 대화만 무료
   const status = useConsultStatus(!!u);
+  const { confirm: confirmCost, sheet: costSheet } = useChatCostConfirm();
   // 최근 대화 HOME_ROWS개만 (이어서 할 것 · 끝난 것 구분 없이 최신순). 전체는 '대화 기록' 탭에서
   const recentQ = useQuery({ queryKey: ['consults', 'head', 'recent'], queryFn: () => consultApi.list({ limit: HOME_ROWS }), enabled: !!u });
   useWebAutoGrow(input, text, INPUT_MAX);
-  // 로그인 전에 보내려던 질문, 또는 오늘의 운세에서 넘어온 (알이 드는) 질문 — 이 화면에 오면 이어서 보낸다.
-  // 무료 · 구독 횟수가 남았으면 바로 보내고, 알이 드는 경우엔 입력창에 채우고 확인을 묻는다
+  // 로그인 전에 보내려던 말 — 로그인하고 이 화면에 오면 이어서 보낸다 (알이 들면 입력창 위 안내 줄이 알려 준다)
   const resumeReady = !!u && !!account && status.isSuccess;
   useEffect(() => {
     if (!resumeReady) return;
     const pending = takeConsultIntent();
     if (!pending) return;
+    finishIntro();
     trackAction('consult_ask_resumed');
-    const d = status.data;
-    const canFree = (d?.freeLeft ?? 0) > 0 || (d?.subscription?.left ?? 0) > 0;
-    if (canFree) {
-      trackAction('consult_ask');
-      nav.push('ConsultChat', { id: 'new', ask: startAsk(pending.worry, pending.topic) });
-    } else {
-      setText(pending.worry);
-      setConfirm(true);
-    }
+    trackAction('consult_ask');
+    nav.push('ConsultChat', { id: 'new', ask: startAsk(pending.worry, pending.source) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumeReady]);
   if (!u) return null;
 
-  const cost = status.data?.cost ?? CONSULT_CONFIG.cost;
-  const maxLen = status.data?.maxLength ?? CONSULT_CONFIG.maxLen;
-  const limit = status.data?.followUpLimit ?? 10;
-  const hours = status.data?.followUpHours ?? 24;
-  // 회원은 하루 5번, 게스트는 처음 한 번 무료 (상태를 받기 전에도 '무료'로 보여 준다)
-  const perDay = status.data?.freePerDay ?? (account ? 5 : 1);
-  const freeLeft = status.data?.freeLeft ?? perDay;
-  const free = freeLeft > 0;
-  // 하루 무료를 다 쓰면 구독 운알톡 횟수를 알보다 먼저 쓴다 (서버가 판단)
-  const sub = account ? status.data?.subscription ?? null : null;
-  const viaSub = !free && !!sub && sub.left > 0;
+  const chat = status.data?.chat;
+  const maxLen = chat?.maxLength ?? CHAT_CONFIG.maxLen;
+  // 상태를 받기 전에는 무료로 본다 (게스트가 이미 썼으면 서버가 MEMBER_ONLY로 돌려준다)
+  const free = (chat?.freeChatsLeft ?? 1) > 0;
+  // 무료를 다 썼을 때만 한 마디 값을 알려 준다 (남은 무료 횟수는 따로 보여 주지 않는다)
+  const cost = account ? nextChatCost(chat) : 0;
 
-  // 주제는 글에서 추측해 서버에 함께 보낸다 (서버가 다시 판단한다)
-  const cat = text.trim() ? guessCat(text) : null;
-  const onText = (t: string) => {
-    setText(t);
-    if (short && (!t.trim() || t.trim().length >= CONSULT_CONFIG.minLen)) setShort(false);
-  };
+  const onText = setText;
   const fillExample = (ex: string) => { onText(ex); input.current?.focus(); };
   const pickExample = (ex: string) => {
     if (!text.trim() || text === ex) return fillExample(ex);
     setSwapTo(ex);
   };
   const len = text.trim().length;
-  const ok = len >= CONSULT_CONFIG.minLen;
 
   const start = () => {
-    // "오늘 운세 어때?"처럼 오늘의 운세만 물으면 상담 대신 오늘의 운세로 답한다 (무료)
-    if (text.trim() && isTodayFortuneQuestion(text)) { setText(''); input.current?.blur(); nav.navigate('Today'); return; }
-    if (!ok) { setShort(true); input.current?.focus(); return; }
-    // 게스트가 무료 한 번을 이미 썼으면, 적은 질문은 기억해 두고 로그인으로 — 로그인하면 이 화면으로 돌아와 그대로 보낸다
-    if (!account && !free) { trackAction('consult_ask_login_required'); goLogin({ kind: 'consult', worry: text.trim(), topic: cat ?? undefined }); return; }
-    if (free || viaSub) ask();
-    else setConfirm(true);
+    if (!len) return;
+    // "오늘 운세 어때?"처럼 오늘의 운세만 물으면 오늘의 운세로 답한다 (무료)
+    if (isTodayFortuneQuestion(text)) { setText(''); input.current?.blur(); nav.navigate('Today'); return; }
+    // 게스트가 무료 대화를 이미 썼으면, 적은 말은 기억해 두고 로그인으로 — 로그인하면 이 화면으로 돌아와 그대로 보낸다
+    if (!account && !free) { trackAction('consult_ask_login_required'); goLogin({ kind: 'consult', worry: text.trim() }); return; }
+    // 알이 드는 말이면 보내기 전에 한 번 묻는다 (다시 보지 않기를 고르면 바로)
+    confirmCost(cost, ask);
   };
-  // 포인트가 모자라면 서버가 INSUFFICIENT_POINTS로 돌려주고, 대화 화면이 충전으로 안내한다.
-  // 답은 대화 화면에서 기다린다 (내 고민이 먼저 보이고 운알이가 답을 쓰는 중)
+  // 알이 모자라면 서버가 INSUFFICIENT_POINTS로 돌려주고, 대화 화면이 충전으로 안내한다.
+  // 답은 대화 화면에서 기다린다 (내 말이 먼저 보이고 운알이가 답을 쓰는 중)
   const ask = () => {
-    setConfirm(false);
     trackAction('consult_ask');
-    const key = startAsk(text.trim(), cat ?? undefined);
+    const key = startAsk(text.trim());
     setText('');
     input.current?.blur();
     nav.push('ConsultChat', { id: 'new', ask: key });
@@ -202,72 +239,97 @@ export default function ConsultHomeScreen() {
     </>
   ) : null);
 
+  const hiddenDuringIntro = introVisible ? {
+    pointerEvents: 'none',
+    accessibilityElementsHidden: true,
+    'aria-hidden': true,
+    ...(Platform.OS === 'web' && { inert: true }),
+    importantForAccessibility: 'no-hide-descendants',
+  } as const : undefined;
+  const entrance = (order: number) => {
+    if (!introVisible) return undefined;
+    const start = order * REVEAL_GAP;
+    const inputRange = [start, start + 105, start + REVEAL_DURATION];
+    return {
+      opacity: uiProgress.interpolate({ inputRange, outputRange: [0, 0.72, 1], extrapolate: 'clamp' }),
+      transform: [{
+        translateY: uiProgress.interpolate({ inputRange, outputRange: [10, 3, 0], extrapolate: 'clamp' }),
+      }],
+    };
+  };
+  const headerEntrance = entrance(0);
   return (
-    <Screen left={<ChatHeaderLeft />} right={<PointPill attendHint quiet />} scroll={false}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={s.intro}>
-            <Image source={CONSULT_MASCOT} style={s.mascot} contentFit="cover" />
-            <Text style={s.greet}>{u.nickname}님, 요즘 마음에 걸리는 일이 있나요?{'\n'}{u.nickname}님의 사주를 아는 운알이가 함께 답을 찾아 줄게요.</Text>
-          </View>
-          {/* 오늘의 운세 — 고민 주제와 따로. 누구 운세를 볼지 먼저 고르고 물어본다 (무료로 바로 답) */}
-          <TodayFortuneCard onAsk={() => nav.navigate('Today')} />
-          {section('최근 대화', recentQ.data)}
-
-          {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
-          <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
-          <View style={{ gap: 12 }}>
-            {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
-          </View>
-
-        </ScrollView>
-
-        {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
-        <View style={s.footer}>
-          {/* 스크롤 내용이 안내 줄에서 탁 잘리지 않게 위로 바탕색 페이드 */}
-          <LinearGradient pointerEvents="none" colors={FOOTER_FADE} style={s.fade} />
-          <View style={s.between}>
-            {/* 남은 무료 횟수는 따로 보여 주지 않는다 — 마지막 한 번이면 다음부터 알이 쓰인다고만 미리 알려 준다 */}
-            <View style={s.hintRow}>
-              {viaSub && sub ? (
-                <View style={s.hintRow} accessibilityLabel={`구독 운알톡 ${sub.total}회 중 ${sub.left}회 남음`}>
-                  <SubscriptionBadge label="구독 운알톡" small />
-                  <View style={s.ticket}><Text style={s.ticketText}>{sub.left}/{sub.total}회 남음</Text></View>
-                </View>
-              ) : null}
-              <Text style={[s.hint, short && { color: colors.danger }]} numberOfLines={1}>
-                {short ? `고민을 ${CONSULT_CONFIG.minLen}자 이상 적어 주세요 (${len}/${CONSULT_CONFIG.minLen})`
-                  : !account
-                  ? (free ? '로그인 없이 한 번 무료로 물어볼 수 있어요' : '로그인하면 하루 5번 무료로 물어볼 수 있어요')
-                  : free
-                  ? (freeLeft === 1 ? (sub && sub.left > 0 ? `다음부터 구독 ${sub.left}회에서 써요` : '오늘 마지막 무료 대화예요') : '')
-                  : viaSub ? '알은 쓰지 않아요'
-                  : `${cost}알로 물어보기${account ? ` · 보유 ${fmtP(points)}` : ''}`}
-              </Text>
+    <Screen
+      left={<Animated.View {...hiddenDuringIntro} style={headerEntrance}><ChatHeaderLeft /></Animated.View>}
+      right={<Animated.View {...hiddenDuringIntro} style={headerEntrance}><PointPill attendHint quiet /></Animated.View>}
+      scroll={false}
+    >
+      <Animated.View {...hiddenDuringIntro} style={s.body}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+          <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <View style={s.intro}>
+              <Animated.View style={headerEntrance && { opacity: headerEntrance.opacity }}>
+                <Image source={CONSULT_MASCOT} style={consultMascotSize} contentFit="cover" />
+              </Animated.View>
             </View>
-            {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
-          </View>
-          <View style={s.inputRow}>
-            <TextInput
-              ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW} {...webEnterToSend(start)}
-              placeholder="궁금한 걸 편하게 물어보세요" placeholderTextColor={colors.inkMute}
-              style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
-            />
-            <PressableScale onPress={start} disabled={!len} style={[s.sendBtn, !len && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={free ? '무료로 물어보기' : viaSub ? '구독 혜택으로 물어보기' : `${cost}알로 물어보기`}>
-              <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
-            </PressableScale>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+            {/* 오늘의 운세 — 고민 주제와 따로. 누구 운세를 볼지 먼저 고르고 물어본다 (무료로 바로 답) */}
+            <Animated.View style={entrance(1)} testID="consult-reveal-fortune">
+              <TodayFortuneCard onAsk={() => nav.navigate('Today')} />
+            </Animated.View>
+            {recentQ.data?.length ? (
+              <Animated.View style={entrance(2)}>
+                {section('최근 대화', recentQ.data)}
+              </Animated.View>
+            ) : null}
 
-      <BottomSheet visible={confirm} onClose={() => setConfirm(false)}>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>운알톡</Text>
-        <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{cost}알로 물어볼까요?</Text>
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>오늘 무료 대화 {perDay}번{sub ? `과 이번 달 구독 운알톡 ${sub.total}회를` : '을'} 다 썼어요.{'\n'}답을 받은 뒤 {hours}시간 동안 {limit}번 더 물어볼 수 있어요.{'\n'}답변이 만들어진 뒤에만 알이 쓰여요.</Text>
-        <PrimaryButton label="물어보기" onPress={ask} style={{ marginTop: 20 }} />
-        <PrimaryButton label="취소" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />
-      </BottomSheet>
+            {/* 눌러서 입력창에 채운다 — 세 줄이 번갈아 반대로 흘러간다 */}
+            <Animated.View style={entrance(3)} testID="consult-reveal-examples">
+              <Text style={s.exampleK}>다른 분들은 이런 걸 많이 물어봐요</Text>
+              <View style={{ gap: 12 }}>
+                {EXAMPLE_ROWS.map((items, i) => <WorryMarquee key={i} items={items} onPick={pickExample} reverse={i === 1} />)}
+              </View>
+            </Animated.View>
 
+          </ScrollView>
+
+          {/* 채팅처럼 아래에서 입력한다 — 판 없이 입력창만 두고, 안내는 그 위 한 줄로 */}
+          <Animated.View style={[s.footer, entrance(4)]} testID="consult-reveal-composer">
+            {/* 스크롤 내용이 안내 줄에서 탁 잘리지 않게 위로 바탕색 페이드 */}
+            <LinearGradient pointerEvents="none" colors={FOOTER_FADE} style={s.fade} />
+            <View style={s.between}>
+              {/* 남은 무료 횟수는 따로 보여 주지 않는다 — 다 썼을 때만 한 마디 값을 알려 준다 */}
+              <View style={s.hintRow}>
+                <Text style={s.hint} numberOfLines={1}>
+                  {!account && !free ? '로그인하면 매일 운알이와 무료로 이야기할 수 있어요' : ''}
+                </Text>
+              </View>
+              {len ? <Text style={[s.hint, len >= maxLen && { color: colors.danger }]}>{len}/{maxLen}</Text> : null}
+            </View>
+            <View style={s.inputRow}>
+              <TextInput
+                ref={input} value={text} onChangeText={onText} multiline maxLength={maxLen} {...WEB_ONE_ROW} {...webEnterToSend(start)}
+                placeholder="궁금한 걸 편하게 물어보세요" placeholderTextColor={colors.inkMute}
+                style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="고민 내용"
+              />
+              <PressableScale onPress={start} disabled={!len} style={[s.sendBtn, !len && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel={cost > 0 ? `${cost}알로 보내기` : '보내기'}>
+                <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
+              </PressableScale>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Animated.View>
+      {showWelcome ? (
+        <ConsultWelcomeIntro
+          mascot={CONSULT_MASCOT}
+          nickname={u.nickname}
+          opacity={introOpacity}
+          reducedMotion={reducedMotion}
+          leaving={intro === 'leaving'}
+          onContinue={continueToChat}
+        />
+      ) : null}
+
+      {costSheet}
       <BottomSheet visible={swapTo !== null} onClose={() => setSwapTo(null)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>예시로 바꿀까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>지금 적은 내용은 지워져요.</Text>
@@ -278,16 +340,16 @@ export default function ConsultHomeScreen() {
   );
 }
 
+const REVEAL_GAP = 78;
+const REVEAL_DURATION = 280;
 const INPUT_MAX = 120;
-const TICKET_INK = isDark ? colors.accent : 'rgba(0, 163, 255, 0.8)'; // 디자인: #00A3FF 80%
 const HOME_ROWS = 3;
 const FOOTER_FADE = [`${colors.cream}00`, colors.cream] as const;
 
 const s = StyleSheet.create({
   content: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 24 },
   intro: { alignItems: 'center', marginTop: 8 },
-  mascot: { width: 215, height: 144 },
-  greet: { marginTop: -7, fontSize: 13, lineHeight: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.65, textAlign: 'center' },
+  body: { flex: 1 },
   today: { marginTop: 20, borderRadius: radius.lg, overflow: 'hidden' },
   todayImg: { width: '100%', height: '100%', borderRadius: radius.lg },
   todayImgNative: { borderRadius: radius.lg },
@@ -309,8 +371,6 @@ const s = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   hint: { fontSize: 12, lineHeight: 16, color: colors.inkMute, letterSpacing: -0.6, flexShrink: 1 },
-  ticket: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: radius.xs, backgroundColor: colors.accentSoft },
-  ticketText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: TICKET_INK },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingRight: 8, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
   input: { flex: 1, minHeight: 40, maxHeight: INPUT_MAX, paddingTop: 11, paddingBottom: 11, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   sendBtn: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },

@@ -57,19 +57,22 @@ export function useWebAutoGrow(ref: RefObject<TextInputInstance | null>, value: 
   }, [ref, value, max]);
 }
 
-/** 상담 기록 카드 — 한 줄에 한 상담 (주제 아이콘 · 답의 한 줄 · 날짜 · 남은 이어 묻기 · ›) */
+/** 대화 기록 카드 — 한 줄에 한 대화 (주제 아이콘 · 첫 말(예전 상담은 답의 한 줄) · 시작한 화면 · 날짜 · ›) */
 export function ConsultRows({ rows, onOpen }: { rows: ConsultView[]; onOpen(e: ConsultView): void }) {
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       {rows.map((e, i) => {
         const C = catOf(e.topic);
-        const badge = e.locked ? '미리보기' : e.followUpsLeft > 0 ? `${e.followUpsLeft}번 더 물어볼 수 있어요` : '';
+        const chat = e.status === 'chat';
+        const title = chat ? e.question ?? '운알톡' : e.answer?.headline ?? C.label;
+        // 운알톡은 시작한 화면(오늘의 운세 · 리포트), 예전 상담은 주제
+        const where = chat ? e.source?.title ?? '' : `${C.label.replace('·', ' · ')} 고민`;
         return (
-          <PressableScale key={e.id} onPress={() => onOpen(e)} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98} accessibilityLabel={e.answer?.headline ?? C.label}>
+          <PressableScale key={e.id} onPress={() => onOpen(e)} style={[s.hist, i > 0 && s.histLine]} scaleTo={0.98} accessibilityLabel={title}>
             <CatIcon cat={e.topic} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.histT} numberOfLines={1}>{e.answer?.headline ?? C.label}</Text>
-              <Text style={s.histM} numberOfLines={1}>{e.profileNickname ? `${e.profileNickname} · ` : ''}{C.label.replace('·', ' · ')} · {kstDate(e.createdAt)}{badge ? ` · ${badge}` : ''}</Text>
+              <Text style={s.histT} numberOfLines={1}>{title}</Text>
+              <Text style={s.histM} numberOfLines={1}>{[e.profileNickname, where, kstDate(e.createdAt)].filter(Boolean).join(' · ')}</Text>
             </View>
             <Icon name="chevronRight" size={16} color={colors.inkMute} />
           </PressableScale>
@@ -126,6 +129,8 @@ export const STAGES = {
   first: ['고민을 읽고 있어요…', '사주를 펼쳐 보고 있어요…', '이번 달 기운을 살피는 중이에요…', '답을 정리하고 있어요…'],
   rest: ['사주로 본 나를 풀어 보고 있어요…', '앞으로 3개월 흐름을 보는 중이에요…', '행동하기 좋은 날을 고르고 있어요…', '거의 다 됐어요…'],
   reply: ['질문을 읽고 있어요…', '사주를 다시 보며 답을 쓰고 있어요…'],
+  /** 운알톡 가벼운 대화 */
+  chat: ['운알이가 읽고 있어요…', '운알이가 답을 쓰고 있어요…'],
 };
 const STAGE_MS = 3500;
 
@@ -195,6 +200,19 @@ export const TOPIC_REC: Record<ConsultCat, { key: string; title: string; desc: s
   children: { key: 'child', title: '우리 아이 사주', desc: '타고난 기질 · 재능 · 맞는 공부 방식 · 보호자와의 궁합', item: ITEMS.child(0, ''), to: ['Child'] },
   decision: { key: 'lucky', title: '길일 찾기', desc: '이사 · 계약 · 시작하기 좋은 날 TOP 5', item: ITEMS.lucky('move', new Date().toISOString().slice(0, 10)), to: ['Lucky'] },
   self: { key: 'life', title: '평생운 · 10년 대운', desc: '인생 그래프 · 황금기와 위기 · 앞으로 10년', item: ITEMS.life(), to: ['Life'] },
+};
+
+/** 운알톡이 대화 중 권하는 콘텐츠 (서버 turns[].suggest — consult-report.ts의 키). 문구는 고정 (토큰을 쓰지 않는다) */
+export const REPORT_REC: Record<string, (typeof TOPIC_REC)[ConsultCat]> = {
+  'theme:love': TOPIC_REC.love,
+  'theme:money': TOPIC_REC.money,
+  'theme:career': TOPIC_REC.work,
+  crush: TOPIC_REC.crush,
+  compat: TOPIC_REC.people,
+  spouse: TOPIC_REC.marriage,
+  child: TOPIC_REC.children,
+  life: TOPIC_REC.self,
+  lucky: TOPIC_REC.decision,
 };
 
 const s = StyleSheet.create({

@@ -676,6 +676,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/contents/draw-completion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 무료 콘텐츠 뽑기 완료 기록 (게스트 가능) */
+        put: operations["FreeContentController_completeDraw_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/contents/mbti-match": {
         parameters: {
             query?: never;
@@ -736,6 +753,43 @@ export interface paths {
         };
         /** 전생 테스트 (게스트 가능) */
         get: operations["FreeContentController_pastLife_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/contents/celebrity-match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 천생연분 스타 — 오늘의 궁합 (게스트 가능, KST 날짜 기준)
+         * @description data: { gender, pick, finalists, poolSize, stars, me }. 같은 프로필·같은 성별 조건·같은 날이면 처음 뽑힌 스타가 그대로 나오고 날이 바뀌면 새로 뽑는다. finalists는 오늘 가장 잘 맞는 세 명(뽑힌 스타 포함), stars는 고르기 목록(남녀 모두, 이름순, 점수 없음)
+         */
+        get: operations["FreeContentController_celebrityMatch_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/contents/celebrity-match/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 천생연분 스타 한 명과의 궁합 (게스트 가능) */
+        get: operations["FreeContentController_celebrityMatchDetail_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -850,6 +904,26 @@ export interface paths {
         get: operations["BirthPlaceController_search_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/screen-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 첫 24시간 화면 이동·행동 기록
+         * @description 앱이 화면을 열 때(action 없이)나 기록할 행동을 했을 때(action) 부릅니다. 게스트는 게스트가 된 뒤 24시간, 회원은 가입(게스트 승격 포함)한 뒤 24시간 동안만 저장하고(계정당 최대 500건), 그 밖에는 저장하지 않고 tracking: false 를 돌려줍니다. tracking 이 false 면 앱은 이번 실행 동안 그 계정으로는 더 보내지 않습니다. 입력한 글 같은 내용은 받지 않습니다.
+         */
+        post: operations["ScreenViewController_create_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2013,6 +2087,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/consults/chats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 운알톡 대화 시작 (하루 2개까지 메시지 2개 무료, 그다음은 메시지마다 5알)
+         * @description 첫 메시지로 대화를 엽니다 (status=chat, turns[0]에 답). source를 주면 그 화면(오늘의 운세 · 콘텐츠) 내용을 기억하고 이야기합니다. 무료 대화가 남았으면 그 대화의 첫 2개 메시지가 무료이고, 아니면 메시지마다 5알 (구독 중이면 알 없이). 알은 답이 만들어진 뒤에만 씁니다 (실패하면 503 CONSULT_UNAVAILABLE). 게스트는 처음 한 대화만, 무료 메시지까지 (그다음은 403 MEMBER_ONLY).
+         */
+        post: operations["ConsultController_startChat_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/consults": {
         parameters: {
             query?: never;
@@ -2021,14 +2115,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 내 상담 기록 (최신순, 한 번에 최대 50건, 고민 글 · 대화 제외)
-         * @description kind로 이어서 이야기할 상담(open)과 끝난 상담(past)을 나눠 받습니다. 다음 페이지는 받은 마지막 id를 before로 넘기고, limit보다 적게 오면 끝입니다.
+         * 내 운알톡 대화 · 예전 상담 기록 (최신순, 한 번에 최대 50건, 대화 내용 제외 · 운알톡은 첫 메시지만)
+         * @description kind로 이어서 이야기할 대화(open)와 끝난 대화(past)를 나눠 받습니다. 다음 페이지는 받은 마지막 id를 before로 넘기고, limit보다 적게 오면 끝입니다.
          */
         get: operations["ConsultController_list_v1"];
         put?: never;
         /**
-         * 고민 상담 시작 (하루 5번 무료 미리보기, 그다음은 100P)
-         * @description 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 구독 중이면 100P 대신 구독 운알톡 횟수(결제 회차당 20회)를 먼저 씁니다(viaSubscription=true, charged=0). 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
+         * [예전 앱] 고민 상담 시작 (하루 5번 무료 미리보기, 그다음은 100P · 게스트는 1번 무료)
+         * @deprecated
+         * @description 새 앱은 운알톡 대화(POST /consults/chats)를 씁니다. 업데이트하지 않은 앱을 위해 남겨 둡니다. 게스트는 처음 한 번만 무료 미리보기를 받고, 그다음은 403 MEMBER_ONLY(로그인 필요)입니다. 그날 5번까지는 무료 미리보기(status=preview, 결론만, 저렴한 모델)이고 POST /consults/:id/unlock으로 100P에 나머지를 써서 엽니다. 무료를 이미 썼으면 바로 100P 상담(status=answered)입니다. 구독 중이면 100P 대신 구독 운알톡 횟수(결제 회차당 20회)를 먼저 씁니다(viaSubscription=true, charged=0). 결제한 상담은 이어 묻기를 할 수 있습니다(POST /consults/:id/messages). 답변이 만들어진 뒤에만 100P를 씁니다(실패하면 503 CONSULT_UNAVAILABLE, 포인트 그대로). 수십 초 걸릴 수 있습니다.
          */
         post: operations["ConsultController_ask_v1"];
         delete?: never;
@@ -2044,7 +2139,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 오늘 남은 무료 미리보기 · 가격 · 이어 묻기 한도 */
+        /** 운알톡 무료 대화 · 가격 (chat) · 예전 상담의 무료 미리보기 */
         get: operations["ConsultController_status_v1"];
         put?: never;
         post?: never;
@@ -2064,7 +2159,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 무료 미리보기 잠금 해제 (구독 운알톡 1회 또는 100P)
+         * [예전 앱] 무료 미리보기 잠금 해제 (구독 운알톡 1회 또는 100P)
+         * @deprecated
          * @description 구독 운알톡 횟수가 남았으면 그걸 먼저 씁니다. 이미 열린 상담이면 결제 없이 그대로 돌려줍니다.
          */
         post: operations["ConsultController_unlock_v1"];
@@ -2084,8 +2180,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 이어 묻기 (결제한 상담, 추가 결제 없음)
-         * @description 결제 후 24시간 동안 10번까지. 잠긴 미리보기면 403 CONTENT_LOCKED, 기한·횟수가 끝났으면 409 CONSULT_CLOSED. 성공하면 turns가 늘어난 상담 전체를 돌려줍니다.
+         * 운알톡 메시지 보내기 (무료 메시지를 다 쓰면 5알) · 예전 상담의 이어 묻기
+         * @description 운알톡 대화: 무료 대화의 첫 2개 메시지는 무료, 그다음은 메시지마다 5알 (구독 중이면 알 없이, 모자라면 402). 대화를 연 지 24시간이 지났거나 메시지가 꽉 차면 409 CONSULT_CLOSED (새 대화로). 게스트는 무료 메시지까지만 (403 MEMBER_ONLY). 예전 결제한 상담: 결제 후 24시간 동안 10번까지 (회원만, 잠긴 미리보기면 403 CONTENT_LOCKED). 성공하면 turns가 늘어난 대화 전체를 돌려줍니다.
          */
         post: operations["ConsultController_followUp_v1"];
         delete?: never;
@@ -2691,6 +2787,24 @@ export interface components {
             title: string;
             detail: string;
         };
+        CelebrityRequest: {
+            /** @description 앱에 보이는 이름 (활동명) */
+            name: string;
+            /** @description 이름 아래 한 줄 (예: 가수 · 배우) */
+            description?: string;
+            /** @enum {string} */
+            gender: "female" | "male";
+            /**
+             * @description 양력 생일
+             * @example 1993-05-16
+             */
+            birthDate: string;
+            /** @default true */
+            visible: boolean;
+        };
+        CelebrityVisibleRequest: {
+            visible: boolean;
+        };
         AdminAccessLogRequest: {
             /**
              * @description 연 화면 경로 (쿼리 포함 가능)
@@ -2833,6 +2947,7 @@ export interface components {
             /** @description 각 관점 제외 전후의 분야 점수 차이. 합산 값이 아님 */
             viewpointImpacts?: components["schemas"]["ViewpointImpactsDto"];
             totalScore: number;
+            /** @description 오늘의 한마디 (홈 말풍선 · 운알톡). 뽑은 뒤에는 AI가 이야기와 같은 해석으로 다시 쓴다 */
             summary: string;
             keywords: string[];
             commonKeywords: string[];
@@ -2926,6 +3041,8 @@ export interface components {
             yearTopPercent: number;
         };
         DailyFortuneDto: {
+            /** @description 운세 id — 운알톡을 이 운세에서 시작할 때 source.ref로 넘깁니다 (POST /consults/chats) */
+            id: number;
             /** @enum {string} */
             viewpointsVersion: "legacy" | "tarot-v1";
             date: string;
@@ -2938,7 +3055,7 @@ export interface components {
             combined: components["schemas"]["CombinedFortuneDto"];
             /** @description 그날의 일진 { stem 0~9, branch 0~11 } */
             dayPillar: Record<string, never>;
-            /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수·요약은 그대로이고 categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
+            /** @description true: 지금 문장은 규칙 엔진 것이고, 뽑기(POST daily/draw)에서 AI가 다시 씁니다. 점수는 그대로이고 summary · categoryTexts · combinedStory · goodActions · avoidActions가 바뀝니다. */
             textsPending: boolean;
             /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
             drawn: boolean;
@@ -3009,6 +3126,15 @@ export interface components {
             /** @description 이 기간의 키워드 */
             focus: string;
             cats: components["schemas"]["PeriodCategoriesDto"];
+        };
+        CompleteFreeDrawDto: {
+            recorded: boolean;
+        };
+        CompleteFreeDrawRequest: {
+            /** @description 내 프로필 id (없으면 대표 프로필) */
+            profileId?: number;
+            /** @enum {string} */
+            content: "mbti-match" | "character" | "past-life" | "talisman" | "celebrity-match";
         };
         FreeContentDto: {
             data: Record<string, never>;
@@ -3128,6 +3254,24 @@ export interface components {
         };
         BirthPlaceListResponse: {
             places: components["schemas"]["BirthPlaceDto"][];
+        };
+        CreateScreenViewResponse: {
+            /** @description 아직 기록하는 중인지. false면 첫 24시간이 지났거나 더 보낼 필요가 없습니다. */
+            tracking: boolean;
+        };
+        CreateScreenViewRequest: {
+            /**
+             * @description 연 화면 경로 (쿼리 없이). 행동이면 그 행동을 한 화면
+             * @example /premium/saju
+             */
+            path: string;
+            /**
+             * @description 행동 이름 (영문 소문자·숫자·밑줄). 빼면 화면을 연 것으로 저장합니다. 입력한 글 같은 내용은 보내지 않습니다.
+             * @example consult_ask_login_required
+             */
+            action?: string;
+            /** @enum {string} */
+            platform?: "ios" | "android" | "web";
         };
         ProfileRequestDto: {
             id: number;
@@ -3761,8 +3905,15 @@ export interface components {
         ConsultTurnDto: {
             question: string;
             reply: string;
-            /** @description 이어서 물어볼 만한 질문 3개 */
+            /** @description 이어서 물어볼 만한 질문 3개 (운알톡 대화는 빈 배열) */
             followUps: string[];
+            /**
+             * @description 운알톡 대화만: 이 답 아래 추가 말풍선으로 권할 콘텐츠 (대화당 많아야 1번). 문구는 앱이 정함
+             * @enum {string|null}
+             */
+            suggest?: "child" | "spouse" | "crush" | "compat" | "life" | "theme:love" | "theme:money" | "theme:career" | "lucky" | null;
+            /** @description 운알톡 대화만: 이 메시지에 쓴 알 */
+            charged?: number;
             createdAt: string;
         };
         ConsultDto: {
@@ -3772,10 +3923,10 @@ export interface components {
             /** @description 상담을 시작한 때의 프로필 이름 */
             profileNickname: string | null;
             /**
-             * @description preview: 오늘의 무료 미리보기 (결론만, 100P로 잠금 해제) · answered: 전체 답변
+             * @description chat: 운알톡 대화 (turns에 모든 메시지) · preview: 예전 무료 미리보기 (결론만) · answered: 예전 전체 답변
              * @enum {string}
              */
-            status: "preview" | "answered";
+            status: "preview" | "answered" | "chat";
             /** @enum {string} */
             topic: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
             /** @enum {string} */
@@ -3808,13 +3959,41 @@ export interface components {
             charged: number;
             /** @description 이번 요청에서 구독 운알톡 횟수 1회를 써서 열었음 (포인트 안 씀) */
             viaSubscription: boolean;
+            /** @description 운알톡 대화만: 시작한 화면 { type: daily_fortune · content, title }. 운알톡에서 바로 시작했으면 null */
+            source: Record<string, never> | null;
+            /** @description 운알톡 대화만: 이 대화에 남은 무료 메시지 수 (0이면 다음 메시지부터 알 · 구독은 status.chat.unlimited) */
+            freeTurnsLeft: number;
             /** Format: date-time */
             createdAt: string | null;
             /**
              * Format: date-time
-             * @description 이 날짜에 자동 삭제
+             * @deprecated
+             * @description 쓰지 않음 (자동 삭제 정책 없음) — 늘 null
              */
             expiresAt: string | null;
+        };
+        ChatSourceRequest: {
+            /**
+             * @description daily_fortune: 오늘의 운세 화면 (ref = 운세 id) · content: 다른 콘텐츠 화면 (ref = 콘텐츠 키, 예: theme:love · life · character)
+             * @enum {string}
+             */
+            type: "daily_fortune" | "content";
+            /**
+             * @description 운세 id 또는 콘텐츠 키
+             * @example 1234
+             */
+            ref: string;
+            /** @description 화면 이름 (content일 때, 예: 연애운 리포트). 40자까지 */
+            title?: string;
+        };
+        StartChatRequest: {
+            /**
+             * @description 첫 메시지 (1~300자)
+             * @example 오늘 연애운 좋다는데 연락해 볼까?
+             */
+            message: string;
+            /** @description 대화를 시작한 화면. 있으면 운알이가 그 화면 내용을 기억하고 이야기합니다 (서버가 DB에서 다시 읽음) */
+            source?: components["schemas"]["ChatSourceRequest"];
         };
         AskConsultRequest: {
             /**
@@ -3828,6 +4007,22 @@ export interface components {
              */
             topic?: "love" | "crush" | "marriage" | "reunion" | "work" | "job" | "business" | "money" | "people" | "friend" | "family" | "children" | "study" | "decision" | "self";
         };
+        ChatStatusDto: {
+            /** @description 오늘 남은 무료 대화 수 (게스트는 전체) */
+            freeChatsLeft: number;
+            /** @description 하루 무료 대화 수 */
+            freeChatsPerDay: number;
+            /** @description 무료 대화 하나에 무료로 보낼 수 있는 메시지 수 */
+            freeTurnsPerChat: number;
+            /** @description 무료를 다 쓴 뒤 메시지 1개 가격 (알) */
+            cost: number;
+            /** @description 구독 중이라 알 없이 대화 */
+            unlimited: boolean;
+            minLength: number;
+            maxLength: number;
+            /** @description 대화 하나에 보낼 수 있는 메시지 수 */
+            maxTurns: number;
+        };
         ConsultSubscriptionQuotaDto: {
             /** @description 결제 회차당 횟수 */
             total: number;
@@ -3840,6 +4035,8 @@ export interface components {
             periodEnd: string;
         };
         ConsultStatusDto: {
+            /** @description 운알톡 대화 (새 앱은 이것만 씁니다. 나머지는 예전 상담용) */
+            chat: components["schemas"]["ChatStatusDto"];
             /** @description 오늘 무료 미리보기가 남았는지 (KST) */
             freeToday: boolean;
             /** @description 오늘 남은 무료 미리보기 횟수 */
@@ -3859,7 +4056,7 @@ export interface components {
         };
         FollowUpConsultRequest: {
             /**
-             * @description 이어서 묻는 말 (2~300자)
+             * @description 보낼 말 — 운알톡 대화는 1~300자, 예전 상담의 이어 묻기는 2~300자
              * @example 그럼 언제쯤 말을 꺼내는 게 좋을까요?
              */
             question: string;
@@ -5710,6 +5907,69 @@ export interface operations {
             };
         };
     };
+    FreeContentController_completeDraw_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteFreeDrawRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["CompleteFreeDrawDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     FreeContentController_mbtiMatch_v1: {
         parameters: {
             query?: {
@@ -5904,6 +6164,134 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["FreeContentDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FreeContentController_celebrityMatch_v1: {
+        parameters: {
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+                /** @description 상대 성별 (없으면 내 성별의 반대) */
+                gender?: "female" | "male" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["FreeContentDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
+    FreeContentController_celebrityMatchDetail_v1: {
+        parameters: {
+            query?: {
+                /** @description 내 프로필 id (없으면 대표 프로필) */
+                profileId?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -6421,6 +6809,69 @@ export interface operations {
                         /** @example true */
                         result?: boolean;
                         data?: components["schemas"]["BirthPlaceListResponse"];
+                    };
+                };
+            };
+        };
+    };
+    ScreenViewController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateScreenViewRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["CreateScreenViewResponse"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MISSING_AUTHENTICATION_TOKEN, UNAUTHORIZED, INVALID_ACCESS_TOKEN */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MISSING_AUTHENTICATION_TOKEN */
+                        code?: string;
+                        /** @example MISSING_AUTHENTICATION_TOKEN */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
                     };
                 };
             };
@@ -11275,6 +11726,159 @@ export interface operations {
             };
         };
     };
+    ConsultController_startChat_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartChatRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example true */
+                        result?: boolean;
+                        data?: components["schemas"]["ConsultDto"];
+                    };
+                };
+            };
+            /** @description Possible error codes: BAD_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example BAD_REQUEST */
+                        code?: string;
+                        /** @example BAD_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example UNAUTHORIZED */
+                        code?: string;
+                        /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INSUFFICIENT_POINTS */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INSUFFICIENT_POINTS */
+                        code?: string;
+                        /** @example INSUFFICIENT_POINTS */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: MEMBER_ONLY */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example MEMBER_ONLY */
+                        code?: string;
+                        /** @example MEMBER_ONLY */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONTENT_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONTENT_NOT_FOUND */
+                        code?: string;
+                        /** @example CONTENT_NOT_FOUND */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: DUPLICATE_REQUEST */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example DUPLICATE_REQUEST */
+                        code?: string;
+                        /** @example DUPLICATE_REQUEST */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: CONSULT_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example CONSULT_UNAVAILABLE */
+                        code?: string;
+                        /** @example CONSULT_UNAVAILABLE */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+        };
+    };
     ConsultController_list_v1: {
         parameters: {
             query?: {
@@ -11728,6 +12332,24 @@ export interface operations {
                         /** @example UNAUTHORIZED */
                         code?: string;
                         /** @example UNAUTHORIZED */
+                        message?: string;
+                        /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
+                        traceId?: string;
+                    };
+                };
+            };
+            /** @description Possible error codes: INSUFFICIENT_POINTS */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example false */
+                        result?: boolean;
+                        /** @example INSUFFICIENT_POINTS */
+                        code?: string;
+                        /** @example INSUFFICIENT_POINTS */
                         message?: string;
                         /** @example d3274e1f-2140-4ebe-b1bf-a7120d77f208 */
                         traceId?: string;

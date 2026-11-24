@@ -77,11 +77,11 @@ export default function ContentScreen() {
 
   const FREE: [ArtName | 'star', string, string, () => void][] = [
     ['soon-tarot', '오늘의 타로', '오늘 나에게 온 카드 한 장', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
-    ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
-    ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
-    ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
-    ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
     ['star', '연예인 궁합', '오늘의 천생연분', () => nav.navigate('StarMatch')],
+    ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
+    ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
+    ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
+    ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],
   ];
   const spouseOwned = owned(ITEMS.spouse().key);

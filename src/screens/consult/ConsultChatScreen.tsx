@@ -1,62 +1,46 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ImageBackground, Platform, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance, type StyleProp, type TextInputInstance, type TextStyle } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ImageBackground, Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp, RouteProp, useNavigation, useRoute } from '@/navigation/compat';
-import Screen, { useKeyboardShown } from '../../components/Screen';
-import Icon from '../../components/Icon';
+import Screen from '../../components/Screen';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
-import { BodyState, Coin, LockCard } from '../../components/premium/Kit';
+import { BodyState, LockCard } from '../../components/premium/Kit';
 import BottomSheet from '../../components/BottomSheet';
 import LoadingScreen from '../../components/LoadingScreen';
 import { useApp } from '../../context/AppContext';
-import { refreshPoints, usePremium } from '../../context/PremiumContext';
+import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
 import { catOf } from '../../services/content/consult';
-import { fmtN, ro } from '../../services/premium/catalog';
-import { ConsultAnswer, ConsultFacts, ConsultTeaser, ConsultView, SubscriptionQuota, consultApi, consultKeys, isFullAnswer, useConsultStatus } from '../../services/server/consultApi';
+import { ConsultAnswer, ConsultFacts, consultApi, consultKeys, isFullAnswer, sourceView } from '../../services/server/consultApi';
 import { queryClient } from '../../api/query';
 import { ApiError } from '../../api/client';
 import { colors, isDark } from '../../theme/colors';
-import { radius, sansW, SCREEN_PX, shadow, txt } from '../../theme/typography';
-import { CrisisCard } from './SafetyNote';
-import { Stream, StreamBlock, StreamText } from '../../components/Stream';
+import { radius, sansW, txt } from '../../theme/typography';
+import { StreamBlock, StreamText } from '../../components/Stream';
 import { ChatHeaderLeft } from './ChatMenu';
+import ChatTalk, { SourceBanner } from './ChatTalk';
 import { PointPill } from '../../components/HeaderPoints';
-import { Counselor, MyBubble, ReplyBubble, STAGES, SuggestionChips, TOPIC_REC, WEB_ONE_ROW, kstDate, kstTime, useWebAutoGrow, webEnterToSend } from './parts';
+import { Counselor, MyBubble, ReplyBubble, STAGES, TOPIC_REC, kstDate } from './parts';
 import { dropAsk, getAsk, startAsk } from './pendingAsk';
 import { goLogin } from '../../services/loginIntent';
 import { trackAction } from '../../services/screenViews';
-import { CROWN, SubscriptionBadge } from '../../components/premium/SubscriptionBadge';
-import SolidIcon from '../../components/SolidIcon';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const INPUT_MAX = 110;
-const LOCK_ICON = require('../../../assets/figma/consult/lock-closed.svg');
-const LOCKED_DAY_ICON = require('../../../assets/figma/consult/locked-day.svg');
-const LOCKED_WEEKDAY = require('../../../assets/figma/consult/locked-weekday.png');
-const SEND_ARROW = require('../../../assets/figma/consult/send-arrow.svg');
 const HEADLINE_BACKGROUND = require('../../../assets/figma/consult/headline-background.svg');
-const LOCK_COIN = require('../../../assets/figma/consult/coin.png');
 
-const SEND_ERROR: Record<string, string> = {
-  CONSULT_UNAVAILABLE: '답변을 만들지 못했어요. 다시 물어봐 주세요',
-  DUPLICATE_REQUEST: '아직 답을 쓰고 있어요. 잠시만 기다려 주세요',
-  CONSULT_CLOSED: '이 대화의 이어 묻기가 끝났어요. 새 대화로 물어봐 주세요',
-};
 
 const ASK_ERROR: Record<string, string> = {
   CONSULT_UNAVAILABLE: '지금은 답을 만들지 못했어요. 알은 쓰이지 않았어요. 잠시 후 다시 시도해 주세요',
   DUPLICATE_REQUEST: '이미 답을 쓰고 있어요. 잠시만 기다려 주세요',
-  INSUFFICIENT_POINTS: '물어보는 데 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
-  MEMBER_ONLY: '무료 상담은 한 번까지예요. 로그인하면 이어서 물어볼 수 있어요',
+  INSUFFICIENT_POINTS: '이야기하는 데 쓸 알이 모자라요. 충전한 뒤 다시 시도해 주세요',
+  MEMBER_ONLY: '로그인하면 이어서 이야기할 수 있어요',
 };
 
-/** 운알톡 대화 — 첫 답변(무료 미리보기면 결론까지) 아래로 이어 묻기가 쌓인다 */
+/** 운알톡 대화 (예전 고민 상담 기록은 읽기만) */
 export default function ConsultChatScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'ConsultChat'>>();
   return params?.id === 'new' ? <PendingChat askKey={params.ask} /> : <Chat id={Number(params?.id)} fresh={params?.fresh === '1'} />;
@@ -64,10 +48,8 @@ export default function ConsultChatScreen() {
 
 /** 첫 답을 기다리는 대화 — 내 고민이 먼저 보이고 운알이가 답을 쓰는 중 */
 function PendingChat({ askKey }: { askKey?: string }) {
-  // 새 상담은 지금의 대표 프로필로 시작한다 (그 뒤 대표 프로필을 바꿔도 이 상담은 그대로)
-  const { user } = useApp();
   const nav = useNavigation<Nav>();
-  const { goWallet, toast } = usePremium();
+  const { goWallet } = usePremium();
   const [key, setKey] = useState(askKey);
   const [state, setState] = useState<{ kind: 'wait' } | { kind: 'error'; message: string }>({ kind: 'wait' });
   const ask = getAsk(key);
@@ -78,19 +60,18 @@ function PendingChat({ askKey }: { askKey?: string }) {
       v => {
         if (!live) return;
         dropAsk(key);
-        if (v.viaSubscription) toast('구독 혜택으로 운알톡 1회를 썼어요. 알은 쓰지 않았어요');
         nav.replace('ConsultChat', { id: String(v.id), fresh: '1' });
       },
       err => {
         if (!live) return;
         const code = err instanceof ApiError ? err.code : '';
         if (code === 'INSUFFICIENT_POINTS') goWallet?.();
-        // 게스트의 무료 한 번을 이미 썼다 — 이 질문을 기억해 두고 로그인으로 (로그인하면 상담 탭이 이어서 보낸다)
+        // 게스트의 무료 대화를 이미 썼다 — 이 말을 기억해 두고 로그인으로 (로그인하면 운알톡 탭이 이어서 보낸다)
         if (code === 'MEMBER_ONLY') {
           dropAsk(key);
           trackAction('consult_ask_login_required');
           nav.goBack();
-          goLogin({ kind: 'consult', worry: ask.worry, topic: ask.topic });
+          goLogin({ kind: 'consult', worry: ask.worry, source: ask.source });
           return;
         }
         setState({ kind: 'error', message: ASK_ERROR[code] ?? ASK_ERROR.CONSULT_UNAVAILABLE });
@@ -110,11 +91,13 @@ function PendingChat({ askKey }: { askKey?: string }) {
   }
   return (
     <Screen left={<ChatHeaderLeft />} sky right={<PointPill attendHint quiet />}>
-      <Text style={[txt.caption, { textAlign: 'center' }]}>{user ? `${user.nickname}님 사주로 상담 · ` : ''}나만 볼 수 있어요</Text>
+      <Text style={[txt.caption, { textAlign: 'center' }]}>나만 볼 수 있어요</Text>
+      {/* 어느 화면에서 이어진 대화인지는 답을 기다리는 동안에도 미리 보여 준다 */}
+      {ask.source?.title ? <SourceBanner source={sourceView(ask.source)} /> : null}
       <MyBubble>{ask.worry}</MyBubble>
-      {state.kind === 'wait' ? <ReplyBubble typing={STAGES.first} /> : <ReplyBubble>{state.message}</ReplyBubble>}
+      {state.kind === 'wait' ? <ReplyBubble typing={STAGES.chat} /> : <ReplyBubble>{state.message}</ReplyBubble>}
       {state.kind === 'error' ? (
-        <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.topic)); }} style={{ marginTop: 16 }} />
+        <PrimaryButton label="다시 시도하기" onPress={() => { setState({ kind: 'wait' }); setKey(startAsk(ask.worry, ask.source)); }} style={{ marginTop: 16 }} />
       ) : null}
     </Screen>
   );
@@ -122,115 +105,23 @@ function PendingChat({ askKey }: { askKey?: string }) {
 
 function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   const nav = useNavigation<Nav>();
-  // 이 화면에서 새로 생긴 답만 써지는 것처럼 — 연 순간 있던 이어 묻기 수, 여기서 연 전체 답
-  const seenTurns = useRef<number | null>(null);
-  const [openedHere, setOpenedHere] = useState(false);
   const { user: u, account } = useApp();
-  const { toast, goWallet, points } = usePremium();
-  const insets = useSafeAreaInsets();
-  const keyboard = useKeyboardShown();
-  const scroll = useRef<ScrollViewInstance>(null);
-  const inputRef = useRef<TextInputInstance>(null);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState<string | null>(null);
-  const [unlockOpen, setUnlockOpen] = useState(false);
-  /** 잠긴 채로 물어본 질문 — 열고 나면 바로 보낸다 */
-  const [pendingQ, setPendingQ] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
+  const { toast } = usePremium();
   const [del, setDel] = useState(false);
   const q = useQuery({ queryKey: consultKeys.one(id), queryFn: () => consultApi.get(id), enabled: Number.isFinite(id) });
-  const status = useConsultStatus(!!u);
-  const turnCount = q.data?.turns?.length ?? 0;
-  if (seenTurns.current === null && q.data) seenTurns.current = turnCount;
-  useWebAutoGrow(inputRef, input, INPUT_MAX);
-  // 새 말이 붙으면 아래로 (첫 화면은 답변 위에서 시작)
-  useEffect(() => { if (turnCount || sending) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80); }, [turnCount, sending]);
 
   if (!u) return null;
   if (q.isPending) return <LoadingScreen />;
   const e = q.data;
+  // 운알톡 대화
+  if (e?.status === 'chat') return <ChatTalk chat={e} fresh={fresh} />;
   if (!e?.answer) {
     return <Screen title="운알톡" titleStyle={s.chatTitle} back><BodyState error onRetry={q.isError ? () => q.refetch() : undefined} /></Screen>;
   }
+  // 예전 고민 상담 — 읽기만 한다 (이어 묻기 · 잠금 해제 없음)
   const C = catOf(e.topic);
-  const cost = status.data?.cost ?? 100;
-  const limit = status.data?.followUpLimit ?? 10;
-  const hours = status.data?.followUpHours ?? 24;
-  // 구독 운알톡 횟수가 남았으면 알 대신 그걸로 연다 (서버가 먼저 쓴다)
-  const sub = status.data?.subscription ?? null;
-  const viaSub = !!sub && sub.left > 0;
   const full = isFullAnswer(e.answer) && e.facts ? { answer: e.answer, facts: e.facts } : null;
   const turns = e.turns ?? [];
-  const suggestions = (turns.length ? turns[turns.length - 1].followUps : e.answer.followUps) ?? [];
-  const canAsk = !e.locked && e.followUpsLeft > 0;
-  const hook = 'hook' in e.answer ? e.answer.hook : undefined;
-
-  const put = (v: ConsultView) => {
-    queryClient.setQueryData(consultKeys.one(id), v);
-    queryClient.invalidateQueries({ queryKey: consultKeys.list });
-  };
-
-  const send = (raw: string) => {
-    const question = raw.trim();
-    if (!question || sending) return;
-    if (e.locked) { askUnlock(question); return; }
-    if (!canAsk) { toast(SEND_ERROR.CONSULT_CLOSED); return; }
-    post(question);
-  };
-
-  const post = async (question: string) => {
-    setSending(question); setInput('');
-    try {
-      put(await consultApi.followUp(id, question));
-    } catch (err) {
-      const code = err instanceof ApiError ? err.code : '';
-      if (code === 'CONTENT_LOCKED') askUnlock();
-      if (code === 'CONSULT_CLOSED') q.refetch();
-      else setInput(question); // 다시 보낼 수 있게 되돌려 둔다
-      toast(SEND_ERROR[code] ?? '답변을 만들지 못했어요. 다시 물어봐 주세요');
-    } finally {
-      setSending(null);
-    }
-  };
-
-  const closeUnlock = () => { setUnlockOpen(false); setPendingQ(null); };
-  // 게스트는 알이 없으니 여는 대신 로그인으로 — 로그인하면 이 대화로 돌아온다 (게스트 대화는 계정으로 옮겨진다)
-  const askUnlock = (question?: string) => {
-    if (!account) {
-      trackAction('consult_unlock_login_required');
-      goLogin({ kind: 'unlock', title: '운알톡 전체 답변', returnTo: `/consult/${id}` });
-      return;
-    }
-    if (question) setPendingQ(question);
-    setUnlockOpen(true);
-  };
-
-  const unlock = async () => {
-    const question = pendingQ;
-    closeUnlock(); setUnlocking(true);
-    setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 80);
-    let opened = false;
-    try {
-      const v = await consultApi.unlock(id);
-      setOpenedHere(true);
-      put(v);
-      refreshPoints();
-      opened = true;
-      const left = v.viaSubscription && sub ? ` · 구독 운알톡 ${Math.max(0, sub.left - 1)}회 남음` : '';
-      toast(question ? `전체 답변을 열었어요${left}. 물어본 질문에 바로 답해 드릴게요` : `전체 답변을 열었어요${left}. ${hours}시간 동안 ${limit}번 더 물어볼 수 있어요`);
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'INSUFFICIENT_POINTS') {
-        toast(`${cost}알이 필요해요. 충전 후 다시 시도해 주세요`);
-        goWallet?.();
-      } else {
-        toast('열지 못했어요. 알은 쓰이지 않았어요');
-      }
-    } finally {
-      setUnlocking(false);
-    }
-    // 열자마자 물어본 질문을 보낸다 (이어 묻기 1번으로 센다)
-    if (opened && question) post(question);
-  };
 
   const remove = async () => {
     setDel(false);
@@ -248,129 +139,50 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
   const rec = TOPIC_REC[e.topic];
   // 힘든 마음이 보인 대화에는 리포트를 권하지 않는다 (예전 서버는 suggestedReport를 안 줘서 risk로도 본다)
   const showRec = e.risk === 'none' && e.suggestedReport !== null;
-  // 미리보기(잠김)여도 입력창을 보여 준다 — 보내면 전부 열기 안내가 뜬다
-  const footer = e.locked || canAsk ? (
-    <>
-      <View style={s.inputRow}>
-        <TextInput
-          ref={inputRef} value={input} onChangeText={setInput} multiline maxLength={300} {...WEB_ONE_ROW} {...webEnterToSend(() => { if (!unlocking) send(input); })}
-          placeholder="이어서 물어보세요" placeholderTextColor={isDark ? colors.inkMute : '#999999'}
-          style={[s.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} editable={!sending && !unlocking} accessibilityLabel="이어서 묻는 말"
-        />
-        <PressableScale onPress={() => send(input)} disabled={!input.trim() || !!sending || unlocking} style={[s.sendBtn, (sending || unlocking) && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="보내기">
-          <Image source={SEND_ARROW} style={s.sendArrow} contentFit="contain" />
-        </PressableScale>
-      </View>
-      <Text style={s.footCap}>
-        {e.locked
-          ? (unlocking ? '나머지 답을 쓰고 있어요' : !account ? '로그인하면 전체 답을 열고 이어서 물어볼 수 있어요' : `${viaSub ? '구독 혜택으로' : `${cost}알로`} 열면 ${hours}시간 동안 ${limit}번 이어서 물어볼 수 있어요`)
-          : `${e.followUpsLeft}번 더 물어볼 수 있어요${e.followUpUntil ? ` · ${kstTime(e.followUpUntil)}까지` : ''}`}
-      </Text>
-    </>
-  ) : (
-    <>
-      <Text style={[txt.caption, { textAlign: 'center', marginBottom: 8 }]}>이 대화의 이어 묻기는 끝났어요</Text>
-      <PrimaryButton label="새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Consult')} />
-    </>
-  );
 
   return (
-    <Screen left={<ChatHeaderLeft current={id} />} sky scroll={false} right={<PointPill attendHint quiet />}>
-      {/* 키보드는 Screen이 피해 준다. 여기서 한 번 더 감싸면 둘이 따로 올렸다 되돌리며 입력창이 튄다 */}
-      <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text style={[txt.caption, { textAlign: 'center' }]}>{e.profileNickname ? `${e.profileNickname}님 사주로 상담 · ` : ''}{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
-        {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
+    <Screen left={<ChatHeaderLeft current={id} />} sky right={<PointPill attendHint quiet />}>
+      <Text style={[txt.caption, { textAlign: 'center' }]}>{e.profileNickname ? `${e.profileNickname}님 사주로 상담 · ` : ''}{C.label} 고민 · {kstDate(e.createdAt)} · 나만 볼 수 있어요</Text>
+      {e.question ? <MyBubble at={e.createdAt}>{e.question}</MyBubble> : null}
 
-        <Stream active={fresh}>
-        <Counselor>
-          <StreamText style={s.eyebrow}>{`${C.label} 고민에 대한 답`}</StreamText>
-          <StreamBlock style={s.direct}><StreamText style={s.directV}>{e.answer.direct}</StreamText></StreamBlock>
-          <StreamBlock style={s.headline}>
-            {!isDark ? <Image source={HEADLINE_BACKGROUND} style={StyleSheet.absoluteFill} contentFit="fill" /> : null}
-            <StreamText style={s.headlineV}>{e.answer.headline}</StreamText>
-          </StreamBlock>
-          {full ? (
-            <StreamBlock style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
-              <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
-            </StreamBlock>
-          ) : null}
-          <StreamText style={s.replyText}>{e.answer.empathy}</StreamText>
-          {e.locked && hook && !unlocking ? <StreamBlock><Cliff hook={hook} /></StreamBlock> : null}
-        </Counselor>
-        {e.risk === 'crisis' ? <StreamBlock><CrisisCard /></StreamBlock> : null}
-
+      <Counselor>
+        <Text style={s.eyebrow}>{`${C.label} 고민에 대한 답`}</Text>
+        <View style={s.direct}><Text style={s.directV}>{e.answer.direct}</Text></View>
+        <View style={s.headline}>
+          {!isDark ? <Image source={HEADLINE_BACKGROUND} style={StyleSheet.absoluteFill} contentFit="fill" /> : null}
+          <Text style={s.headlineV}>{e.answer.headline}</Text>
+        </View>
         {full ? (
-          // 여기서 연 전체 답은 그때부터 써진다 (처음부터 열려 있던 답은 위 답에 이어서)
-          openedHere ? <Stream active><FullAnswer answer={full.answer} facts={full.facts} label={C.label} /></Stream> : <FullAnswer answer={full.answer} facts={full.facts} label={C.label} />
-        ) : unlocking ? (
-          <ReplyBubble typing={STAGES.rest} />
-        ) : (
-          <StreamBlock><LockedRest teaser={e.teaser ?? null} cost={cost} points={points} hours={hours} limit={limit} sub={viaSub ? sub : null} onUnlock={() => askUnlock()} /></StreamBlock>
-        )}
-
-        {turns.map((t, i) => (
-          <View key={t.createdAt}>
-            <MyBubble at={t.createdAt}>{t.question}</MyBubble>
-            {/* 방금 받은 이어 묻기 답만 써진다 */}
-            {i >= (seenTurns.current ?? 0)
-              ? <Stream active><ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble></Stream>
-              : <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <View style={[s.fact, { backgroundColor: colors.heroBg }]}><Text style={[s.factT, { color: colors.white }]}>{full.facts.modeLabel}</Text></View>
+            <View style={s.fact}><Text style={s.factT}>풀리는 달 {full.facts.bestMonth}</Text></View>
           </View>
-        ))}
-        {sending ? (
-          <>
-            <MyBubble>{sending}</MyBubble>
-            <ReplyBubble typing={STAGES.reply} />
-          </>
         ) : null}
+        <Text style={s.replyText}>{e.answer.empathy}</Text>
+      </Counselor>
 
-        {!sending && !unlocking && (e.locked || canAsk) ? (
-          <SuggestionChips
-            items={suggestions}
-            caption={e.locked ? (account ? `궁금한 질문을 누르면 ${viaSub ? '구독 혜택으로' : `${cost}알로`} 열고 바로 답해 드려요` : '로그인하면 전체 답을 열고 이어서 물어볼 수 있어요') : '이어서 물어보기'}
-            onPick={send}
-          />
-        ) : null}
+      {full ? <FullAnswer answer={full.answer} facts={full.facts} label={C.label} /> : null}
 
-        {full && showRec ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
+      {turns.map(t => (
+        <View key={t.createdAt}>
+          <MyBubble at={t.createdAt}>{t.question}</MyBubble>
+          <ReplyBubble at={t.createdAt}>{t.reply}</ReplyBubble>
+        </View>
+      ))}
 
-        {/* 게스트는 지울 수 없다 (서버가 회원만 허용) — 오래 안 쓰면 게스트 정리 때 함께 지워진다 */}
-        {account ? (
-          <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
-            <Text style={s.delete}>이 대화 기록 지우기</Text>
-          </PressableScale>
-        ) : null}
-        </Stream>
-        <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>참고를 위한 대화예요.</Text>
-      </ScrollView>
-      {/* 키보드가 떠 있으면 홈 인디케이터 여백 없이 키보드 바로 위에 붙인다 */}
-      <View style={[s.footer, { paddingBottom: keyboard ? 10 : Math.max(insets.bottom, 10) }]}>{footer}</View>
+      {full && showRec ? <LockCard title={rec.title} desc={rec.desc} item={rec.item} onPress={() => nav.navigate(rec.to[0] as never, rec.to[1] as never)} /> : null}
 
-      <BottomSheet visible={unlockOpen} onClose={closeUnlock}>
-        <Text style={[txt.caption, { textAlign: 'center' }]}>운알톡</Text>
-        {pendingQ ? (
-          <>
-            <View style={s.pendingQ}><Text style={s.pendingQText} numberOfLines={3}>{pendingQ}</Text></View>
-            <Text style={[txt.h2, { textAlign: 'center', marginTop: 12 }]}>열고 이 질문에 바로 답해 드릴게요</Text>
-          </>
-        ) : (
-          <Text style={[txt.h2, { textAlign: 'center', marginTop: 6 }]}>{viaSub ? '구독 혜택으로 전부 열까요?' : `${cost}알로 전부 열까요?`}</Text>
-        )}
-        <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>사주로 본 나 · 3개월 흐름 · 해 볼 것과 피할 것 · 행동하기 좋은 날{'\n'}그리고 {hours}시간 동안 {limit}번 이어서 물어볼 수 있어요.</Text>
-        {viaSub && sub ? (
-          <>
-            <PrimaryButton label="구독 혜택으로 열기" onPress={unlock} style={{ marginTop: 20 }} />
-            <SubQuota sub={sub} />
-          </>
-        ) : (
-          <>
-            <PrimaryButton label={`${cost}${ro(cost)} 열기`} icon={<Coin size={18} />} onPress={unlock} style={{ marginTop: 20 }} />
-            <Balance cost={cost} points={points} />
-          </>
-        )}
-        <PrimaryButton label="취소" variant="soft" onPress={closeUnlock} style={{ marginTop: 8 }} />
-      </BottomSheet>
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 28 }]}>예전 고민 상담 기록이에요. 지금은 읽기만 할 수 있어요.</Text>
+      <PrimaryButton label="운알이와 새 대화 시작하기" variant="soft" onPress={() => nav.navigate('Consult')} style={{ marginTop: 10 }} />
+
+      {/* 게스트는 지울 수 없다 (서버가 회원만 허용) — 오래 안 쓰면 게스트 정리 때 함께 지워진다 */}
+      {account ? (
+        <PressableScale onPress={() => setDel(true)} hitSlop={8} style={{ alignSelf: 'center', marginTop: 24 }}>
+          <Text style={s.delete}>이 대화 기록 지우기</Text>
+        </PressableScale>
+      ) : null}
+      <Text style={[txt.caption, { textAlign: 'center', marginTop: 12 }]}>참고를 위한 대화예요.</Text>
+
       <BottomSheet visible={del} onClose={() => setDel(false)}>
         <Text style={[txt.h2, { textAlign: 'center' }]}>대화 기록을 지울까요?</Text>
         <Text style={[txt.small, { textAlign: 'center', marginTop: 8 }]}>고민 글과 답변, 이어서 나눈 대화가 바로 지워지고 되돌릴 수 없어요.</Text>
@@ -378,105 +190,6 @@ function Chat({ id, fresh = false }: { id: number; fresh?: boolean }) {
         <PrimaryButton label="취소" variant="soft" onPress={() => setDel(false)} style={{ marginTop: 8 }} />
       </BottomSheet>
     </Screen>
-  );
-}
-
-/** 미리보기의 마지막 말 — 운알이가 나머지를 꺼내려다 가려진다 */
-function Cliff({ hook }: { hook: string }) {
-  return (
-    <View accessibilityLabel={`${hook} 이어지는 말은 잠겨 있어요`}>
-      <Text style={s.replyText}>{hook}</Text>
-      <View style={{ gap: 8, marginTop: 10 }}>
-        {CLIFF_LINES.map((w, i) => <View key={i} style={[s.cliffLine, { width: w, opacity: 1 - i * 0.3 }]} />)}
-      </View>
-    </View>
-  );
-}
-
-const CLIFF_LINES = ['94%', '82%', '58%'] as const;
-
-/** 보유 알과 부족할 때 필요한 충전량 */
-function Balance({ cost, points, style }: { cost: number; points: number; style?: StyleProp<TextStyle> }) {
-  return (
-    <Text style={style ?? [txt.caption, { textAlign: 'center', marginTop: 8 }]}>
-      보유 {fmtN(points)}알{points < cost ? ` · ${fmtN(cost - points)}알 충전하면 열 수 있어요` : ''}
-    </Text>
-  );
-}
-
-/** 구독 운알톡 남은 횟수 — 알 대신 이걸 쓴다는 걸 왕관 칩과 함께 */
-function SubQuota({ sub, style }: { sub: SubscriptionQuota; style?: object }) {
-  return (
-    <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8 }, style]}>
-      <SubscriptionBadge label="구독 혜택" small />
-      <Text style={txt.caption}>이번 달 운알톡 {sub.total}회 중 {sub.left}회 남음 · 알은 쓰지 않아요</Text>
-    </View>
-  );
-}
-
-/** 무료 미리보기에서 잠긴 부분 — 내 사주의 일부(이번 달 흐름 · 이어진 기운)와 함께 무엇이 열리는지 보여 준다 */
-function LockedRest({ teaser: T, cost, points, hours, limit, sub, onUnlock }: { teaser: ConsultTeaser | null; cost: number; points: number; hours: number; limit: number; sub: SubscriptionQuota | null; onUnlock(): void }) {
-  // 잠긴 사주 일부를 보여 주면 목록에서는 그 항목을 뺀다
-  const rows = [
-    ...(T ? [] : ['사주로 본 나', '지금의 흐름 · 앞으로 3개월']),
-    '이렇게 해 보세요 3가지', '이것만은 피하세요',
-    ...(T ? [] : ['행동하기 좋은 날']),
-    `${hours}시간 동안 ${limit}번 이어 묻기`,
-  ];
-  return (
-    <View style={s.locked}>
-      <View style={s.lockHead}>
-        <View style={s.lockIco}><Image source={LOCK_ICON} style={s.lockImage} contentFit="contain" /></View>
-        <Text style={[s.lockTitle, { flex: 1 }]}>나머지 답이 기다리고 있어요</Text>
-      </View>
-      {T ? (
-        <View style={s.peek}>
-          <View style={s.peekRow}>
-            <Text style={s.peekK}>이번 달 흐름</Text>
-            <View style={[s.peekChip, s.peekMode]}><Text style={s.peekChipText}>{T.modeLabel}</Text></View>
-          </View>
-          <View style={[s.peekRow, { marginTop: 6 }]}>
-            <Text style={s.peekK}>고민과 이어진 기운</Text>
-            <View style={[s.peekChip, { minWidth: 70, alignItems: 'center', marginTop: 1 }]}><Text style={s.peekChipText}>{T.relatedStarName}</Text></View>
-          </View>
-          <Text style={[s.peekK, { marginTop: 6 }]}>앞으로 3개월 · 가장 풀리는 달은?</Text>
-          <View style={s.peekBars}>
-            {T.months.map((m, i) => (
-              <View key={m} style={[s.peekBarCol, { flex: 84 + i }]}>
-                <Text style={s.peekBarV}>?</Text>
-                <Text style={s.peekMonth}>{m}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={[s.peekK, { marginTop: 3 }]}>행동하기 좋은 날 {T.goodDayCount}일</Text>
-          <View style={s.peekDays}>
-            {Array.from({ length: T.goodDayCount }, (_, i) => (
-              <View key={i} style={[s.peekDayBox, { flex: 84 + i }]}>
-                <Image source={LOCKED_WEEKDAY} style={s.peekDayText} contentFit="contain" accessible={false} />
-                <Image source={LOCKED_DAY_ICON} style={s.lockImage} contentFit="contain" />
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : null}
-      <View style={s.lockList}>
-        {rows.map(r => (
-          <View key={r} style={s.lockRow}>
-            <View style={s.lockDot} />
-            <Text style={s.lockText}>{r}</Text>
-          </View>
-        ))}
-      </View>
-      <PressableScale onPress={onUnlock} haptic style={s.lockUnlock} accessibilityLabel={sub ? '구독 혜택으로 전부 열기' : `${cost}알로 전부 열기`}>
-        <View style={s.lockUnlockInner}>
-          {sub ? <SolidIcon name="crown" size={16} color={CROWN} /> : <Image source={LOCK_COIN} style={s.lockCoin} contentFit="contain" />}
-          <Text style={s.lockUnlockText}>{sub ? '구독 혜택으로 전부 열기' : `${cost}알로 전부 열기`}</Text>
-        </View>
-      </PressableScale>
-      {sub
-        ? <SubQuota sub={sub} />
-        : <Balance cost={cost} points={points} style={s.lockBalance} />}
-    </View>
   );
 }
 
@@ -649,14 +362,6 @@ function TrendIcon() {
 
 const s = StyleSheet.create({
   chatTitle: { ...sansW('600'), fontSize: 18, lineHeight: 22, letterSpacing: 0, color: INK },
-  sendArrow: { width: 24, height: 24, transform: [{ rotate: '-90deg' }] },
-  content: { paddingHorizontal: SCREEN_PX, paddingBottom: 24 },
-  // 위 선 1px 포함 입력칸까지 12
-  footer: { paddingHorizontal: SCREEN_PX, paddingTop: 11, backgroundColor: colors.cream, ...shadow.float, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderColor: isDark ? colors.line : '#EDEDED' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingVertical: 4, paddingRight: 12, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
-  input: { flex: 1, maxHeight: INPUT_MAX, paddingTop: 7, paddingBottom: 7, ...sansW('500'), fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
-  sendBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
-  footCap: { ...sansW('600'), fontSize: 11, lineHeight: 17, letterSpacing: -0.44, color: colors.inkMute, textAlign: 'center', marginTop: 8 },
   eyebrow: { fontSize: 12, fontWeight: '600', color: colors.inkMute, marginTop: 4 },
   direct: { padding: 12, borderRadius: radius.lg, backgroundColor: colors.card },
   directV: { ...sansW('600'), fontSize: 14, lineHeight: 24, color: INK, letterSpacing: -0.7 },
@@ -665,37 +370,6 @@ const s = StyleSheet.create({
   fact: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.card },
   factT: { fontSize: 12, fontWeight: '700', color: colors.ink },
   replyText: { ...sansW('400'), fontSize: 14, lineHeight: 24, color: colors.ink, letterSpacing: -0.7, marginRight: 5 },
-  // Figma 288:5104 — 375px 화면에서 카드 327×459, 안쪽 패널 295×226.
-  locked: { marginTop: 24, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, paddingTop: 11, paddingHorizontal: 15, paddingBottom: 18, backgroundColor: colors.cream },
-  lockHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: -4 },
-  lockIco: { width: 30, height: 30, borderRadius: 15, backgroundColor: isDark ? colors.accentSoft : '#D1F0FF', alignItems: 'center', justifyContent: 'center' },
-  lockImage: { width: 20, height: 20 },
-  lockTitle: { ...sansW('600'), fontSize: 14, lineHeight: 17, color: INK, letterSpacing: -0.7 },
-  lockList: { marginTop: 10, paddingHorizontal: 8 },
-  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lockDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-  lockText: { ...sansW('400'), fontSize: 13, lineHeight: 24, color: INK, letterSpacing: -0.65, flex: 1 },
-  peek: { marginTop: 9, padding: 12, borderRadius: 12, backgroundColor: isDark ? colors.accentSoft : '#F3FBFF' },
-  peekRow: { minHeight: 24, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  peekK: { ...sansW('400'), fontSize: 13, lineHeight: 24, color: INK, letterSpacing: -0.65 },
-  peekChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 24, backgroundColor: colors.accent },
-  peekMode: { backgroundColor: isDark ? colors.heroBg : '#000000' },
-  peekChipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: colors.white },
-  peekBars: { flexDirection: 'row', gap: 8, marginTop: 5 },
-  peekDays: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  lockUnlock: { marginTop: 16, borderRadius: 8, backgroundColor: colors.navy },
-  lockUnlockInner: { height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  lockCoin: { width: 17, height: 16 },
-  lockUnlockText: { ...sansW('500'), fontSize: 14, lineHeight: 17, letterSpacing: 0, color: colors.white },
-  lockBalance: { ...sansW('600'), fontSize: 11, lineHeight: 17, letterSpacing: -0.44, color: colors.inkMute, textAlign: 'center', marginTop: 8 },
-  cliffLine: { height: 12, borderRadius: 6, backgroundColor: colors.lineStrong },
-  pendingQ: { alignSelf: 'center', maxWidth: '90%', marginTop: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.accentSoft },
-  pendingQText: { fontSize: 14, fontWeight: '600', color: colors.ink, letterSpacing: -0.5, textAlign: 'center' },
-  peekBarCol: { flex: 1, height: 40, alignItems: 'center', paddingTop: 5, borderRadius: 8, backgroundColor: colors.surface, gap: 4 },
-  peekBarV: { ...sansW('600'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
-  peekMonth: { ...sansW('400'), fontSize: 11, lineHeight: 13, letterSpacing: -0.55, color: colors.inkMute },
-  peekDayText: { position: 'absolute', top: 5, width: 47, height: 28 },
-  peekDayBox: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: colors.surface },
   // 전체 답 (Figma 운픽_2_2)
   box: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
   headRow8: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGrad, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import Disclaimer from '../../components/Disclaimer';
@@ -19,6 +19,7 @@ import { DaeunTable, LifePreview, LifeStage } from '../../types/premium';
 import { Pillar } from '../../types/content';
 import { LifeReading, ReadingView } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { User } from '../../types';
 import { STAGE12, TG } from '../../services/premium/data';
 import { BRANCHES, STEMS } from '../../data/sajuData';
@@ -91,7 +92,7 @@ export default function LifeScreen() {
   const spec = L ? lifeSpec(u, L.stages, L.daeun, now) : null;
 
   return (
-    <Screen title="평생운" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="평생운" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`만 ${now}세 · ${pText(u.natal.chart.day)}일주${strength ? ' · ' + strength : ''}`} />
       <Text style={[txt.title, { marginTop: 10 }]}>{u.nickname}님의{'\n'}인생 지도</Text>
       {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.life} title="인생 지도를 그리고 있어요" style={{ marginTop: 20 }} /> : (
@@ -104,6 +105,8 @@ export default function LifeScreen() {
       {!content.open ? <LockGate item={item} />
         : L && F ? <ReadingReveal on={gate.appeared}><LifeBody u={u} L={L} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
@@ -169,7 +172,7 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
         })}
       </View>
 
-      <SubHead title="02 · 앞으로의 황금기" caption="남은 대운 중 흐름이 가장 높은 구간" />
+      <SubHead title="02 · 앞으로의 황금기" caption="남은 대운 중 흐름이 가장 높은 구간과 인생의 전환점" />
       <View style={s.grid2}>
         {gold.map(d => (
           <View key={d.age} style={s.goldCard}>
@@ -194,6 +197,13 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
           </>
         ) : <PartPending writing={writing} lines={2} />}
       </Card>
+      {overview?.turning ? (
+        <Card style={{ marginTop: 10 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>轉 인생의 전환점</Text>
+          <Text style={[txt.h3, { marginTop: 6 }]}>{overview.turning.title}</Text>
+          <Para>{overview.turning.text}</Para>
+        </Card>
+      ) : null}
 
       <SubHead title="03 · 10년 대운 전체" caption={`${dae.fwd ? '순행' : '역행'} · ${dae.start}세 시작 · ${dae.list.length}개 대운`} />
       <View style={{ gap: 10 }}>
@@ -240,6 +250,13 @@ function LifeBody({ u, L, reading, onRetry }: { u: User; L: LifeData; reading: R
             ) : <View style={{ opacity: 0.6 }}><PartPending writing={writing} lines={4} /></View>}
             {nextD ? <Text style={{ fontSize: 13, color: colors.moon, marginTop: 12 }}>다음 대운 {nextD.age}세부터 · {pText(nextD.p)} · {nextD.score}점</Text> : null}
           </Hero>
+          {daeun?.shift && nextD ? (
+            <Card style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.purpleSoft }}>다음 대운으로 넘어갈 때 · {nextD.age}세 · {pText(nextD.p)}</Text>
+              <Text style={[txt.h3, { marginTop: 6 }]}>{daeun.shift.title}</Text>
+              <Para>{daeun.shift.text}</Para>
+            </Card>
+          ) : null}
         </>
       ) : null}
 

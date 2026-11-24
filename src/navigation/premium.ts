@@ -1,6 +1,7 @@
 import { NavigationProp, ParamListBase } from '@/navigation/compat';
 import { ITEMS, Item, ThemeKind } from '../services/premium/catalog';
 import { parseISO } from '../utils/date';
+import { newYearOf } from '../services/promo/promos';
 
 /** 프리미엄 콘텐츠 키 → 화면 이동 (HTML 미리보기의 data-act="premium" 대응) */
 export type PremiumKey = 'lounge' | 'sajuDeep' | 'life' | 'newyear' | 'monthly' | 'lucky' | `theme-${ThemeKind}`;
@@ -23,7 +24,7 @@ export function defaultItem(key: Exclude<PremiumKey, 'lounge'>, today: string): 
   const t = parseISO(today);
   if (key === 'sajuDeep') return ITEMS.sajuDeep();
   if (key === 'life') return ITEMS.life();
-  if (key === 'newyear') return ITEMS.newyear(t.y);
+  if (key === 'newyear') return ITEMS.newyear(newYearOf(today));
   if (key === 'monthly') return ITEMS.monthly(t.y, t.m);
   if (key === 'lucky') return ITEMS.lucky('move', today);
   return ITEMS.theme(key.slice(6) as ThemeKind);

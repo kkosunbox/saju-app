@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect, useNavigation } from '@/navigation/compat';
 import PressableScale from '../../components/PressableScale';
@@ -16,7 +16,7 @@ import { radius, txt } from '../../theme/typography';
  * 첫 화면 알림 두 가지 (예전 홈에 있던 것): 내 초대 링크로 상대가 궁합을 봤다 · 친구 결과 링크로 들어왔다(나도 해보기).
  * 둘 다 없으면 아무것도 그리지 않는다
  */
-export default function HomeNotices() {
+export default function HomeNotices({ style }: { style?: StyleProp<ViewStyle> }) {
   const nav = useNavigation();
   const { user } = useApp();
   const [friend, setFriend] = useState<FriendResult | null>(null);
@@ -29,7 +29,7 @@ export default function HomeNotices() {
   if (!arrived.length && !friend) return null;
 
   return (
-    <View style={{ gap: 8, marginTop: 20 }}>
+    <View style={[{ gap: 8, marginTop: 20 }, style]}>
       {arrived.length ? (
         <PressableScale onPress={() => nav.navigate('Compatibility', { result: arrived[0] })} style={s.notice} scaleTo={0.98} accessibilityLabel={`${arrived[0].target.nickname}님과의 궁합 결과 보기`}>
           <Mascot name="friends" size={30} />

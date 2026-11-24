@@ -27,6 +27,8 @@ import GradientBorder from '../GradientBorder';
 import HScroll from '../HScroll';
 import { Coin } from '../Amount';
 import { ItemContents } from './ItemContents';
+import { SignupBonusPeek } from './SignupBonusPeek';
+import { useApp } from '../../context/AppContext';
 
 export const scoreColor = (v: number) => (v >= 85 ? colors.purple : v >= 75 ? colors.purpleSoft : colors.inkMute);
 
@@ -65,11 +67,14 @@ export function LineTag({ label, color = FREE_BLUE, variant = 'default' }: { lab
 
 /** 보유 여부에 따라 "보유" 또는 "◎ 300" */
 export function PriceTag({ item, small, variant = 'default' }: { item: Item; small?: boolean; variant?: 'default' | 'figma' }) {
-  const { owned, subscriptionFree } = usePremium();
-  if (owned(item.key)) return <LineTag label="보유" color={OWNED_GREEN} variant={variant} />;
+  const { owned, yearCovered, subscriptionFree } = usePremium();
+  if (owned(item.key) || yearCovered(item.key)) return <LineTag label="보유" color={OWNED_GREEN} variant={variant} />;
   if (subscriptionFree(item.key)) return <SubscriptionBadge label="구독 무료" small={small} />;
   const cost = <CostPill cost={item.cost} small={small} variant={variant} />;
-  return item.event ? <View style={s.row4}><LineTag label="이벤트" color={EVENT_PINK} variant={variant} />{cost}</View> : cost;
+  // 이벤트 할인은 딱지 없이 원래 가격에 줄만 긋는다: ~~300~~ ◎ 50
+  return item.event && item.orig ? (
+    <View style={s.row4}><Text style={[s.tagOrig, small && s.tagOrigSmall]}>{item.orig.toLocaleString('ko-KR')}</Text>{cost}</View>
+  ) : cost;
 }
 
 /** 화면 상단: 열람 중 / 미리보기 */
@@ -278,35 +283,59 @@ function GhostBody() {
 }
 
 /** 잠긴 본문: 가짜 줄을 흐리게 깔고 그 위에 열람 패널. 열려 있으면 children(본문) */
-export function LockGate({ item, children, onUnlocked }: { item: Item; children?: React.ReactNode; onUnlocked?(): void }) {
-  const { owned, points, openUnlock, subscriptionFree, records } = usePremium();
+/** signupBonus: 게스트에게 열람 버튼 위로 '지금 가입하면 50알' 말풍선을 띄운다 (가입 축하 알로 바로 열 수 있는 콘텐츠만) */
+export function LockGate({ item, children, onUnlocked, signupBonus }: { item: Item; children?: React.ReactNode; onUnlocked?(): void; signupBonus?: boolean }) {
+  const { owned, points, openUnlock, subscriptionFree, yearCovered, records } = usePremium();
+  const { account } = useApp();
+  const shared = useSharedView();
   const scope = useContentScope();
   const [picking, setPicking] = useState(false);
+  // 패널은 흐린 본문 위에 떠 있어서, 패널이 길어지면(말풍선 등) 감싸는 칸도 같이 늘린다
+  const [panelH, setPanelH] = useState(0);
   if (owned(item.key)) return <>{children}</>;
   const free = subscriptionFree(item.key);
+  // 그해 신년운세에 포함된 달: 알 없이 버튼을 누르면 풀이를 시작한다
+  const viaYear = yearCovered(item.key);
   // 프로필을 고치기 전 정보로 본 풀이가 있으면: 프로필 고르기(이전 풀이가 그 아래에 있다)를 열거나, 바뀐 정보로 새로 푼다
   const earlier = !!scope && records(item.key).some(e => !e.current);
   const showOlder = () => setPicking(true);
   const blur = Platform.OS === 'web' ? ({ filter: 'blur(3px)' } as object) : null;
   return (
-    <View style={s.lockWrap}>
+    <View style={[s.lockWrap, { minHeight: Math.max(420, panelH + 56) }]}>
       <View style={[s.lockBlur, blur]} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <GhostBody />
         <LinearGradient colors={[colors.cream + '00', colors.cream]} locations={[0.25, 0.95]} style={StyleSheet.absoluteFill} />
       </View>
-      <View style={s.lockPanel}>
+      <View style={s.lockPanel} onLayout={e => setPanelH(e.nativeEvent.layout.height)}>
         <View style={s.lockIco}><Icon name="lock" size={26} color={colors.accent} strokeWidth={1.8} /></View>
-        {free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} />
-          : item.event && item.orig ? <View style={{ alignSelf: 'center', marginTop: 10 }}><LineTag label={`이벤트 할인 · ${fmtP(item.orig)} → ${fmtP(item.cost)}`} color={EVENT_PINK} /></View> : null}
+        {viaYear ? null
+          : free ? <SubscriptionBadge label="구독 혜택 · 이번 달 무료" style={{ alignSelf: 'center', marginTop: 10 }} />
+          : null}
         <Text style={[txt.h3, { marginTop: 10, textAlign: 'center' }]}>{item.title}</Text>
         {earlier
           ? <Text style={[txt.small, { marginTop: 2, textAlign: 'center' }]}>프로필이 바뀌었어요</Text>
           : <ItemContents desc={item.desc} center style={{ marginTop: 10 }} />}
         {earlier ? <PrimaryButton label="이전 풀이 보기" variant="soft" small onPress={showOlder} style={{ marginTop: 12, alignSelf: 'stretch' }} /> : null}
-        {free
+        {viaYear
+          ? <PrimaryButton label="잠금 해제하고 풀이 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
+          : free
           ? <PrimaryButton label="구독 혜택으로 무료 보기" onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: 16, alignSelf: 'stretch' }} />
-          : <PrimaryButton label={earlier ? `${item.cost}${ro(item.cost)} 새로 풀기` : (item.key === 'spouse' ? '전체 보기' : `${item.cost}${ro(item.cost)} 전체 보기`)} icon={<Coin size={18} />} onPress={() => openUnlock(item, onUnlocked)} style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }} />}
-        <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
+          : (
+            <>
+              {/* 게스트에겐 버튼 위로 '지금 가입하면 50알' 말풍선이 비집고 나온다 */}
+              {signupBonus && !account && !shared && !earlier ? <SignupBonusPeek onPress={() => openUnlock(item, onUnlocked)} /> : null}
+              <PrimaryButton
+                label={earlier ? `${item.cost}${ro(item.cost)} 새로 풀기` : `${item.cost}${ro(item.cost)} 전체 보기`}
+                // 이벤트 할인 중이면 버튼 안에 원래 가격을 취소선으로: ◎ ~~300~~ 50으로 전체 보기
+                icon={item.event && item.orig && !earlier
+                  ? <View style={s.btnPrice}><Coin size={18} /><Text style={s.btnOrig}>{item.orig.toLocaleString('ko-KR')}</Text></View>
+                  : <Coin size={18} />}
+                onPress={() => openUnlock(item, onUnlocked)}
+                style={{ marginTop: earlier ? 8 : 16, alignSelf: 'stretch' }}
+              />
+            </>
+          )}
+        <Text style={[txt.caption, { marginTop: 10, textAlign: 'center' }]}>{viaYear ? '알을 쓰지 않아요 · 신년운세에 포함된 달이에요' : free ? `알을 쓰지 않아요 · ${item.scope}` : `보유 ${fmtP(points)} · ${item.scope}`}</Text>
       </View>
       <ProfileSheet contentKey={item.key} visible={picking} onClose={() => setPicking(false)} />
     </View>
@@ -334,7 +363,7 @@ export function BodyState({ error, onRetry }: { error?: boolean; onRetry?(): voi
 
 /** 다른 화면에서 프리미엄 콘텐츠로 들어가는 카드 */
 /** 유료 콘텐츠로 이어지는 회색 카드 — (그림) + 제목 · 보유/가격 · › + 한 줄 설명 */
-export function LockCard({ title, desc, item, onPress, mt = 24, art }: { title: string; desc: string; item: Item; onPress(): void; mt?: number; art?: number }) {
+export function LockCard({ title, desc, item, onPress, mt = 24, art }: { title: string; desc?: string; item: Item; onPress(): void; mt?: number; art?: number }) {
   return (
     <PressableScale onPress={onPress} style={[s.lockCard, { marginTop: mt }]} scaleTo={0.98} accessibilityLabel={title}>
       {art ? <Image source={art} style={s.lockArt} resizeMode="contain" /> : null}
@@ -344,7 +373,7 @@ export function LockCard({ title, desc, item, onPress, mt = 24, art }: { title: 
           <PriceTag item={item} variant="figma" />
           <Icon name="chevronRight" size={16} color={colors.ink} strokeWidth={2} />
         </View>
-        <Text style={s.lockDesc}>{desc}</Text>
+        {desc ? <Text style={s.lockDesc}>{desc}</Text> : null}
       </View>
     </PressableScale>
   );
@@ -495,7 +524,9 @@ const s = StyleSheet.create({
   costSmall: { gap: 2, paddingRight: 6, paddingVertical: 2 },
   costText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: colors.white },
   costTextSmall: { fontSize: 10, lineHeight: 14 },
-  figmaCost: { height: 18, minWidth: 45, gap: 2, paddingLeft: 5, paddingRight: 6, paddingVertical: 3 },
+  tagOrig: { ...sansW('500'), fontSize: 12, lineHeight: 16, color: colors.inkMute, textDecorationLine: 'line-through' },
+  tagOrigSmall: { fontSize: 10, lineHeight: 12, includeFontPadding: false },
+  figmaCost: { height: 18, gap: 2, paddingLeft: 5, paddingRight: 6, paddingVertical: 3 },
   figmaCostText: { ...sansW('700'), fontSize: 10, lineHeight: 12, letterSpacing: 0, includeFontPadding: false },
   figmaLineTag: { paddingVertical: 2, borderWidth: 0.5, opacity: 1 },
   figmaLineTagText: { ...sansW('600'), lineHeight: 14, letterSpacing: 0, opacity: 0.8, includeFontPadding: false },
@@ -527,6 +558,9 @@ const s = StyleSheet.create({
   rank: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   rankText: { fontSize: 14, fontWeight: '800', color: colors.purpleSoft },
   lockWrap: { marginTop: 12, minHeight: 420 },
+  // 열람 버튼 안 원래 가격 (흰 글자 60% · 취소선)
+  btnPrice: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  btnOrig: { color: colors.white, opacity: 0.6, fontSize: 15, fontWeight: '500', letterSpacing: -0.5, textDecorationLine: 'line-through' },
   lockIco: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   bodyState: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 16 },
   ghostHead: { width: '40%', height: 16, borderRadius: 8, backgroundColor: colors.lineStrong, marginTop: 20, marginBottom: 12 },

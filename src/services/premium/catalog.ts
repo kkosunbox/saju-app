@@ -15,14 +15,35 @@ export interface Item {
   event?: boolean;
 }
 
+/** 신년운세는 그해 1~12월 월별 상세운세를 함께 연다. 서버 premium-catalog 와 같은 값 */
+export const NEWYEAR_COST = 500;
+export const MONTHLY_COST = 40;
+
+/** 월별 상세운세 키(monthly:YYYY-MM)를 함께 여는 신년운세 키, 다른 키면 null (서버 newYearKeyOfMonth) */
+export const newYearKeyOfMonth = (key: string): string | null => {
+  const m = /^monthly:(\d{4})-(0[1-9]|1[0-2])$/.exec(key);
+  return m ? 'newyear:' + m[1] : null;
+};
+
+/**
+ * 내 신년운세 — 그해 월별 상세운세를 이미 연 달마다 40알씩 뺀다. 서버(premium-catalog credits)와 같은 계산이고
+ * 결제 금액은 서버가 정한다. owned 는 신년운세가 아직 없을 때 부르므로 직접 연 달만 센다.
+ */
+export function newYearFor(y: number, owned: (key: string) => boolean): Item {
+  const item = ITEMS.newyear(y);
+  const held = Array.from({ length: 12 }, (_, i) => ITEMS.monthly(y, i + 1).key).filter(owned).length;
+  if (!held) return item;
+  return { ...item, cost: Math.max(0, item.cost - held * MONTHLY_COST), orig: item.cost, desc: `${item.desc} · 이미 연 ${held}개월은 빼고 계산했어요` };
+}
+
 export type ThemeKind = 'love' | 'money' | 'career';
 export const THEME_T: Record<ThemeKind, string> = { love: '연애·결혼 운세', money: '재물 운세', career: '직업·적성 운세' };
 
 export const ITEMS = {
   sajuDeep: (): Item => ({ key: 'saju', title: '상세 사주 해석', cost: 300, scope: '한 번 열면 계속 볼 수 있어요', desc: '사주 원국표 · 오행 균형 · 타고난 본성 · 십성과 신살 · 연애 · 재물 · 직업 · 건강 · 대운 · 개운법' }),
   life: (): Item => ({ key: 'life', title: '평생운 · 10년 대운', cost: 500, scope: '한 번 열면 계속 볼 수 있어요', desc: '초년·중년·말년 · 인생 그래프 · 10년 대운 · 황금기와 조심할 시기 · 앞으로 10년의 해마다 흐름' }),
-  newyear: (y: number): Item => ({ key: 'newyear:' + y, title: y + '년 신년운세', cost: 300, scope: y + '년 운세를 계속 볼 수 있어요', desc: '올해 총운과 사자성어 · 띠와 삼재 · 분야별 6대 운세 · 분기 전략 · 12개월 흐름 · 개운법' }),
-  monthly: (y: number, m: number): Item => ({ key: `monthly:${y}-${String(m).padStart(2, '0')}`, title: `${y}년 ${m}월 상세운세`, cost: 100, scope: '그달의 운세를 계속 볼 수 있어요', desc: '이달의 총운 · 운세 달력 · 주차별 흐름 · 분야별 운세 · 좋은 날과 조심할 날 · 이달의 미션' }),
+  newyear: (y: number): Item => ({ key: 'newyear:' + y, title: y + '년 신년운세', cost: NEWYEAR_COST, scope: `${y}년 운세와 1~12월 상세운세를 계속 볼 수 있어요`, desc: `올해 총운과 사자성어 · 띠와 삼재 · 분야별 6대 운세 · 분기 전략 · 12개월 흐름 · 개운법 · ${y}년 1~12월 월별 상세운세 포함` }),
+  monthly: (y: number, m: number): Item => ({ key: `monthly:${y}-${String(m).padStart(2, '0')}`, title: `${y}년 ${m}월 상세운세`, cost: MONTHLY_COST, scope: '그달의 운세를 계속 볼 수 있어요', desc: '이달의 총운 · 운세 달력 · 주차별 흐름 · 분야별 운세 · 좋은 날과 조심할 날 · 이달의 미션' }),
   theme: (k: ThemeKind): Item => ({
     key: 'theme:' + k, title: THEME_T[k], cost: 200, scope: '한 번 열면 계속 볼 수 있어요',
     desc: {
@@ -44,7 +65,7 @@ export const ITEMS = {
   /** 등록한 가족(아이 · 엄마 · 아빠)마다 산다 (서버 child:{id}, 프로필을 고쳐도 그대로) */
   child: (childSetId: number, name: string): Item => ({ key: 'child:' + childSetId, title: name ? `${name} · 우리 아이 사주` : '우리 아이 사주', cost: 300, scope: '이 아이의 사주는 계속 볼 수 있어요', desc: '타고난 기질과 매력 · 잘 지내는 법 · 재능 TOP 3와 키워 주는 법 · 맞는 공부 방식 · 엄마·아빠와의 궁합 · 자라는 시기별 흐름 · 올해 · 하루 리듬' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
-  consult: (id: string): Item => ({ key: 'consult:' + id, title: '운알톡 1회', cost: 100, scope: '24시간 동안 10번 이어서 물어볼 수 있어요', desc: '고민 해결 한 줄 답 · 마음의 소리 읽기 · 사주로 본 나 · 이번 달 흐름과 3개월 전망 · 이렇게 해 보세요 · 피할 것 · 행동하기 좋은 날 · 이어 묻기 10번' }),
+  consult: (id: string): Item => ({ key: 'consult:' + id, title: '운알톡', cost: 5, scope: '매일 대화 2개는 무료, 그다음은 한 마디 5알', desc: '운알이와 가볍게 나누는 대화 · 오늘의 운세와 리포트를 기억하고 이어서 이야기해요' }),
   pet: (petId: number, name: string): Item => ({ key: 'pet:' + petId, title: name + ' · 반려동물 궁합', cost: 150, scope: '이 아이와의 궁합은 계속 볼 수 있어요', desc: '이 아이 이야기와 매력 · 이럴 때의 마음 · 타고난 성향과 지금 모습 · 우리 사이와 엇갈리는 순간 · 하루 루틴과 놀이 · 계절별 돌봄 · 함께 놀기 좋은 날 · 아이가 보내는 편지' }),
   compat: (compatibilityId: number, name: string, relationship: Relationship = 'lover', mbtiKnown = true): Item => ({
     key: 'compat:' + compatibilityId, title: name + '님과 심층 궁합', cost: 150, scope: '이 상대와의 궁합은 계속 볼 수 있어요',
@@ -73,9 +94,9 @@ export function bundleFor(owned: (key: string) => boolean): Item | null {
 }
 
 export const PRICE_TABLE: [string, string][] = [
-  ['오늘의 운세 · 4가지 분석 · 종합', '무료'], ['주간 운세 · 기본 궁합', '무료'], ['찰떡 MBTI · 사주 캐릭터 · 오늘의 부적', '무료'], ['월별 상세운세', '100알 / 월'], ['신년운세', '300알 / 해'],
+  ['오늘의 운세 · 4가지 분석 · 종합', '무료'], ['주간 운세 · 기본 궁합', '무료'], ['찰떡 MBTI · 사주 캐릭터 · 오늘의 부적', '무료'], ['월별 상세운세', '40알 / 월'], ['신년운세', '500알 / 해 · 그해 월별 상세운세 포함 (연 달은 40알씩 빼요)'],
   ['상세 사주 해석', '300알 · 소장'], ['평생운 · 10년 대운', '500알 · 소장'], ['테마 운세 (연애 · 재물 · 직업)', '각 200알 · 소장'],
-  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '이벤트 50알 (300알 → 50알) · 소장'], ['우리 아이 사주', '300알 / 아이 1명'], ['운알톡 · 비밀 고민 해결', '100알 / 1회'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
+  ['심층 궁합', '150알 / 상대 1명'], ['그 사람의 속마음', '150알 / 상대 1명'], ['미래 배우자 리포트', '이벤트 50알 (300알 → 50알) · 소장'], ['우리 아이 사주', '300알 / 아이 1명'], ['운알톡', '한 마디 5알 (매일 대화 2개 무료)'], ['길일 찾기', '50알 / 목적별 7일'], ['인생 패키지', '1,100알 (1,400알 → 21% 할인)'],
 ];
 
 /** 충전 상품: [원, 포인트, 보너스, 상품 ID]. 상품 ID는 서버와 같고 처음 가격을 그대로 쓴다 (points_1000 = 900원). */
@@ -108,7 +129,7 @@ export const safeReturnTo = (path?: string): string | undefined =>
 export const SUBSCRIPTION = {
   productId: 'premium_monthly', name: '운Pick 프리미엄', won: 9900, period: '1개월',
   // 서버 SUBSCRIPTION_BENEFITS 와 같은 내용. 광고는 아직 없지만 생겨도 구독자에겐 보이지 않는다
-  benefits: ['운알톡 매달 20회 무료', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
+  benefits: ['운알톡 무제한', '월별 상세운세 매달 무료', '출석 체크 알 2배', '광고 없이 이용'],
 };
 
 /** 문장 속 금액 ("100알"). 숫자 옆에 마스코트 아이콘을 둘 수 있는 자리는 Kit의 Amount를 쓴다 */

@@ -31,6 +31,8 @@ async function getJSON<T>(key: string): Promise<T | null> {
 export const storage = {
   getOnboarded: async () => (await AsyncStorage.getItem(deviceKey('onboarded'))) === '1',
   setOnboarded: (v: boolean) => AsyncStorage.setItem(deviceKey('onboarded'), v ? '1' : '0'),
+  hasSeenConsultWelcome: () => AsyncStorage.getItem(deviceKey('consultWelcomeShown')).then(v => v === '1').catch(() => false),
+  markConsultWelcomeSeen: () => AsyncStorage.setItem(deviceKey('consultWelcomeShown'), '1').catch(() => {}),
   /** 처음엔 모두 꺼져 있다. 예전 앱에서 켜 둔 아침 운세 알림은 그 시각 그대로 이어진다 */
   getNotificationSettings: async (): Promise<NotificationSettings> => {
     const saved = await getJSON<NotificationSettings | LegacyNotificationSettings>(deviceKey('notification'));

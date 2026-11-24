@@ -120,7 +120,7 @@ export default function SubscribeScreen() {
           <Bullet>{storeName} 계정으로 {p.period}마다 {store.displayPrice ?? won(p.won)}이 자동 결제돼요.</Bullet>
           <Bullet>구독 기간이 끝나기 24시간 전까지 해지하지 않으면 같은 가격으로 자동 갱신돼요.</Bullet>
           <Bullet>구독 관리와 해지는 {Platform.OS === 'ios' ? '설정 > Apple 계정 > 구독' : 'Play 스토어 > 결제 및 정기 결제'}에서 할 수 있어요. 해지해도 이번 기간이 끝날 때까지 혜택이 유지돼요.</Bullet>
-          <Bullet>운알톡 20회는 결제일마다 새로 채워지고, 남은 횟수는 다음 달로 넘어가지 않아요. 하루 무료 대화 5회를 다 쓴 뒤부터 알보다 먼저 쓰여요.</Bullet>
+          <Bullet>구독 중에는 운알톡을 알 없이 마음껏 이야기할 수 있어요 (하루 100마디까지).</Bullet>
           <Bullet>월별 상세운세는 구독 중인 달의 운세를 무료로 열 수 있고, 한 번 열면 구독이 끝나도 계속 볼 수 있어요.</Bullet>
           <Bullet>환불은 {storeName} 정책에 따라 {Platform.OS === 'ios' ? 'Apple' : 'Google Play'}에 요청해 주세요.</Bullet>
         </View>
@@ -129,7 +129,7 @@ export default function SubscribeScreen() {
           <Bullet>첫 결제일부터 {p.period}마다 등록한 카드로 {won(p.won)}이 자동 결제돼요.</Bullet>
           <Bullet>결제는 토스페이먼츠 정기결제로 처리되고, 결제일은 매달 첫 결제일과 같은 날이에요. 그 날이 없는 달은 말일에 결제돼요.</Bullet>
           <Bullet>결제에 실패하면 3일 동안 하루 한 번 다시 시도하고, 그래도 실패하면 구독이 끝나요.</Bullet>
-          <Bullet>운알톡 20회는 결제일마다 새로 채워지고, 남은 횟수는 다음 달로 넘어가지 않아요. 하루 무료 대화 5회를 다 쓴 뒤부터 알보다 먼저 쓰여요.</Bullet>
+          <Bullet>구독 중에는 운알톡을 알 없이 마음껏 이야기할 수 있어요 (하루 100마디까지).</Bullet>
           <Bullet>월별 상세운세는 구독 중인 달의 운세를 무료로 열 수 있고, 한 번 열면 구독이 끝나도 계속 볼 수 있어요.</Bullet>
           <Bullet>언제든 [마이 &gt; 내 알 &gt; 정기 구독]에서 해지할 수 있어요. 해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요.</Bullet>
           <Bullet>환불은 1:1 문의로 요청해 주세요. 결제 후 7일 안에 혜택(무료 운알톡·월별 상세운세·출석 2배)을 하나도 쓰지 않았다면 전액 환불해 드려요. 그 밖에는 이용약관 제4조의2를 따라요.</Bullet>

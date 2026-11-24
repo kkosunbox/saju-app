@@ -135,13 +135,13 @@ export default function WalletScreen() {
 
       <SubHead title="정기 구독" />
       {subscription ? (
-        // 구독 중: 상태와 이번 회차 운알톡 남은 횟수를 보여 주고 구독 관리로
+        // 구독 중: 상태와 혜택을 보여 주고 구독 관리로
         <Card onPress={() => router.push('/subscription')} style={s.sub} accessibilityLabel={`${SUBSCRIPTION.name} 구독 관리`}>
           <View style={s.crown}><SolidIcon name="crown" size={16} color={CROWN} /></View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[s.attendTitle, { lineHeight: 16 }]}>{SUBSCRIPTION.name}</Text>
             <Text style={s.subBenefit}>{subscriptionLine(subscription)}</Text>
-            {subscription.benefits.active ? <Text style={s.subBenefit}>운알톡 {subscription.benefits.consultLeft}/{subscription.benefits.consultTotal}회 남음</Text> : null}
+            {subscription.benefits.active ? <Text style={s.subBenefit}>운알톡 무제한</Text> : null}
           </View>
           <Text style={s.won}>구독 관리</Text>
           <View style={s.subChevron}><Icon name="chevronRight" size={20} color={colors.inkMute} strokeWidth={2} /></View>

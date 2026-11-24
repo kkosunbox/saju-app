@@ -3,6 +3,8 @@
  * 답변 · 위기 판단 · 기록은 서버(/consults)가 한다. 상담은 공유하지 않는다.
  */
 export const CONSULT_CONFIG = { maxLen: 500, minLen: 10, cost: 100 };
+/** 운알톡 대화 — 서버 값(GET /consults/status의 chat)이 오기 전 기본값 */
+export const CHAT_CONFIG = { maxLen: 300, cost: 5, freeChatsPerDay: 2, freeTurnsPerChat: 2 };
 
 export type ConsultCat =
   | 'love' | 'crush' | 'marriage' | 'reunion'

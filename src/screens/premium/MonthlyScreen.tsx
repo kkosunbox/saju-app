@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { RouteProp, useRoute } from '@/navigation/compat';
-import Screen from '../../components/Screen';
+import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import Icon from '../../components/Icon';
 import PressableScale from '../../components/PressableScale';
@@ -10,7 +10,7 @@ import ScoreRing from '../../components/ScoreRing';
 import ScoreBar from '../../components/ScoreBar';
 import { emojiFor } from '../../components/KeywordChip';
 import Disclaimer from '../../components/Disclaimer';
-import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockGate, Para, scoreColor } from '../../components/premium/Kit';
+import { BodyState, Bullet, ChipSelect, FortuneCalendar, HeadRow, LockCard, LockGate, Para, scoreColor } from '../../components/premium/Kit';
 import { Closing, InfoRows, SajuHeading, SajuIconName, SubHead } from '../../components/premium/SajuParts';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { PREVIEW_STEPS, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '../../components/premium/PreviewMaking';
@@ -19,12 +19,14 @@ import { useApp } from '../../context/AppContext';
 import { useSharedArg } from '../../context/SharedViewContext';
 import { usePremium } from '../../context/PremiumContext';
 import { RootStackParamList } from '../../navigation/types';
-import { ITEMS } from '../../services/premium/catalog';
+import { ITEMS, newYearFor } from '../../services/premium/catalog';
+import { useScopedPremium } from '../../context/ContentScopeContext';
 import { WEEK, dayPillar, daysInMonth, monthPillarOf, pText, pad2 } from '../../services/premium/helpers';
 import { MonthPreview, MonthReport, SajuFull } from '../../types/premium';
 import { Pillar } from '../../types/content';
 import { MonthReading, ReadingView } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { EL_LUCK } from '../../services/premium/data';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { parseISO, weekdayOf } from '../../utils/date';
@@ -36,6 +38,8 @@ import { monthlySpec } from '../../services/share/shareSpecs';
 export default function MonthlyScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Monthly'>>();
   const { user: u, today } = useApp();
+  const { owned } = useScopedPremium();
+  const nav = useNavigation();
   const t = parseISO(today);
   // 공유 링크로 열면 공유된 달만 (달 고르기는 숨긴다)
   const sharedArg = useSharedArg();
@@ -49,21 +53,36 @@ export default function MonthlyScreen() {
   const making = usePreviewMaking(ref.month, !!preview.data, !content.open && !preview.isError, PREVIEW_STEPS.monthly.length);
   if (!u?.natal) return null;
   const item = ITEMS.monthly(sel.y, sel.m);
-  if (content.open && gate.show) return <ReadingStepsScreen title="월별 상세운세" kind="month" reading={reading} />;
+  if (content.open && gate.show) return <ReadingStepsScreen title="월별 상세운세" kind="month" reading={reading} heading={`${sel.y}년 ${sel.m}월의 운세를 풀고 있어요`} />;
   const R = content.data?.data; const F = content.data?.F;
   const top: MonthPreview | undefined = R ?? preview.data;
   const mp = monthPillarOf(sel.y, sel.m);
-  // 살 수 있는 달: 지난달부터 12개월 뒤까지 (서버 카탈로그와 같은 범위)
-  const months: [string, string, string][] = [];
-  for (let i = -1; i <= 12; i++) {
-    const d = new Date(t.y, t.m - 1 + i, 1);
-    months.push([`${d.getFullYear()}-${d.getMonth() + 1}`, `${d.getMonth() + 1}월`, d.getFullYear() !== t.y ? String(d.getFullYear()) : i === 0 ? '이번 달' : '']);
+  // 고를 수 있는 달: 지난달부터 12개월 뒤까지(서버 카탈로그와 같은 범위) + 신년운세로 열린 해의 1~12월 + 지금 보는 달
+  const picks = new Set<number>();
+  for (let i = -1; i <= 12; i++) picks.add(t.y * 12 + t.m - 1 + i);
+  for (let yy = t.y - 1; yy <= t.y + 1; yy++) {
+    if (owned('newyear:' + yy)) for (let mm = 1; mm <= 12; mm++) picks.add(yy * 12 + mm - 1);
   }
+  picks.add(sel.y * 12 + sel.m - 1);
+  const months: [string, string, string][] = [...picks].sort((a, b) => a - b).map(n => {
+    const [yy, mm] = [Math.floor(n / 12), (n % 12) + 1];
+    return [`${yy}-${mm}`, `${mm}월`, yy !== t.y ? String(yy) : yy === t.y && mm === t.m ? '이번 달' : ''];
+  });
+  // 이 달을 함께 여는 신년운세 (공유 링크로 본 사람에겐 잇지 않는다, 파는 해만)
+  const yearKey = 'newyear:' + sel.y;
+  const viaYear = sharedArg === null && owned(yearKey);
+  const yearForSale = sharedArg === null && Math.abs(sel.y - t.y) <= 1;
   const spec = R ? monthlySpec(u, R) : null;
 
   return (
-    <Screen title="월별 상세운세" back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="월별 상세운세" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${sel.y}년 ${sel.m}월 1일 ~ ${daysInMonth(sel.y, sel.m)}일`} />
+      {viaYear ? (
+        <PressableScale onPress={() => nav.navigate('NewYear', { year: sel.y })} style={s.yearLink} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`${sel.y}년 신년운세 보기`}>
+          <Text style={s.yearLinkText}>{sel.y}년 신년운세에 포함된 달이에요</Text>
+          <Text style={s.yearLinkMore}>신년운세 보기 ›</Text>
+        </PressableScale>
+      ) : null}
       {sharedArg === null ? <ChipSelect<string> items={months} value={`${sel.y}-${sel.m}`} onChange={v => { const [yy, mm] = v.split('-').map(Number); setSel({ y: yy, m: mm }); }} /> : null}
       {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS.monthly} title={`${sel.m}월 미리보기를 만들고 있어요`} />
       : top ? (
@@ -79,9 +98,15 @@ export default function MonthlyScreen() {
           </View>
         </View></PreviewReveal>
       ) : <BodyState error={preview.isError} />}
+      {!content.open && yearForSale && !viaYear ? (
+        <LockCard mt={12} title={`${sel.y}년 신년운세로 12달 모두 보기`} item={newYearFor(sel.y, owned)}
+          onPress={() => nav.navigate('NewYear', { year: sel.y })} />
+      ) : null}
       {!content.open ? <LockGate key={item.key} item={item} />
         : R && F ? <ReadingReveal on={gate.appeared}><MonthlyBody key={item.key} R={R} F={F} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>
@@ -257,6 +282,9 @@ const s = StyleSheet.create({
   chipText: { ...sansW('600'), fontSize: 12, lineHeight: 14, letterSpacing: 0, color: colors.white, opacity: 0.8, ...TIGHT },
   grid3: { flexDirection: 'row', gap: 8 },
   cell3: { flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
+  yearLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, borderRadius: radius.sm, backgroundColor: colors.lavenderSoft, paddingVertical: 10, paddingHorizontal: 14 },
+  yearLinkText: { flex: 1, ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.inkSub },
+  yearLinkMore: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.purple },
   calInfo: { marginTop: 12, backgroundColor: colors.lavenderSoft, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, gap: 3 },
   topLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   lrow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },

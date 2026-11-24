@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import BrandMark, { BRAND } from './BrandMark';
+import { BRAND } from './BrandMark';
+import { Logo } from './Mascot';
 import Icon from './Icon';
 import SolidIcon from './SolidIcon';
 import { BUSINESS } from '../content/business';
@@ -42,7 +43,8 @@ export default function BusinessFooter({ style }: { style?: object }) {
   return (
     <View style={[s.wrap, style]}>
       <View style={s.head}>
-        <BrandMark size={14} />
+        {/* Figma 워드마크 57.5×32 — Logo는 아래에 빈 자리(55 중 19)가 있어 높이 32 칸 안에 위쪽을 맞춰 넣는다 */}
+        <View style={s.logo}><Logo height={LOGO_H} color={colors.ink} /></View>
         <View style={s.links}>
           {/* <a href> 로 그려 검색엔진도 따라간다 */}
           <Link href="/legal/terms" style={s.link}>이용약관</Link>
@@ -57,7 +59,7 @@ export default function BusinessFooter({ style }: { style?: object }) {
         style={[s.toggle, open && s.toggleOpen]}
       >
         <View style={s.toggleLabel}>
-          <SolidIcon name="documentText" size={16} color={colors.accent} />
+          <SolidIcon name="documentText" size={20} color={colors.accent} />
           <Text style={s.toggleText}>사업자 정보</Text>
         </View>
         <View style={open && s.flip}>
@@ -93,9 +95,13 @@ export default function BusinessFooter({ style }: { style?: object }) {
   );
 }
 
+/** 글자 높이 32가 되는 워드마크 상자 높이 (워드마크는 55 상자 중 위 36) */
+const LOGO_H = 32 * 55 / 36;
+
 const s = StyleSheet.create({
   wrap: { paddingTop: 26, paddingBottom: 12 },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
+  logo: { height: 32, overflow: 'visible' },
   links: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   link: { ...sansW('700'), fontSize: 12, lineHeight: 20, letterSpacing: -0.48, color: colors.ink },
   bar: { width: 1, height: 14, backgroundColor: colors.lineStrong },
@@ -104,7 +110,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.lg,
   },
   toggleOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-  toggleLabel: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 4 },
+  toggleLabel: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   toggleText: { ...sansW('700'), fontSize: 13, lineHeight: 20, letterSpacing: -0.52, color: colors.ink },
   flip: { transform: [{ rotate: '180deg' }] },
   card: {

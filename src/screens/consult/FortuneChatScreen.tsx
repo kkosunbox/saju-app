@@ -21,9 +21,9 @@ import { formatKoreanDate } from '../../utils/date';
 import { DEV_TOOLS } from '../../utils/devTools';
 import { useScreenLive } from '../../utils/motion';
 import { Counselor, MyBubble, ReplyBubble, SuggestionChips, WEB_ONE_ROW, useWebAutoGrow, webEnterToSend } from './parts';
-import { useAskConsult } from './useAskConsult';
-import WorryMarquee from './WorryMarquee';
-import { CONSULT_CONFIG } from '../../services/content/consult';
+import { InlineChatTurns, useInlineChat } from './InlineChat';
+import { useChatCostConfirm } from './ChatCostSheet';
+import { CHAT_CONFIG } from '../../services/content/consult';
 import { ChatHeaderLeft } from './ChatMenu';
 import FortuneRec from './FortuneRec';
 import { useFortuneSignup } from './FortuneSignupDialog';
@@ -34,14 +34,8 @@ import { PointPill } from '../../components/HeaderPoints';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const ASK_INPUT_MAX = 120;
-/** 입력창 위 질문 프리셋 — 한쪽으로 천천히 흐르고, 누르면 입력창에 채운다 (고쳐서 보낼 수 있게) */
-const ASK_PRESETS = [
-  '썸남에게 오늘 먼저 연락해도 될까요?',
-  '오늘 회사에 퇴사하겠다고 말해도 될까요?',
-  '요즘 일이 잘 안 풀리는데 왜 그럴까요?',
-  '이번 달 돈 관리는 어떻게 하면 좋을까요?',
-  '지금 만나는 사람과 잘될 수 있을까요?',
-];
+/** 답이 온 뒤 대화 끝을 따라 내려가는 시간 (긴 답이 다 써질 만큼) */
+const FOLLOW_MS = 15000;
 
 /** 게스트 가입 안내 팝업 — 일단 끔. 다시 띄우려면 true로 */
 const FORTUNE_SIGNUP_ENABLED = false;
@@ -76,8 +70,9 @@ const plainAction = (t: string) => t.split(/\s*[—–]\s*/)[0].trim().replace(/
 
 /** "오늘 운세 어때?"라고 물을 때 — 고민 글에서 이렇게만 물으면 상담 대신 오늘의 운세로 답한다 */
 export const isTodayFortuneQuestion = (text: string) => {
-  const t = text.replace(/\s/g, '');
-  return t.length <= 25 && /(오늘|today).*(운세|운|기운)|운세.*(오늘|어때|알려)/i.test(t) && !/(고민|어떻게해야|할까요|해도될까)/.test(t);
+  // "오늘 운세 어때?"처럼 운세 자체만 묻는 말만 — "오늘 연애운 어때?", "운세 근거 알려줘"처럼 더 묻는 말은 운알이가 답한다
+  const t = text.replace(/[\s?!.~]/g, '');
+  return /^(오늘|today)?(내|제|나의)?(오늘)?(의)?운세(는|좀|가)?(어때|어때요|어떄|알려줘|봐줘|보여줘|어떻게돼|어떰)?$/i.test(t);
 };
 
 /**
@@ -159,13 +154,29 @@ export default function FortuneChatScreen() {
   const draw = useFortuneDraw();
   const scroll = useRef<ScrollViewInstance>(null);
   const [justDrawn, setJustDrawn] = useState(false);
-  // 아래 입력창 — 오늘의 운세를 보다가 바로 운알이에게 고민을 물어본다 (보내면 운알톡 대화로 넘어간다)
+  // 아래 입력창 — 오늘의 운세를 보다가 바로 운알이에게 말을 건다. 화면을 넘기지 않고 운세 아래로 대화가 이어진다 (이 운세를 기억)
   const askInput = useRef<TextInputInstance>(null);
   const [askText, setAskText] = useState('');
-  // 너무 짧게 보내면 버튼을 잠그지 않고, 왜 안 가는지 입력창 위에 알려 준다
-  const [askShort, setAskShort] = useState(false);
   useWebAutoGrow(askInput, askText, ASK_INPUT_MAX);
-  const askConsult = useAskConsult('fortune');
+  const inline = useInlineChat(fortune?.id);
+  const askCost = inline.cost;
+  const { confirm: confirmCost, sheet: costSheet } = useChatCostConfirm();
+  const inlineTurns = inline.chat?.turns?.length ?? 0;
+  // 말을 보내면 답이 다 써질 때까지 대화 끝을 따라 내려간다 (말풍선이 그려지며 높이가 늘어나는 만큼).
+  // 글이 써지는 동안 높이가 계속 바뀌어 부드러운 스크롤은 매번 끊기므로, 늘어날 때마다 바로 끝에 붙인다
+  const [followChat, setFollowChat] = useState(false);
+  useEffect(() => {
+    if (inline.sending) {
+      setFollowChat(true);
+      // 보낸 말이 바로 보이게 한 번은 부드럽게
+      requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: true }));
+      return;
+    }
+    if (!followChat) return;
+    // 답이 다 써질 만큼 따라가고 그 뒤엔 사용자가 자유롭게 스크롤한다 (손으로 끌면 바로 멈춘다)
+    const t = setTimeout(() => setFollowChat(false), FOLLOW_MS);
+    return () => clearTimeout(t);
+  }, [inline.sending, followChat, inlineTurns]);
   const who = fortuneUser?.nickname ?? user?.nickname ?? '';
   const isSelf = profiles.find(p => p.profileId === (fortuneProfileId ?? user?.profileId))?.relationship === 'self';
   const drawCost = draw.ready && !draw.opened ? fortune?.drawCost ?? 0 : 0;
@@ -266,23 +277,19 @@ export default function FortuneChatScreen() {
     else if (q === CHIPS.tarot) nav.navigate('AnalysisDetail', { source: 'tarot' });
     else if (q === CHIPS.share) nav.navigate('Share');
   };
-  const askOk = askText.trim().length >= CONSULT_CONFIG.minLen;
   const sendAsk = () => {
-    const worry = askText.trim();
-    // "오늘 운세 어때?"는 이 화면이 이미 답하고 있다 — 맨 위로
-    if (worry && isTodayFortuneQuestion(worry)) { setAskText(''); askInput.current?.blur(); scroll.current?.scrollTo({ y: 0, animated: true }); return; }
-    if (!askOk) { setAskShort(true); askInput.current?.focus(); return; }
-    setAskText('');
-    setAskShort(false);
-    askInput.current?.blur();
-    askConsult(worry);
-  };
-  const onAskText = (t: string) => {
-    setAskText(t);
-    if (askShort && (!t.trim() || t.trim().length >= CONSULT_CONFIG.minLen)) setAskShort(false);
+    const message = askText.trim();
+    if (!message) return;
+    // 오늘 운세에 대한 말은 전부 이 운세를 기억한 운알이가 이어서 답한다 ("오늘 운세 어때?"도 위로 돌려보내지 않는다)
+    // 알이 드는 말이면 보내기 전에 한 번 묻는다 (다시 보지 않기를 고르면 바로)
+    confirmCost(askCost, () => {
+      setAskText('');
+      // 다 본 운세면 그 운세를 기억하고 이어서 이야기한다 (예전 서버는 id가 없어 그냥 대화)
+      void inline.send(message, ready && fortune?.id ? { type: 'daily_fortune', ref: String(fortune.id), title: `${who}님의 오늘의 운세` } : undefined)
+        .then(ok => { if (!ok) setAskText(message); });
+    });
   };
   const askLen = askText.trim().length;
-  const pickPreset = (q: string) => { setAskText(q); setAskShort(false); askInput.current?.focus(); };
   const unlock = () => {
     if (!fortune) return;
     openUnlock(ITEMS.daily(fortune.date, who, drawCost), () => { draw.open(); setJustDrawn(true); void refreshFortune(); }, fortune.forProfile ?? undefined);
@@ -302,6 +309,8 @@ export default function FortuneChatScreen() {
     >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
+        onContentSizeChange={followChat ? () => scroll.current?.scrollToEnd({ animated: false }) : undefined}
+        onScrollBeginDrag={followChat ? () => setFollowChat(false) : undefined}
         onScroll={FORTUNE_SIGNUP_ENABLED && guest && signupSeen !== true ? onFortuneScroll : undefined} scrollEventThrottle={32}
         onLayout={onFortuneViewportLayout}>
         <Text style={[txt.caption, { textAlign: 'center' }]}>{formatKoreanDate(today)} · 오늘의 운세</Text>
@@ -346,25 +355,21 @@ export default function FortuneChatScreen() {
           </Stream>
         )}
 
+        {/* 아래 입력창으로 이어 말한 대화 — 화면을 넘기지 않고 여기에 쌓인다 */}
+        <InlineChatTurns chat={inline.chat} sending={inline.sending} />
+
         {DEV_TOOLS && draw.opened ? (
           <Text style={[txt.caption, { textAlign: 'center', marginTop: 24 }]} onPress={() => { draw.reset(); setJustDrawn(false); }}>뽑기 초기화 (테스트용)</Text>
         ) : null}
       </ScrollView>
 
-      {/* 채팅처럼 아래에서 바로 물어본다 — 보내면 운알톡 대화 화면에서 답이 온다 */}
+      {/* 채팅처럼 아래에서 바로 물어본다 — 답은 이 화면 운세 아래로 온다 */}
       <View style={s.askBar}>
-        {askShort ? (
-          <Text style={s.askHint} accessibilityLiveRegion="polite">고민을 {CONSULT_CONFIG.minLen}자 이상 적어 주세요 ({askLen}/{CONSULT_CONFIG.minLen})</Text>
-        ) : !askText ? (
-          <View style={s.presetRow}>
-            <WorryMarquee items={ASK_PRESETS} onPick={pickPreset} />
-          </View>
-        ) : null}
         <View style={s.askRow}>
           <TextInput
-            ref={askInput} value={askText} onChangeText={onAskText} multiline maxLength={CONSULT_CONFIG.maxLen} {...WEB_ONE_ROW} {...webEnterToSend(sendAsk)}
-            placeholder="운알이에게 고민을 물어보세요" placeholderTextColor={colors.inkMute}
-            style={[s.askInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="운알이에게 물어볼 고민"
+            ref={askInput} value={askText} onChangeText={setAskText} multiline maxLength={CHAT_CONFIG.maxLen} {...WEB_ONE_ROW} {...webEnterToSend(sendAsk)}
+            placeholder="오늘 운세, 운알이에게 더 물어보세요" placeholderTextColor={colors.inkMute}
+            style={[s.askInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} accessibilityLabel="운알이에게 보낼 말"
           />
           <PressableScale onPress={sendAsk} disabled={!askLen} style={[s.askSend, !askLen && { opacity: 0.4 }]} scaleTo={0.9} accessibilityLabel="운알이에게 물어보기">
             <View style={{ transform: [{ rotate: '-45deg' }], marginLeft: 2, marginBottom: 2 }}><Icon name="send" size={20} color={colors.white} strokeWidth={1.8} /></View>
@@ -373,6 +378,7 @@ export default function FortuneChatScreen() {
       </View>
       </KeyboardAvoidingView>
       <FortuneAlarmPrompt visible={alarmAsk} onClose={() => setAlarmAsk(false)} />
+      {costSheet}
     </Screen>
   );
 }
@@ -409,8 +415,6 @@ const s = StyleSheet.create({
   luckyV: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: colors.ink, letterSpacing: -0.4, flexShrink: 1 },
   luckyK: { fontSize: 11, lineHeight: 14, color: colors.inkMute, letterSpacing: -0.3 },
   askBar: { paddingHorizontal: SCREEN_PX, paddingTop: 8, paddingBottom: 18, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-  presetRow: { marginHorizontal: -SCREEN_PX, marginBottom: 8 },
-  askHint: { marginBottom: 8, fontSize: 12, lineHeight: 16, color: colors.danger, letterSpacing: -0.5 },
   askRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingRight: 8, paddingLeft: 14, borderRadius: radius.sm, backgroundColor: colors.card },
   askInput: { flex: 1, minHeight: 40, maxHeight: ASK_INPUT_MAX, paddingTop: 11, paddingBottom: 11, fontSize: 13, lineHeight: 18, color: colors.ink, letterSpacing: -0.65 },
   askSend: { width: 32, height: 32, margin: 4, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },

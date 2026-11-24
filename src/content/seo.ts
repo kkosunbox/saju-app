@@ -43,7 +43,7 @@ const EXACT: Record<string, PageMeta> = {
   '/legal/terms': { title: '서비스 이용약관' },
   '/legal/privacy': { title: '개인정보처리방침' },
   '/compatibility': { title: '궁합' },
-  '/consult': { title: '운알톡', description: '혼자 품은 고민, 마음의 소리를 운알이에게만 들려주세요. 사주로 해결의 실마리를 찾아 드려요.' },
+  '/consult': { title: '운알톡', description: '운알이와 편하게 이야기해 보세요. 오늘의 운세를 보다가도, 리포트를 읽다가도 바로 이어서 물어볼 수 있어요.' },
   '/content': { title: '콘텐츠' },
   '/talks': { title: '대화 기록' },
   '/today': { title: '오늘의 운세', description: '운알이에게 오늘의 운세를 물어보세요. 점수부터 분야별 흐름, 행운까지 대화로 알려 드려요.' },

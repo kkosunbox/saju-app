@@ -10,7 +10,7 @@ import { FullWindowOverlay } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from './AppContext';
-import { Item, PACKS, Pack, fmtP, packBonus, packFor, ro } from '../services/premium/catalog';
+import { Item, PACKS, Pack, fmtP, newYearKeyOfMonth, packBonus, packFor, ro } from '../services/premium/catalog';
 import { announceReadingDone } from '../services/readingDone';
 import Icon from '../components/Icon';
 import { Amount, Coin } from '../components/Amount';
@@ -47,6 +47,8 @@ interface PremiumState {
   missions: Record<string, boolean>;
   /** 그 프로필(없으면 대표 프로필)의 지금 정보로 열려 있는지 */
   owned(key: string, profileId?: number): boolean;
+  /** 그해 신년운세에 포함돼 알 없이 열 수 있는 월별 상세운세 (아직 열지 않음) */
+  yearCovered(key: string, profileId?: number): boolean;
   /** 그 프로필(없으면 대표 프로필)로 이 콘텐츠를 산 기록 — 지금 정보로 연 것과 고치기 전 정보로 본 것, 최근 순 */
   records(key: string, profileId?: number): Entitlement[];
   /** 모든 프로필의 열람권 (구매 기록) */
@@ -152,6 +154,14 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     },
     [entitlements, profileOf, primaryId],
   );
+  /** 그해 신년운세로 열 수 있는데 아직 열지 않은 월별 상세운세 (잠금 해제 버튼을 누르면 알 없이 열린다) */
+  const yearCovered = useCallback(
+    (key: string, profileId?: number) => {
+      const year = newYearKeyOfMonth(key);
+      return !!year && owned(year, profileId) && !owned(key, profileId);
+    },
+    [owned],
+  );
   const records = useCallback(
     (key: string, profileId?: number) => {
       const pid = profileId ?? primaryId;
@@ -230,7 +240,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
   const value: PremiumState = {
     ready: !member || (wallet.isFetched && unlocks.isFetched),
-    points, missions, owned, records, entitlements,
+    points, missions, owned, yearCovered, records, entitlements,
     expiringSoon: wallet.data?.expiringSoon ?? 0,
     attendedToday: !!wallet.data?.attendedToday,
     attendanceReward: wallet.data?.attendanceReward ?? 10,
@@ -244,6 +254,8 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     openUnlock: (item, onDone, profileId) => {
       if (requireLogin('unlock', item.title)) return;
       if (owned(item.key, profileId)) { onDone?.(); return; }
+      // 신년운세에 포함된 달은 확인 시트 없이 바로 연다 (알을 쓰지 않는다)
+      if (yearCovered(item.key, profileId)) { void doUnlock(item, onDone, profileId); return; }
       setSheet({ type: 'unlock', item, onDone, profileId });
     },
     openCharge: (i, returnTo) => { if (!requireLogin('charge')) doCharge(i, returnTo); },
@@ -362,6 +374,7 @@ function UnlockSheet({ item: it, points, free, busy, who, again, firstCharge, on
       {againLine}
       <View style={s.sumBox}>
         {it.event && it.orig ? <SumRow label="이벤트 할인" value={`${fmtP(it.orig)} → ${fmtP(it.cost)}`} color={colors.purple} /> : null}
+        {!it.event && it.orig && it.key.startsWith('newyear:') ? <SumRow label="이미 연 달 빼기" value={`${fmtP(it.orig)} → ${fmtP(it.cost)}`} color={colors.purple} /> : null}
         <SumRow label="보유 알" value={points} />
         <SumRow label="사용할 알" value={it.cost} sign="−" color={colors.love} />
         <View style={s.hr} />

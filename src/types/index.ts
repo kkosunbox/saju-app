@@ -144,6 +144,8 @@ export interface TarotReading {
 }
 
 export interface DailyFortune {
+  /** 운세 id (서버) — 운알톡을 이 운세에서 시작할 때 넘긴다. 예전 서버는 주지 않는다 */
+  id?: number;
   viewpointsVersion?: 'legacy' | 'tarot-v1';
   userId: string;
   date: string;

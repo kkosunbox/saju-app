@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import PressableScale from '../../components/PressableScale';
 import SolidIcon, { SolidIconName } from '../../components/SolidIcon';
@@ -17,6 +17,7 @@ import { ITEMS } from '../../services/premium/catalog';
 import { WEEK, pText } from '../../services/premium/helpers';
 import { LuckyDay, LuckyDays, LuckyPreview, PurposeKey, SajuFull } from '../../types/premium';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { EL_LUCK, PURPOSE, PURPOSE_TIPS, STAGE12, TG } from '../../services/premium/data';
 import { dayNumber, parseISO, weekdayOf } from '../../utils/date';
 import { colors, isDark } from '../../theme/colors';
@@ -59,7 +60,7 @@ export default function LuckyScreen() {
   const top = L?.list[0];
 
   return (
-    <Screen title="길일 찾기" back right={<ShareIconButton item={item} spec={L ? luckySpec(u, L) : null} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="길일 찾기" back right={<ShareIconButton item={item} spec={L ? luckySpec(u, L) : null} />}>
       <HeadRow item={item} caption="앞으로 45일 중에서 골라요" />
       {sharedArg === null ? <>
       <Text style={[txt.title, { marginTop: 10 }]}>어떤 날을{'\n'}찾고 있나요?</Text>
@@ -90,6 +91,8 @@ export default function LuckyScreen() {
       {!content.open ? <LockGate key={item.key} item={item} />
         : L && content.data?.F ? <ReadingReveal on={gate.appeared}><LuckyBody key={item.key} L={L} F={content.data.F} pk={pk} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={L ? luckySpec(u, L) : null} />
       <Disclaimer mt={24} />
     </Screen>

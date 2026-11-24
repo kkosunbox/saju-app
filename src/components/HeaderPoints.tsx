@@ -17,7 +17,8 @@ let attendBubbleShown = false;
 /** 상단 오른쪽: 내 포인트 알약(누르면 지갑).
  *  attendHint면 오늘 출석 전일 때 말풍선을 잠깐 띄웠다가 알약 속으로 빨려 들어가게 하고, 금색 +10을 남긴다.
  *  알약 → 알충전소 길을 익히게 하려는 것(비로그인도 똑같이). quiet면 말풍선 없이 +10만 바로 붙인다(메인 밖 화면) */
-export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?: boolean }) {
+/** bubbleAlign: 알약이 화면 오른쪽 끝에 붙어 있으면 'right' — 말풍선을 알약 오른쪽 끝에 맞추고 꼬리만 알약 가운데로 둔다 */
+export function PointPill({ attendHint, quiet, bubbleAlign = 'center' }: { attendHint?: boolean; quiet?: boolean; bubbleAlign?: 'center' | 'right' }) {
   const nav = useNavigation();
   // 구독 중이면 출석 보상이 2배(20)라 서버가 알려 준 값을 그대로 쓴다
   const { points, ready, attendedToday, attendanceReward: reward } = usePremium();
@@ -26,6 +27,9 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
   const show = !!attendHint && ready && !attendedToday;
 
   const [bubble, setBubble] = useState(false);
+  // 오른쪽 맞춤일 때 꼬리를 알약 가운데에 두려고 알약 폭을 잰다 (재기 전엔 알 한 자리 알약 폭)
+  const [pillW, setPillW] = useState(45);
+  const right = bubbleAlign === 'right';
   // 말풍선 몸통과 글자를 따로 움직인다: 몸통이 먼저 떠오르고 글자가 차례로 올라온 뒤,
   // 나갈 때는 등장을 정확히 거꾸로 돌린다(+10알 → 오늘 출석 보상 → 몸통). 그 뒤 알약에 +10 칸이 열린다.
   // 튕기는 스프링 없이 감속 곡선만 써서 부드럽게
@@ -82,7 +86,7 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
   const lerp = (v: Animated.Value, inputRange: number[], outputRange: number[]) => v.interpolate({ inputRange, outputRange, extrapolate: 'clamp' });
   return (
     <View>
-      <Animated.View style={{ transform: [{ scale: lerp(gulp, [0, 1], [1, 1.06]) }] }}>
+      <Animated.View style={{ transform: [{ scale: lerp(gulp, [0, 1], [1, 1.06]) }] }} onLayout={e => setPillW(e.nativeEvent.layout.width)}>
         <PillButton points={points} onPress={goWallet} label={`내 알 ${points}개, 오늘 출석하면 ${reward}알을 받아요`}>
           <Animated.View style={{ maxWidth: lerp(chip, [0, 1], [0, 40]), opacity: chip, overflow: 'hidden' }}>
             <View style={s.chip}>
@@ -93,10 +97,10 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
       </Animated.View>
       {bubble ? (
         // 알약 폭에 갇혀 줄바꿈되지 않게 양옆으로 넓은 자리를 깔고 가운데에 둔다
-        <View pointerEvents="box-none" style={s.bubbleSlot}>
+        <View pointerEvents="box-none" style={[s.bubbleSlot, right && s.bubbleSlotRight]}>
           <Animated.View
             pointerEvents="box-none"
-            style={[s.bubbleWrap, {
+            style={[s.bubbleWrap, right && { transformOrigin: `100% 0%` }, {
               opacity: body,
               transform: [
                 { translateY: lerp(body, [0, 1], [-6, 0]) },
@@ -105,7 +109,7 @@ export function PointPill({ attendHint, quiet }: { attendHint?: boolean; quiet?:
             }]}
           >
             <PressableScale onPress={goWallet} style={s.bubble} scaleTo={0.96} hitSlop={6} accessibilityLabel={`출석 체크하고 ${reward}알 받기`}>
-              <View style={s.tail} />
+              <View style={[s.tail, right ? { right: pillW / 2 - 3.5 } : s.tailCenter]} />
               <Animated.Text
                 style={[s.bubbleText, {
                   opacity: label,
@@ -163,6 +167,8 @@ const s = StyleSheet.create({
   chip: { marginLeft: 2, height: 16, paddingHorizontal: 5, borderRadius: 8, justifyContent: 'center', backgroundColor: colors.moon },
   chipText: { ...profileType(11, '800', 13, -0.2, colors.heroBg) },
   bubbleSlot: { position: 'absolute', top: 24 + 9, left: -100, right: -100, alignItems: 'center' },
+  // 말풍선 오른쪽 끝 = 알약 오른쪽 끝 — 화면 밖으로 나가지 않는다
+  bubbleSlotRight: { left: -200, right: 0, alignItems: 'flex-end' },
   // 꼬리 끝(알약 가운데)을 기준으로 커지고 작아진다
   bubbleWrap: { transformOrigin: '50% 0%' },
   bubble: {
@@ -170,7 +176,8 @@ const s = StyleSheet.create({
     backgroundColor: colors.heroBg, borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.14)',
     boxShadow: '0 4px 14px rgba(29,33,45,0.22)',
   },
-  tail: { position: 'absolute', top: -3, left: '50%', marginLeft: -3.5, width: 7, height: 7, borderTopLeftRadius: 1.5, backgroundColor: colors.heroBg, transform: [{ rotate: '45deg' }] },
+  tailCenter: { left: '50%', marginLeft: -3.5 },
+  tail: { position: 'absolute', top: -3, width: 7, height: 7, borderTopLeftRadius: 1.5, backgroundColor: colors.heroBg, transform: [{ rotate: '45deg' }] },
   bubbleText: { ...profileType(11, '600', 13, -0.3, 'rgba(255,255,255,0.78)') },
   bubbleGold: { ...profileType(11, '800', 13, -0.2, colors.moon) },
 });

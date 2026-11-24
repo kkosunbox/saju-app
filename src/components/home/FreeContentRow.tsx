@@ -15,7 +15,7 @@ const ITEMS: Record<Kind, { title: string; sub: string; to: string }> = {
   past: { title: '전생테스트', sub: '나의 전생은?', to: 'PastLife' },
   star: { title: '연예인 궁합', sub: '오늘의 천생연분', to: 'StarMatch' },
 };
-const DEFAULT_KINDS: Kind[] = ['tal', 'mbti', 'char', 'past', 'star'];
+const DEFAULT_KINDS: Kind[] = ['star', 'past', 'char', 'mbti', 'tal'];
 
 /** 무료 콘텐츠 카드 줄 — 홈 '무료로 즐기기'와 같은 카드. inset: 좌우 여백(가로 스크롤 안쪽) */
 export default function FreeContentRow({ inset, kinds = DEFAULT_KINDS }: { inset: number; kinds?: readonly Kind[] }) {

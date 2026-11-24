@@ -5,7 +5,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import FreeContentRow from '../../components/home/FreeContentRow';
@@ -23,6 +23,7 @@ import { pText } from '../../services/premium/helpers';
 import { promosOf } from '../../services/promo/promos';
 import { SpousePreview, SpouseReport } from '../../types/premium';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { ELEMENT_INFO } from '../../data/sajuData';
 import { MBTI_INFO } from '../../data/mbtiData';
 import { colors, isDark } from '../../theme/colors';
@@ -74,7 +75,7 @@ export default function SpouseScreen() {
   return (
     <View style={s.frame}>
       <View style={s.frame} importantForAccessibility={spotlight.visible ? 'no-hide-descendants' : 'auto'} aria-hidden={spotlight.visible}>
-        <Screen title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} onOpen={spotlight.dismiss} />}>
+        <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="미래 배우자 리포트" back right={<ShareIconButton item={item} spec={spec} onOpen={spotlight.dismiss} />}>
           <FriendCompare route="Spouse" spec={spec} />
           <HeadRow item={item} caption={`배우자의 별 · ${el.ko}(${el.hanja})`} />
           <PreviewReveal gate={making}>
@@ -104,9 +105,11 @@ export default function SpouseScreen() {
             </View>
           </PreviewReveal>
 
-          {!content.open ? <LockGate item={item} />
+          {!content.open ? <LockGate item={item} signupBonus />
             : R ? <ReadingReveal on={gate.appeared}><SpouseBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
             : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+          {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+          <TalkEnd />
           {recommendations ? (
             <>
               <SubHead title="이어서 보기" />

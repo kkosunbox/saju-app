@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useRoute } from '@/navigation/compat';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import { BodyState, Bullet, DarkChip, HeadRow, LockGate, Para, SubHead, heroTxt, scoreColor } from '../../components/premium/Kit';
@@ -19,6 +19,7 @@ import { SajuFull, ThemeCareer, ThemeContent, ThemeLove, ThemeMoney, ThemePrevie
 import { Pillar } from '../../types/content';
 import { ReadingView, ThemeReading } from '../../types/reading';
 import { usePremiumContent, usePremiumPreview, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { EL_LUCK } from '../../services/premium/data';
 import { ELEMENT_INFO, STEMS } from '../../data/sajuData';
 import { colors, isDark } from '../../theme/colors';
@@ -91,12 +92,14 @@ export default function ThemeScreen() {
   }
 
   return (
-    <Screen title={item.title} back right={<ShareIconButton item={item} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title={item.title} back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`${pText(u.natal.chart.day)}일주 · ${u.mbti}`} />
       {making.making ? <PreviewMakingCard gate={making} steps={PREVIEW_STEPS[kind]} /> : top ? <PreviewReveal gate={making}>{hero}</PreviewReveal> : hero}
       {!content.open ? <LockGate key={item.key} item={item} />
         : data && F ? <ReadingReveal on={gate.appeared}><ThemeBody key={item.key} kind={kind} D={data.details} F={F} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <ShareCta item={item} spec={spec} />
       <Disclaimer compact mt={24} />
     </Screen>

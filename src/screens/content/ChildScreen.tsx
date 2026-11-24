@@ -3,7 +3,7 @@ import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
 import Disclaimer from '../../components/Disclaimer';
 import BottomSheet from '../../components/BottomSheet';
@@ -25,6 +25,7 @@ import { useSharedArg, useSharedView } from '../../context/SharedViewContext';
 import { ApiError } from '../../api/client';
 import { ITEMS } from '../../services/premium/catalog';
 import { usePremiumContent, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { ChildMemberInput, childApi, refreshChildSets, useChildSets } from '../../services/server/childApi';
 import { inputOf, ProfileInput } from '../../services/server/profileApi';
 import { childSpec, josa } from '../../services/share/shareSpecs';
@@ -357,7 +358,7 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
   };
 
   return (
-    <Screen title="우리 아이 사주" back right={<ShareIconButton item={content.open ? item : undefined} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="우리 아이 사주" back right={<ShareIconButton item={content.open ? item : undefined} spec={spec} />}>
       {shared ? null : <FriendCompare route="Child" spec={spec} />}
       {setRow}
       <PreviewReveal gate={making}>
@@ -403,6 +404,8 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
         : R ? <ReadingReveal on={gate.appeared}><ChildBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
 
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <Card style={{ marginTop: 32 }}>
         <Text style={txt.h3}>이 결과는 어떻게 만들었나요?</Text>
         <Para>아이의 생년월일시로 네 기둥을 세워 타고난 기운과 오행의 균형, 십성의 힘을 보고, 엄마·아빠의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 자라는 시기는 10년마다 바뀌는 대운으로 봤어요. 사주는 타고난 경향일 뿐이고, 아이는 사랑과 경험 속에서 얼마든지 새롭게 자라요.</Para>

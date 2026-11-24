@@ -3,7 +3,7 @@ import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import Screen from '../../components/Screen';
+import Screen, { TalkEnd } from '../../components/Screen';
 import TextField from '../../components/TextField';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
@@ -23,6 +23,7 @@ import { ApiError } from '../../api/client';
 import { BodyState, LockedCard } from '../../components/premium/Kit';
 import { ITEMS } from '../../services/premium/catalog';
 import { usePremiumContent, useReading } from '../../services/server/premiumApi';
+import { contentChatSource } from '../../services/server/consultApi';
 import { PartPending, ReadingBanner } from '../../components/premium/Reading';
 import { PreviewStepsScreen, ReadingOpeningCard, ReadingPart, useJustOpenedFetching, useReadingSections } from '../../components/premium/ReadingGate';
 import { usePetMatchReveal } from '../../services/content/petMatchReveal';
@@ -193,7 +194,7 @@ function PetResult({ u, pet, pets, matchKey, onPick, onAdd, onRemoved }: {
   );
 
   return (
-    <Screen key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton item={content.open ? petItem : undefined} spec={spec} />}>
+    <Screen talk={content.open ? contentChatSource(content.key, petItem.title, content.data?.entitlementId) : undefined} key={`pet-${pet.id}`} title="반려동물 궁합" back contentStyle={s.content} right={<ShareIconButton item={content.open ? petItem : undefined} spec={spec} />}>
       {/* 누구와의 궁합인지 — 프로필을 고르면 그 프로필과 아이의 궁합 */}
       {shared ? null : <ProfileSwitch contentKey={petItem.key} style={{ marginBottom: 12 }} />}
       {shared ? null : <PetSnackBanner style={s.snackTop} />}
@@ -226,6 +227,8 @@ function PetResult({ u, pet, pets, matchKey, onPick, onAdd, onRemoved }: {
       )}
 
 
+      {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
+      <TalkEnd />
       <View style={[s.card, { marginTop: 16 }]}>
         <Text accessibilityRole="header" style={s.cardTitle}>이 결과는 어떻게 만들었나요?</Text>
         <Text style={s.body}>아이의 생일로 년·월·일 세 기둥을 세워 타고난 기운을 보고, 내 사주의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 생일을 모르면 가족이 된 날을 두 번째 생일로 삼아 그날의 기운으로 보고, 짐작한 생일은 날짜 대신 태어난 달의 기운으로 봐요. 태어난 시간은 쓰지 않아요. 재미로 보는 콘텐츠이고, 아이의 실제 성격은 함께 지내며 알아가는 게 가장 정확해요.</Text>

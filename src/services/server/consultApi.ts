@@ -1,7 +1,7 @@
 /**
- * 고민 상담 (서버 AI). 하루 5번까지 무료 미리보기(결론까지만), 100알로 열면 전체 답변과
- * 24시간 동안 이어 묻기 10번. 구독 중이면 100알 대신 구독 운알톡 횟수(회차당 20회)를 먼저 쓴다.
- * 포인트는 답변이 만들어진 뒤에만 차감. 회원 전용.
+ * 운알톡 (서버 AI) — 운알이와 가볍게 나누는 대화. 하루 대화 2개까지 각 대화의 메시지 2개는 무료,
+ * 그다음은 메시지마다 5알(구독 중이면 알 없이). 알은 답이 만들어진 뒤에만 차감.
+ * 예전 무거운 고민 상담(미리보기 · 100알 열기)은 기록으로만 남아 읽기만 한다.
  */
 import { useQuery } from '@tanstack/react-query';
 import { api, call } from '../../api/client';
@@ -26,10 +26,33 @@ export interface ConsultFacts {
   goodDays: { iso: string; label: string }[];
   idiom: [string, string, string];
 }
-export interface ConsultTurn { question: string; reply: string; followUps: string[]; createdAt: string }
+/** 운알톡 대화를 시작한 화면 — 운알이가 그 화면 내용을 기억하고 이야기한다 (서버가 DB에서 다시 읽는다) */
+export type ChatSource =
+  | { type: 'daily_fortune'; ref: string; title?: string }
+  | { type: 'content'; ref: string; title: string };
+
+/** 보낸 출처를 대화 화면의 출처 모양으로 — 답을 기다리는 동안에도 위에 미리 띄운다 (life@123 → life) */
+export const sourceView = (source: ChatSource): NonNullable<ConsultView['source']> => ({
+  type: source.type,
+  title: source.title ?? null,
+  key: source.type === 'content' ? source.ref.split('@')[0] : null,
+});
+
+/** 콘텐츠 화면에서 운알톡을 시작할 때 — 열람권을 알면 그 프로필의 풀이를 읽게 붙인다 (life@123) */
+export const contentChatSource = (contentKey: string, title: string, entitlementId?: number | null): ChatSource =>
+  ({ type: 'content', ref: entitlementId ? `${contentKey}@${entitlementId}` : contentKey, title });
+
+export interface ConsultTurn {
+  question: string; reply: string; followUps: string[]; createdAt: string;
+  /** 운알톡만: 이 답 아래 추가 말풍선으로 권할 콘텐츠 (대화당 많아야 1번) */
+  suggest?: string | null;
+  /** 운알톡만: 이 메시지에 쓴 알 */
+  charged?: number;
+}
 export interface ConsultView {
   id: number;
-  status: 'preview' | 'answered';
+  /** chat: 운알톡 대화 (turns에 모든 메시지) · preview/answered: 예전 고민 상담 (읽기만) */
+  status: 'chat' | 'preview' | 'answered';
   /** 상담을 시작한 대표 프로필 — 대표 프로필을 바꿔도 끝까지 이 사람으로 이어진다 (예전 상담은 null) */
   profileId?: number | null;
   /** 상담을 시작한 때의 그 프로필 이름 */
@@ -53,7 +76,21 @@ export interface ConsultView {
   charged: number;
   /** 이번 요청에서 구독 운알톡 횟수 1회를 써서 열었음 (알 안 씀) */
   viaSubscription?: boolean;
+  /** 운알톡만: 시작한 화면 (오늘의 운세 · 리포트) */
+  /** key: content의 콘텐츠 키 (life · theme:love · monthly:2026-11 …) — 그 화면으로 돌아갈 때 */
+  source?: { type: ChatSource['type']; title: string | null; key?: string | null } | null;
+  /** 운알톡만: 이 대화에 남은 무료 메시지 수 */
+  freeTurnsLeft?: number;
   createdAt: string | null;
+}
+export interface ChatStatus {
+  /** 오늘 남은 무료 대화 수 (게스트는 전체) */
+  freeChatsLeft: number; freeChatsPerDay: number; freeTurnsPerChat: number;
+  /** 무료를 다 쓴 뒤 메시지 1개 가격 */
+  cost: number;
+  /** 구독 중이라 알 없이 대화 */
+  unlimited: boolean;
+  minLength: number; maxLength: number; maxTurns: number;
 }
 export interface ConsultStatus {
   freeToday: boolean;
@@ -62,6 +99,15 @@ export interface ConsultStatus {
   cost: number; followUpLimit: number; followUpHours: number; minLength: number; maxLength: number;
   /** 구독 운알톡 — 이번 결제 회차 남은 횟수 (구독 혜택이 없으면 null). 하루 무료를 다 쓰면 알보다 먼저 쓰인다 */
   subscription: { total: number; left: number; periodEnd: string } | null;
+  /** 운알톡 대화 (예전 서버는 없음) */
+  chat?: ChatStatus;
+}
+
+/** 대화(또는 다음 메시지)가 알이 드는지 — 무료 메시지가 남았거나 구독 중이면 0 */
+export function nextChatCost(status: ChatStatus | undefined, chat?: Pick<ConsultView, 'freeTurnsLeft'>): number {
+  if (!status || status.unlimited) return 0;
+  const free = chat ? (chat.freeTurnsLeft ?? 0) > 0 : status.freeChatsLeft > 0;
+  return free ? 0 : status.cost;
 }
 
 /** 구독 운알톡 이번 회차 남은 횟수 */
@@ -84,6 +130,11 @@ export const consultKeys = {
 };
 
 export const consultApi = {
+  /** 운알톡 대화 시작 — source를 주면 그 화면 내용을 기억하고 이야기한다 */
+  startChat: (message: string, source?: ChatSource) =>
+    call<ConsultView>(api.POST('/v1/consults/chats', { body: { message, source } as never })),
+
+  /** @deprecated 예전 고민 상담 — 새 앱은 startChat */
   ask: (worry: string, topic?: ConsultCat) =>
     call<ConsultView>(api.POST('/v1/consults', { body: { worry, topic } as never })),
 
@@ -91,6 +142,7 @@ export const consultApi = {
 
   unlock: (id: number) => call<ConsultView>(api.POST('/v1/consults/{id}/unlock', { params: { path: { id } } })),
 
+  /** 운알톡 메시지 보내기 (예전 상담의 이어 묻기와 같은 길) */
   followUp: (id: number, question: string) =>
     call<ConsultView>(api.POST('/v1/consults/{id}/messages', { params: { path: { id } }, body: { question } })),
 

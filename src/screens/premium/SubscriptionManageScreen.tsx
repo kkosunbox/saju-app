@@ -199,9 +199,8 @@ export default function SubscriptionManageScreen() {
       <SubHead title="이번 결제 기간 혜택" caption={b.active ? `${end}에 다시 채워져요` : undefined} />
       <View style={s.benefits}>
         <BenefitRow
-          title="운알톡 무료"
-          desc={b.active ? `${b.consultTotal}회 중 ${b.consultLeft}회 남음` : '결제가 되면 다시 쓸 수 있어요'}
-          bar={b.consultTotal ? b.consultUsed / b.consultTotal : 0}
+          title="운알톡 무제한"
+          desc={b.active ? '알 없이 마음껏 이야기할 수 있어요' : '결제가 되면 다시 쓸 수 있어요'}
           onPress={() => router.push('/consult')}
         />
         <BenefitRow
@@ -251,7 +250,7 @@ export default function SubscriptionManageScreen() {
         ) : (
           <Bullet textStyle={s.small}>해지해도 이번 결제 기간이 끝날 때까지 혜택이 유지되고, 다음 결제부터 청구되지 않아요. 기간이 끝나기 전에는 해지를 취소할 수 있어요.</Bullet>
         )}
-        <Bullet textStyle={s.small}>남은 운알톡 횟수는 다음 결제 기간으로 넘어가지 않아요. 구독으로 연 월별 상세운세는 구독이 끝나도 계속 볼 수 있어요.</Bullet>
+        <Bullet textStyle={s.small}>구독으로 연 월별 상세운세는 구독이 끝나도 계속 볼 수 있어요.</Bullet>
         {storeSub ? (
           <Bullet textStyle={s.small}>환불은 {storeName} 정책에 따라 {sub.store === 'apple' ? 'Apple' : 'Google Play'}에 요청해 주세요.</Bullet>
         ) : (
@@ -265,7 +264,7 @@ export default function SubscriptionManageScreen() {
         <Text style={[txt.small, s.center, { marginTop: 8 }]}>
           {sub.status === 'grace'
             ? '결제가 밀린 상태라 해지하면 바로 끝나요.'
-            : `${end}까지 혜택은 그대로 쓸 수 있고,\n그 뒤로는 결제되지 않아요.${b.consultLeft ? `\n남은 운알톡 ${b.consultLeft}회는 기간이 끝나면 사라져요.` : ''}`}
+            : `${end}까지 혜택은 그대로 쓸 수 있고,\n그 뒤로는 결제되지 않아요.`}
         </Text>
         <PrimaryButton label={busy ? '해지하는 중…' : '해지하기'} onPress={cancel} disabled={busy} style={{ marginTop: 20 }} />
         <PrimaryButton label="계속 구독하기" variant="soft" onPress={() => setConfirm(false)} style={{ marginTop: 8 }} />

@@ -25,11 +25,11 @@ export const READING_STEPS = {
     { key: 'core', label: '타고난 성품', sub: '겉모습 · 속마음 · 강점과 보완점' },
     { key: 'structure', label: '오행 · 용신 · 십성', sub: '다섯 기운의 균형과 타고난 재능' },
     { key: 'fields', label: '분야별 타고난 운', sub: '연애 · 재물 · 일 · 관계 · 건강' },
-    { key: 'flow', label: '대운과 개운법', sub: '지금의 10년 · 다음 10년' },
+    { key: 'flow', label: '네 기둥과 개운법', sub: '년주 · 월주 · 시주가 말하는 나' },
   ] },
   life: { title: '평생운을 풀고 있어요', steps: [
-    { key: 'overview', label: '인생의 큰 흐름', sub: '초년 · 중년 · 말년과 황금기' },
-    { key: 'daeun', label: '10년 대운', sub: '대운마다의 흐름과 지금 집중할 것' },
+    { key: 'overview', label: '인생의 큰 흐름', sub: '초년 · 중년 · 말년 · 황금기 · 전환점' },
+    { key: 'daeun', label: '10년 대운', sub: '대운마다의 흐름 · 지금 집중할 것 · 다음 대운' },
     { key: 'years', label: '해마다의 운', sub: '앞으로 몇 해의 흐름' },
   ] },
   year: { title: '신년운세를 풀고 있어요', steps: [
@@ -160,8 +160,10 @@ export function useReadingGate(reading: ReadingView<unknown> | null | undefined,
 }
 
 /** 풀이를 쓰는 동안의 화면 — 상단 바(뒤로 가기)는 그대로, 아래는 체크리스트 로딩 */
-export function ReadingStepsScreen({ title, kind, reading, right }: {
+export function ReadingStepsScreen({ title, kind, reading, right, heading }: {
   title: string; kind: ReadingStepsKind; reading: ReadingView<unknown> | null | undefined; right?: React.ReactNode;
+  /** 로딩 제목을 바꿀 때 (월별: '2027년 1월의 운세를 풀고 있어요') */
+  heading?: string;
 }) {
   const def: StepsDef = READING_STEPS[kind];
   const parts = (reading?.parts ?? {}) as Record<string, unknown>;
@@ -192,7 +194,7 @@ export function ReadingStepsScreen({ title, kind, reading, right }: {
   });
   return (
     <Screen title={title} back right={right} scroll={false}>
-      <StepReadingLoader title={def.title} steps={steps} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요." />
+      <StepReadingLoader title={heading ?? def.title} steps={steps} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요." />
     </Screen>
   );
 }

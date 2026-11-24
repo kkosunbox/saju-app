@@ -86,8 +86,8 @@ function begin(key: string, ready: boolean, enabled: boolean, seen: boolean) {
 }
 
 /** 미리보기 자리의 구름 카드 — 위에서부터 차례로 '만드는 중' → 체크. 마지막 단계는 미리보기를 받아야 체크된다 */
-export function PreviewMakingCard({ gate, steps, title = '미리보기를 만들고 있어요', style }: {
-  gate: PreviewMaking; steps: MakingStep[]; title?: string; style?: StyleProp<ViewStyle>;
+export function PreviewMakingCard({ gate, steps, title = '미리보기를 만들고 있어요', doneTitle = '미리보기를 다 만들었어요!', style }: {
+  gate: PreviewMaking; steps: MakingStep[]; title?: string; doneTitle?: string; style?: StyleProp<ViewStyle>;
 }) {
   const now = useNow(true, 120);
   const n = steps.length;
@@ -97,13 +97,13 @@ export function PreviewMakingCard({ gate, steps, title = '미리보기를 만들
   const count = steps.filter((_, i) => now >= doneAt(i)).length;
   const all = count === n;
   return (
-    <View style={[s.card, style]} accessibilityLabel={`${all ? '미리보기를 다 만들었어요' : title}. ${n}개 중 ${count}개 완료`}>
+    <View style={[s.card, style]} accessibilityLabel={`${all ? doneTitle : title}. ${n}개 중 ${count}개 완료`}>
       <CloudBackdrop fades={false} />
       <View style={s.body}>
         <View style={s.head}>
           <ScrollMascot size={52} glow />
           <View style={{ flex: 1 }}>
-            <Text style={s.title}>{all ? '미리보기를 다 만들었어요!' : title}</Text>
+            <Text style={s.title}>{all ? doneTitle : title}</Text>
             <Text style={s.sub}>{all ? '곧 보여 드릴게요' : `${n}개 중 ${count}개 완성`}</Text>
           </View>
         </View>

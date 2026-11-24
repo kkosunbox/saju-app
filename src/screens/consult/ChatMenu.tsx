@@ -21,7 +21,7 @@ const APP_MAX_W = 430; // 웹 앱 화면 폭 (_layout webFrame)
 
 /**
  * 운알톡 대화 화면 왼쪽 위 메뉴 — 누르면 왼쪽에서 대화 목록이 열린다.
- * 새 대화 · 오늘의 운세로 가고, 아래에는 고민 상담 대화를 한 달씩 묶어 끝까지 내리면 더 불러온다.
+ * 새 대화 · 오늘의 운세로 가고, 아래에는 운알톡 대화(예전 고민 상담 포함)를 한 달씩 묶어 끝까지 내리면 더 불러온다.
  * current: 지금 보고 있는 대화 (목록에서 표시) · 'today'면 오늘의 운세
  */
 export function ChatMenuButton({ current }: { current?: Current }) {
@@ -83,10 +83,14 @@ function ChatDrawer({ visible, onClose, current }: { visible: boolean; onClose()
 
   const row = (e: ConsultView) => {
     const on = e.id === current;
+    // 운알톡은 첫 말과 시작한 화면, 예전 상담은 답의 한 줄과 주제
+    const chat = e.status === 'chat';
+    const title = chat ? e.question ?? '운알톡' : e.answer?.headline ?? catOf(e.topic).label;
+    const where = chat ? e.source?.title ?? '' : `${catOf(e.topic).label.replace('·', ' · ')} 고민`;
     return (
-      <PressableScale key={e.id} onPress={() => openChat(e)} style={[s.row, on && s.rowOn]} scaleTo={0.98} accessibilityState={{ selected: on }} accessibilityLabel={e.answer?.headline ?? catOf(e.topic).label}>
-        <Text style={[s.rowT, on && s.rowTOn]} numberOfLines={1}>{e.answer?.headline ?? catOf(e.topic).label}</Text>
-        <Text style={s.rowM} numberOfLines={1}>{catOf(e.topic).label.replace('·', ' · ')} · {kstDate(e.createdAt)}{e.locked ? ' · 미리보기' : ''}</Text>
+      <PressableScale key={e.id} onPress={() => openChat(e)} style={[s.row, on && s.rowOn]} scaleTo={0.98} accessibilityState={{ selected: on }} accessibilityLabel={title}>
+        <Text style={[s.rowT, on && s.rowTOn]} numberOfLines={1}>{title}</Text>
+        <Text style={s.rowM} numberOfLines={1}>{where ? `${where} · ` : ''}{kstDate(e.createdAt)}</Text>
       </PressableScale>
     );
   };

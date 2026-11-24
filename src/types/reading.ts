@@ -31,8 +31,11 @@ export interface SajuReading {
   };
   fields: Record<'love' | 'money' | 'work' | 'people' | 'health', FieldText>;
   flow: {
-    daeunNow: Period | null;
-    daeunNext: Period | null;
+    /** 일주를 뺀 기둥마다 그 자리의 이야기 (saju-v24부터). 이전 풀이에는 없다 */
+    pillars?: { position: string; title: string; text: string }[];
+    /** saju-v23까지만 있다. 지금은 대운을 평생운이 맡는다 */
+    daeunNow?: Period | null;
+    daeunNext?: Period | null;
     luck: { text: string; habits: string[]; people: string };
   };
 }
@@ -42,9 +45,16 @@ export interface LifeReading {
   overview: {
     headline: string; summary: string;
     stages: { title: string; text: string; advice: string }[];
-    golden: Titled; rest: Titled; lifeAdvice: string[]; closing: string;
+    golden: Titled; rest: Titled;
+    /** 용신이 들어오는 대운 = 인생의 전환점 (life-v22부터, 없으면 null) */
+    turning?: Titled | null;
+    lifeAdvice: string[]; closing: string;
   };
-  daeun: { periods: Titled[]; now: { text: string; focus: string[] } | null };
+  daeun: {
+    periods: Titled[]; now: { text: string; focus: string[] } | null;
+    /** 지금 대운에서 다음 대운으로 넘어가는 길목 (life-v22부터, 없으면 null) */
+    shift?: Titled | null;
+  };
   years: { years: Titled[] };
 }
 

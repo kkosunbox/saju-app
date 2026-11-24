@@ -8,9 +8,10 @@
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import type { ConsultCat } from './content/consult';
+import type { ChatSource } from './server/consultApi';
 
 export type LoginIntent =
-  | { kind: 'consult'; worry: string; topic?: ConsultCat; at: number }
+  | { kind: 'consult'; worry: string; topic?: ConsultCat; source?: ChatSource; at: number }
   | { kind: 'unlock'; title: string; returnTo?: string; at: number };
 
 const KEY = 'onulna:login-intent';
@@ -23,7 +24,7 @@ function session(): Storage | null {
 }
 
 type NewIntent =
-  | { kind: 'consult'; worry: string; topic?: ConsultCat }
+  | { kind: 'consult'; worry: string; topic?: ConsultCat; source?: ChatSource }
   | { kind: 'unlock'; title: string; returnTo?: string };
 
 export function setLoginIntent(intent: NewIntent) {

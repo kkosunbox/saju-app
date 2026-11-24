@@ -148,6 +148,7 @@ export function useScopedPremium() {
     ...p,
     owned: (key: string) => (viewing?.contentKey === key) || p.owned(key, pid),
     subscriptionFree: (key: string) => !(viewing?.contentKey === key) && p.subscriptionFree(key, pid),
+    yearCovered: (key: string) => !(viewing?.contentKey === key) && p.yearCovered(key, pid),
     openUnlock: (item: Item, onDone?: () => void) => p.openUnlock(item, onDone, pid),
     /** 이 프로필로 이 콘텐츠를 산 기록 (지금 정보로 연 것 포함, 최근 순) */
     records: (key: string) => p.records(key, pid),
