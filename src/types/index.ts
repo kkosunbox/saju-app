@@ -156,6 +156,8 @@ export interface DailyFortune {
   textsPending?: boolean;
   /** 이미 뽑았는지 (서버 기록이라 다른 기기에서 뽑았어도 true). 예전 서버는 주지 않는다 */
   drawn?: boolean;
+  /** 이 날짜에 계정 전체에서 운세를 뽑은 프로필이 하나라도 있는지. */
+  hasDrawnOnDate?: boolean;
   /** 그날의 일진 (서버 만세력). */
   dayPillar?: { stem: number; branch: number };
   /** 전날 점수 (같은 프로필로 계산). 기능 전에 만든 운세는 null */

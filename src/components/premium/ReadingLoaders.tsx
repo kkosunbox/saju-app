@@ -7,7 +7,7 @@
  */
 import { Image } from 'expo-image';
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Easing, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import PressableScale from '../PressableScale';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -185,21 +185,24 @@ export function FullReadingLoader({ title, done, total, messages }: { title: str
 export interface LoaderStep { key: string; label: string; sub: string; done: boolean; state?: 'done' | 'writing' | 'waiting' }
 
 /** doneTitle·doneMsg: 다 끝났을 때 문구 · activeText: 진행 중인 항목 아래 문구 (기본은 AI 풀이용) */
-export function StepReadingLoader({ title, steps, note, doneTitle = '풀이를 다 썼어요!', doneMsg = '곧 보여 드릴게요', activeText = '쓰는 중…' }: {
-  title: string; steps: LoaderStep[]; note?: string; doneTitle?: string; doneMsg?: string; activeText?: string;
+export function StepReadingLoader({ title, steps, note, afterNote, doneTitle = '풀이를 다 썼어요!', doneMsg = '곧 보여 드릴게요', activeText = '쓰는 중…' }: {
+  title: string; steps: LoaderStep[]; note?: string; afterNote?: React.ReactNode; doneTitle?: string; doneMsg?: string; activeText?: string;
 }) {
   const all = steps.every(x => x.done);
   const count = steps.filter(x => x.done).length;
   return (
-    <View style={s.full}>
+    <View style={s.stepScreen}>
       <CloudBackdrop />
-      <ScrollMascot size={66} glow style={{ marginBottom: 12 }} />
-      <Text style={s.fullTitle}>{all ? doneTitle : title}</Text>
-      <Text style={s.fullMsg}>{all ? doneMsg : count ? `${steps.length}개 중 ${count}개 완성` : ''}</Text>
-      <View style={s.steps}>
-        {steps.map(x => <StepRow key={x.key} step={x} activeText={activeText} />)}
-      </View>
-      {note && !all ? <Text style={s.note}>{note}</Text> : null}
+      <ScrollView contentContainerStyle={s.stepContent}>
+        <ScrollMascot size={66} glow style={{ marginBottom: 12 }} />
+        <Text style={s.fullTitle}>{all ? doneTitle : title}</Text>
+        <Text style={s.fullMsg}>{all ? doneMsg : count ? `${steps.length}개 중 ${count}개 완성` : ''}</Text>
+        <View style={s.steps}>
+          {steps.map(x => <StepRow key={x.key} step={x} activeText={activeText} />)}
+        </View>
+        {note && !all ? <Text style={s.note}>{note}</Text> : null}
+        {all ? null : afterNote}
+      </ScrollView>
     </View>
   );
 }
@@ -293,8 +296,9 @@ const GHOST_W = ['100%', '94%', '97%', '89%'] as const;
  * C방식 로딩 카드 — 아직 안 쓴 섹션 자리에 하나만 둔다.
  * 진행 안내(몇 개째 · 막대 · 화면을 나가도 계속 써요)와 마스코트를 검은 덮개 카드 하나에 합쳤다.
  */
-export function ReadingWritingCard({ startedAt, steps, doneKeys, style, variant = 'cloud' }: {
+export function ReadingWritingCard({ startedAt, steps, doneKeys, style, afterNote, variant = 'cloud' }: {
   startedAt: number; steps: { key: string; label: string; sub: string }[]; doneKeys: string[]; style?: StyleProp<ViewStyle>;
+  afterNote?: React.ReactNode;
   /** cloud: 홈 하늘 구름을 깐 밝은 카드 (B방식을 카드 크기로) · dark: 검은 덮개 카드 */
   variant?: 'cloud' | 'dark';
 }) {
@@ -315,6 +319,7 @@ export function ReadingWritingCard({ startedAt, steps, doneKeys, style, variant 
             })}
           </View>
           <Text style={[s.note, { marginTop: 14 }]}>화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요.</Text>
+          {afterNote}
         </View>
       </View>
     );
@@ -351,6 +356,7 @@ export function ReadingWritingCard({ startedAt, steps, doneKeys, style, variant 
           })}
         </View>
         <Text style={s.bigNote}>화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요.</Text>
+        {afterNote}
       </View>
     </View>
   );
@@ -360,6 +366,8 @@ const s = StyleSheet.create({
   clouds: { position: 'absolute', top: 0, bottom: 0, left: -20, right: -20, opacity: 0.95 },
   fade: { position: 'absolute', left: 0, right: 0, height: 72 },
   full: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 48 },
+  stepScreen: { flex: 1 },
+  stepContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 24 },
   fullTitle: { ...sansW('700'), fontSize: 20, lineHeight: 28, letterSpacing: -1, color: colors.ink, textAlign: 'center', marginTop: 12 },
   fullMsg: { ...sansW('500'), fontSize: 14, lineHeight: 20, letterSpacing: -0.7, color: colors.inkMute, textAlign: 'center', marginTop: 6, minHeight: 20 },
   fullBarWrap: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 28 },

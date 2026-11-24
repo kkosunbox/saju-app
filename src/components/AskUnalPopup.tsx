@@ -17,11 +17,11 @@ import { useReducedMotion } from '../utils/motion';
 const MASCOT = require('../../assets/figma/consult/counselor-mascot.webp');
 
 /**
- * 콘텐츠를 끝까지 읽을 즈음 운알이가 화면 아래에서 부드럽게 떠오른다 — 누르면 바로 입력창이 열리고,
+ * 콘텐츠를 끝까지 읽을 즈음 운알이가 화면 위쪽에서 부드럽게 내려온다 — 누르면 바로 입력창이 열리고,
  * 보내면 이 화면 내용을 기억한 운알톡 대화로 넘어간다. 닫으면 이 화면에서는 다시 뜨지 않는다.
- * Screen이 끝 근처인지(visible)를 정하고, 키보드를 피하도록 본문 아래 흐름에 둔다.
+ * Screen이 끝 근처인지(visible)를 정하고, 상단 바 바로 아래(top)에 본문 위로 띄운다.
  */
-export default function AskUnalPopup({ source, visible, bottom, bg }: { source: ChatSource; visible: boolean; bottom: number; bg: string }) {
+export default function AskUnalPopup({ source, visible, top, bg }: { source: ChatSource; visible: boolean; top: number; bg: string }) {
   const { user } = useApp();
   const { ask, cost } = useAskConsult('content_popup');
   const { confirm: confirmCost, sheet: costSheet } = useChatCostConfirm();
@@ -54,19 +54,19 @@ export default function AskUnalPopup({ source, visible, bottom, bg }: { source: 
   const style = {
     opacity: enter,
     transform: [
-      { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) },
+      { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [-28, 0] }) },
       { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) },
     ],
   };
 
   return (
     <>
-    <View>
-    {/* 본문이 알림 위에서 뚝 끊기지 않게, 화면 배경색으로 서서히 덮는다 */}
+    <View style={[s.float, { top }]} pointerEvents="box-none">
+    {/* 알림 뒤 본문이 뚝 끊기지 않게, 위에서 아래로 화면 배경색이 서서히 옅어진다 */}
     <Animated.View pointerEvents="none" style={[s.fade, { opacity: enter }]}>
-      <LinearGradient colors={[bg + '00', bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[bg, bg, bg + '00']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
     </Animated.View>
-    <Animated.View style={[s.wrap, { paddingBottom: bottom + LIFT }, style]}>
+    <Animated.View style={[s.wrap, style]}>
       <View style={s.card}>
         {composing ? (
           <>
@@ -104,18 +104,17 @@ export default function AskUnalPopup({ source, visible, bottom, bg }: { source: 
   );
 }
 
-/** 화면 아래 끝에서 살짝 띄우는 만큼 */
-const LIFT = 12;
-
-/** 알림 위 그라데이션 높이 */
-const FADE_H = 48;
+/** 알림 아래로 그라데이션이 더 내려오는 만큼 */
+const FADE_H = 40;
 
 /** 알림처럼 떠 있는 그림자 */
 const DROP = { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 } as const;
 
 const s = StyleSheet.create({
-  // 알림 바로 위, 스크롤 본문 끝자락에 겹치는 그라데이션
-  fade: { position: 'absolute', left: 0, right: 0, bottom: '100%', height: FADE_H },
+  // 화면 위쪽(상단 바 바로 아래)에 본문 위로 떠 있다
+  float: { position: 'absolute', left: 0, right: 0, zIndex: 10 },
+  // 알림 뒤에서 아래로 FADE_H만큼 더 내려와 본문에 녹아드는 그라데이션
+  fade: { position: 'absolute', left: 0, right: 0, top: 0, bottom: -FADE_H },
   // 닫기 동그라미가 카드 위로 걸치는 만큼 위를 비운다
   wrap: { paddingHorizontal: SCREEN_PX, paddingTop: 12 },
   card: { borderRadius: radius.lg, backgroundColor: colors.card, paddingHorizontal: 12, paddingVertical: 20, borderWidth: 1, borderColor: colors.line, ...DROP },

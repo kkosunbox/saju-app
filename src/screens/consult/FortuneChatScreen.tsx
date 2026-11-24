@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { router, useLocalSearchParams } from 'expo-router';
 import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
 import PressableScale from '../../components/PressableScale';
@@ -149,6 +150,8 @@ export function FortuneReading({ fortune, who, onCategory }: { fortune: DailyFor
  */
 export default function FortuneChatScreen() {
   const nav = useNavigation<Nav>();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const fromPremiumReading = from === 'premium-reading' && router.canGoBack();
   const { account, booting, user, profiles, fortuneUser, fortuneProfileId, fortune, today, fortuneWriting, refreshFortune } = useApp();
   const { openUnlock } = usePremium();
   const draw = useFortuneDraw();
@@ -297,7 +300,10 @@ export default function FortuneChatScreen() {
 
   return (
     <Screen
-      left={<ChatHeaderLeft current="today" />} sky scroll={false}
+      left={fromPremiumReading ? undefined : <ChatHeaderLeft current="today" />}
+      back={fromPremiumReading}
+      onBack={fromPremiumReading ? () => router.back() : undefined}
+      sky scroll={false}
       right={(
         <>
           <PressableScale onPress={() => fortune && nav.navigate('Share')} disabled={!ready} hitSlop={8} scaleTo={0.9} style={[s.share, !ready && { opacity: 0.35 }]} accessibilityLabel="오늘의 운세 카드 공유하기">

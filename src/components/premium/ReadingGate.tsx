@@ -10,11 +10,22 @@
  * 계산 결과도 풀이가 끝날 때까지 미리 보여 주지 않는다.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import { skipToken, useQuery } from '@tanstack/react-query';
+import Icon from '../Icon';
+import PressableScale from '../PressableScale';
 import Screen from '../Screen';
 import Reveal from '../Reveal';
 import { LoaderStep, ReadingWritingCard, StepReadingLoader, useNow } from './ReadingLoaders';
 import { ReadingView } from '../../types/reading';
+import { useApp } from '../../context/AppContext';
 import { usePremium } from '../../context/PremiumContext';
+import { useSharedView } from '../../context/SharedViewContext';
+import { useAnyFortuneOpened } from '../../services/content/opened';
+import { fortuneApi } from '../../services/server/fortuneApi';
+import { colors } from '../../theme/colors';
+import { radius, txt } from '../../theme/typography';
 
 interface StepDef { key: string; label: string; sub: string }
 interface StepsDef { title: string; steps: StepDef[] }
@@ -159,6 +170,45 @@ export function useReadingGate(reading: ReadingView<unknown> | null | undefined,
   return { show: writing || hold || fetching, appeared: appeared || writing || fetching };
 }
 
+function useCanSuggestTodayFortune(waiting = true) {
+  const { user, today, fortune, fortuneProfileId, fortuneLoading, fortuneError } = useApp();
+  const shared = useSharedView();
+  const { ready, opened } = useAnyFortuneOpened();
+  const userId = user?.id;
+  const candidate = waiting && !shared && ready && !opened && !fortuneLoading && !fortuneError
+    && fortune?.hasDrawnOnDate === false && fortune.userId === userId
+    && fortune.date === today && fortune.forProfile === fortuneProfileId;
+  // 앱을 켠 뒤 다른 기기에서 본 운세도 안내 전에 확인한다.
+  const status = useQuery({
+    queryKey: ['premium-waiting-fortune', userId, today, fortuneProfileId],
+    enabled: candidate,
+    staleTime: 0,
+    select: daily => daily.hasDrawnOnDate,
+    queryFn: userId ? () => fortuneApi.daily(userId, today, fortuneProfileId) : skipToken,
+  });
+  return candidate && status.isSuccess && !status.isFetching && status.data === false;
+}
+
+function openTodayFortune() {
+  router.push({ pathname: '/today', params: { from: 'premium-reading' } });
+}
+
+export function WaitingFortuneLink({ onPress = openTodayFortune }: { onPress?(): void }) {
+  return (
+    <PressableScale
+      onPress={onPress}
+      style={s.fortuneLink}
+      accessibilityLabel="기다리는 동안 오늘의 운세 보기"
+    >
+      <View style={s.fortuneCopy}>
+        <Text style={txt.small}>풀이를 기다리는 동안</Text>
+        <Text style={txt.bodyStrong}>오늘의 운세 먼저 보기</Text>
+      </View>
+      <Icon name="chevronRight" size={20} color={colors.ink} />
+    </PressableScale>
+  );
+}
+
 /** 풀이를 쓰는 동안의 화면 — 상단 바(뒤로 가기)는 그대로, 아래는 체크리스트 로딩 */
 export function ReadingStepsScreen({ title, kind, reading, right, heading }: {
   title: string; kind: ReadingStepsKind; reading: ReadingView<unknown> | null | undefined; right?: React.ReactNode;
@@ -168,6 +218,7 @@ export function ReadingStepsScreen({ title, kind, reading, right, heading }: {
   const def: StepsDef = READING_STEPS[kind];
   const parts = (reading?.parts ?? {}) as Record<string, unknown>;
   const finished = reading?.status === 'done';
+  const suggestToday = useCanSuggestTodayFortune(!finished);
   const n = def.steps.length;
   // 서버는 파트를 동시에 써서 끝날 때 한꺼번에 체크된다 → 쓰는 동안은 위에서부터 차례로 '쓰는 중'을 켜고,
   // 다 쓰면 남은 항목을 하나씩 체크한다
@@ -194,7 +245,8 @@ export function ReadingStepsScreen({ title, kind, reading, right, heading }: {
   });
   return (
     <Screen title={title} back right={right} scroll={false}>
-      <StepReadingLoader title={heading ?? def.title} steps={steps} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요." />
+      <StepReadingLoader title={heading ?? def.title} steps={steps} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요."
+        afterNote={suggestToday ? <WaitingFortuneLink /> : undefined} />
     </Screen>
   );
 }
@@ -251,7 +303,7 @@ export function ReadingPart({ s, part, lead, children }: { s: ReadingSections; p
   const hidden = s.writing && (s.parts[part] == null || (s.anchor != null && order.indexOf(part) >= order.indexOf(s.anchor)));
   if (hidden) {
     waited.current = true;
-    return lead && s.anchor === part ? <ReadingWritingCard startedAt={s.startedAt} steps={READING_STEPS[s.kind].steps} doneKeys={Object.keys(s.parts)} /> : null;
+    return lead && s.anchor === part ? <PremiumWritingCard startedAt={s.startedAt} kind={s.kind} doneKeys={Object.keys(s.parts)} /> : null;
   }
   return waited.current ? <Reveal>{children}</Reveal> : <>{children}</>;
 }
@@ -259,7 +311,15 @@ export function ReadingPart({ s, part, lead, children }: { s: ReadingSections; p
 /** C방식에서 방금 열어 콘텐츠를 받아 오는 동안 — 본문 자리에 로딩 카드를 바로 둔다 */
 export function ReadingOpeningCard({ kind }: { kind: ReadingStepsKind }) {
   const [startedAt] = useState(() => writingStartedAt(kind));
-  return <ReadingWritingCard startedAt={startedAt} steps={READING_STEPS[kind].steps} doneKeys={[]} />;
+  return <PremiumWritingCard startedAt={startedAt} kind={kind} doneKeys={[]} />;
+}
+
+function PremiumWritingCard({ kind, startedAt, doneKeys }: { kind: ReadingStepsKind; startedAt: number; doneKeys: string[] }) {
+  const suggestToday = useCanSuggestTodayFortune();
+  return (
+    <ReadingWritingCard startedAt={startedAt} steps={READING_STEPS[kind].steps} doneKeys={doneKeys}
+      afterNote={suggestToday ? <WaitingFortuneLink /> : undefined} />
+  );
 }
 
 /* ---------- 미리보기 단계 (반려동물 · 궁합) ---------- */
@@ -285,3 +345,20 @@ export function PreviewStepsScreen({ title, heading, steps, step, onBack }: {
     </Screen>
   );
 }
+
+const s = StyleSheet.create({
+  fortuneLink: {
+    alignSelf: 'stretch',
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.accentSoft,
+  },
+  fortuneCopy: { flex: 1, gap: 2 },
+});

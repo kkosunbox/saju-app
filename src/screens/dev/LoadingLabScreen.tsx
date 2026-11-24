@@ -13,6 +13,7 @@ import Reveal from '../../components/Reveal';
 import { Hero, heroTxt } from '../../components/premium/Kit';
 import { Bullet, Para, SajuHeading, SubHead, Tip } from '../../components/premium/SajuParts';
 import { PartPending, ProgressCard } from '../../components/premium/Reading';
+import { WaitingFortuneLink } from '../../components/premium/ReadingGate';
 import {
   FloatingReadingPill, FullReadingLoader, LoaderStep, ScrollMascot, StepReadingLoader, TypeReveal, WritingPlaceholder, ReadingWritingCard,
 } from '../../components/premium/ReadingLoaders';
@@ -21,6 +22,12 @@ import { sansW } from '../../theme/typography';
 
 type Mode = 'current' | 'full' | 'steps' | 'stream';
 type Part = 'core' | 'structure' | 'fields' | 'flow';
+type FortuneStatus = 'unread' | 'read';
+
+const FORTUNE_OPTIONS: { key: FortuneStatus; label: string }[] = [
+  { key: 'unread', label: '아직 안 봄' },
+  { key: 'read', label: '이미 봄' },
+];
 
 const MODES: { key: Mode; name: string; desc: string }[] = [
   { key: 'current', name: '지금 방식', desc: '본문은 바로 보이고, 위에 진행 카드 · 각 섹션에 회색 막대' },
@@ -51,10 +58,14 @@ function useFakeReading(totalMs: number) {
 export default function LoadingLabScreen() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [secs, setSecs] = useState<'10' | '30'>('10');
+  const [fortuneStatus, setFortuneStatus] = useState<FortuneStatus>('unread');
   const [run, setRun] = useState(0);
 
   // 다시 보기 = 화면을 새로 그려 처음부터
-  if (mode) return <Demo key={run} mode={mode} totalMs={Number(secs) * 1000} onBack={() => setMode(null)} onReplay={() => setRun(r => r + 1)} />;
+  if (mode) return (
+    <Demo key={run} mode={mode} totalMs={Number(secs) * 1000} fortuneStatus={fortuneStatus}
+      onBack={() => setMode(null)} onReplay={() => setRun(r => r + 1)} />
+  );
 
   return (
     <Screen title="로딩 연출 비교" back>
@@ -64,6 +75,13 @@ export default function LoadingLabScreen() {
         <View style={{ marginTop: 8 }}>
           <Segmented options={[{ key: '10', label: '짧게 10초' }, { key: '30', label: '실제처럼 30초' }]} value={secs} onChange={v => setSecs(v as '10' | '30')} />
         </View>
+      </View>
+      <View style={{ marginTop: 20 }}>
+        <Text style={s.label}>오늘의 운세</Text>
+        <View style={{ marginTop: 8 }}>
+          <Segmented<FortuneStatus> options={FORTUNE_OPTIONS} value={fortuneStatus} onChange={setFortuneStatus} />
+        </View>
+        <Text style={s.desc}>B와 C에서 운세 열람 여부에 따른 안내를 확인할 수 있어요.</Text>
       </View>
       <View style={{ gap: 12, marginTop: 24 }}>
         {MODES.map(m => (
@@ -85,8 +103,11 @@ export default function LoadingLabScreen() {
   );
 }
 
-function Demo({ mode, totalMs, onBack, onReplay }: { mode: Mode; totalMs: number; onBack(): void; onReplay(): void }) {
+function Demo({ mode, totalMs, fortuneStatus, onBack, onReplay }: {
+  mode: Mode; totalMs: number; fortuneStatus: FortuneStatus; onBack(): void; onReplay(): void;
+}) {
   const done = useFakeReading(totalMs);
+  const [startedAt] = useState(() => Date.now());
   const count = done.size;
   const total = SCHEDULE.length;
   const finished = count >= total;
@@ -95,6 +116,8 @@ function Demo({ mode, totalMs, onBack, onReplay }: { mode: Mode; totalMs: number
 
   // B는 다 쓰고 나서 "다 썼어요"를 잠깐 보여 준 뒤 본문으로
   const [stepsHold, setStepsHold] = useState(true);
+  const [showFortune, setShowFortune] = useState(false);
+  const [fortuneRead, setFortuneRead] = useState(fortuneStatus === 'read');
   useEffect(() => {
     if (!finished) return;
     const t = setTimeout(() => setStepsHold(false), 900);
@@ -102,18 +125,32 @@ function Demo({ mode, totalMs, onBack, onReplay }: { mode: Mode; totalMs: number
   }, [finished]);
 
   const fullScreen = (mode === 'full' && !finished) || (mode === 'steps' && (!finished || stepsHold));
+  const suggestFortune = !finished && !fortuneRead;
+  const openFortune = () => {
+    setFortuneRead(true);
+    setShowFortune(true);
+  };
+
+  if (showFortune) {
+    return (
+      <Screen title="오늘의 운세 미리보기" onBack={() => setShowFortune(false)}>
+        <Text style={s.lead}>오늘의 운세를 본 상태로 바뀌었어요. 뒤로 가면 진행 중인 풀이를 이어서 볼 수 있어요.</Text>
+      </Screen>
+    );
+  }
 
   if (fullScreen) {
     return (
       <Screen title="상세사주 해석" onBack={onBack} right={replay} scroll={false}>
         {mode === 'full'
           ? <FullReadingLoader title="운픽님의 사주를 풀고 있어요" done={count} total={total} messages={MESSAGES} />
-          : <StepReadingLoader title="운픽님의 사주를 풀고 있어요" steps={SCHEDULE.map(([k]): LoaderStep => ({ key: k, ...PART_STEP[k], done: done.has(k) }))} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요." />}
+          : <StepReadingLoader title="운픽님의 사주를 풀고 있어요" steps={SCHEDULE.map(([k]): LoaderStep => ({ key: k, ...PART_STEP[k], done: done.has(k) }))} note="화면을 나가셔도 괜찮아요. 완료되면 알려드릴게요."
+              afterNote={suggestFortune ? <WaitingFortuneLink onPress={openFortune} /> : undefined} />}
       </Screen>
     );
   }
 
-  const body = <MockSaju mode={mode} done={done} />;
+  const body = <MockSaju mode={mode} done={done} startedAt={startedAt} onOpenFortune={mode === 'stream' && suggestFortune ? openFortune : undefined} />;
   return (
     <View style={{ flex: 1 }}>
       <Screen title="상세사주 해석" onBack={onBack} right={replay}>
@@ -147,7 +184,9 @@ const TEXT = {
   daeun: '지금의 10년은 씨앗을 심는 시기예요. 바로 열매가 보이지 않아도, 지금 배운 것이 다음 10년의 큰 줄기가 돼요.',
 };
 
-function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
+function MockSaju({ mode, done, startedAt, onOpenFortune }: {
+  mode: Mode; done: Set<Part>; startedAt: number; onOpenFortune?(): void;
+}) {
   const writing = done.size < SCHEDULE.length;
   const has = (p: Part) => done.has(p);
   const stream = mode === 'stream';
@@ -157,9 +196,11 @@ function MockSaju({ mode, done }: { mode: Mode; done: Set<Part> }) {
   /** 카드 하나가 통째로 아직 안 쓴 자리 — C안은 덮개 카드가 카드를 대신한다 */
   // C안: 실제 화면과 같이 아직 안 쓴 첫 파트 자리에만 체크리스트 로딩 카드 하나 (화면 순서: 성품 → 오행 → 분야 → 대운)
   const firstPending = (['core', 'structure', 'fields', 'flow'] as Part[]).find(k => !done.has(k));
-  const [startedAt] = useState(() => Date.now());
   const pendingCard = (part: Part, lines = 6) => stream
-    ? (part === firstPending ? <ReadingWritingCard startedAt={startedAt} steps={SCHEDULE.map(([k]) => ({ key: k, ...PART_STEP[k] }))} doneKeys={[...done]} /> : null)
+    ? (part === firstPending ? (
+      <ReadingWritingCard startedAt={startedAt} steps={SCHEDULE.map(([k]) => ({ key: k, ...PART_STEP[k] }))} doneKeys={[...done]}
+        afterNote={onOpenFortune ? <WaitingFortuneLink onPress={onOpenFortune} /> : undefined} />
+    ) : null)
     : <Card>{pending(lines)}</Card>;
   const P = (text: string, mt?: number) => <Prose stream={stream} mt={mt} text={text} />;
   const Show = (children: React.ReactNode) => <Appear stream={stream}>{children}</Appear>;

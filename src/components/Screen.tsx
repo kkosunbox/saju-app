@@ -140,8 +140,8 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       ) : (
         <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
       )}
-      {/* 운알이는 본문 아래에서 튀어나온다 — 키보드가 뜨면 함께 올라간다 */}
-      {asksTalk && talk ? <AskUnalPopup source={talk} visible={nearEnd} bottom={footer ? 4 : footerBottom} bg={bg} /> : null}
+      {/* 운알이는 화면 위쪽, 상단 바 바로 아래에 본문 위로 떠오른다 */}
+      {asksTalk && talk ? <AskUnalPopup source={talk} visible={nearEnd} top={floating ? BAR_H : 0} bg={bg} /> : null}
       {footer ? <View style={[s.footer, { paddingBottom: footerBottom }]}>{footer}</View> : null}
       </KeyboardAvoidingView>
       {floating ? (

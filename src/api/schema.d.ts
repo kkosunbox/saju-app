@@ -3059,6 +3059,8 @@ export interface components {
             textsPending: boolean;
             /** @description 사용자가 뽑았는지 (POST daily/draw를 한 번이라도 불렀는지). 다른 기기에서 뽑았어도 true */
             drawn: boolean;
+            /** @description 해당 날짜에 이 계정으로 운세를 뽑은 프로필이 하나라도 있는지 */
+            hasDrawnOnDate: boolean;
             /** @description 이 운세를 만든 프로필 id */
             profileId: number | null;
             /** @description 누구의 운세인지 (만든 때의 프로필 정보 — 이름 · 생일 · 원국) */
