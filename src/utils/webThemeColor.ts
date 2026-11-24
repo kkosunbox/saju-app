@@ -21,7 +21,18 @@ export function webSafeTop(top: number) {
 /** 내용 맨 위 기준 [위치, 색]. 위치 순서대로, 마지막 색이 그 아래로 이어진다 */
 export type TopBarStops = readonly (readonly [number, string])[];
 
-const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+/** '#RRGGBB' · 'rgb(…)' · 'rgba(…)' → [r, g, b]. 반투명 색은 흰 바탕 위에 얹은 색으로 친다 */
+function rgb(color: string): number[] {
+  if (color.startsWith('#')) return [1, 3, 5].map(i => parseInt(color.slice(i, i + 2), 16));
+  const [r, g, b, a = 1] = (color.match(/[\d.]+/g) ?? []).map(Number);
+  return [r, g, b].map(v => Math.round(v * a + 255 * (1 - a)));
+}
+
+/** 두 색 사이 t(0~1) 지점의 색 */
+export function mixColor(from: string, to: string, t: number): string {
+  const [a, b] = [rgb(from), rgb(to)];
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',')})`;
+}
 
 /** 내용 위치 y에 그려진 그라디언트 색 */
 function colorAt(y: number, stops: TopBarStops): string {
@@ -30,9 +41,7 @@ function colorAt(y: number, stops: TopBarStops): string {
     const [b, cb] = stops[i];
     if (y > b) continue;
     if (y <= a || b === a) return ca;
-    const t = (y - a) / (b - a);
-    const [from, to] = [rgb(ca), rgb(cb)];
-    return `rgb(${from.map((v, k) => Math.round(v + (to[k] - v) * t)).join(',')})`;
+    return mixColor(ca, cb, (y - a) / (b - a));
   }
   return stops[stops.length - 1][1];
 }
@@ -64,14 +73,15 @@ function setTint(color: string) {
  * 웹(아이폰 Safari)에서 이 화면이 보이는 동안 상단 바 색을 바로 아래 보이는 내용 색에 맞춘다. 떠나면 기본 바탕색으로 돌린다.
  * Safari 상단 바는 단색이라 그라디언트가 그 아래로 지나가면 경계가 생긴다. 그래서 스크롤할 때마다
  * 띠 바로 아래 내용 색으로 바꾼다 — 돌려준 함수를 onScroll에서 부른다 (그라디언트가 고정이면 부르지 않아도 된다).
- * stops가 없으면 아무것도 하지 않는다.
+ * stops가 없으면 아무것도 하지 않는다. 함수로 주면 색을 칠할 때마다 불러 그때의 값을 쓴다(넘기는 배너처럼 렌더 없이 바뀔 때).
  */
-export function useWebTopBar(stops: TopBarStops | null) {
+export function useWebTopBar(stops: TopBarStops | (() => TopBarStops) | null) {
   const me = useRef({}).current;
   const y = useRef(0);
   const stopsRef = useRef(stops);
   const update = useCallback(() => {
-    if (owner === me && stopsRef.current) setTint(colorAt(y.current + TOP_TINT_H, stopsRef.current));
+    const st = stopsRef.current;
+    if (owner === me && st) setTint(colorAt(y.current + TOP_TINT_H, typeof st === 'function' ? st() : st));
   }, [me]);
   const active = !!stops;
   useFocusEffect(useCallback(() => {
@@ -89,8 +99,9 @@ export function useWebTopBar(stops: TopBarStops | null) {
     stopsRef.current = stops;
     update();
   });
-  return useCallback((scrollY: number) => {
-    y.current = scrollY;
+  // scrollY 없이 부르면 위치는 그대로 두고 색만 다시 맞춘다 (stops가 함수이고 그 값이 바뀌었을 때)
+  return useCallback((scrollY?: number) => {
+    if (scrollY !== undefined) y.current = scrollY;
     if (Platform.OS === 'web') update();
   }, [update]);
 }

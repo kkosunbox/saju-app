@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -23,7 +23,7 @@ import { DEV_TOOLS } from '../utils/devTools';
 import { colors, gradients, isDark } from '../theme/colors';
 import { radius, sansW, SCREEN_PX } from '../theme/typography';
 import { formatKoreanDate } from '../utils/date';
-import { useWebTopBar, webSafeTop } from '../utils/webThemeColor';
+import { mixColor, useWebTopBar, webSafeTop } from '../utils/webThemeColor';
 import { TopBarProbe, useTopBarInsets } from '../utils/topBarRegion';
 import { COPY } from '../content/copy';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
@@ -94,10 +94,23 @@ export default function HomeScreen() {
   // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
   const bar = useTopBarInsets();
   const safeTop = webSafeTop(bar.top);
-  // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다
-  const onScrollTopBar = useWebTopBar([
-    [0, sky0], [safeTop, sky0], [safeTop + SKY_H * 0.48, isDark ? gradients.sky[1] : slides[slide].sky[1]], [safeTop + SKY_H * 0.88, colors.cream],
-  ]);
+  // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다.
+  // 배너를 넘기는 동안에도 매 프레임 두 장의 색을 넘긴 만큼 섞어, 배너가 다 넘어간 뒤 상태바가 늦게 바뀌지 않게 한다
+  const slidePos = useRef(0);
+  const skyAt = (k: 0 | 1) => {
+    if (isDark) return gradients.sky[k];
+    const p = slidePos.current;
+    const i = Math.floor(p) % slides.length;
+    return mixColor(slides[i].sky[k], slides[(i + 1) % slides.length].sky[k], p - Math.floor(p));
+  };
+  const onScrollTopBar = useWebTopBar(() => {
+    const c0 = skyAt(0);
+    return [[0, c0], [safeTop, c0], [safeTop + SKY_H * 0.48, skyAt(1)], [safeTop + SKY_H * 0.88, colors.cream]];
+  });
+  const onSlideProgress = (p: number) => {
+    slidePos.current = p;
+    onScrollTopBar();
+  };
   // 뒤에 깐 하늘색은 맨 위에서 당길 때만 둔다. 빠르게 스크롤하면 Safari가 내용을 늦게 그려 빈 자리로 하늘색 띠가 비친다
   const [atTop, setAtTop] = useState(true);
   const onScroll = (y: number) => {
@@ -191,6 +204,7 @@ export default function HomeScreen() {
           labelOf={b => b.line[0] + b.line[2]}
           onPressItem={b => b.go()}
           onIndexChange={setSlide}
+          onProgress={onSlideProgress}
           renderSlide={renderSlide}
           style={{ height: safeTop + BANNER_H }}
           dotsStyle={[s.dots, { top: safeTop + 188 }]}

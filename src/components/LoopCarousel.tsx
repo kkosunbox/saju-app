@@ -15,6 +15,8 @@ interface Props<T> {
   onPressItem(item: T): void;
   /** 지금 보이는 장이 바뀔 때 */
   onIndexChange?(index: number): void;
+  /** 넘기는 동안 매 프레임 — 지금 보이는 위치를 진짜 장 번호(소수)로. 0 ≤ position < 장 수, 마지막 장 다음은 0으로 이어진다 */
+  onProgress?(position: number): void;
   style?: StyleProp<ViewStyle>;
   dotsStyle?: StyleProp<ViewStyle>;
   dotTargetStyle?: StyleProp<ViewStyle>;
@@ -27,7 +29,7 @@ interface Props<T> {
  * 양 끝에 복제 장(앞에 마지막 장, 뒤에 첫 장)을 두어, 끝에서도 거꾸로 감기지 않고 같은 방향으로 이어진다.
  * 복제 장에 닿으면 같은 그림의 진짜 장으로 애니메이션 없이 옮긴다.
  */
-export default function LoopCarousel<T>({ items, keyOf, labelOf, renderSlide, onPressItem, onIndexChange, style, dotsStyle, dotTargetStyle, dotStyle, dotOnStyle }: Props<T>) {
+export default function LoopCarousel<T>({ items, keyOf, labelOf, renderSlide, onPressItem, onIndexChange, onProgress, style, dotsStyle, dotTargetStyle, dotStyle, dotOnStyle }: Props<T>) {
   const ref = useRef<ScrollViewInstance>(null);
   const [w, setW] = useState(0);
   const [i, setI] = useState(0);
@@ -47,7 +49,8 @@ export default function LoopCarousel<T>({ items, keyOf, labelOf, renderSlide, on
   const ignorePressUntil = useRef(0);
 
   const indexChange = useRef(onIndexChange);
-  useEffect(() => { indexChange.current = onIndexChange; });
+  const progress = useRef(onProgress);
+  useEffect(() => { indexChange.current = onIndexChange; progress.current = onProgress; });
   useEffect(() => { indexChange.current?.(i); }, [i]);
 
   const jump = useCallback((p: number) => ref.current?.scrollTo({ x: p * w, animated: false }), [w]);
@@ -144,6 +147,11 @@ export default function LoopCarousel<T>({ items, keyOf, labelOf, renderSlide, on
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
     lastX.current = x;
+    if (w && n) {
+      // 복제 장(앞: 마지막 장, 뒤: 첫 장)까지 진짜 장 번호로 접는다
+      const pos = loop ? x / w - 1 : x / w;
+      progress.current?.(((pos % n) + n) % n);
+    }
     if (Platform.OS !== 'web' || touching.current || arrival.current) return;
     nextRotation.current = Date.now() + ROTATE_MS;
     clearTimeout(webEnd.current);
