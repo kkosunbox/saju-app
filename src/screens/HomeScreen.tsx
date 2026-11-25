@@ -74,17 +74,17 @@ export default function HomeScreen() {
   const slides: Slide[] = [
     {
       key: 'today', sky: ['#15ABFE', 'rgba(200,235,255,0.55)'], line: ['오늘의 운세', '#008EDE', '가 도착했어요 ✨'], cta: '오늘의 운세 보기 →', ctaGap: 2,
-      art: require('../../assets/figma/home/banner-today.webp'), artBox: { width: 101, height: 101, right: 27, top: 66 }, shadow: { cx: 52, y: 90, width: 66, color: '#0B5E9A' },
+      art: require('../../assets/figma/home/banner-today.webp'), artBox: { width: 101, height: 101, right: 27, top: 66 }, shadow: { cx: 52, y: 87.5, width: 72, color: '#0B5E9A' },
       go: () => nav.navigate('Today'),
     },
     {
       key: 'match', sky: ['#FFB1CF', 'rgba(255,243,250,0.55)'], line: ['그 사람과 나, ', '#F62D7D', '잘 맞을까요?'], cta: '우리 궁합 확인하기 →',
-      art: require('../../assets/figma/home/banner-match.webp'), artBox: { width: 126, height: 115, right: 18, top: 59 }, shadow: { cx: 67, y: 102, width: 64, color: '#B0306A' },
+      art: require('../../assets/figma/home/banner-match.webp'), artBox: { width: 126, height: 115, right: 18, top: 59 }, shadow: { cx: 67, y: 100, width: 70, color: '#B0306A' },
       go: () => nav.navigate('Tabs', { screen: 'Compatibility' }),
     },
     {
       key: 'newyear', sky: ['#A3A9FF', '#F3F5F7'], line: [`${newYearOf(today)}년 운세`, '#0092E5', '를 확인하세요!'], cta: '신년운세 확인하기 →',
-      art: require('../../assets/figma/home/banner-newyear.webp'), artBox: { width: 123, height: 113, right: 12, top: 63 }, shadow: { cx: 63.5, y: 99, width: 70, color: '#4A4FA8' },
+      art: require('../../assets/figma/home/banner-newyear.webp'), artBox: { width: 123, height: 113, right: 12, top: 63 }, shadow: { cx: 63.5, y: 94, width: 78, color: '#4A4FA8' },
       go: promos.newyear.go,
     },
   ];
@@ -283,7 +283,11 @@ export default function HomeScreen() {
   );
 }
 
-const SHADOW_H = 16;
+/**
+ * 바닥에 닿은 자리의 접지 그림자 — 좁고 얇고 진하게, 가운데를 캐릭터 아래 끝에 맞춘다.
+ * 넓거나 흐리면 떠 보이고, 캐릭터보다 위에 두면 뒤로 숨어 안 보인다
+ */
+const SHADOW_H = 14;
 
 /** 배너 캐릭터 발밑에 까는 타원 그림자 — 가운데가 진하고 가장자리로 사라진다 */
 function ArtShadow({ b, top }: { b: Slide; top: number }) {
@@ -297,8 +301,8 @@ function ArtShadow({ b, top }: { b: Slide; top: number }) {
     >
       <Defs>
         <RadialGradient id={id} cx="50%" cy="50%" rx="50%" ry="50%">
-          <Stop offset="0" stopColor={sh.color} stopOpacity={isDark ? 0.55 : 0.5} />
-          <Stop offset="0.6" stopColor={sh.color} stopOpacity={isDark ? 0.25 : 0.22} />
+          <Stop offset="0" stopColor={sh.color} stopOpacity={0.75} />
+          <Stop offset="0.6" stopColor={sh.color} stopOpacity={0.4} />
           <Stop offset="1" stopColor={sh.color} stopOpacity={0} />
         </RadialGradient>
       </Defs>
