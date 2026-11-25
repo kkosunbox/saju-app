@@ -10,7 +10,7 @@ import PressableScale from '../components/PressableScale';
 import HomeSkeleton from '../components/Skeleton';
 import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
-import LoopCarousel from '../components/LoopCarousel';
+import FadeCarousel from '../components/FadeCarousel';
 import { ART, Logo } from '../components/Mascot';
 import { usePromoTrack } from '../components/PromoSlot';
 import { CostPill } from '../components/premium/Kit';
@@ -95,20 +95,19 @@ export default function HomeScreen() {
   const bar = useTopBarInsets();
   const safeTop = webSafeTop(bar.top);
   // 웹: 상단 바 색을 스크롤에 따라 바로 아래 하늘 색에 맞춘다.
-  // 배너를 넘기는 동안에도 매 프레임 두 장의 색을 넘긴 만큼 섞어, 배너가 다 넘어간 뒤 상태바가 늦게 바뀌지 않게 한다
-  const slidePos = useRef(0);
+  // 배너가 바뀌는 동안에도 매 프레임 두 장의 색을 바뀐 만큼 섞어, 상태바가 배너와 함께 서서히 바뀌게 한다
+  const blendAt = useRef<[number, number, number]>([0, 0, 1]);
   const skyAt = (k: 0 | 1) => {
     if (isDark) return gradients.sky[k];
-    const p = slidePos.current;
-    const i = Math.floor(p) % slides.length;
-    return mixColor(slides[i].sky[k], slides[(i + 1) % slides.length].sky[k], p - Math.floor(p));
+    const [from, to, t] = blendAt.current;
+    return mixColor(slides[from].sky[k], slides[to].sky[k], t);
   };
   const onScrollTopBar = useWebTopBar(() => {
     const c0 = skyAt(0);
     return [[0, c0], [safeTop, c0], [safeTop + SKY_H * 0.48, skyAt(1)], [safeTop + SKY_H * 0.88, colors.cream]];
   });
-  const onSlideProgress = (p: number) => {
-    slidePos.current = p;
+  const onSlideBlend = (from: number, to: number, t: number) => {
+    blendAt.current = [from, to, t];
     onScrollTopBar();
   };
   // 뒤에 깐 하늘색은 맨 위에서 당길 때만 둔다. 빠르게 스크롤하면 Safari가 내용을 늦게 그려 빈 자리로 하늘색 띠가 비친다
@@ -144,18 +143,8 @@ export default function HomeScreen() {
   }
   const who = fortuneUser?.nickname ?? user.nickname;
 
-  const renderSlide = (b: Slide, width: number | undefined, onPress: () => void) => (
-    <PressableScale onPress={onPress} scaleTo={1} style={[s.slide, { width: width || '100%', height: safeTop + BANNER_H, paddingTop: safeTop + BAR_H }]} accessibilityLabel={`${who}님 ${b.line[0]}${b.line[2]} ${b.cta.replace(' →', '')}`}>
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: safeTop + SKY_H }]}>
-        {!isDark && <Image source={require('../../assets/figma/home/clouds.webp')} contentFit="fill" accessible={false} style={[s.clouds, { top: safeTop - 22 }]} />}
-        <LinearGradient
-          colors={isDark ? [...gradients.sky] : [b.sky[0], b.sky[0], b.sky[1], 'rgba(255,255,255,0)']}
-          locations={isDark ? [0, 0.48, 0.88] : [0, safeTop / (safeTop + SKY_H), (safeTop + SKY_H * 0.48) / (safeTop + SKY_H), (safeTop + SKY_H * 0.88) / (safeTop + SKY_H)]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
-      {/* 배너 아래 끝은 바탕색으로 녹여 다음 섹션과 이어지게 (Figma 구름 위 흰 띠) */}
-      {!isDark && <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0)', colors.cream]} style={s.bannerFade} />}
+  const renderSlide = (b: Slide, onPress: () => void) => (
+    <PressableScale onPress={onPress} scaleTo={1} style={[s.slide, { height: safeTop + BANNER_H, paddingTop: safeTop + BAR_H }]} accessibilityLabel={`${who}님 ${b.line[0]}${b.line[2]} ${b.cta.replace(' →', '')}`}>
       <ArtShadow b={b} top={safeTop} />
       <Image source={b.art} style={[s.art, { ...b.artBox, top: safeTop + b.artBox.top }]} contentFit="contain" accessible={false} draggable={false} />
       <Text style={s.hello} numberOfLines={2}>
@@ -169,6 +158,19 @@ export default function HomeScreen() {
         <Text style={s.bannerCtaText}>{b.cta}</Text>
       </View>
     </PressableScale>
+  );
+
+  // 장마다 다른 하늘 — 구름 그림은 모든 장이 같아 배너 뒤에 한 번만 깐다
+  const renderBackdrop = (b: Slide) => (
+    <>
+      <LinearGradient
+        colors={isDark ? [...gradients.sky] : [b.sky[0], b.sky[0], b.sky[1], 'rgba(255,255,255,0)']}
+        locations={isDark ? [0, 0.48, 0.88] : [0, safeTop / (safeTop + SKY_H), (safeTop + SKY_H * 0.48) / (safeTop + SKY_H), (safeTop + SKY_H * 0.88) / (safeTop + SKY_H)]}
+        style={[s.skyGradient, { height: safeTop + SKY_H }]}
+      />
+      {/* 배너 아래 끝은 바탕색으로 녹여 다음 섹션과 이어지게 (Figma 구름 위 흰 띠) */}
+      {!isDark && <LinearGradient colors={['rgba(255,255,255,0)', colors.cream]} style={s.bannerFade} />}
+    </>
   );
 
   const CATEGORIES = [
@@ -198,14 +200,20 @@ export default function HomeScreen() {
       >
         {/* 당겨서 새로고침할 때도 위가 비지 않게 지금 배너의 맨 위 색을 위로 늘려 둔다 */}
         <View pointerEvents="none" style={[s.skyAbove, { backgroundColor: sky0 }]} />
-        <LoopCarousel
+        {!isDark && (
+          <View pointerEvents="none" style={[s.cloudsWrap, { height: safeTop + BANNER_H }]}>
+            <Image source={require('../../assets/figma/home/clouds.webp')} contentFit="fill" accessible={false} style={[s.clouds, { top: safeTop - 22 }]} />
+          </View>
+        )}
+        <FadeCarousel
           items={slides}
           keyOf={b => b.key}
           labelOf={b => b.line[0] + b.line[2]}
           onPressItem={b => b.go()}
           onIndexChange={setSlide}
-          onProgress={onSlideProgress}
+          onBlend={onSlideBlend}
           renderSlide={renderSlide}
+          renderBackdrop={renderBackdrop}
           style={{ height: safeTop + BANNER_H }}
           dotsStyle={[s.dots, { top: safeTop + 188 }]}
           dotTargetStyle={s.dotTarget}
@@ -324,7 +332,9 @@ const s = StyleSheet.create({
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1, marginLeft: 12 },
 
   slide: { paddingHorizontal: SCREEN_PX },
+  cloudsWrap: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   clouds: { position: 'absolute', left: 0, width: '100%', height: 406 },
+  skyGradient: { position: 'absolute', top: 0, left: 0, right: 0 },
   art: { position: 'absolute' },
   bannerFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 40 },
   hello: { ...sansW('700'), fontSize: 20, lineHeight: 32, letterSpacing: -0.8, color: isDark ? colors.ink : '#222222', includeFontPadding: false },
