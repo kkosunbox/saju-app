@@ -391,7 +391,9 @@ export function tarotSpec(nickname: string | undefined, topic: string, card: Non
   return {
     kind: '오늘의 타로', seal: '✦', eyebrow: nickname ? `${nickname}님의 ${topic} 타로` : `${topic} 타로`,
     headline: card.name, sub: summary.split('. ')[0].replace(/\.$/, '') + '.',
-    detail: { label: '선택한 주제', value: topic }, stats: [['카드 번호', String(card.id)], ['키워드', card.keyword], ['방향', direction]],
+    // 주제는 위 제목줄(○○님의 연애운 타로)에 있어 카드 이름 아래 칸에는 방향을 크게 보여 준다
+    detail: { label: '카드 방향', value: direction },
+    stats: [['카드 번호', String(card.id)], ['키워드', card.keyword]],
     hook: '마음이 가는 카드 한 장을 골라 보세요.',
     text: `${topic} 타로 · ${card.name} (${direction})\n${reading}`,
     file: 'woonpick-tarot', route: 'Tarot', short: `${topic} · ${card.name}`,

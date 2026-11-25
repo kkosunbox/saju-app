@@ -1,22 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { getTopicCard, TAROT_TOPICS, type TarotTopic } from '../../data/topicTarot';
+import { getTopicCard, TAROT_REVERSED_RATE, TAROT_TOPICS, type TarotTopic } from '../../data/topicTarot';
 import { todayISO } from '../../utils/date';
 import { LOCAL_TOOLS } from '../../utils/devTools';
 import { deviceKey } from '../storage/storageService';
 
 type TopicKey = TarotTopic['key'];
-type Draws = Partial<Record<TopicKey, number>>;
+/** 주제마다 오늘 뽑은 카드와 방향 (역방향을 넣기 전 기록은 정방향) */
+export interface TopicDraw { cardId: number; reversed: boolean }
+type Draws = Partial<Record<TopicKey, TopicDraw>>;
 const drawPrefix = (userId: string) => deviceKey(`topic-tarot:v1:${userId}:`);
 const drawKey = (userId: string, topic: TopicKey) => `${drawPrefix(userId)}${topic}`;
 
-async function readDraw(key: string, date: string) {
+async function readDraw(key: string, date: string): Promise<TopicDraw | undefined> {
   const raw = await AsyncStorage.getItem(key);
   if (!raw) return undefined;
   try {
-    const saved: { date?: string; cardId?: number } = JSON.parse(raw);
+    const saved: { date?: string; cardId?: number; reversed?: boolean } = JSON.parse(raw);
     if (saved?.date === date && typeof saved.cardId === 'number' && getTopicCard(saved.cardId)) {
-      return saved.cardId;
+      return { cardId: saved.cardId, reversed: saved.reversed === true };
     }
   } catch {
     // A corrupt record can be replaced by the next completed draw.
@@ -27,7 +29,7 @@ export async function loadTopicTarotDraws(userId: string, date: string): Promise
   const draws = await Promise.all(TAROT_TOPICS.map(async ({ key }) => [
     key, await readDraw(drawKey(userId, key), date),
   ] as const));
-  return Object.fromEntries(draws.filter(([, cardId]) => cardId !== undefined));
+  return Object.fromEntries(draws.filter(([, draw]) => draw !== undefined));
 }
 
 export function subscribeToTopicTarotDraws(userId: string, onChange: () => void) {
@@ -51,16 +53,18 @@ function updateDraw<T>(key: string, commit: () => Promise<T>) {
   return operation;
 }
 
-/** Return the first confirmed choice for this topic and day, including after a concurrent draw. */
+/** Return the first confirmed choice (card and direction) for this topic and day, including after a concurrent draw. */
 export function saveTopicTarotDraw(userId: string, topic: TopicKey, date: string, chosenId: number) {
   const key = drawKey(userId, topic);
   return updateDraw(key, async () => {
     if (date !== todayISO()) return undefined;
     const saved = await readDraw(key, date);
     if (date !== todayISO()) return undefined;
-    if (saved !== undefined) return { cardId: saved, newlySaved: false };
-    await AsyncStorage.setItem(key, JSON.stringify({ date, cardId: chosenId }));
-    return { cardId: chosenId, newlySaved: true };
+    if (saved !== undefined) return { ...saved, newlySaved: false };
+    // 방향은 카드를 고른 순간 정해 함께 남긴다 (다시 열어도 같은 방향)
+    const reversed = Math.random() < TAROT_REVERSED_RATE;
+    await AsyncStorage.setItem(key, JSON.stringify({ date, cardId: chosenId, reversed }));
+    return { cardId: chosenId, reversed, newlySaved: true };
   });
 }
 

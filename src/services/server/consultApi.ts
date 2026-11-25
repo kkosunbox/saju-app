@@ -29,18 +29,25 @@ export interface ConsultFacts {
 /** 운알톡 대화를 시작한 화면 — 운알이가 그 화면 내용을 기억하고 이야기한다 (서버가 DB에서 다시 읽는다) */
 export type ChatSource =
   | { type: 'daily_fortune'; ref: string; title?: string }
-  | { type: 'content'; ref: string; title: string };
+  | { type: 'content'; ref: string; title: string }
+  /** 오늘의 타로 — 카드는 기기에서 뽑아 두므로 화면의 풀이(detail)를 함께 보낸다 */
+  | { type: 'tarot'; ref: string; title: string; detail: string };
 
 /** 보낸 출처를 대화 화면의 출처 모양으로 — 답을 기다리는 동안에도 위에 미리 띄운다 (life@123 → life) */
 export const sourceView = (source: ChatSource): NonNullable<ConsultView['source']> => ({
   type: source.type,
   title: source.title ?? null,
-  key: source.type === 'content' ? source.ref.split('@')[0] : null,
+  key: source.type === 'content' ? source.ref.split('@')[0] : source.type === 'tarot' ? source.ref : null,
 });
 
 /** 콘텐츠 화면에서 운알톡을 시작할 때 — 열람권을 알면 그 프로필의 풀이를 읽게 붙인다 (life@123) */
 export const contentChatSource = (contentKey: string, title: string, entitlementId?: number | null): ChatSource =>
   ({ type: 'content', ref: entitlementId ? `${contentKey}@${entitlementId}` : contentKey, title });
+
+/** 타로 카드 화면에서 운알톡을 시작할 때 — 주제와 카드 번호(love:3, 역방향은 love:3r), 화면에 보이는 풀이(빈 줄로 나눈 상징 · 조언 · 풀이) */
+export const tarotChatSource = (topicKey: string, topicLabel: string, cardId: number, reversed: boolean, detail: string): ChatSource =>
+  // 제목은 서버가 붙이는 것과 같게 — 답을 기다리는 동안에도 대화 위에 주제까지 보인다
+  ({ type: 'tarot', ref: `${topicKey}:${cardId}${reversed ? 'r' : ''}`, title: `오늘의 타로 · ${topicLabel}`, detail });
 
 export interface ConsultTurn {
   question: string; reply: string; followUps: string[]; createdAt: string;

@@ -1,3 +1,5 @@
+import { REVERSED } from './topicTarotReversed';
+
 export const TAROT_TOPICS = [
   { key: 'love', label: '연애운', icon: 'heart', prompt: '마음이 가는 사람이나 만나고 싶은 인연을 떠올려 보세요.' },
   { key: 'money', label: '재물운', icon: 'crown', prompt: '요즘 마음에 걸리는 돈의 쓰임을 하나 떠올려 보세요.' },
@@ -330,6 +332,15 @@ const CARDS: readonly TopicCard[] = [
 ];
 
 export const TAROT_DECK_SIZE = CARDS.length;
+
+/** 카드가 역방향으로 나올 확률 — 하루 기분을 너무 무겁게 하지 않게 셋 중 하나 꼴로 */
+export const TAROT_REVERSED_RATE = 0.3;
+
+/** 뽑힌 방향에 맞는 키워드 · 상징 · 주제별 풀이 */
+export function topicFace(card: TopicCard, reversed: boolean) {
+  if (!reversed) return { keyword: card.keyword, symbol: card.symbol, insight: card.insight, readings: card.readings };
+  return REVERSED[card.id];
+}
 
 export function getTopicCard(id: number) {
   return CARDS.find(card => card.id === id);

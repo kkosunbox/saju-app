@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, KeyboardEvents } from 'react-native-keyboard-cont
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@/navigation/compat';
+import { useIsFocused } from 'expo-router';
 import PressableScale from './PressableScale';
 import Icon from './Icon';
 import AskUnalPopup from './AskUnalPopup';
@@ -51,6 +52,8 @@ interface Props {
 const TALK_END_PX = 160;
 /** 본문 끝 표시가 화면 아래에서 이만큼 올라오면 (다 읽었다고 보고) 운알이를 띄운다 */
 const TALK_MARK_PX = 40;
+/** 짧은 화면: 크기가 마지막으로 바뀐 뒤 이만큼 지나 (그림·글이 자리 잡은 뒤) 운알이를 띄운다 */
+const TALK_FIT_DELAY = 800;
 
 /** 본문 끝 표시를 Screen에 알려 주는 통로 */
 const TalkEndContext = createContext<((ref: ViewInstance | null) => void) | null>(null);
@@ -104,6 +107,43 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       if (y > 0 && y <= Dimensions.get('window').height - TALK_MARK_PX) setNearEnd(true);
     });
   };
+  // 스크롤이 생기지 않을 만큼 짧은 화면(또는 끝 표시가 처음부터 보이는 화면) — 크기가 자리 잡은 뒤 잠깐 있다가 띄운다
+  const viewH = useRef(0);
+  const contentH = useRef(0);
+  const fitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkFits = () => {
+    if (!asksTalk || nearEnd) return;
+    if (fitTimer.current) clearTimeout(fitTimer.current);
+    fitTimer.current = setTimeout(() => {
+      fitTimer.current = null;
+      if (!viewH.current || !contentH.current) return;
+      if (contentH.current <= viewH.current + 1) return setNearEnd(true);
+      talkMark.current?.measureInWindow((_x, y) => {
+        if (y > 0 && y <= Dimensions.get('window').height - TALK_MARK_PX) setNearEnd(true);
+      });
+    }, TALK_FIT_DELAY);
+  };
+  // 운알이가 나중에 생기는 화면(타로 카드 공개 뒤)도 그때 한 번 잰다
+  useEffect(() => {
+    if (asksTalk && !nearEnd) checkFits();
+    return () => { if (fitTimer.current) clearTimeout(fitTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asksTalk, nearEnd]);
+  // 운알이는 들어올 때마다 다시 뜬다 — 다른 내용(타로의 다른 주제)이 되면 처음부터, 다른 화면에 갔다 돌아오면 닫은 것만 되돌린다
+  const talkKey = talk ? `${talk.type}:${talk.ref}` : null;
+  const focused = useIsFocused();
+  const [visit, setVisit] = useState(0);
+  const wasFocused = useRef(focused);
+  useEffect(() => {
+    if (focused && !wasFocused.current) setVisit(v => v + 1);
+    wasFocused.current = focused;
+  }, [focused]);
+  const shownKey = useRef(talkKey);
+  useEffect(() => {
+    if (shownKey.current === talkKey) return;
+    shownKey.current = talkKey;
+    setNearEnd(false);
+  }, [talkKey]);
   const showBack = (back || !!onBack) && !sharedView && !left;
   const goBack = onBack ?? (() => nav.goBack());
   const heading = title ?? largeTitle;
@@ -132,6 +172,9 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
         <Animated.ScrollView
           ref={scrollRef}
           contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
+          // 크기는 늘 적어 둔다 — 운알이가 나중에 생기는 화면(타로 카드 공개 뒤)은 그 전에 잰 높이로 판단한다
+          onLayout={e => { viewH.current = e.nativeEvent.layout.height; checkFits(); }}
+          onContentSizeChange={(_w, h) => { contentH.current = h; checkFits(); }}
           onScroll={floating
             ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false, listener: asksTalk ? onTalkScroll : undefined })
             : asksTalk ? onTalkScroll : undefined} scrollEventThrottle={16}
@@ -143,7 +186,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
         <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
       )}
       {/* 운알이는 화면 위쪽, 상단 바 바로 아래에 본문 위로 떠오른다 */}
-      {asksTalk && talk ? <AskUnalPopup source={talk} visible={nearEnd} top={floating ? BAR_H : 0} bg={bg} /> : null}
+      {asksTalk && talk ? <AskUnalPopup key={`${talkKey}#${visit}`} source={talk} visible={nearEnd} top={floating ? BAR_H : 0} bg={bg} /> : null}
       {footer ? <View style={[s.footer, { paddingBottom: footerBottom }]}>{footer}</View> : null}
       </KeyboardAvoidingView>
       {floating ? (

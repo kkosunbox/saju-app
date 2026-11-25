@@ -1,68 +1,43 @@
-import React, { useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@/navigation/compat';
 import Screen from '../../components/Screen';
-import SectionHeader from '../../components/SectionHeader';
 import ShareActions from '../../components/ShareActions';
 import { ShareIconButton } from '../../components/ShareCta';
 import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import PrimaryButton from '../../components/PrimaryButton';
 import PressableScale from '../../components/PressableScale';
 import Reveal from '../../components/Reveal';
-import StarAvatar from '../../components/StarAvatar';
 import LoadingScreen from '../../components/LoadingScreen';
 import StarRoulette from '../../components/StarRoulette';
 import { PointPill } from '../../components/HeaderPoints';
 import { useApp } from '../../context/AppContext';
-import { useContentScope } from '../../context/ContentScopeContext';
 import { useOpened } from '../../services/content/opened';
 import { useStarDetail, useStarMatch } from '../../services/server/starApi';
 import { starSpec } from '../../services/share/shareSpecs';
 import { colors } from '../../theme/colors';
 import { LOCAL_TOOLS } from '../../utils/devTools';
-import { radius, sansW, txt } from '../../theme/typography';
+import { radius, txt } from '../../theme/typography';
 import { StarHero, StarSections } from './StarReport';
-import type { StarCard } from '../../types/content';
-
-/** 결과 아래 '다른 연예인'은 반대 성별에서 랜덤 몇 명만 */
-const OTHERS = 5;
-
-const shuffled = <T,>(items: T[]) => {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-};
+import StarOthers from './StarOthers';
 
 /**
  * 무료: 연예인 궁합. 오늘 나와 가장 잘 맞는 반대 성별 연예인 세 명을 돌림판에 올려 한 명을 뽑는다.
  * 점수는 날마다 바뀌고 날마다 새로 뽑는다. 뽑으면 그 연예인과의 궁합 풀이를 바로 펼쳐 보여 주고,
- * 아래에는 반대 성별의 다른 연예인 다섯 명을 랜덤으로 보여 준다 (점수 없이). 사람은 사주 캐릭터 대신 이름으로 고정된 실루엣으로 그린다.
+ * 아래에는 반대 성별의 다른 연예인 다섯 명을 랜덤으로 보여 준다 (StarOthers). 사람은 사주 캐릭터 대신 이름으로 고정된 실루엣으로 그린다.
  */
 export default function StarMatchScreen() {
   const nav = useNavigation();
   const { user: u } = useApp();
-  const scope = useContentScope();
   const q = useStarMatch();
   const draw = useOpened('celebrity-match');
   const [drawn, setDrawn] = useState(false);
-  // 다른 연예인: 반대 성별에서 랜덤 다섯 명 (화면을 열 때 한 번 섞는다)
   const data = q.data;
   const pick = data?.pick ?? null;
   // 뽑힌 연예인과의 풀이 — 돌림판이 도는 동안 미리 받아 둔다
   const detail = useStarDetail(pick?.id ?? null);
-  // 남자 프로필은 여자 연예인만, 여자 프로필은 남자 연예인만
-  const opposite = u?.gender === 'male' ? 'female' : u?.gender === 'female' ? 'male' : null;
-  const others = useMemo(
-    () => shuffled((data?.stars ?? []).filter(st => st.id !== pick?.id && (!opposite || st.gender === opposite))).slice(0, OTHERS),
-    [data, pick, opposite],
-  );
   if (!u) return null;
   if (!data || !draw.ready) return <LoadingScreen title="연예인 궁합" error={q.error} onRetry={q.refetch} />;
-  const open = (star: StarCard) => nav.navigate('StarMatchDetail', { id: String(star.id), profileId: scope?.profileId ?? undefined });
 
   // 오늘 아직 안 돌렸으면 돌림판부터
   if (!draw.opened && pick) {
@@ -97,20 +72,7 @@ export default function StarMatchScreen() {
 
       {spec ? <ShareActions spec={spec} title={`${pick?.name ?? '연예인'}님과의 궁합을 공유해 볼까요?`} sub="궁합 점수와 케미까지 카드 한 장에 담았어요" marginTop={32} /> : null}
 
-      <SectionHeader
-        title="다른 연예인과의 궁합"
-        action="연예인 검색"
-        onAction={() => router.push({ pathname: '/star/search', params: { profileId: scope?.profileId ?? undefined } })}
-      />
-      <View style={s.row}>
-        {others.map(star => (
-          <PressableScale key={star.id} onPress={() => open(star)} style={s.cell} scaleTo={0.94} accessibilityLabel={`${star.name}, 오늘의 궁합 보기`}>
-            <StarAvatar name={star.name} gender={star.gender} size={36} />
-            <Text style={s.cellName} numberOfLines={1}>{star.name}</Text>
-            <Text style={s.cellSub} numberOfLines={1}>{star.character}</Text>
-          </PressableScale>
-        ))}
-      </View>
+      <StarOthers stars={data.stars} exclude={pick?.id} gender={u.gender} />
 
       {/* 이 연예인의 이름·양력 생일·성별을 채운 궁합 상대 추가 화면으로 (저장은 거기서 궁합을 볼 때) */}
       {d ? <PrimaryButton size="medium" variant="soft" label="궁합 상대로 추가" labelStyle={s.btnLabel} onPress={() => nav.navigate('Compatibility', { star: { nickname: d.name, birthDate: d.birthDate, gender: d.gender } })} style={{ marginTop: 24 }} /> : null}
@@ -123,9 +85,5 @@ const s = StyleSheet.create({
   empty: { padding: 20, borderRadius: radius.lg, backgroundColor: colors.card },
   devReset: { alignSelf: 'center', marginTop: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.inkMute },
   devResetText: { fontSize: 11, fontWeight: '600', color: colors.inkSub },
-  row: { flexDirection: 'row', paddingVertical: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  cell: { flex: 1, minWidth: 0, alignItems: 'center', paddingHorizontal: 2 },
-  cellName: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: colors.ink, marginTop: 6 },
-  cellSub: { ...sansW('500'), fontSize: 10, lineHeight: 14, color: colors.inkMute, letterSpacing: -0.3 },
   btnLabel: { fontWeight: '700', letterSpacing: -0.56, color: colors.ink },
 });

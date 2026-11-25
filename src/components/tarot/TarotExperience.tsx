@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useIsFocused } from 'expo-router';
-import { dealTopicCards, getTopicCard, TAROT_DECK_SIZE, TAROT_TOPICS, type TarotTopic } from '../../data/topicTarot';
+import { dealTopicCards, getTopicCard, TAROT_DECK_SIZE, TAROT_TOPICS, topicFace, type TarotTopic } from '../../data/topicTarot';
 import { useApp } from '../../context/AppContext';
 import { useNavigation } from '@/navigation/compat';
 import { loadTopicTarotDraws, resetTopicTarotDraw, saveTopicTarotDraw, subscribeToTopicTarotDraws } from '../../services/content/topicTarotDraws';
-import { promosOf } from '../../services/promo/promos';
+import { PromoKey, promosOf } from '../../services/promo/promos';
+import { tarotChatSource } from '../../services/server/consultApi';
 import { tarotSpec } from '../../services/share/shareSpecs';
 import { sansW } from '../../theme/typography';
 import { LOCAL_TOOLS } from '../../utils/devTools';
@@ -28,8 +29,13 @@ const MUTE = '#CFC0D4';
 const LINE = '#503952';
 const TOP_BAR = [[0, NIGHT]] as const;
 const TOPIC_TRANSITION_DURATION = 520;
+/** 주제 → 그 주제를 더 깊이 보는 콘텐츠 (운알톡은 위에서 내려오는 운알이가 맡는다) */
+const PROMO_OF_TOPIC: Record<TarotTopic['key'], PromoKey> = {
+  love: 'theme-love', money: 'theme-money', work: 'theme-career', relationship: 'crush',
+};
 
-export default function TarotExperience() {
+/** topic: 이 주제를 오늘 뽑았으면 그 결과를 바로 연다 (운알톡 대화에서 돌아올 때) */
+export default function TarotExperience({ topic }: { topic?: string } = {}) {
   const { user } = useApp();
   const [, refreshDate] = useState(0);
   const date = todayISO();
@@ -47,15 +53,17 @@ export default function TarotExperience() {
       nickname={user.nickname}
       date={date}
       onDateChange={onDateChange}
+      initialTopic={topic}
     />
   );
 }
 
-function TarotSession({ userId, nickname, date, onDateChange }: {
+function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
   userId: string;
   nickname: string;
   date: string;
   onDateChange: () => void;
+  initialTopic?: string;
 }) {
   const nav = useNavigation();
   const focused = useIsFocused();
@@ -149,14 +157,35 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
     return unsubscribe;
   }, [load, userId]));
 
-  const cardId = topic && draws?.[topic.key];
-  const selected = cardId === undefined ? undefined : getTopicCard(cardId);
-  const card = selected && { id: selected.id, name: selected.name, orientation: 'upright' as const };
+  // 운알톡에서 돌아왔으면 그 주제의 결과를 바로 연다 — 들어올 때마다 한 번 (다른 화면에 다녀오면 다시)
+  const openedTopic = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!focused) { openedTopic.current = undefined; return; }
+    if (!initialTopic || openedTopic.current === initialTopic || !draws || topicDirection || writing.current) return;
+    const next = TAROT_TOPICS.find(t => t.key === initialTopic);
+    openedTopic.current = initialTopic;
+    if (!next || draws[next.key] === undefined || topic?.key === next.key) return;
+    topicMotion.setValue(1);
+    setTopic(next);
+    setDeck([]);
+    setAnimateReveal(false);
+    setRevealFinished(false);
+    setSaveFailed(false);
+    setResetFailed(false);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [draws, focused, initialTopic, topic, topicDirection, topicMotion]);
+
+  const draw = topic ? draws?.[topic.key] : undefined;
+  const selected = draw ? getTopicCard(draw.cardId) : undefined;
+  const reversed = !!draw?.reversed;
+  const face = selected ? topicFace(selected, reversed) : undefined;
+  const card = selected && { id: selected.id, name: selected.name, orientation: reversed ? 'reversed' as const : 'upright' as const };
   const showReading = !animateReveal || revealFinished;
-  const reading = topic && selected ? selected.readings[topic.key] : undefined;
-  const insight = topic && selected ? selected.insight[topic.key] : undefined;
-  const spec = topic && card && selected && reading && insight
-    ? tarotSpec(nickname, topic.label, { ...card, keyword: selected.keyword }, reading, [selected.symbol, reading, insight].join('\n\n'))
+  const reading = topic && face ? face.readings[topic.key] : undefined;
+  const insight = topic && face ? face.insight[topic.key] : undefined;
+  const detail = face && reading && insight ? [face.symbol, reading, insight].join('\n\n') : null;
+  const spec = topic && card && face && reading && detail
+    ? tarotSpec(nickname, topic.label, { ...card, keyword: face.keyword }, reading, detail)
     : null;
 
   const scrollToTop = () => scrollRef.current?.scrollTo({ y: 0, animated: !reduced });
@@ -182,7 +211,7 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
       setRevealFinished(false);
       scrollToTop();
       setAnimateReveal(result.newlySaved);
-      setDraws(current => ({ ...current, [topic.key]: result.cardId }));
+      setDraws(current => ({ ...current, [topic.key]: { cardId: result.cardId, reversed: result.reversed } }));
       void load();
     } catch {
       setSaveFailed(true);
@@ -241,6 +270,8 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
       bg={NIGHT}
       contentStyle={s.screen}
       right={!changingTopic && showReading && spec ? <ShareIconButton spec={spec} color={INK} /> : undefined}
+      // 카드 풀이를 끝까지 읽으면 운알이가 내려와 이 카드를 기억한 채 이어서 이야기한다
+      talk={!changingTopic && showReading && topic && selected && detail ? tarotChatSource(topic.key, topic.label, selected.id, reversed, detail) : undefined}
       left={
         <Pressable
           onPress={topic ? reset : nav.goBack}
@@ -279,10 +310,10 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
                   <View style={s.result}>
                     <Text style={s.english}>{selected.englishName}</Text>
                     <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={s.cardName}>{selected.name}</Text>
-                    <Text style={s.keyword}>{selected.keyword} · 정방향</Text>
+                    <Text style={s.keyword}>{face?.keyword} · {reversed ? '역방향' : '정방향'}</Text>
                     <View style={s.reading}>
                       <Text accessibilityRole="header" style={s.speaker}>타로술사가 읽어주는 {topic.label}</Text>
-                      <Text style={s.readingText}>{selected.symbol}</Text>
+                      <Text style={s.readingText}>{face?.symbol}</Text>
                       <Text style={s.readingText}>{reading}</Text>
                       <Text style={s.readingText}>{insight}</Text>
                     </View>
@@ -297,7 +328,7 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
                     ) : null}
                     {resetFailed ? <Text style={s.error} accessibilityLiveRegion="polite">뽑기 기록을 초기화하지 못했어요. 다시 눌러 주세요.</Text> : null}
                     <View style={s.promo}>
-                      <PromoSlot screen="tarot" promo={promosOf(nav, date).consult} tone="mint" title="카드가 꺼낸 고민을 더 이야기해 볼까요?" cta="운알이와 대화하기 →" />
+                      <PromoSlot screen={`tarot_${topic.key}`} promo={promosOf(nav, date)[PROMO_OF_TOPIC[topic.key]]} teaser />
                     </View>
                   </View>
                 ) : null}
@@ -365,7 +396,6 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
           </Animated.View>
         ) : null}
       </View>
-      <Text style={s.note}>카드의 상징을 재미로 읽어 보세요.</Text>
     </Screen>
   );
 }
@@ -402,5 +432,4 @@ const s = StyleSheet.create({
   change: { alignSelf: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 14 },
   changeText: { ...sansW('600'), color: GOLD, fontSize: 14, textDecorationLine: 'underline' },
   pressed: { opacity: 0.7 },
-  note: { ...sansW('400'), color: '#AB9BB3', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 16, paddingHorizontal: 20 },
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,8 +11,12 @@ import TextField from '../../components/TextField';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
 import { useStarMatch } from '../../services/server/starApi';
+import { forGender } from './StarOthers';
 import { colors } from '../../theme/colors';
 import { SCREEN_PX, txt } from '../../theme/typography';
+
+/** 목록은 서버에서 한 번에 받아 두고, 화면에는 스크롤할 때마다 이만큼씩 더 그린다 */
+const PAGE = 20;
 
 const searchKey = (value: string) => value.normalize('NFC').toLowerCase().replace(/\s+/g, '');
 
@@ -22,9 +26,14 @@ export default function StarSearchScreen() {
   const { bottom } = useSafeAreaInsets();
   const { data, error, refetch } = useStarMatch();
   const [query, setQuery] = useState('');
-  const stars = data?.stars;
+  // 남자 프로필은 여자 연예인만, 여자 프로필은 남자 연예인만
+  const stars = useMemo(() => (data ? forGender(data.stars, user?.gender) : undefined), [data, user?.gender]);
   const term = searchKey(query);
   const matches = useMemo(() => (term ? stars?.filter(star => searchKey(star.name).includes(term)) : stars) ?? [], [stars, term]);
+  const [limit, setLimit] = useState(PAGE);
+  // 검색어가 바뀌면 처음 한 쪽부터
+  useEffect(() => setLimit(PAGE), [term]);
+  const shown = useMemo(() => matches.slice(0, limit), [matches, limit]);
 
   if (!user) return null;
   if (!data) return <LoadingScreen title="연예인 검색" error={error} onRetry={refetch} />;
@@ -43,7 +52,9 @@ export default function StarSearchScreen() {
         containerStyle={s.field}
       />
       <FlatList
-        data={matches}
+        data={shown}
+        onEndReached={() => { if (limit < matches.length) setLimit(n => n + PAGE); }}
+        onEndReachedThreshold={0.6}
         keyExtractor={star => String(star.id)}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[s.list, { paddingBottom: Math.max(bottom, 16) }]}

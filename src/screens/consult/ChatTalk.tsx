@@ -50,6 +50,8 @@ export function ReplyLines({ turn }: { turn: ConsultTurn }) {
 /** 대화를 시작한 화면 → 그 화면으로 (모르는 콘텐츠면 null) */
 function sourceRoute(source: NonNullable<ConsultView['source']>): [string, object?] | null {
   if (source.type === 'daily_fortune') return ['Today'];
+  // 타로는 그 주제의 결과로 (key = love:3r → love)
+  if (source.type === 'tarot') return ['AnalysisDetail', { source: 'tarot', ...(source.key ? { topic: source.key.split(':')[0] } : {}) }];
   const key = source.key ?? '';
   const [kind, arg] = key.split(':');
   if (key === 'life') return ['Life'];
@@ -73,7 +75,7 @@ export function SourceBanner({ source }: { source: NonNullable<ConsultView['sour
   const route = sourceRoute(source);
   const body = (
     <>
-      <View style={s.sourceIcon}><Icon name={source.type === 'daily_fortune' ? 'calendar' : 'grid'} size={16} color={colors.accent} strokeWidth={2} /></View>
+      <View style={s.sourceIcon}><Icon name={source.type === 'daily_fortune' ? 'calendar' : source.type === 'tarot' ? 'sparkle' : 'grid'} size={16} color={colors.accent} strokeWidth={2} /></View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={s.sourceK}>이 화면에서 이어진 대화예요</Text>
         <Text style={s.sourceT} numberOfLines={1}>{source.title}</Text>

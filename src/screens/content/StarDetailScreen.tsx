@@ -7,10 +7,11 @@ import ProfileSwitch from '../../components/premium/ProfileSwitch';
 import LoadingScreen from '../../components/LoadingScreen';
 import { ShareIconButton } from '../../components/ShareCta';
 import { useApp } from '../../context/AppContext';
-import { useStarDetail } from '../../services/server/starApi';
+import { useStarDetail, useStarMatch } from '../../services/server/starApi';
 import { starSpec } from '../../services/share/shareSpecs';
 import { colors } from '../../theme/colors';
 import { StarHero, StarSections } from './StarReport';
+import StarOthers from './StarOthers';
 
 const MIN_LOADING_MS = 480;
 
@@ -21,6 +22,8 @@ export default function StarDetailScreen() {
   const id = params?.id && /^\d+$/.test(params.id) ? Number(params.id) : null;
   const { user: u } = useApp();
   const q = useStarDetail(id);
+  // 아래 '다른 연예인과의 궁합' 목록 (결과 화면과 같은 데이터 — 받아 둔 게 있으면 그대로)
+  const all = useStarMatch();
   const [readyId, setReadyId] = useState<number | null>(null);
   useEffect(() => {
     if (id == null) return;
@@ -40,10 +43,10 @@ export default function StarDetailScreen() {
       <ProfileSwitch style={{ marginBottom: 16 }} />
       <StarHero me={u} star={d} eyebrow={`${u.nickname}님과 ${d.name}님의 오늘의 궁합`} />
       <StarSections me={u} star={d} />
+      {all.data ? <StarOthers stars={all.data.stars} exclude={d.id} gender={u.gender} /> : null}
 
-      <PrimaryButton size="medium" label="다른 연예인과도 궁합보기" labelStyle={s.btnLabel} onPress={() => (nav.canGoBack() ? nav.goBack() : nav.navigate('StarMatch'))} style={{ marginTop: 40 }} />
       {/* 이 연예인의 이름·양력 생일·성별을 채운 궁합 상대 추가 화면으로 (저장은 거기서 궁합을 볼 때) */}
-      <PrimaryButton size="medium" variant="soft" label="궁합 상대로 추가" labelStyle={[s.btnLabel, { color: colors.ink }]} onPress={() => nav.navigate('Compatibility', { star: { nickname: d.name, birthDate: d.birthDate, gender: d.gender } })} style={{ marginTop: 16 }} />
+      <PrimaryButton size="medium" variant="soft" label="궁합 상대로 추가" labelStyle={[s.btnLabel, { color: colors.ink }]} onPress={() => nav.navigate('Compatibility', { star: { nickname: d.name, birthDate: d.birthDate, gender: d.gender } })} style={{ marginTop: 24 }} />
     </Screen>
   );
 }

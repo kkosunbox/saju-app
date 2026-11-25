@@ -27,7 +27,8 @@ export type RootStackParamList = {
   ProfileSetup: undefined;
   Tabs: NavigatorScreenParams<TabParamList>;
   CategoryDetail: { category: CategoryKey };
-  AnalysisDetail: { source: AnalysisResult['source'] };
+  /** topic: 타로에서 바로 열 주제의 결과 (운알톡 대화 위 배너에서 돌아올 때, 예: love) */
+  AnalysisDetail: { source: AnalysisResult['source']; topic?: string };
   CombinedAnalysis: undefined;
   Share: { spec?: ShareSpec } | undefined;
   Wallet: undefined;

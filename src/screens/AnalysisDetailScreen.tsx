@@ -41,7 +41,7 @@ export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
   const { fortune, fortuneUser: user, today } = useApp();
   const nav = useNavigation();
-  if (params.source === 'tarot' || params.source === 'blood') return <TarotExperience />;
+  if (params.source === 'tarot' || params.source === 'blood') return <TarotExperience topic={params.topic} />;
   if (!user || !fortune) return null;
   const a = fortune.analyses[params.source];
   if (!a) return null;
