@@ -64,8 +64,11 @@ export function StarMatchArt({ size = 39 }: { size?: number }) {
   );
 }
 
-export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' | 'inv' | 'star' }) {
+export function HomeFreeArt({ kind }: { kind: 'tal' | 'mbti' | 'char' | 'past' | 'inv' | 'star' | 'tarot' }) {
   if (kind === 'star') return <StarMatchArt />;
+  if (kind === 'tarot') {
+    return <Image source={require('../../../assets/figma/home/analysis-tarot.webp')} style={{ width: 45, height: 39 }} contentFit="contain" accessible={false} />;
+  }
   // Figma 288:2739 — 사주 캐릭터 카드는 내 캐릭터 대신 이 그림으로 고정
   if (kind === 'char') {
     return <Image source={require('../../../assets/figma/home/free-character.webp')} style={{ position: 'absolute', left: -3, top: -8, width: 48, height: 48 }} contentFit="cover" accessible={false} />;

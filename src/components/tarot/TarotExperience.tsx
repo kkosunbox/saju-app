@@ -343,14 +343,11 @@ function TarotSession({ userId, nickname, date, onDateChange }: {
                         disabled={!draws}
                         accessibilityRole="button"
                         accessibilityLabel={topic.label}
-                        accessibilityHint={draws?.[topic.key] !== undefined ? '오늘 뽑은 카드 해설 보기' : topic.hint}
+                        accessibilityHint={draws?.[topic.key] !== undefined ? '오늘 뽑은 카드 해설 보기' : '카드 고르기'}
                         style={({ pressed }) => [s.topic, pressed && s.topicPressed]}
                       >
                         <View style={s.topicIcon}><Icon name={topic.icon} size={18} color={GOLD} /></View>
-                        <View style={s.topicCopy}>
-                          <Text style={s.topicLabel}>{topic.label}</Text>
-                          <Text style={s.topicHint}>{draws?.[topic.key] !== undefined ? '오늘의 풀이 보기' : topic.hint}</Text>
-                        </View>
+                        <Text style={s.topicLabel}>{topic.label}</Text>
                         <Icon name="chevronRight" size={14} color={GOLD} />
                       </Pressable>
                     ))}
@@ -391,9 +388,7 @@ const s = StyleSheet.create({
   topic: { flexBasis: '47%', flexGrow: 1, paddingHorizontal: 8, paddingVertical: 10, minHeight: 62, gap: 5, flexDirection: 'row', alignItems: 'center', backgroundColor: '#25192F', borderColor: LINE, borderWidth: 1, borderRadius: 11 },
   topicPressed: { backgroundColor: '#3D2946', borderColor: GOLD },
   topicIcon: { padding: 3 },
-  topicCopy: { flex: 1 },
-  topicLabel: { ...sansW('700'), color: INK, fontSize: 15, lineHeight: 20, letterSpacing: -0.55 },
-  topicHint: { ...sansW('400'), color: MUTE, fontSize: 11, lineHeight: 16, marginTop: 2, letterSpacing: -0.25 },
+  topicLabel: { ...sansW('700'), flex: 1, color: INK, fontSize: 15, lineHeight: 20, letterSpacing: -0.55 },
   result: { marginHorizontal: 20, alignItems: 'center' },
   english: { fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', web: 'Georgia, serif' }), color: GOLD, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   cardName: { ...sansW('700'), color: INK, fontSize: 27, lineHeight: 36, letterSpacing: -1, textAlign: 'center' },

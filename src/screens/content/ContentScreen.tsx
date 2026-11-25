@@ -76,8 +76,8 @@ export default function ContentScreen() {
 
 
   const FREE: [ArtName | 'star', string, string, () => void][] = [
-    ['soon-tarot', '오늘의 타로', '주제와 카드 한 장을 골라요', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['star', '연예인 궁합', '오늘의 천생연분', () => nav.navigate('StarMatch')],
+    ['soon-tarot', '오늘의 타로', '주제와 카드 한 장을 골라요', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],

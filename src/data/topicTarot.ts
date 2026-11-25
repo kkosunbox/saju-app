@@ -1,8 +1,8 @@
 export const TAROT_TOPICS = [
-  { key: 'love', label: '연애운', icon: 'heart', hint: '설렘과 인연', prompt: '마음이 가는 사람이나 만나고 싶은 인연을 떠올려 보세요.' },
-  { key: 'money', label: '재물운', icon: 'crown', hint: '들어오고 나가는 돈', prompt: '요즘 마음에 걸리는 돈의 쓰임을 하나 떠올려 보세요.' },
-  { key: 'work', label: '일·학업운', icon: 'sheet', hint: '하고 있는 일과 공부', prompt: '일이나 공부에서 답을 얻고 싶은 고민을 떠올려 보세요.' },
-  { key: 'relationship', label: '인간관계운', icon: 'chat', hint: '친구와 주변 사람', prompt: '요즘 마음에 남는 사람이나 대화를 떠올려 보세요.' },
+  { key: 'love', label: '연애운', icon: 'heart', prompt: '마음이 가는 사람이나 만나고 싶은 인연을 떠올려 보세요.' },
+  { key: 'money', label: '재물운', icon: 'crown', prompt: '요즘 마음에 걸리는 돈의 쓰임을 하나 떠올려 보세요.' },
+  { key: 'work', label: '일·학업운', icon: 'sheet', prompt: '일이나 공부에서 답을 얻고 싶은 고민을 떠올려 보세요.' },
+  { key: 'relationship', label: '인간관계운', icon: 'chat', prompt: '요즘 마음에 남는 사람이나 대화를 떠올려 보세요.' },
 ] as const;
 
 export type TarotTopic = typeof TAROT_TOPICS[number];

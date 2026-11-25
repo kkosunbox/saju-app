@@ -7,15 +7,16 @@ import { HomeFreeArt } from './HomeDesignAssets';
 import { colors, isDark } from '../../theme/colors';
 import { radius, sansW } from '../../theme/typography';
 
-type Kind = 'tal' | 'mbti' | 'char' | 'past' | 'star';
-const ITEMS: Record<Kind, { title: string; sub: string; to: string }> = {
+type Kind = 'tal' | 'mbti' | 'char' | 'past' | 'star' | 'tarot';
+const ITEMS: Record<Kind, { title: string; sub: string; to: string; params?: { source: 'tarot' } }> = {
   tal: { title: '오늘의 부적', sub: '오늘 부적 받기', to: 'Talisman' },
   mbti: { title: '찰떡 MBTI', sub: '잘맞는 유형은?', to: 'MbtiMatch' },
   char: { title: '사주 캐릭터', sub: '나의 캐릭터는?', to: 'Character' },
   past: { title: '전생테스트', sub: '나의 전생은?', to: 'PastLife' },
   star: { title: '연예인 궁합', sub: '오늘의 천생연분', to: 'StarMatch' },
+  tarot: { title: '오늘의 타로', sub: '카드 한 장 뽑기', to: 'AnalysisDetail', params: { source: 'tarot' } },
 };
-const DEFAULT_KINDS: Kind[] = ['star', 'past', 'char', 'mbti', 'tal'];
+const DEFAULT_KINDS: Kind[] = ['star', 'tarot', 'past', 'char', 'mbti', 'tal'];
 
 /** 무료 콘텐츠 카드 줄 — 홈 '무료로 즐기기'와 같은 카드. inset: 좌우 여백(가로 스크롤 안쪽) */
 export default function FreeContentRow({ inset, kinds = DEFAULT_KINDS }: { inset: number; kinds?: readonly Kind[] }) {
@@ -25,9 +26,9 @@ export default function FreeContentRow({ inset, kinds = DEFAULT_KINDS }: { inset
       <Text style={[s.heading, { paddingHorizontal: inset }]} accessibilityRole="header">무료로 즐기기</Text>
       <HScroll contentContainerStyle={{ paddingHorizontal: inset, gap: 12 }}>
         {kinds.map(k => {
-          const { title, sub, to } = ITEMS[k];
+          const { title, sub, to, params } = ITEMS[k];
           return (
-            <PressableScale key={k} onPress={() => nav.navigate(to as never)} style={[s.card, s[k]]} scaleTo={0.96} accessibilityLabel={`${title}, ${sub}`}>
+            <PressableScale key={k} onPress={() => nav.navigate(to, params)} style={[s.card, s[k]]} scaleTo={0.96} accessibilityLabel={`${title}, ${sub}`}>
               <View style={s.top}><HomeFreeArt kind={k} /></View>
               <Text style={[s.title, k === 'mbti' && s.titleDark]}>{title}</Text>
               <Text style={[s.sub, k === 'mbti' && s.subDark]} numberOfLines={1}>{sub}</Text>
@@ -48,6 +49,7 @@ const s = StyleSheet.create({
   char: { backgroundColor: isDark ? colors.card : '#DFE9FF' },
   past: { backgroundColor: isDark ? colors.card : '#F2EEFB' },
   star: { backgroundColor: isDark ? colors.card : '#FFF0F3' },
+  tarot: { backgroundColor: isDark ? colors.card : '#F1E8FF' },
   top: { height: 39, marginBottom: 8, justifyContent: 'center' },
   title: { ...sansW('700'), fontSize: 14, lineHeight: 17, color: colors.ink, letterSpacing: -0.56, includeFontPadding: false },
   titleDark: { color: '#FFFFFF' },
