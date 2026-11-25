@@ -74,6 +74,8 @@ const EXACT: Record<string, PageMeta> = {
   '/signup': { title: '회원가입' },
   '/signup-terms': { title: '약관 동의' },
   '/find-password': { title: '비밀번호 찾기' },
+  '/analysis/tarot': { title: '오늘의 타로', description: '궁금한 주제를 고르고 타로술사가 펼친 카드 한 장을 뽑아 보세요.' },
+  '/analysis/blood': { title: '오늘의 타로' },
   '/consult/history': { title: '대화 기록' },
   '/premium/saju': { title: '상세 사주 해석' },
   '/premium/life': { title: '평생운 · 10년 대운' },

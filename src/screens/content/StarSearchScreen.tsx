@@ -3,7 +3,7 @@ import { FlatList, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Card from '../../components/Card';
-import { CharacterAvatar } from '../../components/CharacterScene';
+import StarAvatar from '../../components/StarAvatar';
 import Icon from '../../components/Icon';
 import LoadingScreen from '../../components/LoadingScreen';
 import Screen from '../../components/Screen';
@@ -57,7 +57,7 @@ export default function StarSearchScreen() {
               router.push({ pathname: '/star/[id]', params: { id: String(star.id), profileId: scope?.profileId ?? undefined } });
             }}
           >
-            <CharacterAvatar hanja={star.hanja} size={42} />
+            <StarAvatar name={star.name} gender={star.gender} size={42} />
             <View style={s.name}>
               <Text style={txt.h3}>{star.name}</Text>
               {star.description ? <Text style={txt.small} numberOfLines={1}>{star.description}</Text> : null}

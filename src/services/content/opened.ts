@@ -1,6 +1,6 @@
 /**
  * 뽑았는지(열어 봤는지) — 결과를 들어가자마자 보여주지 않고, 한 번 뽑게 한 다음부터 바로 보여준다.
- * 오늘의 운세·타로·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
+ * 오늘의 운세·부적은 날마다 새로 뽑고, 사주로 정해지는 캐릭터·전생·찰떡 MBTI는 한 번만 뽑는다.
  * 뽑은 결과는 서버가 그때의 프로필로 고정한다. 프로필마다 첫 뽑기를 따로 기억한다.
  * 이 기기에만 저장한다 (기기를 바꾸면 한 번 더 뽑는 정도는 괜찮다). 오늘의 운세만은 서버도 뽑았는지 기억해서 다른 기기에서도 뽑은 상태로 보인다.
  */
@@ -15,14 +15,13 @@ import { requestData } from '../../api/client';
 import { trackAction } from '../screenViews';
 
 /**
- * 오늘의 운세 · 타로를 누구 것으로 볼지 — 주지 않으면 메인에서 고른 프로필.
- * 타로 화면은 메인과 따로 프로필을 고르므로, 그 프로필(대표면 null)과 그 사람의 오늘 운세를 넘긴다.
+ * 오늘의 운세 프로필을 따로 지정할 때 사용한다. 생략하면 메인에서 고른 프로필을 사용한다.
  */
 export interface DailyTarget { profileId: number | null; fortune: DailyFortune | null; error?: unknown }
 
-export type OpenKind = 'fortune' | 'tarot' | 'talisman' | 'mbti-match' | 'character' | 'past-life' | 'celebrity-match';
+export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life' | 'celebrity-match';
 // 천생연분 스타는 '오늘의 궁합'이라 날마다 새로 뽑는다
-const DAILY: OpenKind[] = ['fortune', 'tarot', 'talisman', 'celebrity-match'];
+const DAILY: OpenKind[] = ['fortune', 'talisman', 'celebrity-match'];
 
 /** 프로필별 { 종류: 마지막으로 뽑은 도장(날짜, 한 번만 뽑는 것은 아무 값) } */
 type Stamps = Partial<Record<OpenKind, string>>;
@@ -69,8 +68,8 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
   const scope = useContentScope();
   const profile = scope?.profile ?? user;
   const profileId = scope?.profileId ?? user?.profileId;
-  // 오늘의 운세 · 타로는 메인에서 고른 프로필의 하루 단위 콘텐츠다 (대표 프로필은 예전 계정 단위 기록 그대로).
-  const accountDaily = kind === 'fortune' || kind === 'tarot';
+  // 오늘의 운세는 메인에서 고른 프로필의 하루 단위 콘텐츠다 (대표 프로필은 예전 계정 단위 기록 그대로).
+  const accountDaily = kind === 'fortune';
   const uid = !user ? ''
     : accountDaily ? (fortuneProfileId == null ? user.id : `${user.id}:f${fortuneProfileId}`)
     : `${user.id}:p${profileId ?? 'primary'}`;
@@ -96,7 +95,7 @@ export function useOpened(kind: OpenKind, target?: DailyTarget) {
     if (!uid) return;
     // 오늘의 운세를 실제로 뽑은 순간 (화면만 열고 나간 사람과 구분)
     if (kind === 'fortune' && mem.get(uid)?.fortune !== stamp) trackAction('fortune_drawn');
-    if (kind !== 'fortune' && kind !== 'tarot') {
+    if (kind !== 'fortune') {
       const previous = mem.get(uid)?.[kind];
       const alreadyOpened = daily ? previous === stamp : !!previous;
       if (!alreadyOpened) {
@@ -175,15 +174,4 @@ export function useFortuneDraw() {
   const pending = !!fortune?.textsPending || fortune?.drawn === false;
   useEffect(() => { if (o.opened && pending) drawFortune(); }, [o.opened, pending, drawFortune]);
   return o;
-}
-
-/** Fortune reveals include tarot, while a tarot-only reveal never opens or requests the fortune. */
-export function useTarotDraw(target?: DailyTarget) {
-  const tarot = useOpened('tarot', target);
-  const fortune = useOpened('fortune', target);
-  return {
-    ...tarot,
-    ready: tarot.ready && fortune.ready,
-    opened: tarot.opened || fortune.opened,
-  };
 }

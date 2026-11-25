@@ -92,14 +92,9 @@ export default function CombinedAnalysisContent({ fortune, today }: { fortune: D
       <View style={s.list}>
         {list.map((a, i) => {
           const source = SOURCES[a.source];
-          return (
-            <PressableScale
-              key={a.source}
-              style={[s.item, i > 0 && s.border]}
-              scaleTo={0.98}
-              onPress={() => router.push({ pathname: '/analysis/[source]', params: { source: a.source } })}
-              accessibilityLabel={`${analysisTheme[a.source].label}: ${a.headline}. 상세 풀이 보기`}
-            >
+          const rowStyle = [s.item, i > 0 && s.border];
+          const row = (
+            <>
               <View style={s.iconSlot}><Image source={source.icon} style={s.icon} contentFit="contain" /></View>
               <View style={s.itemCopy}>
                 <Text style={s.itemTitle}>{analysisTheme[a.source].label}</Text>
@@ -111,6 +106,18 @@ export default function CombinedAnalysisContent({ fortune, today }: { fortune: D
                   })}
                 </Text>
               </View>
+            </>
+          );
+          if (a.source === 'tarot') return <View key={a.source} style={rowStyle}>{row}</View>;
+          return (
+            <PressableScale
+              key={a.source}
+              style={rowStyle}
+              scaleTo={0.98}
+              onPress={() => router.push({ pathname: '/analysis/[source]', params: { source: a.source } })}
+              accessibilityLabel={`${analysisTheme[a.source].label}: ${a.headline}. 상세 풀이 보기`}
+            >
+              {row}
               <View style={s.itemChevron}><Icon name="chevronRight" size={18} color={colors.inkMute} /></View>
             </PressableScale>
           );
@@ -119,7 +126,7 @@ export default function CombinedAnalysisContent({ fortune, today }: { fortune: D
 
       <SectionHeader variant="figma" title="그래서 오늘은" />
       <ActionTabs good={f.goodActions} avoid={f.avoidActions} variant="figma" />
-      <Text style={[txt.caption, s.caption]}>{fortune.viewpointsVersion === 'legacy' ? '종합 풀이는 뽑았을 당시의 관점으로 보관되어 있어요. 타로는 오늘의 카드로 함께 확인해보세요.' : '사주 · MBTI · 타로 · 점성술을 겹쳐 읽은 풀이예요'}</Text>
+      <Text style={[txt.caption, s.caption]}>{fortune.viewpointsVersion === 'legacy' ? '종합 풀이는 뽑았을 당시의 관점으로 보관되어 있어요.' : '사주 · MBTI · 타로 · 점성술을 겹쳐 읽은 풀이예요'}</Text>
 
       {/* 쉬어 가는 날은 고민 상담, 힘이 실리는 날은 이달의 좋은 날 */}
       <SectionHeader variant="figma" title="더 깊이 보기" />

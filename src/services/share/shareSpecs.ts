@@ -5,7 +5,7 @@
 import { CombinedFortune, CompatibilityResult, ShareCard, User, TarotReading } from '../../types';
 import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
-import { MbtiMatches, PastLife, Pet, SajuCharacter, StarScore, Talisman } from '../../types/content';
+import { MbtiMatches, PastLife, Pet, SajuCharacter, StarMatchDetail, StarScore, Talisman } from '../../types/content';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { ChildPreview, CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
@@ -43,7 +43,7 @@ export interface ShareSpec {
   spousePortrait?: number;
   /** 오늘의 부적: 스토리 카드에 부적 종이를 그대로 그린다 */
   talisman?: TalismanPaperData;
-  tarot?: TarotReading;
+  tarot?: Pick<TarotReading, 'id' | 'name' | 'orientation'>;
   /** 오늘의 운세: 칭호 · 올해 상위 % 카드로 그린다 */
   today?: TodayCardData;
   /** 사주 캐릭터: 나와 찰떡 캐릭터를 나란히 그리는 케미 카드 */
@@ -52,6 +52,23 @@ export interface ShareSpec {
   mbti?: { mine: string; partner: string; score: number };
   /** 전생: 결과와 동일한 직업·시대의 마스코트. */
   pastLife?: Pick<PastLife, 'role' | 'era'>;
+  /** 연예인 궁합: 드라마 장면 · 나와 연예인 실루엣 · 점수 고리를 그리는 전용 카드 */
+  star?: StarCardData;
+}
+
+export interface StarCardData {
+  nickname: string;
+  myGender: User['gender'];
+  name: string;
+  gender: StarScore['gender'];
+  score: number;
+  /** 두 사람 사이 한 줄 (예: 서로의 매력을 끌어내는 사이) */
+  bond?: string;
+  /** 드라마 속 우리라면 — 그림과 장르 이름 (예전 서버에는 없다) */
+  drama?: NonNullable<StarMatchDetail['drama']>;
+  /** 케미 유형 (예: 설레는 케미유형) · 연애 스타일 */
+  chemistry?: string;
+  style?: string;
 }
 
 export interface CharacterCardData {
@@ -152,16 +169,21 @@ export function characterSpec(u: User, c: SajuCharacter): ShareSpec {
   };
 }
 
-/** 연예인 궁합 — 사진 없이 연예인의 사주 캐릭터 그림과 오늘의 점수로 */
-export function starSpec(u: User, star: StarScore, me: { character: string }): ShareSpec {
+/** 연예인 궁합 — '오늘의 천생연분'보다 '이 연예인과 나의 궁합'으로. 사진 없이 이름으로 고정된 실루엣과 점수, 풀이가 있으면 드라마 장면·케미까지 */
+export function starSpec(u: User, star: StarScore | StarMatchDetail, me: { character: string }): ShareSpec {
+  const d = 'bond' in star ? star : null;
   return {
-    kind: '연예인 궁합', seal: '緣', pillar: star.hanja, eyebrow: `${u.nickname}님의 오늘의 천생연분 연예인은`,
-    headline: star.name, sub: `${me.character} × ${star.character}`,
-    big: { value: String(star.score), unit: '점', label: '오늘의 궁합' },
-    stats: [['연예인 캐릭터', star.character], ['나의 캐릭터', me.character], ['오늘의 궁합', `${star.score}점`]],
-    hook: '오늘의 천생연분 연예인',
-    text: `${u.nickname}님의 오늘의 천생연분 연예인은 ${star.name}, 오늘의 궁합 ${star.score}점이에요.\n${seeMine('연예인 궁합')}`,
-    file: 'woonpick-star', route: 'StarMatch', short: `${star.name} · ${star.score}점`,
+    kind: '연예인 궁합', seal: '緣', eyebrow: '우리 둘의 궁합',
+    headline: `${u.nickname} ♥ ${star.name}`, sub: d?.bond ?? `${me.character} × ${star.character}`,
+    big: { value: String(star.score), unit: '점', label: '궁합 점수' },
+    stats: [['궁합 점수', `${star.score}점`], ['케미 유형', d?.chemistry?.title.replace(/ ?케미유형$/, '') ?? star.character], ['연애 스타일', d?.lover?.style ?? me.character]],
+    hook: '나와 연예인의 궁합은?',
+    text: `${u.nickname}님과 ${star.name}님의 궁합은 ${star.score}점이에요.\n${seeMine('연예인 궁합')}`,
+    file: 'woonpick-star', route: 'StarMatch', short: `${star.name}님과의 궁합 · ${star.score}점`,
+    star: {
+      nickname: u.nickname, myGender: u.gender, name: star.name, gender: star.gender, score: star.score,
+      bond: d?.bond, drama: d?.drama, chemistry: d?.chemistry?.title, style: d?.lover?.style,
+    },
   };
 }
 
@@ -364,9 +386,15 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
 }
 
 
-export function tarotSpec(u: User, card: TarotReading): ShareSpec {
+export function tarotSpec(nickname: string | undefined, topic: string, card: NonNullable<ShareSpec['tarot']> & { keyword: string }, reading: string): ShareSpec {
   const direction = card.orientation === 'reversed' ? '역방향' : '정방향';
-  return { kind: '오늘의 타로', seal: '✦', eyebrow: `${u.nickname}님에게 온 카드`, headline: card.name, sub: card.message,
-    detail: { label: '카드의 키워드', value: card.keyword }, stats: [['카드', `${card.id}`], ['방향', direction], ['덱', '메이저 22장']],
-    hook: '오늘 당신에게 온 카드는?', text: `${u.nickname}님의 오늘의 타로는 ${card.name} (${direction}).\n${card.message}`, file: 'woonpick-tarot', route: 'Tarot', short: `${card.name} (${direction}) · ${card.keyword}`, tarot: card };
+  return {
+    kind: '오늘의 타로', seal: '✦', eyebrow: nickname ? `${nickname}님의 ${topic} 타로` : `${topic} 타로`,
+    headline: card.name, sub: reading.split('. ')[0].replace(/\.$/, '') + '.',
+    detail: { label: '선택한 주제', value: topic }, stats: [['카드 번호', String(card.id)], ['키워드', card.keyword], ['방향', direction]],
+    hook: '마음이 가는 카드 한 장을 골라 보세요.',
+    text: `${topic} 타로 · ${card.name} (${direction})\n${reading}`,
+    file: 'woonpick-tarot', route: 'Tarot', short: `${topic} · ${card.name}`,
+    tarot: { id: card.id, name: card.name, orientation: card.orientation },
+  };
 }

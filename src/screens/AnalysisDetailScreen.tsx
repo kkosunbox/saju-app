@@ -9,9 +9,6 @@ import SectionHeader from '../components/SectionHeader';
 import Disclaimer from '../components/Disclaimer';
 import { AlmanacHero, Figure, Ledger, Quote } from '../components/Almanac';
 import { useApp } from '../context/AppContext';
-import { useContentScope, withContentScope } from '../context/ContentScopeContext';
-import { useQuery } from '@tanstack/react-query';
-import { fortuneApi } from '../services/server/fortuneApi';
 import { RootStackParamList } from '../navigation/types';
 import { analysisTheme, colors, isDark } from '../theme/colors';
 import { fonts, radius, sansW } from '../theme/typography';
@@ -26,7 +23,7 @@ import { AXES, MBTI_INFO } from '../data/mbtiData';
 import { AstroSystemReading, User } from '../types';
 import { weekdayOf } from '../utils/date';
 
-const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI', tarot: 'TAROT · 타로' } as const;
+const KICKER = { saju: '四柱 · 사주', thai: '星占 · 점성술', mbti: '性向 · MBTI' } as const;
 const NOTE: Record<string, string> = {
   saju: '한국천문연구원 음양력 자료와 절기 시각으로 세운 만세력이에요. 태어난 시각은 서울 기준으로 보정해요.',
   thai: '서양은 태양 별자리와 오늘의 달, 인도는 달 라시(시데리얼)에서 본 오늘 달의 자리, 태국은 태어난 요일의 수호 행성으로 풀어요.',
@@ -39,39 +36,13 @@ const accentOf = (src: string, tone: string) => (isDark ? tone : ACCENT[src] ?? 
 const EL_HEX: Partial<Record<Element, string>> = isDark ? {} : { wood: '#5FB8A8', earth: '#FCBD51', water: '#3D79D4' };
 const elHex = (e: Element) => EL_HEX[e] ?? ELEMENT_INFO[e].hex;
 
-/**
- * 오늘의 타로 — 무료 콘텐츠처럼 화면 안에서 누구 것을 볼지 고른다 (메인 오늘의 운세 선택과 따로).
- * 고른 사람이 메인과 같으면 메인 운세를 그대로 쓰고, 다르면 그 사람의 오늘 운세를 불러온다.
- * 불러오기만은 무료다 (카드는 규칙으로 정해짐) — 알은 AI 풀이를 뽑을 때만 든다.
- */
-function TarotOfScope() {
-  const app = useApp();
-  const scope = useContentScope();
-  const primaryId = app.profiles.find(p => p.isPrimary)?.profileId ?? null;
-  const picked = scope?.profileId ?? null;
-  // 대표 프로필은 null (서버 · 뽑기 기록이 대표를 그렇게 부른다)
-  const profileId = picked == null || picked === primaryId ? null : picked;
-  const sameAsMain = profileId === (app.fortuneProfileId ?? null);
-  const accountId = app.user?.id ?? '';
-  const q = useQuery({
-    queryKey: ['tarot-daily', accountId, profileId, app.today],
-    enabled: !sameAsMain && !!accountId,
-    queryFn: () => fortuneApi.daily(accountId, app.today, profileId),
-  });
-  const fortune = sameAsMain ? app.fortune : q.data ?? null;
-  const target = { profileId, fortune, error: sameAsMain ? app.fortuneError : q.error };
-  return <TarotExperience key={`${app.today}:${profileId ?? 'primary'}`} reading={fortune?.analyses.tarot?.tarot} target={target} onRetry={sameAsMain ? undefined : () => { void q.refetch(); }} />;
-}
-const ScopedTarot = withContentScope(TarotOfScope, 'tarot');
-
-/** 4가지 관점 상세 — 책력 한 장 + 관점별 도해 + 풀이 + 장부형 분석 */
+/** 관점별 운세 상세와 주제별 타로 진입점 */
 export default function AnalysisDetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'AnalysisDetail'>>();
   const { fortune, fortuneUser: user, today } = useApp();
   const nav = useNavigation();
-  if (!user) return null;
-  if (params.source === 'tarot' || params.source === 'blood') return <ScopedTarot />;
-  if (!fortune) return null;
+  if (params.source === 'tarot' || params.source === 'blood') return <TarotExperience />;
+  if (!user || !fortune) return null;
   const a = fortune.analyses[params.source];
   if (!a) return null;
   const t = analysisTheme[params.source];

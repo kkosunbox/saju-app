@@ -28,10 +28,12 @@ const CARDS = [
   require('../../../assets/tarot/20.webp'),
   require('../../../assets/tarot/21.webp'),
 ];
-export default function TarotCard({ reading, hidden = false, width = 200 }: { reading?: TarotReading; hidden?: boolean; width?: number }) {
+export type TarotCardFace = Pick<TarotReading, 'id' | 'name' | 'orientation'>;
+
+export default function TarotCard({ reading, hidden = false, width = 200 }: { reading?: TarotCardFace; hidden?: boolean; width?: number }) {
   const source = hidden || !reading ? require('../../../assets/tarot/back.webp') : CARDS[reading.id] ?? require('../../../assets/tarot/back.webp');
   const reversed = !hidden && reading?.orientation === 'reversed';
-  return <View style={{ width, height: width * 1.5 }} accessibilityLabel={hidden || !reading ? '오늘의 타로 카드 뒷면' : `${reading.name}, ${reversed ? '역방향' : '정방향'}`} accessible>
+  return <View style={{ width, height: width * 1.5 }} accessibilityLabel={hidden || !reading ? '타로 카드 뒷면' : `${reading.name}, ${reversed ? '역방향' : '정방향'}`} accessible>
     <Image source={source} style={[StyleSheet.absoluteFill, reversed && { transform: [{ rotate: '180deg' }] }]} contentFit="contain" accessible={false} />
   </View>;
 }

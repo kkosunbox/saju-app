@@ -8,6 +8,7 @@ import ShareLinkBadge from './ShareLinkBadge';
 import CharacterArt from './CharacterArt';
 import TodayShareCard from './TodayShareCard';
 import CharacterShareCard from './CharacterShareCard';
+import StarShareCard from './StarShareCard';
 import TarotCard from './tarot/TarotCard';
 import MbtiArt from './MbtiArt';
 import PastLifeArt from './PastLifeArt';
@@ -47,6 +48,7 @@ const ART = {
 const ShareCard = forwardRef<ViewInstance, { spec: ShareSpec; today: string; onArtReady?: () => void }>(function ShareCard({ spec, today, onArtReady }, ref) {
   if (spec.today) return <TodayShareCard ref={ref} data={spec.today} today={today} />;
   if (spec.character) return <CharacterShareCard ref={ref} data={spec.character} today={today} />;
+  if (spec.star) return <StarShareCard ref={ref} spec={spec} data={spec.star} today={today} />;
   if (spec.spousePortrait) return <SpouseShareCard ref={ref} spec={spec} onArtReady={onArtReady} />;
   const gold = !!spec.talisman;
   // 전생·찰떡 MBTI: 밤하늘 카드 — 글자는 흰색·연회색, 지표 칸은 남색

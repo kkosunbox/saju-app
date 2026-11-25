@@ -111,5 +111,13 @@ export interface StarMatchDetail extends StarScore {
   reasons: string[];
   scores: { love: number; personality: number; conversation: number; life: number };
   together: string[];
+  /** 케미 유형 (예: 편안한 케미유형) — 예전 서버에는 없다 */
+  chemistry?: { title: string; line: string; tags: string[] };
+  /** 만약 우리가 연인이라면 — 먼저 다가가는 쪽과 연애 스타일 */
+  lover?: { first: 'me' | 'star'; style: string };
+  /** 드라마 속 우리라면 — 로맨스 장르 (key로 그림을 고른다) */
+  drama?: { key: 'friends' | 'reunion' | 'status' | 'fate'; title: string; line: string };
+  /** 이런 순간 잘 맞아요 — 세 장면 */
+  moments?: { title: string; text: string }[];
   me: { hanja: string; character: string; element: Element };
 }

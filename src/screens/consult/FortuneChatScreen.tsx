@@ -44,7 +44,7 @@ const CATS: CategoryKey[] = ['love', 'money', 'work', 'relationship'];
 const WRITING = ['오늘의 사주를 펼쳐 보고 있어요…', 'MBTI · 타로 · 점성술을 겹쳐 보는 중이에요…', '오늘의 이야기를 쓰고 있어요…'];
 const CHIPS = {
   week: '이번 주 흐름은 어때?',
-  tarot: '오늘의 타로 카드 보기',
+  tarot: '오늘의 타로 뽑기',
   share: '운세 카드 공유하기',
 } as const;
 
