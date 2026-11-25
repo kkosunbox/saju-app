@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { useLocalSearchParams } from 'expo-router';
 import Screen, { TalkEnd } from '../../components/Screen';
 import Card from '../../components/Card';
@@ -30,7 +29,8 @@ import { ChildMemberInput, childApi, refreshChildSets, useChildSets } from '../.
 import { inputOf, ProfileInput } from '../../services/server/profileApi';
 import { childSpec, josa } from '../../services/share/shareSpecs';
 import { ELEMENT_INFO } from '../../data/sajuData';
-import { ChildPreview, ChildReport, ChildSet } from '../../types/premium';
+import { ChildLevel, ChildPreview, ChildReport, ChildSet } from '../../types/premium';
+import { isLegacyChild, LegacyChildBody, LegacyChildReading, LegacyChildReport, legacyPreviewOf } from './ChildLegacy';
 import { ChildReading, ReadingView } from '../../types/reading';
 import { RELATIONSHIP_LABEL, User } from '../../types';
 import { colors } from '../../theme/colors';
@@ -49,42 +49,13 @@ const TAG_INK = '#003A5A';
 const BOND_SUB = '#B7B7B7';
 const INTRO_SUB = '#666666';
 
-/** 하루 리듬 아이콘 (Figma 28 칸 안의 그림) — 아침 · 낮 · 저녁 */
-function RhythmIcon({ time, index }: { time: string; index: number }) {
-  const kind = /아침|새벽/.test(time) ? 0 : /낮|오후|점심/.test(time) ? 1 : /저녁|밤/.test(time) ? 2 : Math.min(index, 2);
-  if (kind === 0) {
-    return (
-      <Svg width={24} height={24} viewBox="0 0 24 24">
-        <Path fill="#F07777" d="M21.0547 19L2.89744 18.9947C2.31872 18.9947 1.98245 18.3675 2.00071 17.9154C2.02353 17.3439 2.41509 16.8787 3.01308 16.8761L5.85289 16.864C6.15771 14.107 8.07898 11.7973 10.6971 11.1584C12.2568 10.7779 13.8747 11.0963 15.2193 11.9693C16.89 13.0529 17.9694 14.8242 18.1515 16.8613L21.0197 16.8808C21.5943 16.8845 21.9747 17.3771 21.9991 17.9144C22.0209 18.4001 21.6582 19.0005 21.0547 19Z" />
-        <Path fill="#F07777" d="M6.55646 9.74309C7.08275 10.261 7.15296 11.0085 6.70109 11.5446C6.26662 12.0595 5.44208 12.1825 4.90379 11.6803C4.3655 11.1782 3.8134 10.6263 3.28652 10.0563C2.83104 9.56378 2.94866 8.72116 3.42754 8.31045C3.90642 7.89974 4.66075 7.87733 5.14983 8.35891L6.55646 9.74309Z" />
-        <Path fill="#F07777" d="M13.1104 7.74735C13.1163 8.48572 12.6374 9.06395 11.9388 9.1235C11.2674 9.18038 10.5975 8.68429 10.5719 7.94857C10.5464 7.21284 10.5462 6.43224 10.5767 5.6566C10.6029 4.98629 11.2819 4.47363 11.9109 4.52184C12.54 4.57004 13.0892 5.08758 13.0945 5.77395L13.1104 7.74735Z" />
-        <Path fill="#F07777" d="M19.1266 11.6319C18.638 12.131 17.8989 12.0996 17.4282 11.6761C16.9575 11.2525 16.822 10.461 17.2915 9.98245L18.8915 8.35108C19.4022 7.83025 20.2923 7.90275 20.7314 8.47675C21.0744 8.92447 21.1132 9.60421 20.7057 10.0205L19.1272 11.6319H19.1266Z" />
-      </Svg>
-    );
-  }
-  if (kind === 1) {
-    const rays = ['M14 7V5', 'M14 23V21', 'M18.95 9.05L20.364 7.636', 'M7.637 20.364L9.051 18.95', 'M21 14L23 14', 'M5 14L7 14', 'M18.95 18.95L20.364 20.364', 'M7.637 7.636L9.051 9.05'];
-    return (
-      <Svg width={28} height={28} viewBox="0 0 28 28">
-        <Circle cx={14} cy={14} r={4} fill="#FCBD51" />
-        {rays.map(d => <Path key={d} d={d} stroke="#FCBD51" strokeWidth={2} strokeLinecap="round" />)}
-      </Svg>
-    );
-  }
-  return (
-    <Svg width={28} height={28} viewBox="0 0 28 28">
-      <Path fill={colors.accent} d="M17 6C17.2931 6 17.4397 6 17.5799 6.04196C18.1934 6.22551 18.4787 6.931 18.1653 7.48943C18.0937 7.61708 17.8753 7.82826 17.4386 8.25062C15.935 9.70471 15 11.7429 15 14C15 16.2569 15.9349 18.2945 17.4384 19.7483C17.8759 20.1714 18.0947 20.383 18.1664 20.5108C18.4796 21.0691 18.1943 21.7743 17.5812 21.958C17.4408 22 17.2939 22 17 22C12.5817 22 9 18.4183 9 14C9 9.58172 12.5817 6 17 6Z" />
-    </Svg>
-  );
-}
-
 /** 열어 본 결과에서 첫 화면(무료)에 그리는 부분 — 서버 childPreviewOf와 같다 */
 function previewOf(R: ChildReport): ChildPreview {
-  const { nickname, age, title, headline, stem, element, elementKo, animal, keywords } = R.child;
+  const { nickname, age, title, headline, stem, element, elementKo, animal, keywords, temperament } = R.child;
   return {
-    child: { nickname, age, title, headline, stem, element, elementKo, animal, keywords },
+    child: { nickname, age, title, headline, stem, element, elementKo, animal, keywords, temperament: { group: temperament.group, name: temperament.name } },
     talents: R.talents.slice(0, 3).map(({ group, name }) => ({ group, name })),
-    parents: R.parents.map(({ title, nickname: n, score, type }) => ({ title, nickname: n, score, type })),
+    parents: R.parents.map(({ title, nickname: n, type, seat }) => ({ title, nickname: n, type, seat: { level: seat.level, name: seat.name } })),
   };
 }
 
@@ -100,6 +71,9 @@ const waGwa = (w: string) => `${w}${josa(w, '과', '와')}`;
 /** 궁합 제목: 함께 본 보호자의 호칭대로 (아빠와의 궁합 · 엄마·아빠와의 궁합) */
 const bondTitle = (titles: string[]) => titles.length ? `${waGwa(titles.join('·'))}의 궁합` : '엄마·아빠와의 궁합';
 const dot = (iso: string) => iso.replace(/-/g, '.');
+/** 결과를 만든 방법 — 예전 구조로 고정된 결과에는 그때의 설명 */
+const METHOD = '아이의 생년월일시로 네 기둥을 세워, 일간이 그리는 타고난 바탕과 사주에서 가장 강한 십성이 그리는 기질 유형을 겹쳐 봤어요. 훈육·친구·감정은 그 기질과 일간, 기운의 크기로 읽었어요. 엄마·아빠와의 사이는 아이 사주 속 엄마(인성)·아빠(재성)의 자리와 부모 사주 속 아이(엄마는 식상, 아빠는 관성)의 자리, 두 사람의 일간과 일지로 봤어요. 자라는 흐름은 실제로 대운이 바뀌는 나이로 나눴어요. 사주는 타고난 경향일 뿐이고, 아이는 사랑과 경험 속에서 얼마든지 새롭게 자라요.';
+const LEGACY_METHOD = '아이의 생년월일시로 네 기둥을 세워 타고난 기운과 오행의 균형, 십성의 힘을 보고, 엄마·아빠의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 자라는 시기는 10년마다 바뀌는 대운으로 봤어요. 사주는 타고난 경향일 뿐이고, 아이는 사랑과 경험 속에서 얼마든지 새롭게 자라요.';
 
 /**
  * 프리미엄: 우리 아이 사주 — 아이와 엄마 · 아빠를 한 가족으로 묶어 등록하고(고칠 수 없다), 가족마다 따로 연다.
@@ -309,13 +283,15 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
   const shared = !!useSharedView();
   const { toast } = usePremium();
   const [confirm, setConfirm] = useState(false);
-  const content = usePremiumContent<ChildReport>({ kind: 'child', id });
+  const content = usePremiumContent<ChildReport | LegacyChildReport>({ kind: 'child', id });
   const { reading, retry } = useReading<ChildReading>(content);
   const gate = useReadingGate(content.open ? reading : null, content);
   // 미리보기는 가족 목록에 이미 들어 있다 — 처음 볼 때만 만드는 단계를 짧게 보여 준다
   const making = usePreviewMaking(`child:${id}`, !!set, !content.open && !!set, PREVIEW_STEPS.child.length);
   const R = content.data?.data;
-  const sum: ChildPreview | undefined = R ? previewOf(R) : set?.result;
+  // 구조를 바꾸기 전에 열어 고정된 결과는 다시 만들지 않는다 — 예전 화면 그대로
+  const legacy = R && isLegacyChild(R) ? legacyPreviewOf(R) : null;
+  const sum: ChildPreview | undefined = legacy ?? (R && !isLegacyChild(R) ? previewOf(R) : set?.result);
   const name = sum?.child.nickname ?? set?.child.nickname ?? '';
   const item = ITEMS.child(id, name);
   if (content.open && gate.show) return <ReadingStepsScreen title="우리 아이 사주" kind="child" reading={reading} />;
@@ -368,8 +344,17 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
           <Text accessibilityRole="header" style={s.heroHeadline}>{sum.child.headline}</Text>
           <Text style={s.heroTitle}>{sum.child.title}</Text>
           <View style={s.chips}>
-            <View style={[s.chip, s.chipDark]}><Text style={s.chipDarkText}>{el.ko}({el.hanja})의 기운</Text></View>
-            <View style={[s.chip, s.chipLight]}><Text style={s.chipLightText}>{sum.child.animal}띠</Text></View>
+            {sum.child.temperament.name ? (
+              <>
+                <View style={[s.chip, s.chipDark]}><Text style={s.chipDarkText}>{sum.child.temperament.name}</Text></View>
+                <View style={[s.chip, s.chipLight]}><Text style={s.chipLightText}>{el.ko}({el.hanja}) · {sum.child.animal}띠</Text></View>
+              </>
+            ) : (
+              <>
+                <View style={[s.chip, s.chipDark]}><Text style={s.chipDarkText}>{el.ko}({el.hanja})의 기운</Text></View>
+                <View style={[s.chip, s.chipLight]}><Text style={s.chipLightText}>{sum.child.animal}띠</Text></View>
+              </>
+            )}
           </View>
           <View style={s.tags}>{sum.child.keywords.map(k => <View key={k} style={s.tag}><Text style={s.tagText}>#{k}</Text></View>)}</View>
         </View>
@@ -388,27 +373,33 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
         <View style={{ gap: 10 }}>
           {sum.parents.map((p, i) => (
             <View key={i} style={s.bondCard}>
-              <Text style={s.bondSub}>{p.title === p.nickname ? p.nickname : `${p.title} · ${p.nickname}`} × {name}</Text>
-              <Text style={[s.score, s.bondScore]} accessibilityLabel={`궁합 ${p.score}점`}>{p.score}<Text style={s.bondScoreUnit}>점</Text></Text>
+              <Text style={[s.bondSub, legacy && s.bondSubScored]}>{p.title === p.nickname ? p.nickname : `${p.title} · ${p.nickname}`} × {name}</Text>
+              {legacy ? <Text style={[s.score, s.bondScore]} accessibilityLabel={`궁합 ${legacy.scores[i]}점`}>{legacy.scores[i]}<Text style={s.bondScoreUnit}>점</Text></Text> : null}
               <View style={s.bondName}>
                 <SolidIcon name="favorite" size={20} color={colors.accent} />
                 <Text style={s.bondNameText}>{p.type.name}</Text>
               </View>
               <Text style={s.bondLine}>{p.type.line}</Text>
+              {p.seat.name ? <View style={s.bondSeat}>
+                <Text style={s.bondSeatLabel}>{callOf(name)} 사주 속 {p.title}의 자리</Text>
+                <Text style={s.bondSeatName}>{p.seat.name}</Text>
+              </View> : null}
             </View>
           ))}
         </View>
       </PreviewReveal>
 
       {!content.open ? <View style={{ marginTop: 16 }}><LockGate item={item} /></View>
-        : R ? <ReadingReveal on={gate.appeared}><ChildBody R={R} reading={reading} onRetry={retry} /></ReadingReveal>
+        : R ? <ReadingReveal on={gate.appeared}>{isLegacyChild(R)
+          ? <LegacyChildBody R={R} reading={reading as unknown as ReadingView<LegacyChildReading> | null} onRetry={retry} />
+          : <ChildBody R={R} reading={reading} onRetry={retry} />}</ReadingReveal>
         : <BodyState error={content.isError} onRetry={() => content.refetch()} />}
 
       {/* 운알이 알림은 풀이를 다 읽은 여기서 (아래 공유·배너까지 내려가지 않아도) */}
       <TalkEnd />
       <Card style={{ marginTop: 32 }}>
         <Text style={txt.h3}>이 결과는 어떻게 만들었나요?</Text>
-        <Para>아이의 생년월일시로 네 기둥을 세워 타고난 기운과 오행의 균형, 십성의 힘을 보고, 엄마·아빠의 일간·일지·띠와 겹쳐 궁합 유형을 정했어요. 자라는 시기는 10년마다 바뀌는 대운으로 봤어요. 사주는 타고난 경향일 뿐이고, 아이는 사랑과 경험 속에서 얼마든지 새롭게 자라요.</Para>
+        <Para>{legacy ? LEGACY_METHOD : METHOD}</Para>
       </Card>
       <ShareCta item={item} spec={spec} />
       {shared ? null : (
@@ -430,16 +421,26 @@ function ChildResult({ id, set, sets, onPick, onAdd, onRemoved }: {
 /** 계산 결과는 서버, 글은 AI 풀이. 쓰지 못한 파트는 계산 결과의 문장으로 채운다 */
 function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingView<ChildReading> | null; onRetry(): void }) {
   const writing = reading?.status === 'writing';
-  const { portrait, talent, family, growth } = reading?.parts ?? {};
+  const { portrait, talent, parenting, family, growth } = reading?.parts ?? {};
   const pending = (lines = 3) => <PartPending writing={writing} lines={lines} />;
   const name = R.child.nickname;
-  const habitColor = R.habits.color;
+  const call = callOf(name);
+  const T = R.child.temperament;
+  const P = R.parenting;
+  const needColor = R.needs.color;
+  // 돌 무렵 아기는 혼내기보다 알려 주는 때, 성인 자녀는 부딪힐 때
+  const disciplineLabel = R.child.age <= 2 ? '안 되는 걸 알려 줄 때' : R.child.age >= 20 ? '부딪힐 때' : '혼낼 때';
   return (
     <>
       <View style={{ marginTop: 16 }}><ReadingBanner reading={reading} onRetry={onRetry} /></View>
 
-      <SubHead title={`01 · ${callOf(name)}의 타고난 기질`} caption={R.child.title} />
-      <Card>
+      <SubHead title={`01 · ${call}의 타고난 기질`} caption={R.child.title} />
+      <View style={s.typeCard}>
+        <Text style={s.typeEyebrow}>사주에서 가장 강한 힘이 그리는 아이</Text>
+        <Text style={s.typeName}>{T.name}</Text>
+        <Text style={s.typeLine}>{T.line}</Text>
+      </View>
+      <Card style={{ marginTop: 10 }}>
         {portrait ? (
           <>
             <Text style={txt.h3}>{portrait.headline}</Text>
@@ -447,15 +448,25 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
           </>
         ) : writing ? pending(5) : <Para mt={0}>{R.child.persona}</Para>}
         <View style={s.memo}>
-          <Text style={s.memoLabel}>기운의 크기</Text>
-          <Para mt={4}>{R.child.energy}</Para>
+          <Text style={s.memoLabel}>{call}에게 필요한 어른</Text>
+          <Para mt={4}>{portrait ? portrait.need : `${T.need}이에요.`}</Para>
         </View>
+        <View style={s.memo}>
+          <Text style={s.memoLabel}>기운의 크기 · {R.child.energy.name}</Text>
+          <Para mt={4}>{R.child.energy.line}</Para>
+        </View>
+        {R.child.light ? (
+          <View style={s.memo}>
+            <Text style={s.memoLabel}>천천히 자라는 부분 · {R.child.light.name}</Text>
+            <Para mt={4}>{portrait?.lightSide ?? R.child.light.line}</Para>
+          </View>
+        ) : null}
       </Card>
       {portrait ? (
         <View style={{ gap: 10, marginTop: 10 }}>
           {portrait.charms.map(c => <Card key={c.title}><Text style={txt.h3}>{c.title}</Text><Para>{c.text}</Para></Card>)}
           <Card>
-            <Text style={txt.h3}>이럴 때 {callOf(name)}의 마음</Text>
+            <Text style={txt.h3}>이럴 때 {call}의 마음</Text>
             {portrait.feelings.map(f => (
               <View key={f.scene} style={{ marginTop: 12 }}>
                 <Text style={s.label}>{f.scene}</Text>
@@ -463,12 +474,6 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
               </View>
             ))}
           </Card>
-        </View>
-      ) : null}
-
-      <SubHead title={`02 · ${waGwa(callOf(name))} 잘 지내는 법`} />
-      {portrait ? (
-        <>
           <View style={s.manualRow}>
             {([['좋아해요', portrait.manual.likes, LIKE_LINE], ['힘들어해요', portrait.manual.dislikes, CARE_LINE]] as const).map(([title, items, line], i) => (
               <View key={title} style={[s.manualCard, { borderColor: line }]} accessible accessibilityLabel={`${i ? '힘들어하기 쉬운 것' : '좋아하기 쉬운 것'}: ${items.join(', ')}`}>
@@ -480,17 +485,10 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
               </View>
             ))}
           </View>
-          <View style={s.comfort}>
-            <View style={s.manualHead}>
-              <SolidIcon name="book" size={20} color={colors.accent} />
-              <Text style={s.manualTitle}>속상할 때 다독이는 법</Text>
-            </View>
-            <Text style={s.comfortText}>{portrait.manual.comfort}</Text>
-          </View>
-        </>
-      ) : <Card>{pending(5)}</Card>}
+        </View>
+      ) : null}
 
-      <SubHead title="03 · 타고난 재능" caption="사주 속 다섯 가지 힘" />
+      <SubHead title="02 · 타고난 재능" caption="사주 속 다섯 가지 힘" />
       <Card style={{ gap: 12 }}>
         {R.talents.map((t, i) => (
           <View key={t.group}>
@@ -517,29 +515,25 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
           );
         })}
       </View>
+      {talent ? (
+        <Card style={{ marginTop: 10 }}>
+          <Text style={txt.h3}>재능이 이어지기 쉬운 분야</Text>
+          <View style={s.wrap}>{talent.fields.map(f => <Text key={f} style={s.pill}>{f}</Text>)}</View>
+          <Para mt={12}>{talent.fieldsNote}</Para>
+        </Card>
+      ) : null}
 
-      <SubHead title="04 · 맞는 공부 방식" caption={`${R.learning.name} 아이`} />
+      <SubHead title="03 · 맞는 공부 방식" caption={R.learning.name} />
       <Card>
         <Text style={txt.h3}>{R.learning.name}</Text>
         {talent ? (
           <>
             <Para>{talent.learning.summary}</Para>
-            <View style={s.tips}>
-              {talent.learning.tips.map((t, i) => (
-                <View key={t} style={[s.tipRow, i ? s.tipLine : null]}>
-                  <View style={s.tipNum}><Text style={s.tipNumText}>{i + 1}</Text></View>
-                  <Text style={s.tipText}>{t}</Text>
-                </View>
-              ))}
-            </View>
+            <NumberedTips tips={talent.learning.tips} />
             <Text style={[s.label, { marginTop: 14 }]}>집중이 잘 되는 환경</Text>
             <Para mt={4}>{talent.learning.environment}</Para>
             <Text style={[s.label, { marginTop: 14 }]}>잘 통하는 칭찬</Text>
             <Para mt={4}>{talent.learning.praise}</Para>
-            <View style={s.avoid}>
-              <Text style={s.label}>이런 말은 아껴 주세요</Text>
-              <Para mt={4}>{talent.learning.avoid}</Para>
-            </View>
           </>
         ) : writing ? pending(6) : (
           <>
@@ -551,38 +545,91 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
           </>
         )}
       </Card>
-      {talent ? (
-        <>
-          <SubHead title="05 · 재능이 이어지기 쉬운 분야" caption="정해진 길이 아닌, 넓혀 볼 방향" />
-          <Card>
-            <View style={s.wrap}>{talent.fields.map(f => <Text key={f} style={s.pill}>{f}</Text>)}</View>
-            <Para mt={12}>{talent.fieldsNote}</Para>
-          </Card>
-        </>
-      ) : null}
+
+      <SubHead title={`04 · ${waGwa(call)} 지내는 법`} caption="훈육 · 친구 · 마음" />
+      <Card>
+        <Text style={s.label}>{disciplineLabel}</Text>
+        <Text style={[txt.h3, { marginTop: 2 }]}>{P.discipline.name}</Text>
+        {parenting ? (
+          <>
+            <Para>{parenting.discipline.summary}</Para>
+            <NumberedTips tips={parenting.discipline.steps} />
+            <View style={s.avoid}>
+              <Text style={s.label}>이런 말은 아껴 주세요</Text>
+              <Para mt={4}>{parenting.discipline.avoid}</Para>
+            </View>
+          </>
+        ) : writing ? <View style={{ marginTop: 8 }}>{pending(5)}</View> : (
+          <>
+            <Para>{P.discipline.line}</Para>
+            <NumberedTips tips={P.discipline.works} />
+            <View style={s.avoid}>
+              <Text style={s.label}>이런 말은 아껴 주세요</Text>
+              <Para mt={4}>{P.discipline.avoid}</Para>
+            </View>
+          </>
+        )}
+      </Card>
+      <Card style={{ marginTop: 10 }}>
+        <Text style={s.label}>친구와 어울릴 때</Text>
+        <Text style={[txt.h3, { marginTop: 2 }]}>{P.friends.name}</Text>
+        {parenting ? (
+          <>
+            <Para>{parenting.friends.summary}</Para>
+            <View style={s.memo}><Text style={s.memoLabel}>이렇게 도와주세요</Text><Para mt={4}>{parenting.friends.tip}</Para></View>
+          </>
+        ) : writing ? <View style={{ marginTop: 8 }}>{pending(3)}</View> : <Para>{P.friends.line}</Para>}
+      </Card>
+      <View style={s.comfort}>
+        <Text style={s.label}>속상할 때</Text>
+        <Text style={[txt.h3, { marginTop: 2 }]}>{P.emotion.name}</Text>
+        {parenting ? (
+          <>
+            <Text style={s.comfortText}>{parenting.emotion.summary}</Text>
+            <View style={[s.manualHead, { marginTop: 14 }]}>
+              <SolidIcon name="book" size={20} color={colors.accent} />
+              <Text style={s.manualTitle}>다독이는 법</Text>
+            </View>
+            <Text style={s.comfortText}>{parenting.emotion.comfort}</Text>
+            <Text style={[s.label, { marginTop: 14 }]}>마음이 무겁다는 신호</Text>
+            <Text style={s.comfortText}>{parenting.emotion.signal}</Text>
+          </>
+        ) : writing ? <View style={{ marginTop: 8 }}>{pending(4)}</View> : (
+          <>
+            <Text style={s.comfortText}>{P.emotion.line}</Text>
+            <Text style={s.comfortText}>{P.emotion.lean}</Text>
+          </>
+        )}
+      </View>
 
       {R.parents.length ? (
         <>
-          <SubHead title={`06 · ${bondTitle(R.parents.map(p => p.title))}`} />
+          <SubHead title={`05 · ${bondTitle(R.parents.map(p => p.title))}`} caption="서로의 사주 속 자리로" />
           <View style={{ gap: 10 }}>
             {R.parents.map((p, i) => {
               const w = family?.bonds[i];
               return (
                 <Card key={i}>
-                  <View style={s.bondHead}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={txt.caption}>{p.title} · {p.stem.ko}{p.elementKo}({ELEMENT_INFO[p.element].hanja}) × {name} · {R.child.stem.ko}{R.child.elementKo}</Text>
-                      <Text style={[txt.h3, { marginTop: 2 }]}>{p.type.name}</Text>
-                    </View>
-                    <Text style={s.score}>{p.score}<Text style={s.scoreUnit}>점</Text></Text>
-                  </View>
+                  <Text style={txt.caption}>{p.title} · {p.stem.ko}{p.elementKo}({ELEMENT_INFO[p.element].hanja}) × {call} · {R.child.stem.ko}{R.child.elementKo}</Text>
+                  <Text style={[txt.h3, { marginTop: 2 }]}>{p.type.name}</Text>
+                  <Text style={[txt.small, { marginTop: 2 }]}>{p.type.line}</Text>
                   <View style={s.grid}>
-                    <View style={s.cell}><Text style={txt.caption}>{callOf(name)}에게 {eunNeun(p.title)}</Text><Text style={s.cellText}>{p.parentToChild}</Text></View>
-                    <View style={s.cell}><Text style={txt.caption}>{p.title}에게 {eunNeun(callOf(name))}</Text><Text style={s.cellText}>{p.childToParent}</Text></View>
+                    <View style={s.cell}>
+                      <Text style={txt.caption}>{call} 사주 속 {p.title}의 자리</Text>
+                      <Text style={s.cellText}>{p.seat.name}</Text>
+                      <LevelDots level={p.seat.level} />
+                    </View>
+                    <View style={s.cell}>
+                      <Text style={txt.caption}>{p.title} 사주 속 {call}의 자리</Text>
+                      <Text style={s.cellText}>{p.heart.name}</Text>
+                      <LevelDots level={p.heart.level} />
+                    </View>
                   </View>
                   {w ? (
                     <>
                       <Para mt={12}>{w.summary}</Para>
+                      <Text style={[s.label, { marginTop: 14 }]}>{call}에게 {eunNeun(p.title)}</Text>
+                      <Para mt={4}>{w.seat}</Para>
                       <Text style={[s.label, { marginTop: 14 }]}>{p.title}의 키우는 모습</Text>
                       <Para mt={4}>{w.parenting}</Para>
                       <Text style={[s.label, { marginTop: 14 }]}>호흡이 척척 맞는 순간</Text>
@@ -592,10 +639,22 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
                         <Para mt={4}>{w.friction.text}</Para>
                         <Para mt={6} style={{ color: colors.ink }}>{w.friction.tip}</Para>
                       </View>
+                      <View style={s.memo}>
+                        <Text style={s.memoLabel}>둘만의 작은 습관</Text>
+                        <Para mt={4}>{w.ritual}</Para>
+                      </View>
                     </>
                   ) : writing ? <View style={{ marginTop: 12 }}>{pending(4)}</View> : (
-                    <View style={{ marginTop: 12, gap: 8 }}>{p.points.map(x => <View key={x.title}><Text style={s.label}>{x.title}</Text><Para mt={2}>{x.text}</Para></View>)}</View>
+                    <View style={{ marginTop: 12, gap: 10 }}>
+                      <Para mt={0}>{p.seat.line}</Para>
+                      <Para mt={0}>{p.heart.line}</Para>
+                      <View><Text style={s.label}>{p.rhythm.name}</Text><Para mt={2}>{p.rhythm.line}</Para></View>
+                    </View>
                   )}
+                  <View style={[s.grid, { marginTop: 14 }]}>
+                    <View style={s.cell}><Text style={txt.caption}>{call}에게 {eunNeun(p.title)}</Text><Text style={s.cellText}>{p.parentToChild}</Text></View>
+                    <View style={s.cell}><Text style={txt.caption}>{p.title}에게 {eunNeun(call)}</Text><Text style={s.cellText}>{p.childToParent}</Text></View>
+                  </View>
                 </Card>
               );
             })}
@@ -604,66 +663,100 @@ function ChildBody({ R, reading, onRetry }: { R: ChildReport; reading: ReadingVi
         </>
       ) : null}
 
-      <SubHead title="07 · 자라는 시기별 흐름" caption="10년마다 바뀌는 대운으로" />
+      <SubHead title={`06 · ${call}의 자라는 흐름`} caption="10년마다 바뀌는 대운으로" />
       <Card style={{ paddingVertical: 4 }}>
         {R.growth.map((g, i) => {
           const w = growth?.stages[i];
           return (
             <View key={g.label} style={[s.stage, i ? s.line : null]}>
               <View style={s.stageHead}>
-                <Text style={txt.h3}>{g.label}</Text>
-                <Text style={txt.caption}>{g.ages} · {g.pillar.split('(')[0]}</Text>
+                <Text style={txt.h3}>{g.years.replace('년', '')}</Text>
                 {g.now ? <Text style={s.now}>지금</Text> : null}
+                {g.shake ? <Text style={s.shake}>변화가 큰 때</Text> : null}
               </View>
-              <Text style={[txt.bodyStrong, { marginTop: 4, color: colors.accent }]}>{g.keyword}</Text>
+              <Text style={[txt.caption, { marginTop: 2 }]}>{[g.ages, g.school, g.label].filter(Boolean).join(' · ')}</Text>
+              <Text style={[txt.bodyStrong, { marginTop: 6, color: colors.accent }]}>{g.keyword}</Text>
               <Para mt={4}>{w ? w.text : g.line}</Para>
               {w ? <Text style={[txt.small, { marginTop: 6 }]}>{w.parent}</Text> : null}
             </View>
           );
         })}
       </Card>
-
-      <SubHead title={`08 · ${R.thisYear.year}년의 ${callOf(name)}`} caption={R.thisYear.keyword} />
-      <Card>{growth ? <Para mt={0}>{growth.thisYear}</Para> : writing ? pending(3) : <Para mt={0}>{R.thisYear.line}</Para>}</Card>
-
-      <SubHead title="09 · 하루 리듬과 행운 색" caption={`${callOf(name)}에게 필요한 ${R.habits.elementKo}의 기운`} />
-      {growth ? (
-        <View style={s.rhythmBox}>
-          {growth.rhythm.map((r, i) => (
-            <View key={r.time} style={s.rhythmRow}>
-              {i < growth.rhythm.length - 1 ? <View style={s.rhythmRail} /> : null}
-              <View style={s.rhythmTile}><RhythmIcon time={r.time} index={i} /></View>
-              <View style={s.rhythmBody}>
-                <Text style={s.rhythmTime}>{r.time}</Text>
-                <Text style={s.rhythmText}>{r.text}</Text>
+      {R.puberty ? (
+        <Card style={{ marginTop: 10 }}>
+          <Text style={s.label}>사춘기 · {R.puberty.years}</Text>
+          <Text style={[txt.h3, { marginTop: 2 }]}>{R.puberty.name}</Text>
+          {growth?.puberty ? <Para>{growth.puberty}</Para> : writing ? <View style={{ marginTop: 8 }}>{pending(3)}</View> : <Para>{R.puberty.line}</Para>}
+        </Card>
+      ) : null}
+      {R.milestones.length ? (
+        <Card style={{ marginTop: 10, paddingVertical: 4 }}>
+          {R.milestones.map((m, i) => (
+            <View key={m.label} style={[s.stage, i ? s.line : null]}>
+              <View style={s.stageHead}>
+                <Text style={txt.h3}>{m.year}년</Text>
+                <Text style={txt.caption}>{m.label}</Text>
               </View>
+              <Para mt={4}>{growth?.milestones[i]?.text ?? m.line}</Para>
             </View>
           ))}
-          <View style={s.luckyColor}>
-            <View style={s.manualHead}>
-              <View style={[s.luckyDot, { backgroundColor: habitColor.hex }]} />
-              <Text style={s.luckyName}>{habitColor.name}</Text>
-            </View>
-            <Text style={s.rhythmText}>{growth.color}</Text>
-          </View>
-        </View>
-      ) : <Card>
-        {writing ? pending(4) : (
+        </Card>
+      ) : null}
+
+      <SubHead title={`07 · ${R.thisYear.year}년의 ${call}`} caption={R.thisYear.keyword} />
+      <Card>
+        {growth ? <Para mt={0}>{growth.thisYear}</Para> : writing ? pending(3) : (
           <>
-            <Text style={s.label}>함께하면 좋은 것</Text><Para mt={4}>{R.habits.activity}</Para>
-            <Text style={[s.label, { marginTop: 12 }]}>어울리는 곳</Text><Para mt={4}>{R.habits.place}</Para>
+            <Para mt={0}>{R.thisYear.line}</Para>
+            {R.thisYear.branchLine ? <Para>{R.thisYear.branchLine}</Para> : null}
+          </>
+        )}
+      </Card>
+
+      <SubHead title={`08 · ${call}에게 필요한 기운`} caption={`${R.needs.elementKo}의 기운`} />
+      <Card>
+        {growth ? <Para mt={0}>{growth.needs}</Para> : writing ? pending(2) : (
+          <>
+            <Text style={s.label}>함께하면 좋은 놀이</Text><Para mt={4}>{R.needs.activity}</Para>
+            <Text style={[s.label, { marginTop: 12 }]}>어울리는 곳</Text><Para mt={4}>{R.needs.place}</Para>
           </>
         )}
         <View style={s.colorRow}>
-          <View style={[s.swatch, { backgroundColor: habitColor.hex }]} />
+          <View style={[s.swatch, { backgroundColor: needColor.hex }]} />
           <View style={{ flex: 1 }}>
-            <Text style={txt.bodyStrong}>{habitColor.name}</Text>
+            <Text style={txt.bodyStrong}>{needColor.name}</Text>
             <Text style={txt.small}>방 소품이나 옷, 학용품에 이 색을 더해 주세요.</Text>
           </View>
         </View>
-      </Card>}
+      </Card>
       <Tip title="기억해 두세요" style={{ marginTop: 16 }}>{growth?.closing ?? '사주는 타고난 경향일 뿐이에요. 아이는 믿어 주는 어른 곁에서 가장 잘 자라요.'}</Tip>
     </>
+  );
+}
+
+/** 흰 칸 안 번호 목록 (공부 방법 · 혼낼 때 순서) */
+function NumberedTips({ tips }: { tips: readonly string[] }) {
+  return (
+    <View style={s.tips}>
+      {tips.map((t, i) => (
+        <View key={t} style={[s.tipRow, i ? s.tipLine : null]}>
+          <View style={s.tipNum}><Text style={s.tipNumText}>{i + 1}</Text></View>
+          <Text style={s.tipText}>{t}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const LEVEL_WORD: Record<ChildLevel, string> = { strong: '넉넉해요', normal: '알맞아요', light: '가벼워요' };
+const LEVEL_DOTS: Record<ChildLevel, number> = { strong: 3, normal: 2, light: 1 };
+/** 사주 속 자리의 크기 — 점 세 칸 */
+function LevelDots({ level }: { level: ChildLevel }) {
+  return (
+    <View style={s.dots} accessible accessibilityLabel={`자리가 ${LEVEL_WORD[level]}`}>
+      {[0, 1, 2].map(i => <View key={i} style={[s.dot, i < LEVEL_DOTS[level] && s.dotOn]} />)}
+      <Text style={s.dotText}>{LEVEL_WORD[level]}</Text>
+    </View>
   );
 }
 
@@ -685,13 +778,29 @@ const s = StyleSheet.create({
   // 미리보기 궁합 카드 (Figma 먹남색 카드)
   bondCard: { paddingTop: 12, paddingBottom: 16, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#1D212D' },
   bondSub: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: BOND_SUB, paddingRight: 56 },
+  bondSubScored: { paddingRight: 56 },
   bondScore: { position: 'absolute', top: 12, right: 16 },
   bondScoreUnit: { ...sansW('700'), fontSize: 14, color: colors.accent },
-  bondName: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingRight: 56 },
+  score: { ...sansW('700'), fontSize: 24, lineHeight: 29, letterSpacing: -1.2, color: colors.accent },
+  bondName: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   bondNameText: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: '#FFFFFF', flexShrink: 1 },
   bondLine: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#FFFFFF', marginTop: 2 },
+  bondSeat: { marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#3A3F4D' },
+  bondSeatLabel: { ...sansW('400'), fontSize: 12, lineHeight: 16, letterSpacing: -0.6, color: BOND_SUB },
+  bondSeatName: { ...sansW('700'), fontSize: 14, lineHeight: 18, letterSpacing: -0.56, color: colors.accent, marginTop: 2 },
+  // 01 기질 유형 카드
+  typeCard: { padding: 16, borderRadius: 12, backgroundColor: colors.accentSoft },
+  typeEyebrow: { ...sansW('500'), fontSize: 12, lineHeight: 16, letterSpacing: -0.6, color: HERO_SUB },
+  typeName: { ...sansW('700'), fontSize: 20, lineHeight: 26, letterSpacing: -1, color: HERO_INK, marginTop: 4 },
+  typeLine: { ...sansW('400'), fontSize: 13, lineHeight: 19, letterSpacing: -0.65, color: HERO_INK, marginTop: 6 },
+  // 05 사주 속 자리 크기
+  dots: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.lineStrong },
+  dotOn: { backgroundColor: colors.accent },
+  dotText: { ...sansW('500'), fontSize: 11, lineHeight: 14, color: colors.inkSub, marginLeft: 4 },
+  shake: { ...sansW('700'), fontSize: 11, color: colors.accent, borderWidth: 1, borderColor: colors.accent, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, overflow: 'hidden' },
   memoLabel: { ...sansW('700'), fontSize: 12, lineHeight: 18, letterSpacing: -0.6, color: colors.accent },
-  // 02 잘 지내는 법
+  // 01 좋아해요 · 힘들어해요
   manualRow: { flexDirection: 'row', gap: 12 },
   manualCard: { flex: 1, minHeight: 131, padding: 16, borderRadius: 12, borderWidth: 1, backgroundColor: colors.cream },
   manualHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -707,16 +816,6 @@ const s = StyleSheet.create({
   tipNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   tipNumText: { ...sansW('700'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: '#FFFFFF' },
   tipText: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink, flex: 1 },
-  // 09 하루 리듬 (Figma 타임라인)
-  rhythmBox: { padding: 14, paddingBottom: 16, borderRadius: 8, backgroundColor: colors.card, gap: 6 },
-  rhythmRow: { flexDirection: 'row', gap: 8 },
-  rhythmRail: { position: 'absolute', left: 13, top: 28, bottom: -6, width: 2, backgroundColor: colors.surface },
-  rhythmTile: { width: 28, height: 28, borderRadius: 6, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  rhythmBody: { flex: 1, paddingTop: 6, paddingRight: 2 },
-  rhythmText: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: colors.ink, marginTop: 6 },
-  luckyColor: { marginTop: 12, marginHorizontal: 2, padding: 12, borderRadius: 6, backgroundColor: colors.surface },
-  luckyDot: { width: 16, height: 16, borderRadius: 8 },
-  luckyName: { ...sansW('600'), fontSize: 13, lineHeight: 16, letterSpacing: -0.65, color: colors.ink },
   kidRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
   kid: { paddingHorizontal: 14, height: 32, borderRadius: radius.pill, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', maxWidth: 140 },
   kidOn: { backgroundColor: colors.navy },
@@ -724,9 +823,6 @@ const s = StyleSheet.create({
   kidAdd: { backgroundColor: 'transparent', borderWidth: 1, borderStyle: 'dashed', borderColor: colors.lineStrong },
   kidAddText: { ...sansW('600'), fontSize: 13, color: colors.inkSub },
   talentRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bondHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  score: { ...sansW('700'), fontSize: 24, lineHeight: 29, letterSpacing: -1.2, color: colors.accent },
-  scoreUnit: { ...sansW('600'), fontSize: 13, color: colors.accent },
   pickParents: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: 10, paddingVertical: 8 },
   pickParentsText: { ...txt.small, color: colors.inkSub },
   parentRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1.5, borderColor: 'transparent' },
@@ -746,7 +842,6 @@ const s = StyleSheet.create({
   stageHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   now: { ...sansW('700'), fontSize: 11, color: colors.white, backgroundColor: colors.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, overflow: 'hidden' },
   line: { borderTopWidth: 1, borderTopColor: colors.line },
-  rhythmTime: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: colors.ink },
   colorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, padding: 12, borderRadius: radius.md, backgroundColor: colors.surface },
   swatch: { width: 32, height: 32, borderRadius: 16 },
   slotHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 31, marginBottom: 11, flexWrap: 'wrap' },

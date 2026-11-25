@@ -258,9 +258,12 @@ export function childSpec(R: ChildPreview): ShareSpec {
   return {
     kind: '우리 아이 사주', seal: '童', eyebrow: `우리 ${name}${josa(name, '은', '는')}`,
     headline: R.child.headline, sub: R.child.title,
-    ...(bond ? { big: { value: String(bond.score), unit: '점', label: `${bond.title}${josa(bond.title, '과', '와')}의 궁합` } } : {}),
-    stats: [['타고난 재능', R.talents[0]?.name ?? ''], ['타고난 기운', `${R.child.stem.ko}${R.child.elementKo}`], ['아이의 띠', `${R.child.animal}띠`]],
-    teaser: '이 아이에게 맞는 공부 방식',
+    stats: [
+      R.child.temperament.name ? ['기질 유형', R.child.temperament.name] : ['아이의 띠', `${R.child.animal}띠`],
+      ['타고난 재능', R.talents[0]?.name ?? ''],
+      bond ? [`${bond.title}${josa(bond.title, '과', '와')}`, bond.type.name] : ['타고난 기운', `${R.child.stem.ko}${R.child.elementKo}`],
+    ],
+    teaser: '이 아이를 혼낼 때 잘 통하는 말',
     hook: '우리 아이는 어떤 사람으로 자랄까?',
     text: `우리 ${name}${josa(name, '은', '는')} '${R.child.headline}'${ieyo(R.child.headline)}.\n아이 생일만 넣으면 우리 아이 사주도 바로 볼 수 있어요.`, file: 'woonpick-child', route: 'Child', short: R.child.headline,
   };

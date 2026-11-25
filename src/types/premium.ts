@@ -131,37 +131,63 @@ export interface LuckyPreview {
 export interface SpousePreview { spouseEl: Element; headline: string; mbti: MBTI; animal: string; ageGap: string; thisYear: number; bestYear: number }
 
 /* ---------- 우리 아이 사주 (server: fortune-engine child) ---------- */
+export type ChildLevel = 'strong' | 'normal' | 'light';
 export interface ChildTalent { group: TenGodGroup; name: string; score: number; line: string; activities: string[] }
-export interface ChildGrowthStage { label: string; ages: string; now: boolean; pillar: string; group: TenGodGroup; keyword: string; line: string }
+/** 실제 대운 한 칸 — 시작 나이 · 해 · 학년 */
+export interface ChildGrowthStage {
+  label: string; ages: string; from: number; to: number; years: string; school: string; now: boolean;
+  pillar: string; group: TenGodGroup; keyword: string; line: string;
+  /** 아이의 일지와 부딪히는 시기 (변화가 큰 때) */
+  shake: boolean;
+}
 export interface ChildBondType { key: string; relation: TenGodGroup; name: string; line: string }
+/** 엄마 = 아이 사주의 인성 · 아빠 = 재성 / 아이 = 엄마 사주의 식상 · 아빠 사주의 관성 */
+export interface ChildSeat { group: TenGodGroup; level: ChildLevel; name: string; line: string }
 export interface ChildParentBond {
   /** 엄마 · 아빠 (성별로), 두 보호자의 성별이 같으면 이름 */
   title: string; nickname: string;
-  stem: { ko: string; hanja: string }; element: Element; elementKo: string; animal: string;
-  score: number; type: ChildBondType;
+  stem: { ko: string; hanja: string }; element: Element; elementKo: string;
+  type: ChildBondType;
+  /** 아이 사주 속 이 부모의 자리 */
+  seat: ChildSeat;
+  /** 이 부모 사주 속 아이의 자리 */
+  heart: ChildSeat;
+  rhythm: { key: 'liuhe' | 'samhap' | 'clash' | 'wonjin' | 'plain'; name: string; line: string };
   /** 아이에게 부모는 · 부모에게 아이는 */
   parentToChild: string; childToParent: string;
-  points: { title: string; text: string }[];
-  fills: Element[];
+  fills: Element[]; parentFills: Element[]; holdsParentNeed: boolean;
 }
 export interface ChildReport {
+  v: number;
   child: {
     nickname: string; age: number; gender: 'male' | 'female'; birthTimeKnown: boolean;
     title: string; headline: string; stem: { ko: string; hanja: string }; element: Element; elementKo: string;
-    animal: string; keywords: string[]; persona: string; energy: string;
+    animal: string; keywords: string[]; persona: string;
+    temperament: { group: TenGodGroup; name: string; line: string; need: string };
+    light: { group: TenGodGroup; name: string; line: string } | null;
+    energy: { level: 'strong' | 'balanced' | 'weak'; name: string; line: string };
   };
   elements: { counts: Record<Element, number>; strongest: Element; weakest: Element; missing: Element[] };
   talents: ChildTalent[];
-  learning: { group: TenGodGroup; name: string; line: string; environment: string; praise: string };
+  learning: { key: string; name: string; line: string; environment: string; praise: string };
+  parenting: {
+    discipline: { group: TenGodGroup; name: string; line: string; works: string[]; avoid: string };
+    friends: { key: string; name: string; line: string };
+    emotion: { element: Element; name: string; line: string; lean: string };
+  };
   growth: ChildGrowthStage[];
-  thisYear: { year: number; pillar: string; group: TenGodGroup; keyword: string; line: string };
-  habits: { element: Element; elementKo: string; color: { name: string; hex: string }; activity: string; food: string; place: string };
+  puberty: { years: string; group: TenGodGroup; name: string; line: string; shake: boolean } | null;
+  milestones: { label: string; year: number; pillar: string; group: TenGodGroup; line: string }[];
+  thisYear: { year: number; pillar: string; group: TenGodGroup; keyword: string; line: string; branch: 'clash' | 'liuhe' | 'samhap' | null; branchLine: string | null };
+  needs: { element: Element; elementKo: string; color: { name: string; hex: string }; activity: string; place: string };
   parents: ChildParentBond[];
 }
 export interface ChildPreview {
-  child: Pick<ChildReport['child'], 'nickname' | 'age' | 'title' | 'headline' | 'stem' | 'element' | 'elementKo' | 'animal' | 'keywords'>;
+  child: Pick<ChildReport['child'], 'nickname' | 'age' | 'title' | 'headline' | 'stem' | 'element' | 'elementKo' | 'animal' | 'keywords'> & {
+    temperament: Pick<ChildReport['child']['temperament'], 'group' | 'name'>;
+  };
   talents: Pick<ChildTalent, 'group' | 'name'>[];
-  parents: Pick<ChildParentBond, 'title' | 'nickname' | 'score' | 'type'>[];
+  parents: (Pick<ChildParentBond, 'title' | 'nickname' | 'type'> & { seat: Pick<ChildSeat, 'level' | 'name'> })[];
 }
 /** 등록한 가족의 한 사람 (등록할 때의 복사본 — 프로필을 고쳐도 바뀌지 않는다) */
 export interface ChildMember {

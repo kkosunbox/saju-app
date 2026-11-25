@@ -161,24 +161,32 @@ export interface PetReading {
 /** 우리 아이 사주 (server: child.reading.ts). */
 export interface ChildReading {
   portrait: {
-    headline: string; story: string;
+    headline: string; story: string; need: string;
+    /** 사주에 거의 없는 힘이 없으면 null */
+    lightSide: string | null;
     charms: Titled[];
     feelings: { scene: string; text: string }[];
-    manual: { likes: string[]; dislikes: string[]; comfort: string };
+    manual: { likes: string[]; dislikes: string[] };
   };
   talent: {
     talents: { title: string; text: string; grow: string }[];
     fields: string[]; fieldsNote: string;
-    learning: { summary: string; tips: string[]; environment: string; praise: string; avoid: string };
+    learning: { summary: string; tips: string[]; environment: string; praise: string };
+  };
+  parenting: {
+    discipline: { summary: string; steps: string[]; avoid: string };
+    friends: { summary: string; tip: string };
+    emotion: { summary: string; comfort: string; signal: string };
   };
   family: {
-    bonds: { title: string; summary: string; parenting: string; fit: string; friction: { title: string; text: string; tip: string } }[];
+    bonds: { title: string; summary: string; seat: string; parenting: string; fit: string; friction: { title: string; text: string; tip: string }; ritual: string }[];
     together: string;
   };
   growth: {
     stages: { label: string; text: string; parent: string }[];
-    thisYear: string;
-    rhythm: { time: '아침' | '낮' | '저녁'; text: string }[];
-    color: string; closing: string;
+    /** 성인 자녀면 null */
+    puberty: string | null;
+    milestones: { label: string; text: string }[];
+    thisYear: string; needs: string; closing: string;
   };
 }

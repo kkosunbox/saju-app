@@ -74,10 +74,11 @@ export const READING_STEPS = {
     { key: 'timing', label: '만나는 시기와 장소', sub: '좋은 해 · 좋은 달 · 만날 곳' },
   ] },
   child: { title: '아이의 사주를 풀고 있어요', steps: [
-    { key: 'portrait', label: '아이의 타고난 기질', sub: '성격 · 매력 · 잘 지내는 법' },
+    { key: 'portrait', label: '아이의 타고난 기질', sub: '기질 유형 · 매력 · 이럴 때 이런 마음' },
     { key: 'talent', label: '재능과 배우는 방식', sub: '재능 TOP 3 · 맞는 공부법 · 칭찬' },
-    { key: 'family', label: '엄마·아빠와의 궁합', sub: '서로에게 어떤 존재인지 · 함께 키우는 법' },
-    { key: 'growth', label: '자라는 흐름', sub: '시기별 흐름 · 올해 · 하루 리듬' },
+    { key: 'parenting', label: '아이와 지내는 법', sub: '혼낼 때 · 친구 · 속상할 때' },
+    { key: 'family', label: '엄마·아빠와의 사이', sub: '서로의 사주 속 자리 · 함께 키우는 법' },
+    { key: 'growth', label: '자라는 흐름', sub: '대운으로 본 시기 · 사춘기 · 입학 · 올해' },
   ] },
   // C방식 (무료 결과 안의 유료 섹션) — 화면에 나오는 순서와 같다
   compat: { title: '심층 궁합을 풀고 있어요', steps: [

@@ -63,7 +63,7 @@ export const ITEMS = {
   }),
   spouse: (): Item => ({ key: 'spouse', title: '미래 배우자 리포트', cost: 50, orig: 300, event: true, scope: '한 번 열면 계속 볼 수 있어요', desc: '배우자의 성격·외모·직업·경제관 · 알아보는 신호 · 찰떡 조건 · 나의 배우자 운 · 6년 인연 지수와 결혼 시기 · 만나는 길과 장소 · 결혼 생활 미리보기 · 놓치기 쉬운 점 · 개운법' }),
   /** 등록한 가족(아이 · 엄마 · 아빠)마다 산다 (서버 child:{id}, 프로필을 고쳐도 그대로) */
-  child: (childSetId: number, name: string): Item => ({ key: 'child:' + childSetId, title: name ? `${name} · 우리 아이 사주` : '우리 아이 사주', cost: 300, scope: '이 아이의 사주는 계속 볼 수 있어요', desc: '타고난 기질과 매력 · 잘 지내는 법 · 재능 TOP 3와 키워 주는 법 · 맞는 공부 방식 · 엄마·아빠와의 궁합 · 자라는 시기별 흐름 · 올해 · 하루 리듬' }),
+  child: (childSetId: number, name: string): Item => ({ key: 'child:' + childSetId, title: name ? `${name} · 우리 아이 사주` : '우리 아이 사주', cost: 300, scope: '이 아이의 사주는 계속 볼 수 있어요', desc: '기질 유형과 매력 · 재능 TOP 3와 키워 주는 법 · 맞는 공부 방식 · 혼낼 때 · 친구 · 속상할 때 · 아이 사주 속 엄마·아빠의 자리 · 대운으로 본 자라는 흐름 · 사춘기와 입학 · 올해' }),
   crush: (compatibilityId: number, name: string): Item => ({ key: 'crush:' + compatibilityId, title: name + '님의 속마음', cost: 150, scope: '이 상대의 속마음은 계속 볼 수 있어요', desc: '마음 온도와 연인 발전 가능성 · 나를 어떻게 느끼는지와 끌리는 이유 · 호감 신호 · 관계 속도와 오해 포인트 · 3개월 흐름 · 연락·고백하기 좋은 날 · 대화 주제와 첫 메시지' }),
   consult: (id: string): Item => ({ key: 'consult:' + id, title: '운알톡', cost: 5, scope: '매일 대화 2개는 무료, 그다음은 한 마디 5알', desc: '운알이와 가볍게 나누는 대화 · 오늘의 운세와 리포트를 기억하고 이어서 이야기해요' }),
   pet: (petId: number, name: string): Item => ({ key: 'pet:' + petId, title: name + ' · 반려동물 궁합', cost: 150, scope: '이 아이와의 궁합은 계속 볼 수 있어요', desc: '이 아이 이야기와 매력 · 이럴 때의 마음 · 타고난 성향과 지금 모습 · 우리 사이와 엇갈리는 순간 · 하루 루틴과 놀이 · 계절별 돌봄 · 함께 놀기 좋은 날 · 아이가 보내는 편지' }),
