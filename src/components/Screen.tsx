@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps, type NativeScrollEvent, type NativeSyntheticEvent, type ViewInstance } from 'react-native';
+import { Animated, Dimensions, Platform, StyleSheet, Text, View, ViewStyle, TextStyle, StyleProp, RefreshControlProps, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance, type ViewInstance } from 'react-native';
 import { KeyboardAvoidingView, KeyboardEvents } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +22,7 @@ interface Props {
   subtitle?: string;     // 예전 큰 제목 아래 한 줄. 지금 디자인에는 자리가 없어 보여주지 않는다
   back?: boolean;
   scroll?: boolean;
+  scrollRef?: React.Ref<ScrollViewInstance>;
   /** 스크롤은 두되 잠시 멈춘다 (예: 금박을 긁는 동안) */
   scrollEnabled?: boolean;
   right?: React.ReactNode;
@@ -63,7 +64,7 @@ export function TalkEnd() {
   return <View ref={register} collapsable={false} pointerEvents="none" style={{ height: 0 }} />;
 }
 
-export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollEnabled = true, right, left, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar, talk }: Props) {
+export default function Screen({ children, title, titleStyle, largeTitle, back, scroll = true, scrollRef, scrollEnabled = true, right, left, contentStyle, bg = colors.cream, sky, refreshControl, footer, onBack, floatingBar, talk }: Props) {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
   // 상단 바 자리: 보통은 안전 영역과 같고, 상태 표시가 모서리에 있는 화면(iPhone Duo)에서는 그 옆까지 올라가 그 쪽만 비켜 선다
@@ -129,6 +130,7 @@ export default function Screen({ children, title, titleStyle, largeTitle, back, 
       <KeyboardAvoidingView style={[{ flex: 1 }, webKeyboard ? { paddingBottom: webKeyboard } : null]} behavior="padding">
       {scroll ? (
         <Animated.ScrollView
+          ref={scrollRef}
           contentContainerStyle={[s.content, floating && { paddingTop: BAR_H + 8 }, contentStyle]} showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled} refreshControl={refreshControl} keyboardShouldPersistTaps="handled"
           onScroll={floating
             ? Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false, listener: asksTalk ? onTalkScroll : undefined })

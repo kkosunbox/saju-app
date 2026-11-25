@@ -386,11 +386,11 @@ export function luckySpec(u: User, L: LuckyDays): ShareSpec {
 }
 
 
-export function tarotSpec(nickname: string | undefined, topic: string, card: NonNullable<ShareSpec['tarot']> & { keyword: string }, reading: string): ShareSpec {
+export function tarotSpec(nickname: string | undefined, topic: string, card: NonNullable<ShareSpec['tarot']> & { keyword: string }, summary: string, reading: string): ShareSpec {
   const direction = card.orientation === 'reversed' ? '역방향' : '정방향';
   return {
     kind: '오늘의 타로', seal: '✦', eyebrow: nickname ? `${nickname}님의 ${topic} 타로` : `${topic} 타로`,
-    headline: card.name, sub: reading.split('. ')[0].replace(/\.$/, '') + '.',
+    headline: card.name, sub: summary.split('. ')[0].replace(/\.$/, '') + '.',
     detail: { label: '선택한 주제', value: topic }, stats: [['카드 번호', String(card.id)], ['키워드', card.keyword], ['방향', direction]],
     hook: '마음이 가는 카드 한 장을 골라 보세요.',
     text: `${topic} 타로 · ${card.name} (${direction})\n${reading}`,

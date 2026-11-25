@@ -7,7 +7,6 @@ import { NativeStackNavigationProp, useNavigation } from '@/navigation/compat';
 import { useApp } from '../context/AppContext';
 import { RootStackParamList } from '../navigation/types';
 import PressableScale from '../components/PressableScale';
-import Icon from '../components/Icon';
 import HomeSkeleton from '../components/Skeleton';
 import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
@@ -227,26 +226,6 @@ export default function HomeScreen() {
           {/* 내 링크로 상대가 궁합을 봤다 · 친구 결과 링크로 들어왔다 */}
           <HomeNotices style={{ marginTop: 0, marginBottom: 24 }} />
 
-          <PressableScale
-            onPress={() => nav.navigate('AnalysisDetail', { source: 'tarot' })}
-            accessibilityLabel="오늘의 타로 뽑기"
-            scaleTo={0.98}
-            style={s.tarot}
-          >
-            <Image source={require('../../assets/tarot/reader.webp')} style={s.tarotArt} contentFit="cover" accessible={false} />
-            <LinearGradient
-              colors={['#241629', '#241629', 'rgba(36,22,41,0)']}
-              locations={[0, 0.42, 0.87]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              pointerEvents="none"
-              style={StyleSheet.absoluteFill}
-            />
-            <Text style={s.tarotTitle}>오늘의 타로</Text>
-            <Text style={s.tarotSub}>궁금한 주제를 골라 카드 한 장</Text>
-            <Icon name="chevronRight" size={18} color="#F3D49F" />
-          </PressableScale>
-
           <Text style={s.section} accessibilityRole="header">운픽에서 가장 인기있는 🔥</Text>
           <BigCard
             bg={require('../../assets/figma/home/popular-spouse.webp')}
@@ -373,10 +352,6 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#CFCFCF' },
   dotOn: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7FB3FF' },
 
-  tarot: { minHeight: 116, alignItems: 'flex-start', justifyContent: 'center', borderRadius: radius.lg, overflow: 'hidden', backgroundColor: '#241629', marginBottom: 28, paddingHorizontal: 16, paddingVertical: 12, gap: 3 },
-  tarotArt: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '58%' },
-  tarotTitle: { ...sansW('700'), color: '#FFF6E8', fontSize: 20, lineHeight: 27 },
-  tarotSub: { ...sansW('500'), color: '#F3D49F', fontSize: 13, lineHeight: 19, maxWidth: '63%' },
   section: { ...sansW('700'), fontSize: 16, lineHeight: 18, letterSpacing: -0.8, color: TITLE_INK, marginBottom: 16, includeFontPadding: false },
 
   bigCard: { height: 128, borderRadius: 12, overflow: 'hidden', paddingTop: 25, paddingLeft: 16, backgroundColor: CARD },
