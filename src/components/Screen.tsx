@@ -53,7 +53,7 @@ const TALK_END_PX = 160;
 /** 본문 끝 표시가 화면 아래에서 이만큼 올라오면 (다 읽었다고 보고) 운알이를 띄운다 */
 const TALK_MARK_PX = 40;
 /** 짧은 화면: 크기가 마지막으로 바뀐 뒤 이만큼 지나 (그림·글이 자리 잡은 뒤) 운알이를 띄운다 */
-const TALK_FIT_DELAY = 800;
+const TALK_FIT_DELAY = 2500;
 
 /** 본문 끝 표시를 Screen에 알려 주는 통로 */
 const TalkEndContext = createContext<((ref: ViewInstance | null) => void) | null>(null);
