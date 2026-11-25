@@ -52,10 +52,13 @@ function needsSecondTap(event: GestureResponderEvent) {
   return !window.matchMedia(FINE_POINTER).matches;
 }
 
-export function TarotDeck({ cards, disabled, hintOpacity, onChoose }: {
+/** exit 0→1: 고른 카드는 살짝 떠올라 사라지고 나머지는 가라앉으며 흩어진다 (풀이 카드로 이어지는 연출) */
+export function TarotDeck({ cards, disabled, hintOpacity, exit, chosen, onChoose }: {
   cards: readonly { id: number }[];
   disabled: boolean;
-  hintOpacity: Animated.AnimatedInterpolation<number>;
+  hintOpacity: Animated.AnimatedInterpolation<number> | Animated.AnimatedMultiplication;
+  exit: Animated.Value;
+  chosen?: number;
   onChoose: (id: number) => void;
 }) {
   const reduced = useReducedMotion();
@@ -102,6 +105,8 @@ export function TarotDeck({ cards, disabled, hintOpacity, onChoose }: {
               angle={position * 28}
               raised={index === raised}
               previewed={index === preview}
+              exit={exit}
+              chosen={chosen === cards[index].id}
               reduced={reduced}
               disabled={disabled}
               onPress={event => press(index, event)}
@@ -118,7 +123,7 @@ export function TarotDeck({ cards, disabled, hintOpacity, onChoose }: {
   );
 }
 
-function DeckCard({ index, x, y, width, height, liftDistance, pitch, angle, raised, previewed, reduced, disabled, onPress, onHover, onFocus }: {
+function DeckCard({ index, x, y, width, height, liftDistance, pitch, angle, raised, previewed, exit, chosen, reduced, disabled, onPress, onHover, onFocus }: {
   index: number;
   x: number;
   y: number;
@@ -129,6 +134,8 @@ function DeckCard({ index, x, y, width, height, liftDistance, pitch, angle, rais
   angle: number;
   raised: boolean;
   previewed: boolean;
+  exit: Animated.Value;
+  chosen: boolean;
   reduced: boolean;
   disabled: boolean;
   onPress: (event: GestureResponderEvent) => void;
@@ -138,28 +145,41 @@ function DeckCard({ index, x, y, width, height, liftDistance, pitch, angle, rais
   const [lift] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (reduced) {
-      lift.setValue(raised ? 1 : 0);
+      lift.setValue(raised || chosen ? 1 : 0);
       return;
     }
     const move = Animated.spring(lift, {
-      toValue: raised ? 1 : 0, speed: 24, bounciness: 6, useNativeDriver: true, isInteraction: false,
+      toValue: raised || chosen ? 1 : 0, speed: 24, bounciness: 6, useNativeDriver: true, isInteraction: false,
     });
     move.start();
     return () => move.stop();
-  }, [lift, raised, reduced]);
+  }, [chosen, lift, raised, reduced]);
 
   return (
     <>
-      <Animated.View pointerEvents="none" style={[s.card, s.deckCard, raised && s.raisedCard, {
+      {/* Exit runs on the JS driver with the deck's other fades, the lift on the native one, so they stay on separate views. */}
+      <Animated.View pointerEvents="none" style={[s.deckCard, (raised || chosen) && s.raisedSlot, {
         left: x - width / 2,
         top: y, width, height,
-        transform: [
-          { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -liftDistance] }) },
-          { rotate: lift.interpolate({ inputRange: [0, 1], outputRange: [`${angle}deg`, `${angle * 0.25}deg`] }) },
-          { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
-        ],
+        opacity: chosen
+          ? exit.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 1, 0] })
+          : exit.interpolate({ inputRange: [0, 0.55], outputRange: [1, 0], extrapolate: 'clamp' }),
+        transform: chosen
+          ? [
+            { translateY: exit.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) },
+            { scale: exit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
+          ]
+          : [{ translateY: exit.interpolate({ inputRange: [0, 0.6], outputRange: [0, 14], extrapolate: 'clamp' }) }],
       }]}>
-        <CardBack />
+        <Animated.View style={[s.card, s.fill, (raised || chosen) && s.raisedCard, {
+          transform: [
+            { translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -liftDistance] }) },
+            { rotate: lift.interpolate({ inputRange: [0, 1], outputRange: [`${angle}deg`, `${angle * 0.25}deg`] }) },
+            { scale: lift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+          ],
+        }]}>
+          <CardBack />
+        </Animated.View>
       </Animated.View>
       <Pressable
         accessibilityRole="button"
@@ -186,6 +206,10 @@ function DeckCard({ index, x, y, width, height, liftDistance, pitch, angle, rais
   );
 }
 
+const REVEAL_DURATION = 1180;
+const REVEAL_EASE = Easing.bezier(0.65, 0, 0.35, 1);
+
+/** 뒷면으로 떠올라 → 입체로 한 바퀴 반 뒤집히며 앞면 → 살짝 내려앉는다 */
 export function TarotReveal({ card, animate, onFinished }: { card: TarotCardFace; animate: boolean; onFinished: () => void }) {
   const reduced = useReducedMotion();
   const [flip] = useState(() => new Animated.Value(animate ? 0 : 1));
@@ -198,25 +222,41 @@ export function TarotReveal({ card, animate, onFinished }: { card: TarotCardFace
     }
     const animation = Animated.timing(flip, {
       toValue: 1,
-      duration: 610,
-      easing: Easing.inOut(Easing.cubic),
+      duration: REVEAL_DURATION,
+      easing: Easing.linear,
       useNativeDriver: true,
     });
     animation.start(({ finished }) => { if (finished) onFinished(); });
     return () => animation.stop();
   }, [animate, flip, onFinished, reduced]);
 
+  const arrive = flip.interpolate({ inputRange: [0, 0.28], outputRange: [0, 1], extrapolate: 'clamp', easing: Easing.out(Easing.cubic) });
+  const turn = flip.interpolate({ inputRange: [0.3, 0.84], outputRange: [0, 1], extrapolate: 'clamp', easing: REVEAL_EASE });
+
   return (
-    <Animated.View style={[s.card, s.revealCard, {
+    <Animated.View style={[s.revealCard, {
+      opacity: arrive,
       transform: [
-        { scale: flip.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] }) },
-        { scaleX: flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0.02, 1] }) },
+        { translateY: arrive.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) },
+        { scale: flip.interpolate({
+          inputRange: [0, 0.28, 0.57, 0.9, 1], outputRange: [0.9, 1, 1.07, 0.995, 1], extrapolate: 'clamp',
+        }) },
       ],
     }]}>
-      <TarotCard reading={card} width={RESULT_WIDTH} />
-      <Animated.View style={[StyleSheet.absoluteFill, {
-        opacity: flip.interpolate({ inputRange: [0, 0.49, 0.5, 1], outputRange: [1, 1, 0, 0] }),
-      }]} pointerEvents="none">
+      <Animated.View pointerEvents="none" style={[s.revealGlow, {
+        opacity: flip.interpolate({ inputRange: [0, 0.5, 0.78, 1], outputRange: [0, 0, 0.95, 0.5] }),
+        transform: [{ scale: flip.interpolate({ inputRange: [0.5, 0.8, 1], outputRange: [0.86, 1.08, 1], extrapolate: 'clamp' }) }],
+      }]} />
+      <Animated.View style={[s.card, s.fill, {
+        opacity: turn.interpolate({ inputRange: [0, 0.5, 0.5001, 1], outputRange: [0, 0, 1, 1] }),
+        transform: [{ perspective: 900 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['-180deg', '0deg'] }) }],
+      }]}>
+        <TarotCard reading={card} width={RESULT_WIDTH} />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[s.card, s.fill, {
+        opacity: turn.interpolate({ inputRange: [0, 0.5, 0.5001, 1], outputRange: [1, 1, 0, 0] }),
+        transform: [{ perspective: 900 }, { rotateY: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }],
+      }]}>
         <CardBack />
       </Animated.View>
     </Animated.View>
@@ -229,10 +269,13 @@ const s = StyleSheet.create({
   fanCard: { position: 'absolute', top: 12, left: '50%', width: 48, height: 72, marginLeft: -24 },
   deck: { marginTop: 3 },
   deckCard: { position: 'absolute' },
-  raisedCard: { zIndex: 1, borderColor: '#FFE0A5', borderWidth: 1.5 },
+  fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  raisedSlot: { zIndex: 1 },
+  raisedCard: { borderColor: '#FFE0A5', borderWidth: 1.5 },
   hit: { position: 'absolute', zIndex: 2 },
   confirmHit: { position: 'absolute', zIndex: 3 },
   deckHint: { ...sansW('500'), color: '#CFC0D4', minHeight: 24, marginHorizontal: 16, textAlign: 'center', fontSize: 13, lineHeight: 20 },
   previewHint: { ...sansW('700'), color: '#FFE0A5' },
   revealCard: { width: RESULT_WIDTH, height: RESULT_WIDTH * 1.5, marginTop: 16, marginBottom: 12, alignSelf: 'center' },
+  revealGlow: { position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderRadius: 12, backgroundColor: 'rgba(233,191,131,0.06)', boxShadow: '0 0 34px 6px rgba(233,191,131,0.42)' },
 });

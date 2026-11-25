@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { dealTopicCards, getTopicCard, TAROT_DECK_SIZE, TAROT_TOPICS, topicFace, type TarotTopic } from '../../data/topicTarot';
@@ -28,7 +28,12 @@ const INK = '#FFF6E8';
 const MUTE = '#CFC0D4';
 const LINE = '#503952';
 const TOP_BAR = [[0, NIGHT]] as const;
-const TOPIC_TRANSITION_DURATION = 520;
+const TOPIC_ENTER_DURATION = 760;
+const TOPIC_RETURN_DURATION = 580;
+/** 화면 전환 공통 곡선 — 천천히 출발해 길게 내려앉는다 */
+const SILK = Easing.bezier(0.65, 0, 0.35, 1);
+const SETTLE = Easing.bezier(0.22, 1, 0.36, 1);
+const DECK_EXIT_DURATION = 460;
 /** 주제 → 그 주제를 더 깊이 보는 콘텐츠 (운알톡은 위에서 내려오는 운알이가 맡는다) */
 const PROMO_OF_TOPIC: Record<TarotTopic['key'], PromoKey> = {
   love: 'theme-love', money: 'theme-money', work: 'theme-career', relationship: 'crush',
@@ -84,6 +89,8 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
   const [gesture] = useState(() => new Animated.Value(0));
   const prepareScene = useCallback(() => setSceneReady(true), []);
   const [topicEntrance] = useState(() => new Animated.Value(0));
+  const [deckExit] = useState(() => new Animated.Value(0));
+  const [chosenId, setChosenId] = useState<number>();
   const loadVersion = useRef(0);
   const [saveFailed, setSaveFailed] = useState(false);
   const writing = useRef(false);
@@ -106,7 +113,7 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
       return;
     }
     const reveal = Animated.timing(topicEntrance, {
-      toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+      toValue: 1, duration: 560, easing: SETTLE, useNativeDriver: true,
     });
     reveal.start();
     return () => reveal.stop();
@@ -118,8 +125,8 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
     // Scene height and card placement share one clock. The layout needs the JS driver.
     const transition = Animated.timing(topicMotion, {
       toValue: returning ? 0 : 1,
-      duration: reduced ? 0 : returning ? 360 : TOPIC_TRANSITION_DURATION,
-      easing: Easing.inOut(Easing.sin),
+      duration: reduced ? 0 : returning ? TOPIC_RETURN_DURATION : TOPIC_ENTER_DURATION,
+      easing: SILK,
       useNativeDriver: false,
       isInteraction: false,
     });
@@ -132,11 +139,13 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
         setRevealFinished(false);
         setSaveFailed(false);
         setResetFailed(false);
+        setChosenId(undefined);
+        deckExit.setValue(0);
       }
       setTopicDirection(undefined);
     });
     return () => transition.stop();
-  }, [reduced, topicDirection, topicMotion]);
+  }, [deckExit, reduced, topicDirection, topicMotion]);
 
   const load = useCallback(async () => {
     if (date !== todayISO()) return onDateChange();
@@ -194,6 +203,8 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
     if (!draws || topic) return;
     if (date !== todayISO()) return onDateChange();
     scrollToTop();
+    deckExit.setValue(0);
+    setChosenId(undefined);
     setTopic(next);
     setDeck(dealTopicCards());
     setTopicDirection('enter');
@@ -204,8 +215,13 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
     writing.current = true;
     setSaving(true);
     setSaveFailed(false);
+    setChosenId(id);
+    // 저장을 기다리는 동안 덱을 거둬들여, 고른 카드가 그대로 뒤집히는 카드로 이어지게
+    const gather = new Promise<void>(resolve => Animated.timing(deckExit, {
+      toValue: 1, duration: reduced ? 0 : DECK_EXIT_DURATION, easing: SILK, useNativeDriver: false, isInteraction: false,
+    }).start(() => resolve()));
     try {
-      const result = await saveTopicTarotDraw(userId, topic.key, date, id);
+      const [result] = await Promise.all([saveTopicTarotDraw(userId, topic.key, date, id), gather]);
       if (!result || date !== todayISO()) return onDateChange();
       loadVersion.current += 1;
       setRevealFinished(false);
@@ -214,6 +230,10 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
       setDraws(current => ({ ...current, [topic.key]: { cardId: result.cardId, reversed: result.reversed } }));
       void load();
     } catch {
+      Animated.timing(deckExit, {
+        toValue: 0, duration: reduced ? 0 : 320, easing: SETTLE, useNativeDriver: false, isInteraction: false,
+      }).start();
+      setChosenId(undefined);
       setSaveFailed(true);
     } finally {
       writing.current = false;
@@ -231,6 +251,8 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
       loadVersion.current += 1;
       scrollToTop();
       setDraws(current => ({ ...current, [topic.key]: undefined }));
+      deckExit.setValue(0);
+      setChosenId(undefined);
       setDeck(dealTopicCards());
       setAnimateReveal(false);
       setRevealFinished(false);
@@ -251,15 +273,23 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
   };
 
   const changingTopic = !!topicDirection;
-  const copyOpacity = topicMotion.interpolate({ inputRange: [0, 0.55, 0.95, 1], outputRange: [0, 0, 1, 1] });
-  const copyRise = topicMotion.interpolate({ inputRange: [0, 0.55, 1], outputRange: [9, 9, 0] });
-  const deckOpacity = topicMotion.interpolate({ inputRange: [0, 0.12, 0.48, 1], outputRange: [0, 0, 1, 1] });
-  const deckTravel = topicMotion.interpolate({
-    inputRange: [0, 0.22, 0.68, 0.92, 1], outputRange: [-162, -115, -13, 1, 0],
-  });
-  const deckScale = topicMotion.interpolate({ inputRange: [0, 0.75, 1], outputRange: [0.83, 1, 1] });
-  const introOpacity = topicMotion.interpolate({ inputRange: [0, 0.08, 0.35, 1], outputRange: [1, 1, 0, 0] });
-  const introMenuOpacity = topicMotion.interpolate({ inputRange: [0, 0.22, 1], outputRange: [1, 0, 0] });
+  // 주제 전환: 메뉴가 떠오르며 걷히고 → 부채꼴 카드가 내려와 덱으로 펼쳐지고 → 문구가 뒤따라 내려앉는다 (돌아올 땐 그대로 거꾸로)
+  const copyOpacity = topicMotion.interpolate({ inputRange: [0, 0.48, 0.9], outputRange: [0, 0, 1], extrapolate: 'clamp' });
+  const copyRise = topicMotion.interpolate({ inputRange: [0.48, 1], outputRange: [12, 0], extrapolate: 'clamp', easing: Easing.out(Easing.cubic) });
+  const noteOpacity = topicMotion.interpolate({ inputRange: [0, 0.62, 1], outputRange: [0, 0, 1] });
+  const deckOpacity = topicMotion.interpolate({ inputRange: [0, 0.08, 0.44], outputRange: [0, 0, 1], extrapolate: 'clamp' });
+  const deckTravel = topicMotion.interpolate({ inputRange: [0, 1], outputRange: [-162, 0] });
+  const deckScale = topicMotion.interpolate({ inputRange: [0, 0.82], outputRange: [0.83, 1], extrapolate: 'clamp' });
+  // 이미 뽑은 주제의 풀이는 돌아갈 때 메뉴가 나타나기 전에 먼저 걷힌다
+  const resultOpacity = topicMotion.interpolate({ inputRange: [0, 0.38, 0.72], outputRange: [0, 0, 1], extrapolate: 'clamp' });
+  const introOpacity = topicMotion.interpolate({ inputRange: [0, 0.06, 0.4], outputRange: [1, 1, 0], extrapolate: 'clamp' });
+  const fanSink = topicMotion.interpolate({ inputRange: [0, 0.4], outputRange: [0, 56], extrapolate: 'clamp' });
+  const introMenuOpacity = topicMotion.interpolate({ inputRange: [0, 0.26], outputRange: [1, 0], extrapolate: 'clamp' });
+  const introMenuLift = topicMotion.interpolate({ inputRange: [0, 0.3], outputRange: [0, -12], extrapolate: 'clamp' });
+  // 카드를 고르면 덱의 문구도 함께 걷힌다
+  const deckFade = deckExit.interpolate({ inputRange: [0, 0.45], outputRange: [1, 0], extrapolate: 'clamp' });
+  const deckCopyOpacity = Animated.multiply(copyOpacity, deckFade);
+  const deckNoteOpacity = Animated.multiply(noteOpacity, deckFade);
   const revealStyle = { opacity: copyOpacity, transform: [{ translateY: copyRise }] };
 
   return (
@@ -290,33 +320,40 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
       <View style={s.stage}>
         {topic ? (
           <View pointerEvents={changingTopic ? 'none' : 'auto'} accessibilityElementsHidden={changingTopic} importantForAccessibility={changingTopic ? 'no-hide-descendants' : 'auto'} aria-hidden={changingTopic}>
-            <Animated.View style={[s.dealPrompt, revealStyle]} testID="tarot-topic-prompt">
-              <Text style={s.speaker}>타로술사 · {topic.label}</Text>
-              <Text accessibilityRole="header" style={s.heading}>{selected ? '카드가 전하는 이야기' : '마음이 가는 카드 한 장'}</Text>
-              <Text style={s.description}>
-                {selected ? '오늘 이 주제에 뽑은 카드예요.' : topic.prompt}
-              </Text>
+            <Animated.View style={[s.dealPrompt, selected ? revealStyle : { ...revealStyle, opacity: deckCopyOpacity }]} testID="tarot-topic-prompt">
+              <Appear key={selected ? 'reading' : 'pick'} animate={!!selected && animateReveal} style={s.promptCopy}>
+                <Text style={s.speaker}>타로술사 · {topic.label}</Text>
+                <Text accessibilityRole="header" style={s.heading}>{selected ? '카드가 전하는 이야기' : '마음이 가는 카드 한 장'}</Text>
+                <Text style={s.description}>
+                  {selected ? '오늘 이 주제에 뽑은 카드예요.' : topic.prompt}
+                </Text>
+              </Appear>
             </Animated.View>
             {selected && card ? (
               <Animated.View style={{
-                opacity: deckOpacity,
+                opacity: resultOpacity,
                 transform: [
                   { translateY: topicMotion.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) },
-                  { scale: deckScale },
+                  { scale: topicMotion.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
                 ],
               }}>
                 <TarotReveal card={card} animate={animateReveal} onFinished={finishReveal} />
                 {showReading ? (
                   <View style={s.result}>
-                    <Text style={s.english}>{selected.englishName}</Text>
-                    <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={s.cardName}>{selected.name}</Text>
-                    <Text style={s.keyword}>{face?.keyword} · {reversed ? '역방향' : '정방향'}</Text>
+                    <Appear animate={animateReveal} style={s.nameBlock}>
+                      <Text style={s.english}>{selected.englishName}</Text>
+                      <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={s.cardName}>{selected.name}</Text>
+                      <Text style={s.keyword}>{face?.keyword} · {reversed ? '역방향' : '정방향'}</Text>
+                    </Appear>
+                    <Appear animate={animateReveal} delay={140} style={s.stretch}>
                     <View style={s.reading}>
                       <Text accessibilityRole="header" style={s.speaker}>타로술사가 읽어주는 {topic.label}</Text>
                       <Text style={s.readingText}>{face?.symbol}</Text>
                       <Text style={s.readingText}>{reading}</Text>
                       <Text style={s.readingText}>{insight}</Text>
                     </View>
+                    </Appear>
+                    <Appear animate={animateReveal} delay={280} style={s.stretch}>
                     <Pressable accessibilityRole="button" onPress={reset} style={({ pressed }) => [s.restart, pressed && s.pressed]}>
                       <Icon name="refresh" size={16} color={NIGHT} />
                       <Text style={s.restartText}>다른 주제 보기</Text>
@@ -330,20 +367,21 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
                     <View style={s.promo}>
                       <PromoSlot screen={`tarot_${topic.key}`} promo={promosOf(nav, date)[PROMO_OF_TOPIC[topic.key]]} teaser />
                     </View>
+                    </Appear>
                   </View>
                 ) : null}
               </Animated.View>
             ) : (
               <>
-                <Animated.Text style={[s.deckNote, revealStyle]}>{TAROT_DECK_SIZE}장 중 한 장 · 주제마다 하루 한 번</Animated.Text>
+                <Animated.Text style={[s.deckNote, { opacity: deckNoteOpacity, transform: [{ translateY: copyRise }] }]}>{TAROT_DECK_SIZE}장 중 한 장 · 주제마다 하루 한 번</Animated.Text>
                 <Animated.View testID="tarot-topic-deck" style={{
                   opacity: deckOpacity,
                   transform: [{ translateY: deckTravel }, { scale: deckScale }],
                 }}>
-                  <TarotDeck cards={deck} disabled={saving || changingTopic} hintOpacity={copyOpacity} onChoose={choose} />
+                  <TarotDeck cards={deck} disabled={saving || changingTopic} hintOpacity={deckCopyOpacity} exit={deckExit} chosen={chosenId} onChoose={choose} />
                 </Animated.View>
                 {saveFailed ? <Text style={s.error} accessibilityLiveRegion="polite">카드를 저장하지 못했어요. 다시 눌러 주세요.</Text> : null}
-                <Animated.View style={revealStyle}>
+                <Animated.View style={{ opacity: deckNoteOpacity }}>
                   <Pressable accessibilityRole="button" disabled={saving || changingTopic} onPress={reset} style={({ pressed }) => [s.change, pressed && s.pressed]}>
                     <Text style={s.changeText}>주제 다시 고르기</Text>
                   </Pressable>
@@ -354,9 +392,9 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
         ) : null}
         {!topic || topicDirection ? (
           <Animated.View style={[topic && s.introOverlay, { opacity: introOpacity }]} pointerEvents={topic ? 'none' : 'auto'} accessibilityElementsHidden={!!topic} importantForAccessibility={topic ? 'no-hide-descendants' : 'auto'} aria-hidden={!!topic}>
-            <View style={s.introFan}><TarotFan progress={gesture} /></View>
+            <Animated.View style={[s.introFan, { transform: [{ translateY: fanSink }] }]}><TarotFan progress={gesture} /></Animated.View>
             {introPlayed ? (
-              <Animated.View style={{ opacity: introMenuOpacity }}>
+              <Animated.View style={{ opacity: introMenuOpacity, transform: [{ translateY: introMenuLift }] }}>
                 <Animated.View style={{
                   opacity: topicEntrance,
                   transform: [{ translateY: topicEntrance.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
@@ -400,6 +438,34 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
   );
 }
 
+/** 처음 나타날 때 부드럽게 떠오른다 — animate가 아니면 그 자리에 바로 */
+function Appear({ animate, delay = 0, style, children }: {
+  animate: boolean;
+  delay?: number;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const reduced = useReducedMotion();
+  const [progress] = useState(() => new Animated.Value(animate ? 0 : 1));
+  useEffect(() => {
+    if (!animate || reduced) {
+      progress.setValue(1);
+      return;
+    }
+    const rise = Animated.timing(progress, { toValue: 1, duration: 620, delay, easing: SETTLE, useNativeDriver: true, isInteraction: false });
+    rise.start();
+    return () => rise.stop();
+  }, [animate, delay, progress, reduced]);
+  return (
+    <Animated.View style={[style, {
+      opacity: progress,
+      transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+    }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
 const s = StyleSheet.create({
   screen: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 28 },
   back: { width: 34, minHeight: 44, justifyContent: 'center' },
@@ -409,6 +475,9 @@ const s = StyleSheet.create({
   introFan: { marginTop: -62 },
   intro: { marginHorizontal: 20, marginTop: 12, alignItems: 'center' },
   dealPrompt: { marginHorizontal: 20, marginTop: -18, alignItems: 'center' },
+  promptCopy: { alignItems: 'center' },
+  nameBlock: { alignItems: 'center' },
+  stretch: { alignSelf: 'stretch' },
   speaker: { ...sansW('600'), color: GOLD, fontSize: 13, lineHeight: 19, letterSpacing: 0.2 },
   heading: { ...sansW('700'), color: INK, fontSize: 25, lineHeight: 33, letterSpacing: -1.05, textAlign: 'center', marginTop: 5 },
   description: { ...sansW('400'), color: MUTE, fontSize: 14, lineHeight: 22, marginTop: 5, textAlign: 'center' },
