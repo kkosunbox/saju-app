@@ -43,7 +43,7 @@ export default function StarDetailScreen() {
       <ProfileSwitch style={{ marginBottom: 16 }} />
       <StarHero me={u} star={d} eyebrow={`${u.nickname}님과 ${d.name}님의 오늘의 궁합`} />
       <StarSections me={u} star={d} />
-      {all.data ? <StarOthers stars={all.data.stars} exclude={d.id} gender={u.gender} /> : null}
+      {all.data ? <StarOthers stars={all.data.stars} exclude={d.id} gender={u.gender} inDetail /> : null}
 
       {/* 이 연예인의 이름·양력 생일·성별을 채운 궁합 상대 추가 화면으로 (저장은 거기서 궁합을 볼 때) */}
       <PrimaryButton size="medium" variant="soft" label="궁합 상대로 추가" labelStyle={[s.btnLabel, { color: colors.ink }]} onPress={() => nav.navigate('Compatibility', { star: { nickname: d.name, birthDate: d.birthDate, gender: d.gender } })} style={{ marginTop: 24 }} />

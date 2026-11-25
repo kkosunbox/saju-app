@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@/navigation/compat';
 import { RootStackParamList } from '../navigation/types';
-import Screen from '../components/Screen';
+import Screen, { TalkEnd } from '../components/Screen';
 import Segmented from '../components/Segmented';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScoreRing from '../components/ScoreRing';
@@ -20,6 +20,7 @@ import { MakingStep, PreviewMakingCard, PreviewReveal, usePreviewMaking } from '
 import { useApp } from '../context/AppContext';
 import { useQuery } from '@tanstack/react-query';
 import { fortuneApi } from '../services/server/fortuneApi';
+import { periodChatSource } from '../services/server/consultApi';
 import { Period } from '../types';
 import { CategoryKey, colors, gradients, isDark } from '../theme/colors';
 import { radius } from '../theme/typography';
@@ -81,7 +82,7 @@ export default function FortuneScreen() {
   const recs = [PROMO_OF_CATEGORY[weak], ...BY_TAB[tab]].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
 
   return (
-    <Screen title="운세" back>
+    <Screen title="운세" back talk={period && !making.making ? periodChatSource(tab, today, `${label} 운세`) : undefined}>
       <Segmented<PeriodTab> options={TABS} value={tab} onChange={setTab} />
 
       {making.making ? (
@@ -128,6 +129,8 @@ export default function FortuneScreen() {
               <FlowLineChart key={tab} data={period.flow} />
             </>
           ) : null}
+          {/* 운알이 알림은 흐름까지 다 읽은 여기서 (아래 추천 배너까지 내려가지 않아도) */}
+          <TalkEnd />
 
           <SectionHeader variant="figma" title="더 깊이 보기" caption={`${label}의 흐름에 맞춰 골랐어요`} />
           <View style={{ gap: 16 }}>

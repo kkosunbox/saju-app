@@ -29,6 +29,8 @@ export interface ConsultFacts {
 /** 운알톡 대화를 시작한 화면 — 운알이가 그 화면 내용을 기억하고 이야기한다 (서버가 DB에서 다시 읽는다) */
 export type ChatSource =
   | { type: 'daily_fortune'; ref: string; title?: string }
+  /** 주간·월간·연간 운세 — 기간과 그 기간을 정한 날짜 (weekly:2026-11-25). 서버가 같은 숫자를 다시 계산해 읽는다 */
+  | { type: 'period_fortune'; ref: string; title?: string }
   | { type: 'content'; ref: string; title: string }
   /** 오늘의 타로 — 카드는 기기에서 뽑아 두므로 화면의 풀이(detail)를 함께 보낸다 */
   | { type: 'tarot'; ref: string; title: string; detail: string };
@@ -37,12 +39,16 @@ export type ChatSource =
 export const sourceView = (source: ChatSource): NonNullable<ConsultView['source']> => ({
   type: source.type,
   title: source.title ?? null,
-  key: source.type === 'content' ? source.ref.split('@')[0] : source.type === 'tarot' ? source.ref : null,
+  key: source.type === 'content' ? source.ref.split('@')[0] : source.type === 'tarot' ? source.ref : source.type === 'period_fortune' ? source.ref.split(':')[0] : null,
 });
 
 /** 콘텐츠 화면에서 운알톡을 시작할 때 — 열람권을 알면 그 프로필의 풀이를 읽게 붙인다 (life@123) */
 export const contentChatSource = (contentKey: string, title: string, entitlementId?: number | null): ChatSource =>
   ({ type: 'content', ref: entitlementId ? `${contentKey}@${entitlementId}` : contentKey, title });
+
+/** 주간·월간·연간 운세 화면에서 운알톡을 시작할 때 — 화면이 읽은 날짜(KST)로 같은 기간을 가리킨다 */
+export const periodChatSource = (period: 'weekly' | 'monthly' | 'yearly', date: string, title: string): ChatSource =>
+  ({ type: 'period_fortune', ref: `${period}:${date}`, title });
 
 /** 타로 카드 화면에서 운알톡을 시작할 때 — 주제와 카드 번호(love:3, 역방향은 love:3r), 화면에 보이는 풀이(빈 줄로 나눈 상징 · 조언 · 풀이) */
 export const tarotChatSource = (topicKey: string, topicLabel: string, cardId: number, reversed: boolean, detail: string): ChatSource =>

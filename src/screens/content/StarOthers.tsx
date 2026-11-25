@@ -32,8 +32,10 @@ export const forGender = <T extends { gender?: string | null }>(stars: T[], gend
 /**
  * 다른 연예인과의 궁합 — 지금 보고 있는 연예인을 빼고 반대 성별에서 다섯 명을 랜덤으로 (화면을 열 때 한 번 섞는다).
  * 연예인 궁합 결과 화면과 연예인 한 명과의 궁합 화면에서 같이 쓴다. '연예인 검색'으로 전체 목록.
+ * 연예인 화면(inDetail)에서는 뒤로가기가 쌓이지 않게: 다른 연예인은 지금 화면을 바꿔 끼우고,
+ * 검색은 스택에 이미 있으면 거기로 돌아가고 없으면 지금 화면을 바꿔 끼운다 (결과 → 검색 → 연예인, 많아야 세 겹).
  */
-export default function StarOthers({ stars, exclude, gender }: { stars: StarCard[]; exclude?: number | null; gender?: string | null }) {
+export default function StarOthers({ stars, exclude, gender, inDetail }: { stars: StarCard[]; exclude?: number | null; gender?: string | null; inDetail?: boolean }) {
   const nav = useNavigation();
   const scope = useContentScope();
   const others = useMemo(
@@ -41,13 +43,19 @@ export default function StarOthers({ stars, exclude, gender }: { stars: StarCard
     [stars, exclude, gender],
   );
   if (!others.length) return null;
-  const open = (star: StarCard) => nav.navigate('StarMatchDetail', { id: String(star.id), profileId: scope?.profileId ?? undefined });
+  const profileId = scope?.profileId ?? undefined;
+  const open = (star: StarCard) => (inDetail ? nav.replace : nav.navigate)('StarMatchDetail', { id: String(star.id), profileId });
+  const search = () => {
+    const href = { pathname: '/star/search', params: { profileId } } as const;
+    if (inDetail) router.dismissTo(href);
+    else router.push(href);
+  };
   return (
     <>
       <SectionHeader
         title="다른 연예인과의 궁합"
         action="연예인 검색"
-        onAction={() => router.push({ pathname: '/star/search', params: { profileId: scope?.profileId ?? undefined } })}
+        onAction={search}
       />
       <View style={s.row}>
         {others.map(star => (

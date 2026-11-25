@@ -87,7 +87,7 @@ export default function AskUnalPopup({ source, visible, top, bg }: { source: Cha
             <Image source={MASCOT} style={s.mascot} contentFit="contain" accessible={false} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={s.title}>더 궁금한게 있나요?</Text>
-              <Text style={s.sub} numberOfLines={1}>운알이한테 이어서 물어볼 수 있어요</Text>
+              <Text style={s.sub} numberOfLines={1}>{source.title ? `${source.title}에 대해 이어서 물어볼 수 있어요` : '운알이한테 이어서 물어볼 수 있어요'}</Text>
             </View>
             <Text style={s.cta}>물어보기 →</Text>
           </PressableScale>
