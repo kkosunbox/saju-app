@@ -12,6 +12,8 @@ import ProfileHintBubble from '../../components/premium/ProfileHintBubble';
 import FriendCompare from '../../components/FriendCompare';
 import Reveal from '../../components/Reveal';
 import { Logo } from '../../components/Mascot';
+import Icon from '../../components/Icon';
+import SolidIcon, { type SolidIconName } from '../../components/SolidIcon';
 import { useOpened } from '../../services/content/opened';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
@@ -77,26 +79,34 @@ export default function DayStemScreen() {
 
       <Section number="01" title={`${d.stemName}, ${d.image}의 기운`} />
       <View style={s.card}>
-        <View style={s.chips}>
-          <Chip label={`${d.isYang ? '양' : '음'}의 ${d.stemName.slice(1)}`} color={d.colorHex} />
-          <Chip label={`상징 · ${d.image}`} color={d.colorHex} />
+        <View style={s.stemHead}>
+          <View style={[s.stemSeal, { backgroundColor: d.colorHex }]}><Text style={s.stemSealText}>{d.hanja.slice(0, 1)}</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.stemName}>{d.stemName} · {d.image}</Text>
+            <Text style={s.stemSub}>{d.isYang ? '양' : '음'}의 {ELEMENT_KO[d.element]} 기운</Text>
+          </View>
         </View>
-        <Text style={[s.body, { marginTop: 10 }]}>{d.story}</Text>
-        <View style={s.list}>
-          {d.strengths.map(line => <Text key={line} style={s.bullet}>· {line}</Text>)}
-        </View>
+        <Text style={s.story}>{d.story}</Text>
+        <View style={s.divider} />
+        <Text style={s.label}>타고난 강점</Text>
+        {d.strengths.map(line => (
+          <View key={line} style={s.checkRow}>
+            <View style={[s.checkDot, { backgroundColor: tint(d.colorHex) }]}><Icon name="check" size={12} color={d.colorHex} /></View>
+            <Text style={s.checkText}>{line}</Text>
+          </View>
+        ))}
       </View>
 
       <Section number="02" title={`${d.mbti}와 ${d.label}`} />
-      <View style={s.card}>
-        {d.meet.map((p, i) => <Text key={i} style={[s.body, i > 0 && { marginTop: 10 }]}>{p}</Text>)}
+      <View style={{ gap: 8 }}>
+        {meetBlocks(d).map(b => <TraitBlock key={b.letter} {...b} color={d.colorHex} />)}
       </View>
 
       <Section number="03" title="상황별 나" />
       <View style={{ gap: 8 }}>
-        <Scene title="연애할 때" body={d.love} />
-        <Scene title="일할 때" body={d.work} />
-        <Scene title="친구로서" body={d.friend} />
+        <Scene icon="heartFill" color={colors.love} bg={colors.loveBg} title="연애할 때" body={d.love} />
+        <Scene icon="work" color={colors.accent} bg={colors.accentSoft} title="일할 때" body={d.work} />
+        <Scene icon="friend" color={colors.money} bg={colors.moneyBg} title="친구로서" body={d.friend} />
       </View>
 
       <ShareActions spec={spec} title="그 사람은 무슨 조합일까?" sub="내 조합을 보내고, 상대의 MBTI × 일간도 받아 보세요" pose="question" outlined marginTop={16} />
@@ -146,17 +156,59 @@ function Hero({ d, nickname }: { d: DayStemMbti; nickname: string }) {
   );
 }
 
-function Chip({ label, color }: { label: string; color: string }) {
-  return <View style={[s.chip, { borderColor: color }]}><Text style={[s.chipText, { color: isDark ? colors.ink : color }]}>{label}</Text></View>;
+const ELEMENT_KO = { wood: '목', fire: '화', earth: '토', metal: '금', water: '수' } as const;
+/** 오행 색을 옅게 깐 바탕 */
+const tint = (hex: string) => `${hex}${isDark ? '33' : '1F'}`;
+
+/** MBTI 한 글자 → 우리말 이름과 이 덩어리가 말하는 장면 */
+const LETTER: Record<string, [string, string]> = {
+  E: ['외향', '사람을 대할 때'], I: ['내향', '사람을 대할 때'],
+  N: ['직관', '생각하는 방식'], S: ['감각', '생각하는 방식'],
+  T: ['사고', '결정할 때'], F: ['감정', '결정할 때'],
+  J: ['판단', '하루를 보내는 방식'], P: ['인식', '하루를 보내는 방식'],
+};
+
+/** 2번 섹션 덩어리 — 서버가 MBTI 네 글자 순서대로 준다 (예전 결과는 세 문단이라 글자 없이 그린다) */
+function meetBlocks(d: DayStemMbti): { letter: string; word?: string; scene?: string; text: string }[] {
+  if (d.meet.length !== 4) return d.meet.map((text, i) => ({ letter: String(i), text }));
+  return d.meet.map((text, i) => {
+    const letter = d.mbti[i];
+    return { letter, word: LETTER[letter][0], scene: LETTER[letter][1], text };
+  });
 }
 
-function Scene({ title, body }: { title: string; body: string }) {
+/** 첫 문장은 굵게 (한눈에 읽히게), 나머지는 풀이 */
+function splitLead(text: string): [string, string] {
+  const m = text.match(/^(.+?[.!?])\s+([\s\S]+)$/);
+  return m ? [m[1], m[2]] : [text, ''];
+}
+
+function TraitBlock({ letter, word, scene, text, color }: { letter: string; word?: string; scene?: string; text: string; color: string }) {
+  const [lead, rest] = splitLead(text);
   return (
     <View style={s.card}>
-      <View style={s.sceneHead}>
-        <Text accessibilityRole="header" style={[s.cardTitle, { marginBottom: 0 }]}>{title}</Text>
+      {word ? (
+        <View style={s.blockHead}>
+          <View style={[s.letter, { backgroundColor: tint(color) }]}><Text style={[s.letterText, { color: isDark ? colors.ink : color }]}>{letter}</Text></View>
+          <Text style={s.blockLabel}>{word} · {scene}</Text>
+        </View>
+      ) : null}
+      <Text style={s.lead}>{lead}</Text>
+      {rest ? <Text style={s.rest}>{rest}</Text> : null}
+    </View>
+  );
+}
+
+function Scene({ icon, color, bg, title, body }: { icon: SolidIconName; color: string; bg: string; title: string; body: string }) {
+  const [lead, rest] = splitLead(body);
+  return (
+    <View style={s.card}>
+      <View style={s.blockHead}>
+        <View style={[s.sceneIcon, { backgroundColor: bg }]}><SolidIcon name={icon} size={16} color={color} /></View>
+        <Text accessibilityRole="header" style={s.sceneTitle}>{title}</Text>
       </View>
-      <Text style={[s.body, { marginTop: 8 }]}>{body}</Text>
+      <Text style={s.lead}>{lead}</Text>
+      {rest ? <Text style={s.rest}>{rest}</Text> : null}
     </View>
   );
 }
@@ -192,13 +244,23 @@ const s = StyleSheet.create({
   sectionText: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: -0.9, color: INK, flexShrink: 1, ...TIGHT },
   sectionNumber: { color: colors.accent, flexShrink: 0 },
   card: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  cardTitle: { ...sansW('600'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, color: INK, marginBottom: 8, ...TIGHT },
-  body: { ...sansW('400'), fontSize: 13, lineHeight: 19, letterSpacing: -0.65, color: INK, ...TIGHT },
-  small: { ...sansW('400'), fontSize: 12, lineHeight: 17, letterSpacing: -0.6, color: colors.inkMute, marginTop: 8, ...TIGHT },
-  bullet: { ...sansW('400'), fontSize: 13, lineHeight: 21, letterSpacing: -0.65, color: INK, ...TIGHT },
-  list: { marginTop: 10 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 15, ...TIGHT },
-  sceneHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  stemHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stemSeal: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  stemSealText: { ...sansW('800'), fontSize: 24, lineHeight: 28, color: colors.white, ...TIGHT },
+  stemName: { ...sansW('700'), fontSize: 17, lineHeight: 22, letterSpacing: -0.8, color: INK, ...TIGHT },
+  stemSub: { ...sansW('500'), fontSize: 13, lineHeight: 18, letterSpacing: -0.5, color: colors.inkMute, marginTop: 2, ...TIGHT },
+  story: { ...sansW('400'), fontSize: 14, lineHeight: 22, letterSpacing: -0.6, color: INK, marginTop: 14, ...TIGHT },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lineStrong, marginVertical: 14 },
+  label: { ...sansW('700'), fontSize: 13, lineHeight: 18, letterSpacing: -0.4, color: colors.inkMute, marginBottom: 8, ...TIGHT },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  checkDot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  checkText: { ...sansW('500'), fontSize: 14, lineHeight: 20, letterSpacing: -0.6, color: INK, flex: 1, ...TIGHT },
+  blockHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  letter: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  letterText: { ...sansW('800'), fontSize: 15, lineHeight: 18, ...TIGHT },
+  blockLabel: { ...sansW('600'), fontSize: 13, lineHeight: 18, letterSpacing: -0.4, color: colors.inkMute, ...TIGHT },
+  sceneIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  sceneTitle: { ...sansW('700'), fontSize: 15, lineHeight: 20, letterSpacing: -0.6, color: INK, ...TIGHT },
+  lead: { ...sansW('700'), fontSize: 15, lineHeight: 22, letterSpacing: -0.7, color: INK, ...TIGHT },
+  rest: { ...sansW('400'), fontSize: 14, lineHeight: 22, letterSpacing: -0.6, color: isDark ? colors.inkSub : '#4F4F4F', marginTop: 6, ...TIGHT },
 });
