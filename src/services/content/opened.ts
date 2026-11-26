@@ -19,7 +19,7 @@ import { trackAction } from '../screenViews';
  */
 export interface DailyTarget { profileId: number | null; fortune: DailyFortune | null; error?: unknown }
 
-export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life' | 'celebrity-match';
+export type OpenKind = 'fortune' | 'talisman' | 'mbti-match' | 'character' | 'past-life' | 'celebrity-match' | 'day-stem';
 // 천생연분 스타는 '오늘의 궁합'이라 날마다 새로 뽑는다
 const DAILY: OpenKind[] = ['fortune', 'talisman', 'celebrity-match'];
 

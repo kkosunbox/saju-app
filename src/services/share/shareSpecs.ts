@@ -5,7 +5,7 @@
 import { CombinedFortune, CompatibilityResult, ShareCard, User, TarotReading } from '../../types';
 import { STEMS } from '../../data/sajuData';
 import { RELATIONSHIP_INFO } from '../../data/relationships';
-import { MbtiMatches, PastLife, Pet, SajuCharacter, StarMatchDetail, StarScore, Talisman } from '../../types/content';
+import { DayStemMbti, MbtiMatches, PastLife, Pet, SajuCharacter, StarMatchDetail, StarScore, Talisman } from '../../types/content';
 import { WEEK, stageKeyOfAge } from '../premium/helpers';
 import { ChildPreview, CrushReport, DaeunTable, LifeStage, LuckyDays, MonthReport, SajuFull, SpousePreview, ThemeCareer, ThemeLove, ThemeMoney, YearData } from '../../types/premium';
 import { STEM_PERSONA } from '../premium/data';
@@ -219,6 +219,19 @@ export function pastLifeSpec(u: User, P: PastLife): ShareSpec {
     teaser: '이번 생에 풀어야 할 숙제',
     hook: '너는 전생에 누구였을까?',
     text: `${u.nickname}님의 전생은 '${P.title}'${ieyo(P.title)}.\n${seeMine('전생')}`, file: 'woonpick-pastlife', route: 'PastLife', short: P.title,
+  };
+}
+
+/** MBTI × 일간 — 조합 라벨과 일간 상징만 싣는다 (생일은 넣지 않는다) */
+export function dayStemSpec(u: User, d: DayStemMbti): ShareSpec {
+  return {
+    kind: 'MBTI × 일간', seal: d.hanja.slice(0, 1), eyebrow: `${u.nickname}님은`,
+    headline: d.title, sub: d.tags.join(' '),
+    detail: { label: '타고난 기운', value: `${d.image}의 ${d.stemName}` },
+    stats: [['MBTI', d.mbti], ['일간', d.stemName], ['상징', d.image]],
+    teaser: '연애할 때의 나',
+    hook: '너는 무슨 조합이야?',
+    text: `${u.nickname}님은 '${d.title}'${ieyo(d.title)}.\n${seeMine('MBTI × 일간')}`, file: 'woonpick-daystem', route: 'DayStem', short: d.title,
   };
 }
 

@@ -50,6 +50,7 @@ export const ROUTES: Record<string, string> = {
   Spouse: '/spouse',
   Consult: '/consult',
   PastLife: '/past-life',
+  DayStem: '/day-stem',
   StarMatch: '/star',
   StarMatchDetail: '/star/[id]',
   Pet: '/pet',

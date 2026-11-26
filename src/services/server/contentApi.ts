@@ -9,14 +9,15 @@ import { api, call } from '../../api/client';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
 import { ContentPerson } from './profileApi';
-import { MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
+import { DayStemMbti, MbtiMatches, PastLife, SajuCharacter, Talisman } from '../../types/content';
 
-type FreeKind = 'mbti-match' | 'character' | 'talisman' | 'past-life';
+type FreeKind = 'mbti-match' | 'character' | 'talisman' | 'past-life' | 'day-stem';
 interface FreeData {
   'mbti-match': MbtiMatches;
   character: SajuCharacter;
   talisman: Talisman;
   'past-life': PastLife;
+  'day-stem': DayStemMbti;
 }
 
 const PATHS = {
@@ -24,6 +25,7 @@ const PATHS = {
   character: '/v1/contents/character',
   talisman: '/v1/contents/talisman',
   'past-life': '/v1/contents/past-life',
+  'day-stem': '/v1/contents/day-stem',
 } as const;
 
 export function useFreeContent<K extends FreeKind>(kind: K) {

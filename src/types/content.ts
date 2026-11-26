@@ -121,3 +121,30 @@ export interface StarMatchDetail extends StarScore {
   moments?: { title: string; text: string }[];
   me: { hanja: string; character: string; element: Element };
 }
+
+/* ---------- MBTI × 일간 (서버 계산, GET /v1/contents/day-stem) ---------- */
+export interface DayStemMbti {
+  /** 예: 무토남 */
+  label: string;
+  /** 예: 무토 */
+  stemName: string;
+  /** 예: 戊土 */
+  hanja: string;
+  element: Element;
+  colorHex: string;
+  isYang: boolean;
+  /** 일간의 상징 (예: 큰 산) */
+  image: string;
+  mbti: MBTI;
+  /** 예: ISTP × 무토남 */
+  title: string;
+  tags: string[];
+  /** 일간오행 풀이 */
+  story: string;
+  strengths: string[];
+  /** 이 MBTI와 이 일간이 만난 사람 — 세 문단 (에너지 · 생각과 판단 · 생활 리듬) */
+  meet: string[];
+  love: string;
+  work: string;
+  friend: string;
+}

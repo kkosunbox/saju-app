@@ -135,6 +135,7 @@ function RootStack({ hold, onShown }: { hold: boolean; onShown(): void }) {
           <Stack.Screen name="consult/history" />
           <Stack.Screen name="consult/[id]" />
           <Stack.Screen name="past-life" />
+          <Stack.Screen name="day-stem" />
           <Stack.Screen name="star/index" />
           <Stack.Screen name="star/search" />
           <Stack.Screen name="star/[id]" />

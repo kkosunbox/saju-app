@@ -13,7 +13,7 @@ import BusinessFooter from '../components/BusinessFooter';
 import FadeCarousel from '../components/FadeCarousel';
 import { ART, Logo } from '../components/Mascot';
 import { usePromoTrack } from '../components/PromoSlot';
-import { CostPill } from '../components/premium/Kit';
+import { CostPill, LineTag } from '../components/premium/Kit';
 import { PointPill } from '../components/HeaderPoints';
 import LifeMapCards from '../components/home/LifeMapCards';
 import { ITEMS } from '../services/premium/catalog';
@@ -29,6 +29,7 @@ import { COPY } from '../content/copy';
 import WelcomeBonusSheet from '../components/WelcomeBonusSheet';
 import { usePendingInviteSheet } from '../components/PendingInviteSheet';
 import HomeNotices from './consult/HomeNotices';
+import { DAY_STEM_TITLE } from '../content/dayStem';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,6 +41,8 @@ const SKY_H = 252;
 const CARD = isDark ? colors.card : '#F6F6F6';
 const TITLE_INK = isDark ? colors.ink : '#000000';
 const NAVY = '#1D212D';
+/** 고민상담 버튼에서 강조하는 말의 글자색 (Figma #28B2FE) */
+const LEAD_INK = '#28B2FE';
 
 interface Slide {
   key: string;
@@ -70,6 +73,7 @@ export default function HomeScreen() {
   const promos = promosOf(nav, today);
   const goSpouse = usePromoTrack('home', 'spouse', promos.spouse.go);
   const goConsult = usePromoTrack('home', 'consult', () => nav.navigate('Consult'));
+  const goDayStem = usePromoTrack('home', 'day-stem', () => nav.navigate('DayStem'));
 
   const slides: Slide[] = [
     {
@@ -179,7 +183,8 @@ export default function HomeScreen() {
     { k: 'money', label: '재물운', img: require('../../assets/figma/home/cat-money.webp'), box: { width: 45, height: 37, left: 12, top: 16 }, go: promos['theme-money'].go },
     { k: 'career', label: '직업 · 적성운', img: require('../../assets/figma/home/cat-career.webp'), box: { width: 44, height: 38, left: 13, top: 16 }, go: promos['theme-career'].go },
   ];
-  const TRENDING = [
+  const TRENDING: { k: string; title: string; sub: string; cost?: number; img: number; box: { width: number; height: number; left: number; top: number }; go(): void }[] = [
+    { k: 'tarot', title: '오늘의 타로', sub: '오늘 나에게 온 카드 한 장', img: require('../../assets/figma/home/row-tarot.webp'), box: { width: 25, height: 22, left: 6, top: 8 }, go: () => nav.navigate('AnalysisDetail', { source: 'tarot' }) },
     { k: 'pet', title: '반려동물 궁합', sub: '댕냥이와 나의 궁합은?', cost: ITEMS.pet(0, '').cost, img: require('../../assets/figma/home/row-pet.webp'), box: { width: 35, height: 34, left: 1, top: 2 }, go: () => nav.navigate('Pet') },
     { k: 'child', title: '우리 아이 사주', sub: '어떤 사람으로 자랄까?', cost: ITEMS.child(0, '').cost, img: require('../../assets/figma/home/row-child.webp'), box: { width: 33, height: 29, left: 3, top: 4 }, go: () => nav.navigate('Child') },
     { k: 'match', title: '궁합', sub: '그사람과 나 잘 맞을까?', cost: ITEMS.compat(0, '').cost, img: require('../../assets/figma/home/row-match.webp'), box: { width: 35, height: 21, left: 1, top: 8 }, go: () => nav.navigate('Tabs', { screen: 'Compatibility' }) },
@@ -234,6 +239,14 @@ export default function HomeScreen() {
             cta="바로 확인하기 →"
             onPress={goSpouse}
           />
+          <BigCard
+            bg={require('../../assets/figma/home/popular-mbti.webp')}
+            edge={require('../../assets/figma/home/popular-mbti-edge.webp')}
+            title={DAY_STEM_TITLE} desc="내 MBTI에 사주를 더하면?"
+            cta="바로 확인하기 →"
+            onPress={goDayStem}
+            style={{ marginTop: 16 }}
+          />
 
           <Text style={[s.section, { marginTop: 32 }]} accessibilityRole="header">나를 더 깊이 아는 운픽 콘텐츠</Text>
           <LifeMapCards home />
@@ -254,12 +267,13 @@ export default function HomeScreen() {
             bg={require('../../assets/figma/home/trending-consult.webp')}
             edge={require('../../assets/figma/home/trending-consult-edge.webp')}
             title="지금 어떤 고민이 있나요?" desc="운알이와의 편하게 비밀 대화해요."
-            cta="운알이와 대화하러 가기 →"
+            ctaLead="고민상담"
+            cta=" 하러가기 →"
             onPress={goConsult}
           />
           <View style={s.rows}>
             {TRENDING.map(r => (
-              <PressableScale key={r.k} onPress={r.go} style={s.row} scaleTo={0.98} accessibilityLabel={`${r.title}, ${r.sub}, ${r.cost}알`}>
+              <PressableScale key={r.k} onPress={r.go} style={s.row} scaleTo={0.98} accessibilityLabel={`${r.title}, ${r.sub}, ${r.cost == null ? '무료' : `${r.cost}알`}`}>
                 <View style={s.rowIcon}>
                   <Image source={r.img} style={[s.abs, r.box]} contentFit="contain" accessible={false} />
                 </View>
@@ -267,7 +281,8 @@ export default function HomeScreen() {
                   <Text style={s.rowTitle} numberOfLines={1}>{r.title}</Text>
                   <Text style={s.rowSub} numberOfLines={1}>{r.sub}</Text>
                 </View>
-                <CostPill cost={r.cost} small variant="figma" />
+                {/* 무료 칩은 Figma에서 알 알약보다 3 안쪽에 놓여 있다 */}
+                {r.cost == null ? <View style={{ marginRight: 3 }}><LineTag label="무료" variant="figma" /></View> : <CostPill cost={r.cost} small variant="figma" />}
               </PressableScale>
             ))}
           </View>
@@ -314,14 +329,19 @@ function ArtShadow({ b, top }: { b: Slide; top: number }) {
 /** Figma 327×128 그림 카드 — 제목 · 설명 · 흰 알약 버튼.
  * 화면이 넓어지면 높이 · 글 · 그림은 디자인 그대로 두고 폭만 늘린다: 그림은 원래 크기로 오른쪽에 붙이고,
  * 늘어난 왼쪽은 그림 왼쪽 가장자리(그림 없는 바탕)를 좌우로 뒤집어 이어 붙여 이음매 없이 채운다 */
-function BigCard({ bg, edge, title, desc, cta, onPress }: { bg: number; edge: number; title: string; desc: string; cta: string; onPress(): void }) {
+function BigCard({ bg, edge, title, desc, cta, ctaLead, onPress, style }: {
+  bg: number; edge: number; title: string; desc: string; cta: string;
+  /** 버튼 글 앞에 파랗게 붙는 말 (예: 고민상담) */
+  ctaLead?: string;
+  onPress(): void; style?: object;
+}) {
   return (
-    <PressableScale onPress={onPress} style={s.bigCard} scaleTo={0.98} accessibilityLabel={`${title} ${desc}`}>
+    <PressableScale onPress={onPress} style={[s.bigCard, style]} scaleTo={0.98} accessibilityLabel={`${title} ${desc}`}>
       <Image source={bg} style={s.bigArt} contentFit="fill" accessible={false} />
       <Image source={edge} style={s.bigEdge} contentFit="fill" accessible={false} />
       <Text style={s.bigTitle} numberOfLines={1}>{title}</Text>
       <Text style={s.bigDesc} numberOfLines={1}>{desc}</Text>
-      <View style={s.pill}><Text style={s.pillText}>{cta}</Text></View>
+      <View style={s.pill}><Text style={s.pillText}>{ctaLead ? <Text style={{ color: LEAD_INK }}>{ctaLead}</Text> : null}{cta}</Text></View>
     </PressableScale>
   );
 }

@@ -19,6 +19,7 @@ import { colors, isDark } from '../../theme/colors';
 import { fonts, radius, sansW, txt } from '../../theme/typography';
 import { LinearGradient } from 'expo-linear-gradient';
 import Mascot, { ArtName, MascotPeek } from '../../components/Mascot';
+import { DAY_STEM_TITLE, dayStemCaption } from '../../content/dayStem';
 import { StarMatchArt } from '../../components/home/HomeDesignAssets';
 import { TrackedPromoCard } from '../../components/PromoSlot';
 import GradientBorder from '../../components/GradientBorder';
@@ -80,6 +81,7 @@ export default function ContentScreen() {
     ['soon-tarot', '오늘의 타로', '주제와 카드 한 장을 골라요', () => nav.navigate('AnalysisDetail', { source: 'tarot' })],
     ['pastLife', '전생 테스트', '나는 전생에 누구였을까?', () => nav.navigate('PastLife')],
     ['tiger', '사주 캐릭터', '60가지 중 나는 누구?', () => nav.navigate('Character')],
+    ['pose-saju', DAY_STEM_TITLE, dayStemCaption(user), () => nav.navigate('DayStem')],
     ['mbti', '찰떡 MBTI', '나와 가장 잘 맞는 유형', () => nav.navigate('MbtiMatch')],
     ['talisman', '오늘의 부적', '매일 바뀌는 행운 카드', () => nav.navigate('Talisman')],
     ['friends', '친구 궁합 초대', '링크 하나로 궁합보기', invite],

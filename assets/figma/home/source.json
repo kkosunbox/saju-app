@@ -210,6 +210,32 @@
         4.40814,
         4.14841
       ]
+    },
+    "popular-mbti.webp": {
+      "node": "705:2340",
+      "frame": "630:3577",
+      "slot": [
+        24,
+        447,
+        327,
+        128
+      ],
+      "contentFit": "fill"
+    },
+    "popular-mbti-edge.webp": {
+      "node": "705:2340",
+      "frame": "630:3577",
+      "runtime": "BigCard edge: x 12..122 mirrored"
+    },
+    "row-tarot.webp": {
+      "node": "705:2318",
+      "frame": "630:3577",
+      "slot": [
+        47,
+        1113,
+        25,
+        22
+      ]
     }
   },
   "overlays": {

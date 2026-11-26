@@ -50,7 +50,8 @@ function Cell({ p, stem }: { p: Pillar | null; stem: boolean }) {
   return (
     <View style={[s.pc, { backgroundColor: TILE_HEX[o.element] }]}>
       <Text style={s.pcBig}>{o.hanja}</Text>
-      <Text style={s.pcSmall}>{o.ko}{stem ? '' : ' · ' + (o as typeof BRANCHES[number]).animal}</Text>
+      <Text style={s.pcSmall}>{/* 천간은 오행까지 풀어 쓴다 (계 → 계수) */}
+        {o.ko}{stem ? ELEMENT_INFO[o.element].ko : ' · ' + (o as typeof BRANCHES[number]).animal}</Text>
     </View>
   );
 }
@@ -90,7 +91,7 @@ export default function SajuDeepScreen() {
     <Screen talk={content.open ? contentChatSource(content.key, item.title, content.data?.entitlementId) : undefined} title="상세사주 해석" back right={<ShareIconButton item={item} spec={spec} />}>
       <HeadRow item={item} caption={`양력 ${u.birthDate.replace(/-/g, '.')} ${u.birthTime || '(시간 모름)'}`} />
       <Text style={s.profileTitle}>{u.nickname}님은{'\n'}{per.img} 같은 사람이에요</Text>
-      <Text style={s.profileMeta}>{dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
+      <Text style={s.profileMeta}>나의 오행 {elName(me.element)} · {dayName}{strength ? ` · ${strength}` : ''}{yong ? ` · 용신 ${elName(yong)}` : ''}</Text>
       <Card style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 6 }}>
         <View style={s.pgrid}>
           {pillars.map(([l, p]) => {

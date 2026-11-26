@@ -55,6 +55,7 @@ export type RootStackParamList = {
   /** 상담 기록 전체 (무한 스크롤) */
   ConsultHistory: { kind: 'open' | 'past' };
   PastLife: undefined;
+  DayStem: undefined;
   /** 천생연분 스타 (뽑기 · 결과 · 다른 스타 목록) */
   StarMatch: undefined;
   /** 천생연분 스타 한 명과의 궁합 */

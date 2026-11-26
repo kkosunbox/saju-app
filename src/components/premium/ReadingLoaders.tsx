@@ -179,6 +179,19 @@ export function FullReadingLoader({ title, done, total, messages }: { title: str
   );
 }
 
+/** 진행 막대 없이 잠깐 보여 주는 로딩 (무료 콘텐츠처럼 금방 끝나는 풀이용) */
+export function QuickReadingLoader({ title, messages, every = 900 }: { title: string; messages: string[]; every?: number }) {
+  const { text, fade } = useRotatingMessage(messages, every);
+  return (
+    <View style={s.full} accessibilityLabel={title}>
+      <CloudBackdrop />
+      <ScrollMascot size={90} glow style={{ marginBottom: 16 }} />
+      <Text style={s.fullTitle}>{title}</Text>
+      <Animated.Text style={[s.fullMsg, { opacity: fade }]}>{text}</Animated.Text>
+    </View>
+  );
+}
+
 /* ---------- B. 단계 체크리스트 ---------- */
 
 /** state: 다 씀 · 쓰는 중 · 아직 시작 전 (없으면 done으로만 판단) */

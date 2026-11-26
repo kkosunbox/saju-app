@@ -52,6 +52,7 @@ const EXACT: Record<string, PageMeta> = {
   '/fortune': { title: '기간별 운세' },
   '/character': { title: '사주 캐릭터' },
   '/past-life': { title: '전생' },
+  '/day-stem': { title: 'MBTI × 일간' },
   '/star': { title: '연예인 궁합' },
   '/star/search': { title: '연예인 검색' },
   '/pet': { title: '반려동물 궁합' },
