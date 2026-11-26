@@ -8,6 +8,7 @@ import { useNavigation } from '@/navigation/compat';
 import { loadTopicTarotDraws, resetTopicTarotDraw, saveTopicTarotDraw, subscribeToTopicTarotDraws } from '../../services/content/topicTarotDraws';
 import { PromoKey, promosOf } from '../../services/promo/promos';
 import { tarotChatSource } from '../../services/server/consultApi';
+import { requestData } from '../../api/client';
 import { tarotSpec } from '../../services/share/shareSpecs';
 import { sansW } from '../../theme/typography';
 import { LOCAL_TOOLS } from '../../utils/devTools';
@@ -227,6 +228,8 @@ function TarotSession({ userId, nickname, date, onDateChange, initialTopic }: {
       setRevealFinished(false);
       scrollToTop();
       setAnimateReveal(result.newlySaved);
+      // 카드는 기기에만 남는다 — 서버에는 그날 타로를 뽑았다는 기록만 (어드민 이용 기록용, 대표 프로필에)
+      if (result.newlySaved) void requestData('/v1/contents/draw-completion', { content: 'tarot' }, 'PUT').catch(() => {});
       setDraws(current => ({ ...current, [topic.key]: { cardId: result.cardId, reversed: result.reversed } }));
       void load();
     } catch {
