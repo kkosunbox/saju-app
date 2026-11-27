@@ -149,18 +149,23 @@ function ThemeBody({ kind, D, F, reading, onRetry }: { kind: ThemeKind; D: Theme
 
       {kind === 'love' ? (
         <>
-          <SubHead title={`${no()} · 연애 패턴`} caption="시작할 때 · 깊어질 때 · 다툴 때 · 회복할 때" />
-          {P.core?.pattern ? (
-            <View style={{ gap: 10 }}>
-              {P.core.pattern.map((x, i) => (
-                <Card key={i}>
-                  <Text style={[txt.caption, { color }]}>{['시작할 때', '깊어질 때', '다툴 때', '회복할 때'][i]}</Text>
-                  <Text style={[txt.h3, { marginTop: 4 }]}>{x.title}</Text>
-                  <Para>{x.text}</Para>
-                </Card>
-              ))}
-            </View>
-          ) : <Card>{pending(6)}</Card>}
+          {/* AI가 패턴을 비워 둔 예전 풀이는 빈 섹션 대신 섹션째 숨긴다 */}
+          {P.core?.pattern?.length === 0 ? null : (
+            <>
+              <SubHead title={`${no()} · 연애 패턴`} caption="시작할 때 · 깊어질 때 · 다툴 때 · 회복할 때" />
+              {P.core?.pattern ? (
+                <View style={{ gap: 10 }}>
+                  {P.core.pattern.map((x, i) => (
+                    <Card key={i}>
+                      <Text style={[txt.caption, { color }]}>{['시작할 때', '깊어질 때', '다툴 때', '회복할 때'][i]}</Text>
+                      <Text style={[txt.h3, { marginTop: 4 }]}>{x.title}</Text>
+                      <Para>{x.text}</Para>
+                    </Card>
+                  ))}
+                </View>
+              ) : <Card>{pending(6)}</Card>}
+            </>
+          )}
           <SubHead title={`${no()} · 매력 포인트`} />
           <Card>{P.core?.charms ? P.core.charms.map((t, i) => <Bullet key={i} color={colors.love}>{t}</Bullet>) : pending()}</Card>
           <SubHead title={`${no()} · 잘 맞는 사람`} caption="사주 · 띠 · MBTI로 본 인연의 결" />
