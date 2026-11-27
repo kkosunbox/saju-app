@@ -1,5 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useId, useState } from 'react';
+import { Image, type ImageSourcePropType, Platform, StyleSheet, type StyleProp, Text, View, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
+import { useReducedMotion } from '../../utils/motion';
 import Screen from '../../components/Screen';
 import OptionChip from '../../components/OptionChip';
 import MbtiQuiz from '../../components/MbtiQuiz';
@@ -12,6 +16,9 @@ import ProfileHintBubble from '../../components/premium/ProfileHintBubble';
 import FriendCompare from '../../components/FriendCompare';
 import Reveal from '../../components/Reveal';
 import { Logo } from '../../components/Mascot';
+import SolidIcon from '../../components/SolidIcon';
+import { dayStemMascot, type MascotBox } from './dayStemMascots';
+import { STEMS } from '../../data/sajuData';
 import { useOpened } from '../../services/content/opened';
 import { useApp } from '../../context/AppContext';
 import { useContentScope } from '../../context/ContentScopeContext';
@@ -28,6 +35,7 @@ import { colors, isDark } from '../../theme/colors';
 import { radius, sansW, txt } from '../../theme/typography';
 
 const TITLE = DAY_STEM_TITLE;
+const CLOUDS = require('../../../assets/figma/day-stem/clouds.webp');
 const LOADING_MSGS = ['태어난 날의 일간을 찾고 있어요', '오행의 기운을 살펴보고 있어요', 'MBTI와 엮어 보고 있어요'];
 
 /** 무료: 일간오행 × MBTI (예: ENFJ × 무토남) */
@@ -64,7 +72,8 @@ export default function DayStemScreen() {
   }
 
   const spec = dayStemSpec(u, d);
-  const hero = <Hero d={d} nickname={u.nickname} />;
+  const tone = toneOf(d);
+  const hero = <Hero d={d} nickname={u.nickname} tone={tone} />;
   return (
     <Screen key="result" title={TITLE} back contentStyle={s.content} right={<ShareIconButton spec={spec} />}>
       {/* 말풍선은 칩 아래 내용 위에 떠 있어서 자리를 차지하지 않는다 */}
@@ -75,28 +84,30 @@ export default function DayStemScreen() {
       <FriendCompare route="DayStem" spec={spec} />
       {drawn ? <Reveal>{hero}</Reveal> : hero}
 
-      <Section number="01" title={`${d.stemName}, ${d.image}의 기운`} />
+      <CompareCard d={d} tone={tone} />
+
+      <Section title={`${d.stemName}, ${d.image}의 기운`} />
       <View style={s.card}>
-        <View style={s.chips}>
-          <Chip label={`${d.isYang ? '양' : '음'}의 ${d.stemName.slice(1)}`} color={d.colorHex} />
-          <Chip label={`상징 · ${d.image}`} color={d.colorHex} />
-        </View>
-        <Text style={[s.body, { marginTop: 10 }]}>{d.story}</Text>
+        <Text style={s.body}>{d.story}</Text>
         <View style={s.list}>
-          {d.strengths.map(line => <Text key={line} style={s.bullet}>· {line}</Text>)}
+          {d.strengths.map(line => <Bullet key={line} text={line} color={tone.accent} />)}
         </View>
       </View>
 
-      <Section number="02" title={`${d.mbti}와 ${d.label}`} />
-      <View style={s.card}>
-        {d.meet.map((p, i) => <Text key={i} style={[s.body, i > 0 && { marginTop: 10 }]}>{p}</Text>)}
+      <Section title="MBTI로 보는 나만의 성향" />
+      <View style={[s.card, s.glance]}>
+        <View style={s.glanceHead}>
+          <SolidIcon name="book" size={20} color={tone.accent} />
+          <Text accessibilityRole="header" style={s.glanceTitle}>한눈에 보는 {d.mbti} × {d.stemName}</Text>
+        </View>
+        {d.meet.map((p, i) => <Text key={i} style={[s.body, { marginTop: i > 0 ? 10 : 6 }]}>{p}</Text>)}
       </View>
 
-      <Section number="03" title="상황별 나" />
-      <View style={{ gap: 8 }}>
-        <Scene title="연애할 때" body={d.love} />
-        <Scene title="일할 때" body={d.work} />
-        <Scene title="친구로서" body={d.friend} />
+      <Section title="상황별 나" />
+      <View style={s.scenes}>
+        {[['연애할 때', d.love], ['일할 때', d.work], ['친구로서', d.friend]].map(([title, body], i) => (
+          <Scene key={title} n={i + 1} title={title} body={body} color={tone.accent} last={i === 2} />
+        ))}
       </View>
 
       <ShareActions spec={spec} title="그 사람은 무슨 조합일까?" sub="내 조합을 보내고, 상대의 MBTI × 일간도 받아 보세요" pose="question" outlined marginTop={16} />
@@ -134,37 +145,153 @@ function MbtiGate({ onSave }: { onSave: (mbti: MBTI) => Promise<void> }) {
   );
 }
 
-function Hero({ d, nickname }: { d: DayStemMbti; nickname: string }) {
+/** 일간별 색 — 히어로 바탕(위→아래)·구름 테두리빛·태그, 본문 포인트(점·번호·아이콘).
+ * 피그마(경금)처럼 짙은 보석색 바탕에 구름은 테두리만 은은하게 빛나도록 */
+type Tone = { top: string; bottom: string; cloud: string; tag: string; accent: string };
+const TONES: Tone[] = [
+  { top: '#001A12', bottom: '#00281B', cloud: '#23855C', tag: '#D8F6E3', accent: '#2E9A60' }, // 갑목
+  { top: '#0B1A04', bottom: '#142A07', cloud: '#5F9230', tag: '#E7F5D3', accent: '#5B9430' }, // 을목
+  { top: '#280606', bottom: '#3B0D08', cloud: '#C44A2C', tag: '#FFE1D8', accent: '#DE5536' }, // 병화
+  { top: '#24041A', bottom: '#370827', cloud: '#C13F76', tag: '#FFDFEA', accent: '#D24C78' }, // 정화
+  { top: '#221403', bottom: '#332006', cloud: '#B47D2A', tag: '#FBEBCD', accent: '#B07A26' }, // 무토
+  { top: '#1D1208', bottom: '#2B1B0D', cloud: '#A0774A', tag: '#F5E6D5', accent: '#A47648' }, // 기토
+  { top: '#000B30', bottom: '#001444', cloud: '#55307E', tag: '#FEE0F6', accent: '#735CB2' }, // 경금 (피그마 원본)
+  { top: '#0D0A2A', bottom: '#17123F', cloud: '#6E58B8', tag: '#EAE3FF', accent: '#7F66C6' }, // 신금
+  { top: '#000E2E', bottom: '#001A48', cloud: '#2A62B4', tag: '#DBE8FF', accent: '#2D6BCB' }, // 임수
+  { top: '#001A22', bottom: '#002934', cloud: '#20879C', tag: '#D5F2F6', accent: '#1A8DA2' }, // 계수
+];
+
+function stemIndex(d: DayStemMbti) {
+  return Math.max(0, STEMS.findIndex(x => x.hanja === d.hanja[0]));
+}
+function toneOf(d: DayStemMbti): Tone {
+  return TONES[stemIndex(d)];
+}
+
+/** 피그마 마스코트(101 칸)에서 캐릭터가 차지하는 자리 — 그림마다 여백이 달라도 캐릭터가 이 칸에 맞게(아래·가운데 기준) 키운다 */
+const MASCOT = 101;
+const GLOW = 150;
+const CHAR = { left: 3, top: 11, right: 92.4, bottom: 92 };
+function mascotFit([l, t, r, b]: MascotBox) {
+  const w = CHAR.right - CHAR.left;
+  const h = CHAR.bottom - CHAR.top;
+  const size = Math.min(w / (r - l), h / (b - t));
+  return {
+    position: 'absolute' as const,
+    width: size,
+    height: size,
+    left: (CHAR.left + CHAR.right) / 2 - size * (l + r) / 2,
+    top: CHAR.bottom - size * b,
+  };
+}
+
+/** 피그마(히어로 폭 327) 기준 — 화면이 넓어지면 마스코트·구름을 폭에 맞춰 키운다 (최대 1.5배) */
+const HERO_W = 327;
+const MAX_SCALE = 1.5;
+
+function Hero({ d, nickname, tone }: { d: DayStemMbti; nickname: string; tone: Tone }) {
+  const mascot = dayStemMascot(d.mbti, d.label.endsWith('남') ? 'male' : 'female', stemIndex(d));
+  const [w, setW] = useState(0);
+  const k = w ? Math.min(MAX_SCALE, Math.max(1, w / HERO_W)) : 1;
+  // 마스코트는 오른쪽 여백 20을 지키고, 세로 중심(32 + 101/2)은 그대로 둔 채 가운데를 기준으로 키운다
+  const place = w ? { left: w - 20 - (MASCOT * (k + 1)) / 2, right: undefined, top: 32 } : null;
+  const room = { marginRight: MASCOT * k };  // 태그는 넓어져서 마스코트가 내려올 때만 비켜 준다
   return (
-    <View style={[s.hero, { backgroundColor: d.colorHex }]}>
-      <View style={s.heroLogo}><Logo height={30} /></View>
-      <Text style={s.heroHanja}>{d.hanja}</Text>
+    <LinearGradient colors={[tone.top, tone.bottom]} style={s.hero} onLayout={e => setW(e.nativeEvent.layout.width)}>
+      <Image source={CLOUDS} style={[s.clouds, { tintColor: tone.cloud }, w ? { height: (w * 195) / HERO_W } : null]} resizeMode="stretch" />
+      <View style={s.heroLogo}><Logo height={20} /></View>
+      {mascot ? <Mascot source={mascot.source} box={mascot.box} glow={tone.cloud} style={[place, { transform: [{ scale: k }] }]} /> : null}
       <Text style={s.eyebrow}>{nickname}님은</Text>
-      <Text accessibilityRole="header" style={s.heroTitle}>{d.title}</Text>
-      <View style={s.tags}>{d.tags.map(tag => <View key={tag} style={s.tag}><Text style={s.tagText}>{tag}</Text></View>)}</View>
-    </View>
+      <Text accessibilityRole="header" style={[s.heroTitle, room]} numberOfLines={2}>{d.title}</Text>
+      <Text style={[s.heroSub, room, { color: tone.tag }]}>{d.isYang ? '양' : '음'}의 {d.stemName.slice(1)} · {d.image}</Text>
+      <View style={[s.tags, k > 1 && room]}>{d.tags.map(tag => <View key={tag} style={[s.tag, { borderColor: tone.tag }]}><Text style={[s.tagText, { color: tone.tag }]}>{tag}</Text></View>)}</View>
+    </LinearGradient>
   );
 }
 
-function Chip({ label, color }: { label: string; color: string }) {
-  return <View style={[s.chip, { borderColor: color }]}><Text style={[s.chipText, { color: isDark ? colors.ink : color }]}>{label}</Text></View>;
-}
-
-function Scene({ title, body }: { title: string; body: string }) {
+/** 마스코트 — 뒤에 일간 색 빛무리, 발밑에 옅은 그림자, 천천히 둥실 */
+function Mascot({ source, box, glow, style }: { source: ImageSourcePropType; box: MascotBox; glow: string; style?: StyleProp<ViewStyle> }) {
+  const reduced = useReducedMotion();
+  const y = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) return;
+    y.value = withRepeat(withTiming(-3, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true);
+    return () => cancelAnimation(y);
+  }, [reduced, y]);
+  const float = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  const shadow = useAnimatedStyle(() => ({ transform: [{ scaleX: 1 + y.value / 30 }], opacity: 1 + y.value / 12 }));
+  const gid = useId().replace(/:/g, '');
   return (
-    <View style={s.card}>
-      <View style={s.sceneHead}>
-        <Text accessibilityRole="header" style={[s.cardTitle, { marginBottom: 0 }]}>{title}</Text>
-      </View>
-      <Text style={[s.body, { marginTop: 8 }]}>{body}</Text>
+    <View style={[s.mascot, style]} pointerEvents="none">
+      <Svg width={GLOW} height={GLOW} style={s.glow}>
+        <Defs>
+          <RadialGradient id={`g${gid}`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={glow} stopOpacity={0.9} />
+            <Stop offset="0.5" stopColor={glow} stopOpacity={0.35} />
+            <Stop offset="1" stopColor={glow} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={GLOW / 2} cy={GLOW / 2} r={GLOW / 2} fill={`url(#g${gid})`} />
+      </Svg>
+      <Animated.View style={[s.shadow, shadow]}>
+        <Svg width={60} height={10}>
+          <Defs>
+            <RadialGradient id={`s${gid}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#000000" stopOpacity={0.45} />
+              <Stop offset="1" stopColor="#000000" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Ellipse cx={30} cy={5} rx={30} ry={5} fill={`url(#s${gid})`} />
+        </Svg>
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, float]}>
+        <Image source={source} style={mascotFit(box)} resizeMode="contain" accessibilityIgnoresInvertColors />
+      </Animated.View>
     </View>
   );
 }
 
-function Section({ number, title }: { number?: string; title: string }) {
+/** MBTI ⊕ 일간 */
+function CompareCard({ d, tone }: { d: DayStemMbti; tone: Tone }) {
+  return (
+    <View style={s.compare}>
+      <View style={s.compareCol}>
+        <Text style={s.compareSub}>{MBTI_INFO[d.mbti].nickname}</Text>
+        <Text style={s.compareMain}>{d.mbti}</Text>
+      </View>
+      <SolidIcon name="addRound" size={20} color={tone.accent} />
+      <View style={s.compareCol}>
+        <Text style={s.compareSub}>{d.image}</Text>
+        <Text style={s.compareMain}>{d.stemName}({d.hanja})</Text>
+      </View>
+    </View>
+  );
+}
+
+function Bullet({ text, color }: { text: string; color: string }) {
+  return (
+    <View style={s.bulletRow}>
+      <View style={[s.dot, { backgroundColor: color }]} />
+      <Text style={s.bullet}>{text}</Text>
+    </View>
+  );
+}
+
+function Scene({ n, title, body, color, last }: { n: number; title: string; body: string; color: string; last: boolean }) {
+  return (
+    <View style={[s.scene, !last && s.sceneLine]}>
+      <View style={[s.num, { backgroundColor: color }]}><Text style={s.numText}>{n}</Text></View>
+      <View style={{ flex: 1 }}>
+        <Text accessibilityRole="header" style={s.sceneTitle}>{title}</Text>
+        <Text style={[s.bodyTight, { marginTop: 2 }]}>{body}</Text>
+      </View>
+    </View>
+  );
+}
+
+function Section({ title }: { title: string }) {
   return (
     <View style={s.section}>
-      {number ? <Text style={[s.sectionText, s.sectionNumber]}>{number}</Text> : null}
       <Text accessibilityRole="header" style={s.sectionText}>{title}</Text>
     </View>
   );
@@ -179,26 +306,40 @@ const s = StyleSheet.create({
   quiz: { flex: 1, backgroundColor: colors.cream },
 
   content: { paddingTop: 0, paddingBottom: 60 },
-  hero: { borderRadius: radius.lg, overflow: 'hidden', alignItems: 'center', paddingTop: 44, paddingBottom: 28, paddingHorizontal: 16 },
-  heroLogo: { position: 'absolute', left: 16, top: 12 },
-  heroHanja: { ...sansW('800'), fontSize: 56, lineHeight: 64, color: 'rgba(255,255,255,0.92)', letterSpacing: 4, ...TIGHT },
-  eyebrow: { ...sansW('500'), fontSize: 13, lineHeight: 18, color: 'rgba(255,255,255,0.85)', marginTop: 10, ...TIGHT },
-  heroTitle: { ...sansW('700'), fontSize: 26, lineHeight: 32, letterSpacing: -1.2, color: colors.white, marginTop: 4, textAlign: 'center', ...TIGHT },
-  tags: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12, flexWrap: 'wrap' },
-  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)' },
-  tagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, color: colors.white, ...TIGHT },
+  hero: { borderRadius: radius.lg, overflow: 'hidden', minHeight: 195, paddingTop: 45, paddingBottom: 22, paddingLeft: 20, paddingRight: 20 },
+  clouds: { position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: 195 },
+  heroLogo: { position: 'absolute', left: 12, top: 6 },
+  mascot: { position: 'absolute', right: 20, top: 32, width: MASCOT, height: MASCOT },
+  glow: { position: 'absolute', left: (MASCOT - GLOW) / 2, top: (MASCOT - GLOW) / 2 - 2 },
+  shadow: { position: 'absolute', left: (MASCOT - 60) / 2 + 2, top: 88 },
+  eyebrow: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: '#DDDDDD', ...TIGHT },
+  heroTitle: { ...sansW('700'), fontSize: 30, lineHeight: 36, letterSpacing: -1.5, color: colors.white, marginTop: 8, ...TIGHT },
+  heroSub: { ...sansW('600'), fontSize: 14, lineHeight: 18, letterSpacing: -0.7, marginTop: 8, ...TIGHT },
+  tags: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
+  tag: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5 },
+  tagText: { ...sansW('600'), fontSize: 12, lineHeight: 15, opacity: 0.8, ...TIGHT },
+
+  compare: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingVertical: 11, borderRadius: radius.lg, backgroundColor: colors.card },
+  compareCol: { flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 8 },
+  compareSub: { ...sansW('400'), fontSize: 12, lineHeight: 18, letterSpacing: -0.6, color: INK, textAlign: 'center', ...TIGHT },
+  compareMain: { ...sansW('700'), fontSize: 16, lineHeight: 19, letterSpacing: -0.64, color: isDark ? colors.ink : '#222222', textAlign: 'center', ...TIGHT },
 
   section: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 32, marginBottom: 16 },
-  sectionText: { ...sansW('600'), fontSize: 18, lineHeight: 21, letterSpacing: -0.9, color: INK, flexShrink: 1, ...TIGHT },
-  sectionNumber: { color: colors.accent, flexShrink: 0 },
+  sectionText: { ...sansW('800'), fontSize: 16, lineHeight: 19, letterSpacing: -0.64, color: INK, flexShrink: 0, ...TIGHT },
   card: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card },
-  cardTitle: { ...sansW('600'), fontSize: 16, lineHeight: 19, letterSpacing: -0.8, color: INK, marginBottom: 8, ...TIGHT },
-  body: { ...sansW('400'), fontSize: 13, lineHeight: 19, letterSpacing: -0.65, color: INK, ...TIGHT },
-  small: { ...sansW('400'), fontSize: 12, lineHeight: 17, letterSpacing: -0.6, color: colors.inkMute, marginTop: 8, ...TIGHT },
-  bullet: { ...sansW('400'), fontSize: 13, lineHeight: 21, letterSpacing: -0.65, color: INK, ...TIGHT },
-  list: { marginTop: 10 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-  chipText: { ...sansW('600'), fontSize: 12, lineHeight: 15, ...TIGHT },
-  sceneHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  body: { ...sansW('400'), fontSize: 13, lineHeight: 22, letterSpacing: -0.65, color: INK, ...TIGHT },
+  bodyTight: { ...sansW('400'), fontSize: 13, lineHeight: 18, letterSpacing: -0.65, color: INK, ...TIGHT },
+  list: { marginTop: 8, gap: 2 },
+  bulletRow: { flexDirection: 'row' },
+  dot: { width: 6, height: 6, borderRadius: 3, marginTop: 8, marginRight: 8 },
+  bullet: { ...sansW('400'), fontSize: 13, lineHeight: 22, letterSpacing: -0.65, color: INK, flex: 1, ...TIGHT },
+  glance: { borderRadius: 8 },
+  glanceHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  glanceTitle: { ...sansW('700'), fontSize: 14, lineHeight: 17, letterSpacing: -0.56, color: isDark ? colors.ink : '#222222', flexShrink: 1, ...TIGHT },
+  scenes: { borderRadius: radius.lg, borderWidth: 1, borderColor: isDark ? colors.line : '#E8E8E8', overflow: 'hidden' },
+  scene: { flexDirection: 'row', gap: 12, paddingVertical: 10, paddingLeft: 16, paddingRight: 16 },
+  sceneLine: { borderBottomWidth: 1, borderBottomColor: isDark ? colors.line : '#E8E8E8' },
+  num: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  numText: { ...sansW('700'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: colors.white, ...TIGHT },
+  sceneTitle: { ...sansW('700'), fontSize: 13, lineHeight: 16, letterSpacing: -0.52, color: isDark ? colors.ink : '#222222', ...TIGHT },
 });
