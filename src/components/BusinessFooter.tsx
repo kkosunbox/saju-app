@@ -12,6 +12,7 @@ import { radius, sansW } from '../theme/typography';
 
 const SOCIAL = [
   { key: 'instagram', label: '운Pick 인스타그램', url: 'https://www.instagram.com/woonpick.official/' },
+  { key: 'youtube', label: '운Pick 유튜브', url: 'https://www.youtube.com/@woonpickkr' },
   { key: 'kakao', label: '운Pick 카카오톡 채널', url: 'http://pf.kakao.com/_MiaWX' },
 ] as const;
 
@@ -22,6 +23,15 @@ function SocialGlyph({ name, color }: { name: (typeof SOCIAL)[number]['key']; co
         <Rect x={3} y={3} width={18} height={18} rx={5.5} stroke={color} strokeWidth={1.8} />
         <Circle cx={12} cy={12} r={4.2} stroke={color} strokeWidth={1.8} />
         <Circle cx={17.3} cy={6.7} r={1.15} fill={color} />
+      </Svg>
+    );
+  }
+  if (name === 'youtube') {
+    // 인스타그램과 같은 선 굵기의 둥근 화면 + 재생 삼각형
+    return (
+      <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
+        <Rect x={2.5} y={5} width={19} height={14} rx={4.5} stroke={color} strokeWidth={1.8} />
+        <Path fill={color} d="M10.2 9.1v5.8c0 .3.33.48.58.32l4.5-2.9a.38.38 0 0 0 0-.64l-4.5-2.9a.38.38 0 0 0-.58.32z" />
       </Svg>
     );
   }
