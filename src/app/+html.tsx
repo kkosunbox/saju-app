@@ -42,9 +42,7 @@ export default function Root({ children, pathname = '/' }: PropsWithChildren<{ p
         {/* maximum-scale=1: iOS 사파리가 16px보다 작은 입력창(상담 14px)에 포커스할 때 화면을 확대하지 않게. 손가락 확대는 iOS가 그대로 허용한다 */}
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <script dangerouslySetInnerHTML={{ __html: RETURNING_JS }} />
-        {pathname === '/' ? (
-          <script async src="/campaign-visit.js" data-api-url={API_URL} referrerPolicy="no-referrer" />
-        ) : null}
+        <script async src="/campaign-visit.js" data-api-url={API_URL} referrerPolicy="no-referrer" />
         <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#121418" media="(prefers-color-scheme: dark)" />
         <meta name="application-name" content={BRAND.name} />

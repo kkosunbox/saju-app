@@ -2,22 +2,50 @@
   const endpoint = document.currentScript.dataset.apiUrl + '/v1/campaign-visits';
   // Expo Router can replace the landing URL while the script downloads.
   const entry = performance.getEntriesByType('navigation')[0];
-  const params = new URL(entry?.name ?? window.location.href).searchParams;
-  const source = params.get('utm_source');
-  const medium = params.get('utm_medium');
-  const campaign = params.get('utm_campaign');
-  const isInstagram = source === 'ig' || source === 'instagram';
-  let channel;
-  if (isInstagram && medium === 'paid_social') {
-    channel = 'instagram_ads';
-  } else if (isInstagram && medium === 'social' &&
-      (params.get('utm_content') === 'link_in_bio' || campaign === 'profile')) {
-    channel = 'instagram_profile';
-  } else if (source === 'youtube' && medium === 'social' && campaign === 'profile') {
-    channel = 'youtube_profile';
-  } else {
-    return;
+  const landing = new URL(entry?.name ?? window.location.href);
+
+  function channelForVisit() {
+    const { pathname, searchParams: params } = landing;
+    const path = pathname.replace(/\/$/, '');
+    if (path.startsWith('/auth/callback/') || /^\/oauth\/[^/]+\/callback$/.test(path)) return;
+    if ((path === '/charge' || path === '/subscribe') && params.has('result')) return;
+    if (path === '/subscription' && params.has('card')) return;
+
+    const source = params.get('utm_source');
+    const medium = params.get('utm_medium');
+    const campaign = params.get('utm_campaign');
+    const isInstagram = source === 'ig' || source === 'instagram';
+    if (isInstagram && medium === 'paid_social') return 'instagram_ads';
+    if (isInstagram && medium === 'social' &&
+        (params.get('utm_content') === 'link_in_bio' || campaign === 'profile')) {
+      return 'instagram_profile';
+    }
+    if (source === 'youtube' && medium === 'social' && campaign === 'profile') return 'youtube_profile';
+
+    const paidSearch = medium === 'cpc' || medium === 'ppc' || medium === 'paid_search' || medium === 'paidsearch';
+    if (params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
+        (source === 'google' && paidSearch)) {
+      return 'google_ads';
+    }
+
+    if (!document.referrer) return 'direct_unknown';
+    const host = new URL(document.referrer).hostname.replace(/^www\./, '');
+    if (host === landing.hostname.replace(/^www\./, '')) return;
+    if (paidSearch || params.has('msclkid')) return 'other_referral';
+
+    // Cross-site referrers typically contain only the origin.
+    if (/^google\.(?:com|co\.kr|co\.jp|co\.uk|com\.au|co\.in|ca|de|fr)$/.test(host)) return 'google_search';
+    if (host === 'search.naver.com' || host === 'm.search.naver.com') return 'naver_search';
+    if (host === 'bing.com' || host === 'duckduckgo.com' ||
+        host === 'search.daum.net' || host === 'm.search.daum.net' ||
+        host === 'search.yahoo.com' || host.endsWith('.search.yahoo.com')) {
+      return 'other_search';
+    }
+    return 'other_referral';
   }
+
+  const channel = channelForVisit();
+  if (!channel) return;
 
   function recordVisit() {
     const key = 'woonpick:campaign-visit:' + channel;
@@ -29,10 +57,10 @@
     } catch {
       // Tracking still works when browser storage is unavailable.
     }
-    if (previous?.sent && now - previous.startedAt < sessionLength) return;
-    const visit = previous?.id && now - previous.startedAt < sessionLength
-      ? previous
-      : { id: crypto.randomUUID(), startedAt: now };
+    const activeVisit = previous?.id && now - previous.startedAt < sessionLength ? previous : null;
+    if (activeVisit?.sent) return;
+    if (!activeVisit && (entry?.type === 'reload' || entry?.type === 'back_forward')) return;
+    const visit = activeVisit ?? { id: crypto.randomUUID(), startedAt: now };
 
     function saveVisit(sent) {
       try {
