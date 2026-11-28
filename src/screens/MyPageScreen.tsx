@@ -18,6 +18,7 @@ import Disclaimer from '../components/Disclaimer';
 import BusinessFooter from '../components/BusinessFooter';
 import Segmented from '../components/Segmented';
 import BottomSheet from '../components/BottomSheet';
+import InstallSheet from '../components/InstallSheet';
 import PrimaryButton from '../components/PrimaryButton';
 import { ThemePref, readThemePrefSync, saveThemePref } from '../theme/themePref';
 import { useApp } from '../context/AppContext';
@@ -29,6 +30,7 @@ import { fmtN } from '../services/premium/catalog';
 import { NotificationSettings, formatMinute, notificationService } from '../services/notificationService';
 import FortuneTimeWheel from '../components/notification/FortuneTimeWheel';
 import type { PushPermission } from '../services/push';
+import { useInstallDevice } from '../services/webInstall';
 import { MBTI_INFO } from '../data/mbtiData';
 import { RELATIONSHIP_LABEL, User } from '../types';
 import { colors } from '../theme/colors';
@@ -149,6 +151,8 @@ function MyProfiles({ profiles }: { profiles: User[] }) {
 
 export default function MyPageScreen() {
   const { user, profiles, fortune: viewed, account, signOut } = useApp();
+  const installDevice = useInstallDevice();
+  const [installOpen, setInstallOpen] = useState(false);
   // 대표 프로필 운세만 (메인에서 다른 프로필을 보는 중이면 숨긴다)
   const fortune = viewed?.forProfile == null ? viewed : null;
   const { points, ownedCount, toast, subscription } = usePremium();
@@ -357,6 +361,12 @@ export default function MyPageScreen() {
       )}
       <ProfileHeading title="정보" />
       <Card style={s.group}>
+        {installDevice ? (
+          <PressableScale onPress={() => setInstallOpen(true)} style={[s.row, s.border]} scaleTo={0.98}>
+            <Text style={s.menuLabel}>{installDevice === 'desktop' ? 'PC에 웹 앱 설치' : '앱 설치 · 홈 화면 추가'}</Text>
+            <View style={s.menuArrow}><FigmaAsset name="chevron" /></View>
+          </PressableScale>
+        ) : null}
         {([['이용약관', () => nav.navigate('Legal', { doc: 'terms' })], ['개인정보처리방침', () => nav.navigate('Legal', { doc: 'privacy' })], ['문의하기', () => nav.navigate('Inquiry')]] as const).map(([t, go], i, a) => (
           <PressableScale key={t} onPress={go} style={[s.row, i < a.length - 1 && s.border]} scaleTo={0.98}>
             <Text style={s.menuLabel}>{t}</Text>
@@ -364,6 +374,7 @@ export default function MyPageScreen() {
           </PressableScale>
         ))}
       </Card>
+      {installDevice ? <InstallSheet device={installDevice} visible={installOpen} onClose={() => setInstallOpen(false)} /> : null}
       <Text style={[txt.caption, { textAlign: 'center', marginTop: 10 }]}>{BRAND.name} {appJson.expo.version} · {BRAND.slogan}</Text>
 
       {account ? <View style={s.accountActions}>

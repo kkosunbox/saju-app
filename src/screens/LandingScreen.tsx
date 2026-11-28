@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandMark from "../components/BrandMark";
 import BusinessFooter from "../components/BusinessFooter";
 import Card from "../components/Card";
+import InstallSheet from "../components/InstallSheet";
+import StoreInstallButtons from "../components/StoreInstallButtons";
 import { HomeAnalysisArt } from "../components/home/HomeDesignAssets";
 import Mascot, { ArtName } from "../components/Mascot";
 import MascotCarousel from "../components/MascotCarousel";
@@ -28,6 +30,7 @@ import { useApp } from "../context/AppContext";
 import { ITEMS } from "../services/premium/catalog";
 import { newYearOf } from "../services/promo/promos";
 import { sampleUsers } from "../services/sampleUsers";
+import { useInstallDevice, useWebInstallRequest } from "../services/webInstall";
 import { analysisTheme, colors, gradients, isDark } from "../theme/colors";
 import { fonts, radius, sansW, shadow, txt } from "../theme/typography";
 import { todayISO } from "../utils/date";
@@ -206,6 +209,9 @@ const REVIEWS = [
  */
 export default function LandingScreen() {
   const { completeOnboarding } = useApp();
+  const installDevice = useInstallDevice();
+  const [installOpen, setInstallOpen] = useState(false);
+  const { install, requesting } = useWebInstallRequest(() => setInstallOpen(true));
   const insets = useSafeAreaInsets();
   const safeTop = webSafeTop(insets.top);
   const start = () => {
@@ -375,6 +381,21 @@ export default function LandingScreen() {
               </>
             )}
           </View>
+          {installDevice ? (
+            <>
+              <View style={s.installActions}>
+                <StoreInstallButtons device={installDevice} horizontal />
+                <PrimaryButton
+                  label={installDevice === "desktop" ? "PC에 웹 앱 설치 →" : "홈 화면에 추가 →"}
+                  variant="text"
+                  small
+                  onPress={install}
+                  disabled={requesting}
+                />
+              </View>
+              <InstallSheet device={installDevice} visible={installOpen} guideOnly onClose={() => setInstallOpen(false)} />
+            </>
+          ) : null}
           {/* <View style={s.points}>
             {POINTS.map(([t, d]) => (
               <View key={t} style={s.point}>
@@ -570,6 +591,7 @@ const s = StyleSheet.create({
   // 그림 좌우의 빈 하늘을 잘라 폰을 더 크게
   previewImage: { width: "100%", aspectRatio: 4 / 3 },
   previewFade: { position: "absolute", left: 0, right: 0, height: 72 },
+  installActions: { alignSelf: "center", width: "100%", maxWidth: 380, gap: 3, marginTop: 4 },
   points: { marginTop: 16, gap: 12 },
   point: { gap: 2 },
   pointTitle: {

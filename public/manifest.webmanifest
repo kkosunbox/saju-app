@@ -2,6 +2,7 @@
   "name": "운Pick(운픽) · 오늘의 운, 하나만 Pick!",
   "short_name": "운Pick",
   "lang": "ko",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

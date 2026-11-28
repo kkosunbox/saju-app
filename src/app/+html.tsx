@@ -58,6 +58,7 @@ export default function Root({ children, pathname = '/' }: PropsWithChildren<{ p
         <meta name="naver-site-verification" content="c6e00275211265c4ab02d8421ae1bfa179e70866" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
+        <script src="/web-install.js" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         {/* 화면에 쓰인 글자 범위만 받는 dynamic subset */}
         <link rel="stylesheet" href={PRETENDARD_STYLESHEET} />

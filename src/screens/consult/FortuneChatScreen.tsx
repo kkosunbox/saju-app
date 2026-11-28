@@ -8,6 +8,7 @@ import PressableScale from '../../components/PressableScale';
 import Icon from '../../components/Icon';
 import { FortuneProfileChip } from '../../components/home/FortuneProfileBadge';
 import FortuneAlarmPrompt from '../../components/notification/FortuneAlarmPrompt';
+import InstallSheet from '../../components/InstallSheet';
 import { useApp } from '../../context/AppContext';
 import { CombinedFortune, DailyFortune } from '../../types';
 import { usePremium } from '../../context/PremiumContext';
@@ -16,6 +17,7 @@ import { ITEMS } from '../../services/premium/catalog';
 import { useFortuneDraw } from '../../services/content/opened';
 import { notificationService } from '../../services/notificationService';
 import { storage } from '../../services/storage/storageService';
+import { reserveFortuneInstallPrompt, useInstallDevice } from '../../services/webInstall';
 import { CategoryKey, categoryTheme, colors } from '../../theme/colors';
 import { radius, SCREEN_PX, txt } from '../../theme/typography';
 import { formatKoreanDate } from '../../utils/date';
@@ -37,6 +39,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const ASK_INPUT_MAX = 120;
 /** 답이 온 뒤 대화 끝을 따라 내려가는 시간 (긴 답이 다 써질 만큼) */
 const FOLLOW_MS = 15000;
+const INSTALL_PROMPT_DELAY_MS = 2000;
 
 /** 게스트 가입 안내 팝업 — 일단 끔. 다시 띄우려면 true로 */
 const FORTUNE_SIGNUP_ENABLED = false;
@@ -203,6 +206,9 @@ export default function FortuneChatScreen() {
 
   // 방금 뽑았으면 답이 다 나오고 몇 초 뒤 알림 권유를 한 번 (띄울지는 notificationService가 정한다)
   const live = useScreenLive();
+  const installDevice = useInstallDevice();
+  const mobileWeb = installDevice === 'ios' || installDevice === 'android';
+  const [installAsk, setInstallAsk] = useState(false);
   const [alarmAsk, setAlarmAsk] = useState(false);
   const [signupSeen, setSignupSeen] = useState<boolean | null>(null);
   const { reserve: reserveSignup, setHostLive: setSignupHostLive } = useFortuneSignup();
@@ -245,8 +251,18 @@ export default function FortuneChatScreen() {
 
   const f = fortune?.combined;
   const watchForSignup = FORTUNE_SIGNUP_ENABLED && guest && signupSeen === false && ready && !!f && live && !alarmAsk;
-  // 첫 운세는 본문이 순서대로 나타난다. 본문 끝(추천 질문)이 화면에 들어오면 예약한다 —
-  // 큰 화면이라 스크롤 없이 다 보이면 스크롤하지 않아도.
+  const watchForInstall = mobileWeb && !fromPremiumReading
+    && fresh && ready && !!f && live && !alarmAsk && !watchForSignup && !inline.sending;
+  // 새 풀이의 Stream이 시작되는 렌더에서 함께 시간을 잰다.
+  useEffect(() => {
+    if (!watchForInstall) return;
+    const timer = setTimeout(() => {
+      if (reserveFortuneInstallPrompt()) setInstallAsk(true);
+    }, INSTALL_PROMPT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [readingKey, watchForInstall]);
+
+  // 가입 안내는 본문 끝(추천 질문)이 화면에 들어올 때 예약한다.
   const checkSignupPosition = useCallback(() => {
     if (!watchForSignup || signupReserved.current) return;
     const end = readingEnd.current;
@@ -256,7 +272,11 @@ export default function FortuneChatScreen() {
     signupReserved.current = true;
     reserveSignup();
   }, [readingKey, reserveSignup, watchForSignup]);
-  useEffect(() => { checkSignupPosition(); }, [checkSignupPosition]);
+  useEffect(() => {
+    if (!watchForSignup) return;
+    const frame = requestAnimationFrame(checkSignupPosition);
+    return () => cancelAnimationFrame(frame);
+  }, [checkSignupPosition, watchForSignup]);
 
   const onFortuneScroll = ({ nativeEvent: { contentOffset, layoutMeasurement } }: NativeSyntheticEvent<NativeScrollEvent>) => {
     readingScroll.current = { key: readingKey, y: contentOffset.y };
@@ -345,7 +365,7 @@ export default function FortuneChatScreen() {
               </StreamBlock>
             </Counselor>
           </Stream>
-        ) : reading || !f ? (
+        ) : sealed || reading || !f ? (
           <ReplyBubble typing={WRITING} />
         ) : (
           <Stream key={fresh ? 'fresh' : 'seen'} active={fresh}>
@@ -384,6 +404,7 @@ export default function FortuneChatScreen() {
       </View>
       </KeyboardAvoidingView>
       <FortuneAlarmPrompt visible={alarmAsk} onClose={() => setAlarmAsk(false)} />
+      {mobileWeb ? <InstallSheet device={installDevice} visible={live && installAsk} fromFortune onClose={() => setInstallAsk(false)} /> : null}
       {costSheet}
     </Screen>
   );
