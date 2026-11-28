@@ -6,6 +6,7 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "redirects": [
+    { "source": "/yt", "destination": "/?utm_source=youtube&utm_medium=social&utm_campaign=profile", "permanent": false },
     { "source": "/terms", "destination": "/legal/terms", "permanent": true },
     { "source": "/privacy", "destination": "/legal/privacy", "permanent": true }
   ],

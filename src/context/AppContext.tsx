@@ -8,6 +8,7 @@ import { AppState as NativeAppState } from 'react-native';
 import { DailyFortune, User } from '../types';
 import { storage } from '../services/storage/storageService';
 import { push } from '../services/push';
+import { useReportAppDevice } from '../services/appDevice';
 import { Account, GuestConsent, authApi } from '../services/server/authApi';
 import { fortuneApi } from '../services/server/fortuneApi';
 import { ProfileInput, personToUser, profileApi } from '../services/server/profileApi';
@@ -180,6 +181,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user, fortuneProfileId]);
 
   useEffect(() => { refreshFortune(); }, [refreshFortune]);
+
+  const deviceAccountId = account?.id ?? user?.id;
+  useReportAppDevice(booting || deviceAccountId == null ? undefined : String(deviceAccountId));
 
   // 앱을 열 때·계정이 바뀔 때 (로그인, 게스트 생성) 이 기기를 지금 계정의 푸시 기기로
   const userId = user?.id;
